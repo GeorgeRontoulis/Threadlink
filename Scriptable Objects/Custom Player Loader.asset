@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a6bda33c7ebd7e448e2ffc6ae1c15ec, type: 3}
+  m_Name: Custom Player Loader
+  m_EditorClassIdentifier: 
+  playerPrefabs:
+  - addressableInfo:
+      targetGroup: Player Prefabs
+      assetAddress: Assets/Prefabs/Player/Player_Swordsman.prefab
+    classID: {fileID: 11400000, guid: 212da708858d60144989dee3ba10d1a6, type: 2}
+  dissolveControllerAddressable:
+    addressableInfo:
+      targetGroup: Player Prefabs
+      assetAddress: Assets/Prefabs/VFX/DissolveController.prefab
+  mainCamera:
+    addressableInfo:
+      targetGroup: Player Prefabs
+      assetAddress: Assets/Prefabs/Cameras/Player Camera_TopDownVariant.prefab
+  ui:
+    addressableInfo:
+      targetGroup: UI Prefabs
+      assetAddress: Assets/Prefabs/UI/OverlayUI_PlayerVitals.prefab

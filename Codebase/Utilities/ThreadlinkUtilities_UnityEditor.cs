@@ -1,0 +1,87 @@
+namespace Threadlink.Utilities.Editor
+{
+	using UnityEngine;
+
+#if true
+	using UnityEditor;
+#endif
+
+	public static class EditorUtilities
+	{
+#if UNITY_EDITOR
+		public static bool EditorInOrWillChangeToPlaymode { get => EditorApplication.isPlayingOrWillChangePlaymode; }
+
+		/// <summary>
+		/// Attempts to set a component in the OnValidate() or other Editor methods.
+		/// </summary>
+		public static void TrySetAttachedComponent<T>(this MonoBehaviour caller, ref T target) where T : Component
+		{
+			T component = caller.GetComponent<T>();
+
+			if (target == null || target != component)
+			{
+				target = component;
+				SetDirty(caller);
+			}
+		}
+
+		/// <summary>
+		/// Attempts to set an object in the OnValidate() or other Editor methods.
+		/// </summary>
+		public static void TrySetObject<T>(this Object caller, ref T target, T value) where T : Object
+		{
+			if (target == null && value != null)
+			{
+				target = value;
+				SetDirty(caller);
+			}
+		}
+
+		/// <summary>
+		/// Attempts to set a value in the OnValidate() or other Editor methods.
+		/// </summary>
+		public static void TrySetValue<T>(this Object caller, ref T target, T value) where T : struct
+		{
+			target = value;
+			SetDirty(caller);
+		}
+
+		/// <summary>
+		/// Attempts to set a string in the OnValidate() or other Editor methods.
+		/// </summary>
+		public static void SetString(this Object caller, ref string target, string value)
+		{
+			if (string.IsNullOrEmpty(value) == false)
+			{
+				target = value;
+				SetDirty(caller);
+			}
+		}
+
+		/// <summary>
+		/// Attempts to set a string in the OnValidate() or other Editor methods.
+		/// </summary>
+		public static void TrySetString(this Object caller, ref string target, string value)
+		{
+			if (string.IsNullOrEmpty(target) && string.IsNullOrEmpty(value) == false)
+			{
+				target = value;
+				SetDirty(caller);
+			}
+		}
+
+		public static void SetDirty(Object unityObject) { EditorUtility.SetDirty(unityObject); }
+
+		public static AssetType LoadEditorAsset<AssetType>(string address) where AssetType : UnityEngine.Object
+		{
+			AssetType asset = AssetDatabase.LoadAssetAtPath<AssetType>(address);
+
+			if (asset == null) Debug.LogError("Could not find the editor asset requested.");
+
+			return asset;
+		}
+
+		public static void SaveAllAssets() { AssetDatabase.SaveAssets(); }
+#endif
+	}
+}

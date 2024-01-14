@@ -1,0 +1,12 @@
+//Project: Aeon's Legacy: Ascension
+//Lead Programmer: George Rontoulis
+
+namespace <Namespace>
+{
+	using UnityEngine;
+
+	[CreateAssetMenu(menuName = "<AssetMenuPath>")]
+	<Scope> class <ClassName> : <BaseClass>
+	{
+	}
+}
