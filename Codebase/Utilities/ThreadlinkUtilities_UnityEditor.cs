@@ -2,7 +2,7 @@ namespace Threadlink.Utilities.Editor
 {
 	using UnityEngine;
 
-#if true
+#if UNITY_EDITOR
 	using UnityEditor;
 #endif
 
@@ -72,13 +72,28 @@ namespace Threadlink.Utilities.Editor
 
 		public static void SetDirty(Object unityObject) { EditorUtility.SetDirty(unityObject); }
 
-		public static AssetType LoadEditorAsset<AssetType>(string address) where AssetType : UnityEngine.Object
+		public static AssetType LoadEditorAsset<AssetType>(string address) where AssetType : Object
 		{
 			AssetType asset = AssetDatabase.LoadAssetAtPath<AssetType>(address);
 
 			if (asset == null) Debug.LogError("Could not find the editor asset requested.");
 
 			return asset;
+		}
+
+		public static T[] FindAssetsOfType<T>() where T : Object
+		{
+			string assetType = typeof(T).Name;
+			string[] guids = AssetDatabase.FindAssets($"t:{assetType}");
+			int length = guids.Length;
+			T[] assets = new T[length];
+
+			for (int i = 0; i < length; i++)
+			{
+				assets[i] = AssetDatabase.LoadAssetAtPath<T>(AssetDatabase.GUIDToAssetPath(guids[i]));
+			}
+
+			return assets;
 		}
 
 		public static void SaveAllAssets() { AssetDatabase.SaveAssets(); }

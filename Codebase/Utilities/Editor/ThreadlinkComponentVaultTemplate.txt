@@ -1,0 +1,17 @@
+namespace Threadlink.Core
+{
+	using MassTransit;
+	using System.Collections.Generic;
+
+	/// <summary>
+	/// Threadlink's main Data Container interface.
+	/// </summary>
+	public interface IThreadlinkComponent { }
+
+	<ComponentDefinitions>
+
+	public struct ThreadlinkComponentVault
+	{
+		<ComponentCollections>
+	}
+}

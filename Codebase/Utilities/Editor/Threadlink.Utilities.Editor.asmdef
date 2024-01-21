@@ -9,8 +9,13 @@
     ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "NewId.dll",
+        "CSharpier.dll",
+        "Sirenix.OdinInspector.Attributes.dll",
+        "Microsoft.CodeAnalysis.dll"
+    ],
     "autoReferenced": true,
     "defineConstraints": [],
     "versionDefines": [],

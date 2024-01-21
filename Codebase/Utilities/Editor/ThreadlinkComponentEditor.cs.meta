@@ -1,11 +1,12 @@
 fileFormatVersion: 2
-guid: a85880ebb65751b41b82933b0aa65cd1
+guid: eb66aaf3dd414614e884ede0a37a3e9f
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
   defaultReferences:
   - m_ViewDataDictionary: {instanceID: 0}
-  - template: {fileID: 4900000, guid: 6224f2376d5bb0146a0e0eccfa7b8cab, type: 3}
+  - vaultTemplate: {fileID: 4900000, guid: 5e3269e0d0a295243bb6eabb51c2815c, type: 3}
+  - compilationTarget: {fileID: 11500000, guid: 7e1e3601de9f8de449627e0fface8593, type: 3}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

@@ -1,5 +1,6 @@
 namespace Threadlink.Utilities.Editor
 {
+	using Sirenix.OdinInspector;
 	using System.IO;
 	using UnityEditor;
 	using UnityEngine;
@@ -7,7 +8,7 @@ namespace Threadlink.Utilities.Editor
 
 	internal sealed class ScriptableObjectCreationWizard : ScriptableWizard
 	{
-		[SerializeField] private DynamicEditorAssetPath templatePath = null;
+		[ReadOnly][SerializeField] private TextAsset template = null;
 		[SerializeField] private string assetMenuPath = string.Empty;
 		[SerializeField] private string scriptPath = string.Empty;
 
@@ -26,13 +27,10 @@ namespace Threadlink.Utilities.Editor
 
 		private void OnWizardCreate()
 		{
-			if (templatePath == null) return;
+			if (template == null) return;
 
 			//Prepare the file:
-			StreamReader reader = new StreamReader(templatePath.AbsolutePath);
-			string templateContents = reader.ReadToEnd();
-
-			reader.Close();
+			string templateContents = template.text;
 
 			//Modify the template copy:
 			templateContents = templateContents.Replace("<Namespace>", namespaceName);
@@ -54,7 +52,7 @@ namespace Threadlink.Utilities.Editor
 
 		private void OnWizardUpdate()
 		{
-			helpString = "Please set the class name and path of the ScriptableObject class.";
+			helpString = "Please set the class name and path of the ScriptableObject.";
 		}
 	}
 }

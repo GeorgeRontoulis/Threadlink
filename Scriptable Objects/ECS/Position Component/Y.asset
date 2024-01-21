@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4d34be4cd6b013148a9d568dc01eec51, type: 3}
-  m_Name: EditorAssetPath_SOTemplate_EditorOnly
+  m_Script: {fileID: 11500000, guid: 65b17d6399bc10e4f821514a4aca643d, type: 3}
+  m_Name: Y
   m_EditorClassIdentifier: 
-  assetReference: {fileID: 4900000, guid: 6224f2376d5bb0146a0e0eccfa7b8cab, type: 3}
+  GenericValue: 0
