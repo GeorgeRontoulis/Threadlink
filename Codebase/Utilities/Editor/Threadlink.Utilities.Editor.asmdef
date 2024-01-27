@@ -11,10 +11,7 @@
     "allowUnsafeCode": false,
     "overrideReferences": true,
     "precompiledReferences": [
-        "NewId.dll",
-        "CSharpier.dll",
-        "Sirenix.OdinInspector.Attributes.dll",
-        "Microsoft.CodeAnalysis.dll"
+        "Sirenix.OdinInspector.Attributes.dll"
     ],
     "autoReferenced": true,
     "defineConstraints": [],

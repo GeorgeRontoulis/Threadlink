@@ -1,16 +1,16 @@
 namespace Threadlink.Systems.Dextra
 {
+	using Extensions.Dextra;
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Linq;
 	using Threadlink.Core;
-	using Threadlink.Extensions.Dextra;
-	using Threadlink.Utilities.Events;
 	using UnityEngine;
 	using UnityEngine.EventSystems;
 	using UnityEngine.InputSystem;
 	using UnityEngine.UI;
+	using Utilities.Events;
 	using Context = UnityEngine.InputSystem.InputAction.CallbackContext;
 
 	public interface IInputHandler
@@ -45,12 +45,12 @@ namespace Threadlink.Systems.Dextra
 
 		public void SetUpHandler(Action action)
 		{
-			Handler = (Context ctx) => Dextra.PerformContextualAction(ctx, action);
+			Handler = (Context ctx) => Dextra.PerformContextualAction(action);
 		}
 
 		public void SetUpHandler(Action<T> action)
 		{
-			Handler = (Context ctx) => Dextra.PerformContextualAction(ctx, action, ctx.ReadValue<T>());
+			Handler = (Context ctx) => Dextra.PerformContextualAction(action, ctx.ReadValue<T>());
 		}
 
 		public void Subscribe() { InputAction.performed += Handler; }
@@ -287,9 +287,9 @@ namespace Threadlink.Systems.Dextra
 			ForceStopControllerVibration();
 		}
 
-		public static void PerformContextualAction(Context ctx, Action action) { action(); }
-		public static void PerformContextualAction<T>(Context ctx, Action<T> action, T arg) { action(arg); }
-		public static void PerformContextualAction<T>(Context ctx, Action<T[]> action, params T[] args) { action(args); }
+		public static void PerformContextualAction(Action action) { action(); }
+		public static void PerformContextualAction<T>(Action<T> action, T arg) { action(arg); }
+		public static void PerformContextualAction<T>(Action<T[]> action, params T[] args) { action(args); }
 		public static void SetEventSystemActiveState(bool state) { EventSystem.gameObject.SetActive(state); }
 
 		/// <summary>

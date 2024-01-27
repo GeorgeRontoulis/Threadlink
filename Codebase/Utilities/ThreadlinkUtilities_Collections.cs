@@ -2,6 +2,7 @@ namespace Threadlink.Utilities.Collections
 {
 	using Editor;
 	using RNG;
+	using Sirenix.OdinInspector;
 	using System;
 	using System.Collections.Generic;
 	using Threadlink.Utilities.UnityLogging;
@@ -41,6 +42,59 @@ namespace Threadlink.Utilities.Collections
 		public bool Equals(MatrixPosition other)
 		{
 			return R == other.R && C == other.C;
+		}
+	}
+
+	[Serializable]
+	public sealed class ChunkedArray<T>
+	{
+		public int Count { get; private set; }
+
+		private int ChunkSize { get; set; }
+		[ShowInInspector] private List<T[]> Chunks { get; set; }
+
+		public ChunkedArray(int chunkSize)
+		{
+			ChunkSize = chunkSize;
+			Count = 0;
+			Chunks = new();
+		}
+
+		public void Add(T item)
+		{
+			int chunkIndex = Count / ChunkSize;
+			int localIndex = Count % ChunkSize;
+
+			if (localIndex == 0) Chunks.Add(new T[ChunkSize]);
+
+			Chunks[chunkIndex][localIndex] = item;
+			Count++;
+		}
+
+		public void Clear()
+		{
+			for (int i = Chunks.Count - 1; i >= 0; i--) Chunks[i] = null;
+
+			Chunks.Clear();
+			Chunks.TrimExcess();
+		}
+
+		public T this[int index]
+		{
+			get
+			{
+				int chunkIndex = index / ChunkSize;
+				int localIndex = index % ChunkSize;
+
+				return Chunks[chunkIndex][localIndex];
+			}
+			set
+			{
+				int chunkIndex = index / ChunkSize;
+				int localIndex = index % ChunkSize;
+
+				Chunks[chunkIndex][localIndex] = value;
+			}
 		}
 	}
 
