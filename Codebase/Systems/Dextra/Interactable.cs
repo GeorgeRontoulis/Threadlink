@@ -35,20 +35,4 @@ namespace Threadlink.Systems.Dextra
 		protected virtual void SetSensorActiveState(bool state) { effectiveRadius.enabled = state; }
 		protected void UnsubscribeFromInteractAction() { Dextra.OnInteractButtonPressed -= Interact; }
 	}
-
-	public abstract class GenericInteractable<Input, Output> : Interactable
-	where Input : IInteractionInput
-	where Output : IInteractionOutput
-	{
-		protected abstract IInteractionHandler<Input, Output> InteractionHandler { get; }
-		protected Input InteractionInput { get; }
-
-		public override void Interact()
-		{
-			var output = InteractionHandler.HandleInteraction(InteractionInput);
-			OnInteractionHandled(output);
-		}
-
-		protected abstract void OnInteractionHandled(Output input);
-	}
 }
