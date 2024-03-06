@@ -13,7 +13,7 @@ namespace Threadlink.Utilities.Editor
 
 		[SerializeField] private string assetName = string.Empty;
 
-		[MenuItem("Tools/Text Asset Wizard")]
+		[MenuItem("Threadlink/Text Asset Wizard")]
 		private static void CreateWizard()
 		{
 			DisplayWizard<TextAssetCreationWizard>("Create Text Asset");

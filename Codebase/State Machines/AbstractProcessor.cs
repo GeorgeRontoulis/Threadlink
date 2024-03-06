@@ -2,6 +2,7 @@ namespace Threadlink.StateMachines
 {
 	using UnityEngine;
 	using Threadlink.Systems;
+	using Threadlink.Utilities.Events;
 
 	public abstract class BaseAbstractProcessor : ScriptableObject
 	{
@@ -10,7 +11,7 @@ namespace Threadlink.StateMachines
 		[SerializeField] private UpdateMode runIn = UpdateMode.Update;
 		[SerializeField] protected bool startUpdatingOnInit = true;
 
-		protected abstract void Run();
+		protected abstract VoidOutput Run(VoidInput input);
 
 		public virtual void Discard()
 		{

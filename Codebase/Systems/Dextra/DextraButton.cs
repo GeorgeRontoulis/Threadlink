@@ -1,7 +1,6 @@
 namespace Threadlink.Systems.Dextra
 {
 	using System;
-	using Threadlink.Core;
 	using Threadlink.Utilities.Events;
 	using UnityEngine;
 	using UnityEngine.Events;
@@ -9,17 +8,9 @@ namespace Threadlink.Systems.Dextra
 	using UnityEngine.UI;
 
 	[Serializable]
-	public sealed class DextraButtonEvent<T>
+	public sealed class DextraButtonEvent
 	{
-		public event GenericVoidDelegate<T> CSharpAction
-		{
-			add
-			{
-				if (cSharpAction == null) cSharpAction += value;
-				else if (cSharpAction.Contains(value) == false) cSharpAction += value;
-			}
-			remove { if (cSharpAction != null) cSharpAction -= value; }
-		}
+		public VoidGenericEvent<DextraButton> CSharpAction => cSharpAction;
 
 		public event UnityAction UnityEvent
 		{
@@ -27,38 +18,41 @@ namespace Threadlink.Systems.Dextra
 			remove { unityEvent.RemoveListener(value); }
 		}
 
-		private event GenericVoidDelegate<T> cSharpAction = null;
+		private VoidGenericEvent<DextraButton> cSharpAction = new();
 
 		[SerializeField] private UnityEvent unityEvent = new();
 
 		public void Discard()
 		{
+			cSharpAction.Discard();
 			RemoveAllListeners();
+			cSharpAction = null;
 			unityEvent = null;
 		}
 
 		public void RemoveAllListeners()
 		{
-			cSharpAction = null;
+			CSharpAction.Discard();
 			unityEvent.RemoveAllListeners();
 		}
 
-		public void Invoke(T argument = default)
+		public void Invoke(DextraButton argument = default)
 		{
 			unityEvent?.Invoke();
-			cSharpAction?.Invoke(argument);
+			cSharpAction.Invoke(argument);
 		}
 	}
 
-	public sealed class DextraButton : Selectable, ISelectHandler, IDeselectHandler, IPointerClickHandler, IPointerEnterHandler
+	public sealed class DextraButton : Selectable,
+	ISelectHandler, IDeselectHandler, IPointerClickHandler, IPointerEnterHandler
 	{
-		public DextraButtonEvent<DextraButton> OnClickEvent { get => onClick; }
-		public DextraButtonEvent<DextraButton> OnSelectEvent { get => onSelect; }
-		public DextraButtonEvent<DextraButton> OnDeselectEvent { get => onDeselect; }
+		public DextraButtonEvent OnClickEvent { get => onClick; }
+		public DextraButtonEvent OnSelectEvent { get => onSelect; }
+		public DextraButtonEvent OnDeselectEvent { get => onDeselect; }
 
-		[SerializeField] private DextraButtonEvent<DextraButton> onClick = new();
-		[SerializeField] private DextraButtonEvent<DextraButton> onSelect = new();
-		[SerializeField] private DextraButtonEvent<DextraButton> onDeselect = new();
+		[SerializeField] private DextraButtonEvent onClick = new();
+		[SerializeField] private DextraButtonEvent onSelect = new();
+		[SerializeField] private DextraButtonEvent onDeselect = new();
 
 		public void Discard()
 		{

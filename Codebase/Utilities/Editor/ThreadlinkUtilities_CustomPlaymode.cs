@@ -4,7 +4,7 @@ using UnityEditor.SceneManagement;
 
 internal static class ThreadlinkUtilities_CustomPlaymode
 {
-	[MenuItem("Playmode/Launch Testing Session")]
+	[MenuItem("Threadlink/Launch Testing Session")]
 	public static void PlayFromAddressableInitScene()
 	{
 		if (EditorApplication.isPlaying == true)
@@ -14,7 +14,7 @@ internal static class ThreadlinkUtilities_CustomPlaymode
 		}
 
 		EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo();
-		EditorSceneManager.OpenScene("Assets/Scenes/InitializationScene.unity");
+		EditorSceneManager.OpenScene("Assets/Threadlink/Required Scenes/InitializationScene.unity");
 		EditorApplication.isPlaying = true;
 	}
 }

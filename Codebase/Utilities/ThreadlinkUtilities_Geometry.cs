@@ -189,7 +189,7 @@ namespace Threadlink.Utilities.Geometry
 		/// <param name="collection">The collection of entities.</param>
 		/// <returns>The Entity closest to referencePoint. Null if the collection is invalid.</returns>
 		internal static DistanceData<T> GetClosestEntityFromCollection<T>(Transform referencePoint, T[] collection)
-		where T : LinkableEntity
+		where T : LinkableBehaviour
 		{
 			Vector3 GetVector(Transform end, Transform start) { return end.position - start.position; }
 
@@ -234,7 +234,7 @@ namespace Threadlink.Utilities.Geometry
 		/// <param name="collection">The collection of entities.</param>
 		/// <returns>The Entity closest to referencePoint. Null if the collection is invalid.</returns>
 		internal static DistanceData<T> GetClosestEntityFromCollection<T>(Transform referencePoint, List<T> collection)
-		where T : LinkableEntity
+		where T : LinkableBehaviour
 		{
 			List<T> newList = new List<T>();
 			newList.AddRange(collection);
@@ -282,7 +282,7 @@ namespace Threadlink.Utilities.Geometry
 		/// <param name="collection">The collection of entities.</param>
 		/// <returns>The Entity closest to referencePoint. Null if the collection is invalid.</returns>
 		internal static DistanceData<T> GetClosestEntityFromCollection<T>(Transform referencePoint, List<T> collection,
-		LayerMask lineOfSightObstructionMask) where T : LinkableEntity
+		LayerMask lineOfSightObstructionMask) where T : LinkableBehaviour
 		{
 			Vector3 GetVector(Transform end, Transform start) { return end.position - start.position; }
 

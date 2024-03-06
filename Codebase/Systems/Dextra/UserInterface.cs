@@ -1,12 +1,11 @@
 namespace Threadlink.Systems.Dextra
 {
-	using Sirenix.OdinInspector;
 	using Threadlink.Core;
 	using Threadlink.Systems;
-	using Threadlink.Utilities.Editor;
+	using Threadlink.Utilities.Events;
 	using UnityEngine;
 
-	public abstract class UserInterface : LinkableEntity
+	public abstract class UserInterface : LinkableBehaviour
 	{
 		public bool IsOnTop => Equals(Dextra.TopInterface);
 		public bool IsVisible => Mathf.Approximately(canvasGroup.alpha, 1f);
@@ -32,7 +31,7 @@ namespace Threadlink.Systems.Dextra
 			Iris.SubscribeToUpdate(MoveTowardsTargetAlpha);
 		}
 
-		private void MoveTowardsTargetAlpha()
+		private VoidOutput MoveTowardsTargetAlpha(VoidInput input)
 		{
 			canvasGroup.alpha = Mathf.MoveTowards(canvasGroup.alpha, TargetAlpha, 4 * Chronos.UnscaledDeltaTime);
 
@@ -41,6 +40,8 @@ namespace Threadlink.Systems.Dextra
 				Iris.UnsubscribeFromUpdate(MoveTowardsTargetAlpha);
 				UpdatingAlpha = false;
 			}
+
+			return default;
 		}
 
 		protected void SetInteractableState(bool state)

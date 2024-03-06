@@ -5,7 +5,12 @@ namespace Threadlink.Utilities.Reflection
 	using System.Linq;
 	using System.Reflection;
 	using Threadlink.Utilities.UnityLogging;
+	using UnityEditor;
 	using UnityEngine;
+
+#if ODIN_INSPECTOR
+	using Sirenix.OdinInspector;
+#endif
 
 	public static class Reflection
 	{
@@ -138,5 +143,39 @@ namespace Threadlink.Utilities.Reflection
 
 			return componentTypes;
 		}
+
+#if UNITY_EDITOR && ODIN_INSPECTOR
+		public static IEnumerable<ValueDropdownItem> CreateDropdownFor<T>() where T : UnityEngine.Object
+		{
+			var items = new List<ValueDropdownItem>();
+			var guids = AssetDatabase.FindAssets($"t:{typeof(T).Name}");
+
+			foreach (var guid in guids)
+			{
+				var path = AssetDatabase.GUIDToAssetPath(guid);
+				var asset = AssetDatabase.LoadAssetAtPath<T>(path);
+
+				if (asset != null) items.Add(new ValueDropdownItem(asset.name, asset));
+			}
+
+			return items;
+		}
+
+		public static IEnumerable<ValueDropdownItem> CreateNameDropdownFor<T>() where T : UnityEngine.Object
+		{
+			var items = new List<ValueDropdownItem>();
+			var guids = AssetDatabase.FindAssets($"t:{typeof(T).Name}");
+
+			foreach (var guid in guids)
+			{
+				var path = AssetDatabase.GUIDToAssetPath(guid);
+				var asset = AssetDatabase.LoadAssetAtPath<T>(path);
+
+				if (asset != null) items.Add(new ValueDropdownItem(asset.name, asset.name));
+			}
+
+			return items;
+		}
+#endif
 	}
 }

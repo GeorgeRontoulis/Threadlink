@@ -1,7 +1,6 @@
 namespace Threadlink.Systems
 {
 	using Core;
-	using System;
 	using UnityEngine;
 	using Utilities.Events;
 	using Utilities.UnityLogging;
@@ -9,61 +8,12 @@ namespace Threadlink.Systems
 	/// <summary>
 	/// System responsible for Time Management during Threadlink's runtime.
 	/// </summary>
-	public sealed class Chronos : LinkableSystem<LinkableEntity>
+	public sealed class Chronos : LinkableBehaviourSingleton<Chronos>
 	{
-		public static Chronos Instance { get; set; }
-
-		public static event VoidDelegate OnGamePaused
-		{
-			add
-			{
-				ref VoidDelegate myEvent = ref Instance.onGamePaused;
-
-				if (myEvent == null) myEvent += value;
-				else
-				{
-					if (myEvent.Contains(value) == false) myEvent += value;
-				}
-			}
-			remove { Instance.onGamePaused -= value; }
-		}
-
-		public static event VoidDelegate OnGameResumed
-		{
-			add
-			{
-				ref VoidDelegate myEvent = ref Instance.onGameResumed;
-
-
-				if (myEvent == null) myEvent += value;
-				else
-				{
-					if (myEvent.Contains(value) == false) myEvent += value;
-				}
-			}
-			remove { Instance.onGameResumed -= value; }
-		}
-
-		public static event VoidDelegate OnCountPlaytime
-		{
-			add
-			{
-				ref VoidDelegate myEvent = ref Instance.onCountPlaytime;
-
-
-				if (myEvent == null) myEvent += value;
-				else
-				{
-					if (myEvent.Contains(value) == false) myEvent += value;
-				}
-			}
-			remove { Instance.onCountPlaytime -= value; }
-		}
-
 		/// <summary>
 		/// Gets or sets the current Timescale.
 		/// Setting the timescale using this property only changes Unity's internal Time.TimeScale value.
-		/// Use Chronos.TimeScale to apply the change along with certain events and callbacks instead. Valid Timescale values are 0 and 1.
+		/// Use <paramref name="TimeScale"/> to apply the change along with certain events and callbacks instead. Valid Timescale values are 0 and 1.
 		/// </summary>
 		public static float RawTimeScale
 		{
@@ -79,7 +29,7 @@ namespace Threadlink.Systems
 		/// <summary>
 		/// Gets or sets the current Timescale.
 		/// Setting the timescale using this property invokes events and callbacks that may be undesired in some situations.
-		/// Use Chronos.RawTimeScale to only change the Time.TimeScale value instead. Valid Timescale values are 0 and 1.
+		/// Use <paramref name="RawTimeScale"/> to only change Unity's internal Time.TimeScale value instead. Valid Timescale values are 0 and 1.
 		/// </summary>
 		public static float TimeScale
 		{
@@ -95,14 +45,12 @@ namespace Threadlink.Systems
 				if (Approx(0f))
 				{
 					UpdateTimescale();
-
-					if (Instance.onGamePaused != null) Instance.onGamePaused();
+					OnGamePaused.Invoke();
 				}
 				else if (Approx(1f))
 				{
 					UpdateTimescale();
-
-					if (Instance.onGameResumed != null) Instance.onGameResumed();
+					OnGameResumed.Invoke();
 				}
 				else LogInvalidTimescaleWarning();
 			}
@@ -116,16 +64,30 @@ namespace Threadlink.Systems
 		public static float FixedDeltaTime { get; private set; }
 		public static float UnscaledDeltaTime { get; private set; }
 
-		private event VoidDelegate onCountPlaytime;
-		private event VoidDelegate onGamePaused = null;
-		private event VoidDelegate onGameResumed = null;
+		public static VoidEvent OnGamePaused => Instance.onGamePaused;
+		public static VoidEvent OnGameResumed => Instance.onGameResumed;
+		public static VoidEvent OnCountPlaytime => Instance.onCountPlaytime;
+
+		private VoidEvent onCountPlaytime = new();
+		private VoidEvent onGameResumed = new();
+		private VoidEvent onGamePaused = new();
+
+		public override void Discard()
+		{
+			onGamePaused.Discard();
+			onGameResumed.Discard();
+			onCountPlaytime.Discard();
+
+			onGamePaused = null;
+			onGameResumed = null;
+			onCountPlaytime = null;
+			base.Discard();
+		}
 
 		public override void Boot()
 		{
 			Instance = this;
-			onCountPlaytime = null;
 			TotalPlaytime = 0;
-			base.Boot();
 		}
 
 		public override void Initialize()
@@ -134,21 +96,27 @@ namespace Threadlink.Systems
 			Iris.SubscribeToFixedUpdate(UpdatePhysicsTime);
 		}
 
-		private void UpdateStandardTime()
+		private VoidOutput UpdateStandardTime(VoidInput input)
 		{
 			DeltaTime = Time.deltaTime;
 			SmoothDeltaTime = Time.smoothDeltaTime;
 			UnscaledDeltaTime = Time.unscaledDeltaTime;
 
-			onCountPlaytime?.Invoke();
+			onCountPlaytime.Invoke();
+
+			return default;
 		}
 
-		private void UpdatePhysicsTime() { FixedDeltaTime = Time.fixedDeltaTime; }
+		private VoidOutput UpdatePhysicsTime(VoidInput input)
+		{
+			FixedDeltaTime = Time.fixedDeltaTime;
+			return default;
+		}
 
 		public static void SetPlaytimeCountingState(bool state)
 		{
-			if (state) OnCountPlaytime += IncrementTotalPlaytime;
-			else OnCountPlaytime -= IncrementTotalPlaytime;
+			if (state) OnCountPlaytime.TryAddListener(IncrementTotalPlaytime);
+			else OnCountPlaytime.Remove(IncrementTotalPlaytime);
 		}
 
 		internal static void ResetPlaytime()
@@ -163,6 +131,10 @@ namespace Threadlink.Systems
 			"Invalid Timescale requested! Valid values are 0 and 1. Check your Timescale assignments!");
 		}
 
-		private static void IncrementTotalPlaytime() { TotalPlaytime += UnscaledDeltaTime; }
+		private static VoidOutput IncrementTotalPlaytime(VoidInput input)
+		{
+			TotalPlaytime += UnscaledDeltaTime;
+			return default;
+		}
 	}
 }

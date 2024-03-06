@@ -1,88 +1,102 @@
-#if UNITY_EDITOR
-using UnityEngine;
-using UnityEditor;
-using System.Collections.Generic;
-
-public sealed class HiddenObjectExplorer : EditorWindow
+namespace Threadlink.Utilities.Editor
 {
-	[MenuItem("Tools/HiddenObjectExplorer")]
-	static void Init()
-	{
-		GetWindow<HiddenObjectExplorer>();
-	}
-	List<GameObject> m_Objects = new List<GameObject>();
-	Vector2 scrollPos = Vector2.zero;
+#if UNITY_EDITOR
+	using System.Collections.Generic;
+	using UnityEditor;
+	using UnityEngine;
 
-	void OnEnable()
+	public sealed class HiddenObjectExplorer : EditorWindow
 	{
-		FindObjects();
-	}
+		readonly List<GameObject> m_Objects = new();
+		Vector2 scrollPos = Vector2.zero;
 
-	void FindObjects()
-	{
-		var objs = Resources.FindObjectsOfTypeAll(typeof(GameObject)) as GameObject[];
-		m_Objects.Clear();
-		foreach (var O in objs)
+		[MenuItem("Threadlink/Hidden Scene Objects Explorer")]
+		static void Init()
 		{
-			var go = O.transform.root.gameObject;
-			if (!m_Objects.Contains(go))
-				m_Objects.Add(go);
+			GetWindow<HiddenObjectExplorer>();
 		}
-	}
-	void FindObjectsAll()
-	{
-		var objs = Resources.FindObjectsOfTypeAll(typeof(GameObject)) as GameObject[];
-		m_Objects.Clear();
-		m_Objects.AddRange(objs);
-	}
 
-	HideFlags HideFlagsButton(string aTitle, HideFlags aFlags, HideFlags aValue)
-	{
-		if (GUILayout.Toggle((aFlags & aValue) > 0, aTitle, "Button"))
-			aFlags |= aValue;
-		else
-			aFlags &= ~aValue;
-		return aFlags;
-	}
-
-	void OnGUI()
-	{
-		GUILayout.BeginHorizontal();
-		if (GUILayout.Button("Find top-level"))
+		void OnEnable()
 		{
 			FindObjects();
 		}
-		if (GUILayout.Button("Find ALL objects"))
+
+		void FindObjects()
 		{
-			FindObjectsAll();
-		}
-		GUILayout.EndHorizontal();
-		scrollPos = GUILayout.BeginScrollView(scrollPos);
-		for (int i = 0; i < m_Objects.Count; i++)
-		{
-			GameObject O = m_Objects[i];
-			if (O == null)
-				continue;
-			GUILayout.BeginHorizontal();
-			EditorGUILayout.ObjectField(O.name, O, typeof(GameObject), true);
-			HideFlags flags = O.hideFlags;
-			flags = HideFlagsButton("HideInHierarchy", flags, HideFlags.HideInHierarchy);
-			flags = HideFlagsButton("HideInInspector", flags, HideFlags.HideInInspector);
-			flags = HideFlagsButton("DontSave", flags, HideFlags.DontSave);
-			flags = HideFlagsButton("NotEditable", flags, HideFlags.NotEditable);
-			O.hideFlags = flags;
-			GUILayout.Label(string.Empty + ((int)flags), GUILayout.Width(20));
-			GUILayout.Space(20);
-			if (GUILayout.Button("DELETE"))
+			var objs = Resources.FindObjectsOfTypeAll(typeof(GameObject)) as GameObject[];
+			m_Objects.Clear();
+
+			foreach (var O in objs)
 			{
-				DestroyImmediate(O);
-				FindObjects();
-				GUIUtility.ExitGUI();
+				var go = O.transform.root.gameObject;
+
+				if (!m_Objects.Contains(go)) m_Objects.Add(go);
 			}
-			GUILayout.Space(20);
-			GUILayout.EndHorizontal();
 		}
-		GUILayout.EndScrollView();
+		void FindObjectsAll()
+		{
+			var objs = Resources.FindObjectsOfTypeAll(typeof(GameObject)) as GameObject[];
+
+			m_Objects.Clear();
+			m_Objects.AddRange(objs);
+		}
+
+		HideFlags HideFlagsButton(string aTitle, HideFlags aFlags, HideFlags aValue)
+		{
+			if (GUILayout.Toggle((aFlags & aValue) > 0, aTitle, "Button"))
+				aFlags |= aValue;
+			else
+				aFlags &= ~aValue;
+
+			return aFlags;
+		}
+
+		void OnGUI()
+		{
+			GUILayout.BeginHorizontal();
+
+			if (GUILayout.Button("Find top-level")) FindObjects();
+			if (GUILayout.Button("Find ALL objects")) FindObjectsAll();
+
+			GUILayout.EndHorizontal();
+
+			scrollPos = GUILayout.BeginScrollView(scrollPos);
+
+			for (int i = 0; i < m_Objects.Count; i++)
+			{
+				GameObject O = m_Objects[i];
+
+				if (O == null) continue;
+
+				GUILayout.BeginHorizontal();
+
+				EditorGUILayout.ObjectField(O.name, O, typeof(GameObject), true);
+
+				HideFlags flags = O.hideFlags;
+
+				flags = HideFlagsButton("HideInHierarchy", flags, HideFlags.HideInHierarchy);
+				flags = HideFlagsButton("HideInInspector", flags, HideFlags.HideInInspector);
+				flags = HideFlagsButton("DontSave", flags, HideFlags.DontSave);
+				flags = HideFlagsButton("NotEditable", flags, HideFlags.NotEditable);
+
+				O.hideFlags = flags;
+
+				GUILayout.Label(string.Empty + ((int)flags), GUILayout.Width(20));
+				GUILayout.Space(20);
+
+				if (GUILayout.Button("DELETE"))
+				{
+					DestroyImmediate(O);
+					FindObjects();
+					GUIUtility.ExitGUI();
+				}
+
+				GUILayout.Space(20);
+				GUILayout.EndHorizontal();
+			}
+
+			GUILayout.EndScrollView();
+		}
 	}
-}
 #endif
+}

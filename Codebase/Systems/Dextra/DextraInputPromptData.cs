@@ -1,6 +1,6 @@
 namespace Threadlink.Systems.Dextra
 {
-	using Sirenix.OdinInspector;
+	using Threadlink.Utilities.Editor.Attributes;
 	using UnityEngine;
 
 	[CreateAssetMenu(menuName = "Threadlink/Dextra/Input Prompt Data")]
@@ -10,8 +10,8 @@ namespace Threadlink.Systems.Dextra
 
 		[Space(10)]
 
-		[PreviewField][SerializeField] internal Sprite mkbIcon = null;
-		[PreviewField][SerializeField] internal Sprite xboxIcon = null;
-		[PreviewField][SerializeField] internal Sprite dualsenseIcon = null;
+		[SpritePreview][SerializeField] internal Sprite mkbIcon = null;
+		[SpritePreview][SerializeField] internal Sprite xboxIcon = null;
+		[SpritePreview][SerializeField] internal Sprite dualsenseIcon = null;
 	}
 }

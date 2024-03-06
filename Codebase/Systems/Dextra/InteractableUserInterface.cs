@@ -1,5 +1,7 @@
 namespace Threadlink.Systems.Dextra
 {
+	using Threadlink.Utilities.Events;
+
 	public static class InteractableUserInterfaceExtensions
 	{
 		public static void ManageDefaultSubscriptionsOf(this InteractableUserInterface ui, DextraButton[] collection, bool subscribe)
@@ -8,11 +10,11 @@ namespace Threadlink.Systems.Dextra
 
 			if (subscribe)
 			{
-				for (int i = 0; i < length; i++) collection[i].OnSelectEvent.CSharpAction += ui.UpdateLastSelectedButton;
+				for (int i = 0; i < length; i++) collection[i].OnSelectEvent.CSharpAction.TryAddListener(ui.UpdateLastSelectedButton);
 			}
 			else
 			{
-				for (int i = 0; i < length; i++) collection[i].OnSelectEvent.CSharpAction -= ui.UpdateLastSelectedButton;
+				for (int i = 0; i < length; i++) collection[i].OnSelectEvent.CSharpAction.Remove(ui.UpdateLastSelectedButton);
 			}
 		}
 
@@ -33,9 +35,10 @@ namespace Threadlink.Systems.Dextra
 		/// Used by events inside the Editor. May also be called manually.
 		/// </summary>
 		/// <param name="newSelection">The new selected button.</param>
-		protected internal void UpdateLastSelectedButton(DextraButton newSelection)
+		protected internal VoidOutput UpdateLastSelectedButton(DextraButton newSelection)
 		{
 			LastSelectedButton = newSelection;
+			return default;
 		}
 
 		public override void Discard()

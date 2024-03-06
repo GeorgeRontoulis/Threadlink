@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 4de4dd21ea996dd4194575bc48e598b3
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - momentumHash: {fileID: 11400000, guid: e8cde5efbdc8a0042a57b819b2adfdb9, type: 2}
+  - yVelocityHash: {fileID: 11400000, guid: 002719b9b8f02b843b914e7250d212d7, type: 2}
+  - xzVelocityHash: {fileID: 11400000, guid: 48966d97b7c1908479b34bd5c62e25fe, type: 2}
+  - groundedHash: {fileID: 11400000, guid: 562def1d052319643acd55468422a216, type: 2}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

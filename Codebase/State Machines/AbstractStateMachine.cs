@@ -1,8 +1,12 @@
 namespace Threadlink.StateMachines
 {
+#if ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
+#endif
+
 	using System;
 	using Threadlink.Systems;
+	using Threadlink.Utilities.Events;
 	using UnityEngine;
 	using Utilities.Collections;
 
@@ -11,11 +15,9 @@ namespace Threadlink.StateMachines
 		[Flags]
 		protected enum RuntimeInstantiation
 		{
-			Nothing = 0,
-			Everything = -1,
-			Parameters = 1,
-			States = 2,
-			Processors = 4,
+			Parameters = 1 << 0,
+			States = 1 << 1,
+			Processors = 1 << 2,
 		}
 
 		public bool IsInstance { get; private set; }
@@ -30,24 +32,17 @@ namespace Threadlink.StateMachines
 
 		protected abstract void InitializeStatesAndProcessors();
 
-		public ParamType GetParameter<ParamType>(string id) where ParamType : BaseAbstractParameter
+		public AbstractParameter<T> GetParameter<T>(string id)
 		{
-			void Notify(params string[] messages) { Scribe.LogError(messages); }
-
-			BaseAbstractParameter paramFound = parameters.BinarySearch(id);
+			var paramFound = parameters.BinarySearch(id);
 
 			if (paramFound == null)
 			{
-				Notify("The requested parameter could not be found! Check your request!");
+				Scribe.LogError("The requested parameter could not be found! Check your request!");
 				return null;
 			}
 
-			if (paramFound is ParamType) return paramFound as ParamType;
-			else
-			{
-				Notify("Could not cast the parameter to the requested type! Check your request!");
-				return null;
-			}
+			return paramFound as AbstractParameter<T>;
 		}
 
 		public static T CreateCopyFrom<T>(T original) where T : BaseAbstractStateMachine
@@ -60,7 +55,8 @@ namespace Threadlink.StateMachines
 	}
 
 	public abstract class AbstractStateMachine<OwnerType, StateType, ProcessorType> : BaseAbstractStateMachine
-	where OwnerType : UnityEngine.Object where StateType : BaseAbstractState where ProcessorType : BaseAbstractProcessor
+	where StateType : BaseAbstractState
+	where ProcessorType : BaseAbstractProcessor
 	{
 		public bool IsInDefaultState => CurrentState.Equals(states[0]);
 
@@ -69,22 +65,25 @@ namespace Threadlink.StateMachines
 
 		[Space(10)]
 
-		[InfoBox("The first state in the list acts as the starting state for the state machine.")]
-
-		[Space(5)]
-
-		[Required][SerializeField] protected StateType[] states = new StateType[0];
+#if ODIN_INSPECTOR
+		[Required]
+#endif
+		[SerializeField] protected StateType[] states = new StateType[0];
 
 		[Space(10)]
 
 		[SerializeField] protected ProcessorType[] processors = new ProcessorType[0];
 
 #if UNITY_EDITOR
-		[PropertySpace(15)]
-		[Button] private void SortParametersByID() { parameters.SortByID(this); }
+#if ODIN_INSPECTOR
+		[Button]
+#else
+		[ContextMenu("Sort Parameters By ID")]
+#endif
+		private void SortParametersByID() { parameters.SortByID(this); }
 #endif
 
-		public void Initialize(OwnerType owner)
+		public virtual void Initialize(OwnerType owner)
 		{
 			Owner = owner;
 
@@ -95,9 +94,16 @@ namespace Threadlink.StateMachines
 
 			InitializeStatesAndProcessors();
 
-			CurrentState = states[0];
-			CurrentState.OnEnter();
-			Iris.SubscribeToUpdate(UpdateCurrentState);
+			if (states.Length > 0)
+			{
+				CurrentState = states[0];
+
+				if (CurrentState != null)
+				{
+					CurrentState.OnEnter();
+					Iris.SubscribeToUpdate(UpdateCurrentState);
+				}
+			}
 		}
 
 		private void ManageInstantiation()
@@ -107,27 +113,26 @@ namespace Threadlink.StateMachines
 			void InstantiateCollection(ScriptableObject[] collection)
 			{
 				int length = collection.Length;
-				for (int i = 0; i < length; i++) collection[i] = Instantiate(collection[i]);
+				for (int i = 0; i < length; i++)
+				{
+					string originalName = collection[i].name;
+					collection[i] = Instantiate(collection[i]);
+					collection[i].name = originalName;
+				}
 			}
 
-			if (ShouldInstantiate(RuntimeInstantiation.Nothing)) return;
-			else if (ShouldInstantiate(RuntimeInstantiation.Everything))
-			{
-				InstantiateCollection(parameters);
-				InstantiateCollection(states);
-				InstantiateCollection(processors);
-			}
-			else
-			{
-				if (ShouldInstantiate(RuntimeInstantiation.Parameters)) InstantiateCollection(parameters);
+			if (ShouldInstantiate(RuntimeInstantiation.Parameters)) InstantiateCollection(parameters);
 
-				if (ShouldInstantiate(RuntimeInstantiation.States)) InstantiateCollection(states);
+			if (ShouldInstantiate(RuntimeInstantiation.States)) InstantiateCollection(states);
 
-				if (ShouldInstantiate(RuntimeInstantiation.Processors)) InstantiateCollection(processors);
-			}
+			if (ShouldInstantiate(RuntimeInstantiation.Processors)) InstantiateCollection(processors);
 		}
 
-		private void UpdateCurrentState() { CurrentState.OnUpdate(); }
+		private VoidOutput UpdateCurrentState(VoidInput input)
+		{
+			CurrentState.OnUpdate();
+			return default;
+		}
 
 		public virtual void Discard()
 		{
@@ -139,32 +144,21 @@ namespace Threadlink.StateMachines
 				for (int i = 0; i < length; i++) Destroy(collection[i]);
 			}
 
-			int length = processors.Length;
-
-			for (int i = 0; i < length; i++) processors[i].Discard();
-
 			Iris.UnsubscribeFromUpdate(UpdateCurrentState);
 
-			if (Instantiated(RuntimeInstantiation.Nothing)) return;
-			else if (Instantiated(RuntimeInstantiation.Everything))
-			{
-				DestroyCollection(parameters);
-				DestroyCollection(states);
-				DestroyCollection(processors);
-			}
-			else
-			{
-				if (Instantiated(RuntimeInstantiation.Parameters)) DestroyCollection(parameters);
+			int length = processors.Length;
+			for (int i = 0; i < length; i++) processors[i].Discard();
 
-				if (Instantiated(RuntimeInstantiation.States)) DestroyCollection(states);
+			if (Instantiated(RuntimeInstantiation.Parameters)) DestroyCollection(parameters);
 
-				if (Instantiated(RuntimeInstantiation.Processors)) DestroyCollection(processors);
-			}
+			if (Instantiated(RuntimeInstantiation.States)) DestroyCollection(states);
 
-			if (IsInstance)
+			if (Instantiated(RuntimeInstantiation.Processors)) DestroyCollection(processors);
+
+			if (IsInstance && Application.isEditor == false)
 			{
 				CurrentState = null;
-				Owner = null;
+				Owner = default;
 				parameters = null;
 				states = null;
 				processors = null;
@@ -184,7 +178,8 @@ namespace Threadlink.StateMachines
 		}
 
 		public void AttemptTransitionTo<ScriptableStateType, DataType>(StateType newState, DataType data)
-		where DataType : AbstractStateData where ScriptableStateType : IScriptableState<DataType>
+		where DataType : AbstractStateData
+		where ScriptableStateType : IScriptableState<DataType>
 		{
 			if (newState == null || newState.Equals(CurrentState)
 			|| (CurrentState != null && newState.name.Equals(CurrentState.name))) return;

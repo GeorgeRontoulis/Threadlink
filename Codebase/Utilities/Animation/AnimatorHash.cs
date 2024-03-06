@@ -1,8 +1,12 @@
 namespace Threadlink.Utilities.Animation
 {
-	using UnityEngine;
+#if ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
+#elif THREADLINK_INSPECTOR
+using Threadlink.Utilities.Editor.Attributes;
+#endif
 	using Threadlink.Utilities.Editor;
+	using UnityEngine;
 
 	[CreateAssetMenu(menuName = "Threadlink/Animation Utilities/Animator Hash")]
 	public sealed class AnimatorHash : ScriptableObject
@@ -10,10 +14,21 @@ namespace Threadlink.Utilities.Animation
 		public int Value { get => hashValue; }
 
 		[SerializeField] private string stringValue = string.Empty;
-		[ReadOnly][SerializeField] private int hashValue = 0;
+
+#if ODIN_INSPECTOR
+		[ReadOnly]
+#elif THREADLINK_INSPECTOR
+		[ReadOnly]
+#endif
+		[SerializeField] private int hashValue = 0;
 
 #if UNITY_EDITOR
-		[Button] private void GenerateHash() { this.TrySetValue(ref hashValue, Animator.StringToHash(stringValue)); }
+#if ODIN_INSPECTOR
+		[Button]
+#else
+		[ContextMenu("Generate Hash")]
+#endif
+		private void GenerateHash() { this.TrySetValue(ref hashValue, Animator.StringToHash(stringValue)); }
 #endif
 	}
 }

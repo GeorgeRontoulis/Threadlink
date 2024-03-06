@@ -1,0 +1,17 @@
+{
+    "name": "Threadlink.Runtime.Templates.CharacterController",
+    "rootNamespace": "Threadlink.Templates.CharacterController",
+    "references": [
+        "GUID:55c8270eaa5b5bb47bd94046e1b5bd19",
+        "GUID:c85d73c35b90e2348997c7b7316e7f3d"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

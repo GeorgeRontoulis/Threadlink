@@ -4,12 +4,28 @@ namespace Threadlink.Utilities.Editor
 
 #if UNITY_EDITOR
 	using UnityEditor;
+	using UnityEditor.Build;
 #endif
 
 	public static class EditorUtilities
 	{
 #if UNITY_EDITOR
 		public static bool EditorInOrWillChangeToPlaymode { get => EditorApplication.isPlayingOrWillChangePlaymode; }
+
+		public static NamedBuildTarget CurrentNamedBuildTarget
+		{
+			get
+			{
+#if UNITY_SERVER
+                    return NamedBuildTarget.Server;
+#else
+				BuildTarget buildTarget = EditorUserBuildSettings.activeBuildTarget;
+				BuildTargetGroup targetGroup = BuildPipeline.GetBuildTargetGroup(buildTarget);
+				NamedBuildTarget namedBuildTarget = NamedBuildTarget.FromBuildTargetGroup(targetGroup);
+				return namedBuildTarget;
+#endif
+			}
+		}
 
 		/// <summary>
 		/// Attempts to set a component in the OnValidate() or other Editor methods.

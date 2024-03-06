@@ -6,7 +6,7 @@ namespace Threadlink.Utilities.Events
 	using UnityEngine.Events;
 	using Utilities.UnityLogging;
 
-	public sealed class ScriptableEventListener : LinkableEntity
+	public sealed class ScriptableEventListener : LinkableBehaviour
 	{
 		[Serializable]
 		public sealed class EventReactionPair

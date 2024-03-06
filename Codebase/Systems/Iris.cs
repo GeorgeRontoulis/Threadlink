@@ -2,102 +2,58 @@ namespace Threadlink.Systems
 {
 	using Core;
 	using Utilities.Events;
+	using VoidDelegate = Utilities.Events.ThreadlinkDelegate<Utilities.Events.VoidOutput, Utilities.Events.VoidInput>;
 
 	/// <summary>
 	/// System responsible for broadcasting Update notifications 
 	/// on all subscribed Threadlink-Compatible listeners.
 	/// </summary>
-	public sealed class Iris : LinkableSystem<LinkableEntity>
+	public sealed class Iris : LinkableBehaviourSingleton<Iris>
 	{
-		public static Iris Instance { get; private set; }
+		public static VoidEvent OnUpdate => Instance.onUpdate;
+		public static VoidEvent OnFixedUpdate => Instance.onFixedUpdate;
+		public static VoidEvent OnLateUpdate => Instance.onLateUpdate;
 
-		private event VoidDelegate onUpdate, onFixedUpdate, onLateUpdate;
+		public static bool UpdateSelf { get; set; }
 
-		public static event VoidDelegate OnUpdate
+		private VoidEvent onUpdate = new();
+		private VoidEvent onFixedUpdate = new();
+		private VoidEvent onLateUpdate = new();
+
+		private void OnDestroy()
 		{
-			add
-			{
-				ref VoidDelegate myEvent = ref Instance.onUpdate;
-
-
-				if (myEvent == null) myEvent += value;
-				else
-				{
-					if (myEvent.Contains(value) == false) myEvent += value;
-				}
-			}
-			remove { Instance.onUpdate -= value; }
+			DiscardUpdateCallbacks();
 		}
 
-		public static event VoidDelegate OnFixedUpdate
+		public override void Discard()
 		{
-			add
-			{
-				ref VoidDelegate myEvent = ref Instance.onFixedUpdate;
-
-				if (myEvent == null) myEvent += value;
-				else
-				{
-					if (myEvent.Contains(value) == false) myEvent += value;
-				}
-			}
-			remove { Instance.onFixedUpdate -= value; }
+			DiscardUpdateCallbacks();
+			base.Discard();
 		}
 
-		public static event VoidDelegate OnLateUpdate
+		public override void Boot() { Instance = this; }
+		public override void Initialize() { UpdateSelf = true; }
+
+		public static void SubscribeToUpdate(VoidDelegate action) { OnUpdate?.TryAddListener(action); }
+		public static void UnsubscribeFromUpdate(VoidDelegate action) { OnUpdate?.Remove(action); }
+		public static void SubscribeToFixedUpdate(VoidDelegate action) { OnFixedUpdate?.TryAddListener(action); }
+		public static void UnsubscribeFromFixedUpdate(VoidDelegate action) { OnFixedUpdate?.Remove(action); }
+		public static void SubscribeToLateUpdate(VoidDelegate action) { OnLateUpdate?.TryAddListener(action); }
+		public static void UnsubscribeFromLateUpdate(VoidDelegate action) { OnLateUpdate?.Remove(action); }
+
+		private void Update() { if (UpdateSelf) onUpdate.Invoke(); }
+		private void FixedUpdate() { if (UpdateSelf) onFixedUpdate.Invoke(); }
+		private void LateUpdate() { if (UpdateSelf) onLateUpdate.Invoke(); }
+
+		private void DiscardUpdateCallbacks()
 		{
-			add
-			{
-				ref VoidDelegate myEvent = ref Instance.onLateUpdate;
+			onUpdate.Discard();
+			onFixedUpdate.Discard();
+			onLateUpdate.Discard();
 
-				if (myEvent == null) myEvent += value;
-				else
-				{
-					if (myEvent.Contains(value) == false) myEvent += value;
-				}
-			}
-			remove { Instance.onLateUpdate -= value; }
-		}
-
-		public bool UpdateSelf { get; set; }
-
-		public override void Boot()
-		{
-			Instance = this;
-			base.Boot();
-		}
-
-		public override void Initialize()
-		{
-			UpdateSelf = true;
-		}
-
-		public static void SubscribeToUpdate(VoidDelegate action) { OnUpdate += action; }
-		public static void UnsubscribeFromUpdate(VoidDelegate action) { OnUpdate -= action; }
-		public static void SubscribeToFixedUpdate(VoidDelegate action) { OnFixedUpdate += action; }
-		public static void UnsubscribeFromFixedUpdate(VoidDelegate action) { OnFixedUpdate -= action; }
-		public static void SubscribeToLateUpdate(VoidDelegate action) { OnLateUpdate += action; }
-		public static void UnsubscribeFromLateUpdate(VoidDelegate action) { OnLateUpdate -= action; }
-
-		private void Update()
-		{
-			if (UpdateSelf == false) return;
-
-			if (onUpdate != null) onUpdate();
-		}
-
-		private void FixedUpdate()
-		{
-			if (UpdateSelf == false) return;
-
-			if (onFixedUpdate != null) onFixedUpdate();
-		}
-
-		private void LateUpdate()
-		{
-			if (UpdateSelf == false) return;
-
-			if (onLateUpdate != null) onLateUpdate();
+			onUpdate = null;
+			onFixedUpdate = null;
+			onLateUpdate = null;
 		}
 	}
 }

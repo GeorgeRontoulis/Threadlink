@@ -1,6 +1,9 @@
 namespace Threadlink.Utilities.Events
 {
+#if ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
+#endif
+
 	using System;
 	using System.Collections.Generic;
 	using UnityEngine;
@@ -26,7 +29,11 @@ namespace Threadlink.Utilities.Events
 		}
 
 #if UNITY_EDITOR
+#if ODIN_INSPECTOR
 		[Button]
+#else
+		[ContextMenu("Print Status")]
+#endif
 		private void PrintStatus()
 		{
 			for (int i = subscribers.Count - 1; i >= 0; i--)

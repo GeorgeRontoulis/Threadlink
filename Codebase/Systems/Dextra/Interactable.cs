@@ -1,23 +1,19 @@
 namespace Threadlink.Systems.Dextra
 {
-	using Sirenix.OdinInspector;
 	using Threadlink.Core;
-	using Threadlink.Utilities.Editor;
+	using Threadlink.Utilities.Editor.Attributes;
+	using Threadlink.Utilities.Events;
 	using UnityEngine;
 
-	public abstract class Interactable : LinkableEntity
+	public abstract class Interactable : LinkableBehaviour
 	{
 		[ReadOnly][SerializeField] private Collider effectiveRadius = null;
 
-#if UNITY_EDITOR
-		protected override void OnValidate()
+		protected override void Reset()
 		{
-			if (EditorUtilities.EditorInOrWillChangeToPlaymode) return;
-
-			base.OnValidate();
-			this.TrySetAttachedComponent(ref effectiveRadius);
+			base.Reset();
+			effectiveRadius = GetComponent<Collider>();
 		}
-#endif
 
 		public override void Discard()
 		{
@@ -27,7 +23,7 @@ namespace Threadlink.Systems.Dextra
 			base.Discard();
 		}
 
-		public abstract void Interact();
+		public abstract VoidOutput Interact(VoidInput input);
 
 		public virtual void OnDetected() { Dextra.OnInteractButtonPressed += Interact; }
 		public virtual void OnSkipped() { UnsubscribeFromInteractAction(); }

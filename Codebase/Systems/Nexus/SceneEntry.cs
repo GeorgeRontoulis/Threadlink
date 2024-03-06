@@ -9,9 +9,9 @@ namespace Threadlink.Systems.Nexus
 
 	public abstract class SceneEntry : ScriptableObject
 	{
-		internal AddressableScene AddressableScene => Threadlink.FindSceneAddressable(sceneInfo.assetAddress);
+		internal AddressableScene AddressableScene => Threadlink.FindAddressableScene(sceneInfo.assetAddress);
 
-		[SerializeField] private AssetGroupAddressPair sceneInfo = new AssetGroupAddressPair();
+		[SerializeField] private AssetGroupAddressPair sceneInfo = new();
 
 		[Space(10)]
 

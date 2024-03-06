@@ -1,18 +1,20 @@
 namespace Threadlink.Core
 {
-	using Extensions.Addressables;
+#if ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
+#endif
+
+	using Extensions.Addressables;
 	using System;
 	using System.Collections;
 	using UnityEngine;
-	using UnityEngine.UI;
 	using Utilities.Addressables;
 	using Utilities.Collections;
 
 	[CreateAssetMenu(menuName = "Threadlink/Addressables")]
-	internal sealed class ThreadlinkAddressables : ScriptableObject
+	public sealed class ThreadlinkAddressables : ScriptableObject
 	{
-		[Serializable] internal sealed class SystemAddressable : AddressablePrefab<BaseLinkableSystem> { }
+		[Serializable] internal sealed class SystemAddressable : AddressablePrefab<LinkableBehaviour> { }
 
 		[Space(10)]
 
@@ -22,11 +24,15 @@ namespace Threadlink.Core
 
 		[SerializeField] internal SystemAddressable[] coreSystems = new SystemAddressable[0];
 
-		[SerializeField] internal ThreadlinkAddressablesExtender customExtender = null;
+		[SerializeField] internal ThreadlinkAddressablesExtension customExtension = null;
 
 #if UNITY_EDITOR
-		[PropertySpace(20)]
-		[Button] private void SortScenesByID() { scenes.SortByID(this); }
+#if ODIN_INSPECTOR
+		[Button]
+#else
+		[ContextMenu("Sort Scenes By ID")]
+#endif
+		private void SortScenesByID() { scenes.SortByID(this); }
 #endif
 
 		internal IEnumerator[] LoadCoreSystems()

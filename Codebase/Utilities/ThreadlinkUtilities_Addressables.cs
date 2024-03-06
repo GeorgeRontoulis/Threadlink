@@ -1,9 +1,7 @@
 namespace Threadlink.Utilities.Addressables
 {
-	using Sirenix.OdinInspector;
 	using System;
 	using System.Collections;
-	using System.Collections.Generic;
 	using System.Threading.Tasks;
 	using UnityEngine;
 	using UnityEngine.AddressableAssets;
@@ -11,6 +9,9 @@ namespace Threadlink.Utilities.Addressables
 	using UnityEngine.ResourceManagement.ResourceProviders;
 	using UnityEngine.SceneManagement;
 	using Utilities.Collections;
+#if UNITY_EDITOR
+	using Utilities.Editor.Attributes;
+#endif
 	using Utilities.UnityLogging;
 
 	public abstract class Addressable : IIdentifiable
@@ -28,7 +29,7 @@ namespace Threadlink.Utilities.Addressables
 
 	public static class AddressablesUtilities
 	{
-		public static void TryRelease(AsyncOperationHandle handle) { if (handle.IsValid()) Addressables.Release(handle); }
+		public static void ReleaseIfValid(AsyncOperationHandle handle) { if (handle.IsValid()) Addressables.Release(handle); }
 
 		public static bool OperationSucceeded(AsyncOperationHandle operation)
 		{
@@ -50,30 +51,9 @@ namespace Threadlink.Utilities.Addressables
 	public sealed class AssetGroupAddressPair
 	{
 #if UNITY_EDITOR
-		private bool TargetGroupIsValid => string.IsNullOrEmpty(targetGroup) == false;
-
-		[ValueDropdown("GetAddressableGroupNames")]
-
-		[SerializeField] public string targetGroup = null;
+		[AddressableAssetButton]
 #endif
-
-#if UNITY_EDITOR
-		[ValueDropdown("GetAssetPathsInGroup")]
-		[ShowIf("TargetGroupIsValid", true)]
-#endif
-		[SerializeField] public string assetAddress = null;
-
-#if UNITY_EDITOR
-		private static List<string> GetAddressableGroupNames()
-		{
-			return Sirenix.OdinInspector.Editor.AddressablesUtility.GetAddressableGroupNames();
-		}
-
-		private List<string> GetAssetPathsInGroup()
-		{
-			return Sirenix.OdinInspector.Editor.AddressablesUtility.GetAssetPathsInGroup(targetGroup);
-		}
-#endif
+		[SerializeField] public string assetAddress = string.Empty;
 	}
 
 	public abstract class AddressableAsset<T> : Addressable<T> where T : UnityEngine.Object
@@ -86,7 +66,7 @@ namespace Threadlink.Utilities.Addressables
 
 		[SerializeField] AssetGroupAddressPair addressableInfo = new AssetGroupAddressPair();
 
-		public override void Unload() { AddressablesUtilities.TryRelease(Handle); }
+		public override void Unload() { AddressablesUtilities.ReleaseIfValid(Handle); }
 
 		public async Task<T> LoadAsync()
 		{
@@ -127,9 +107,9 @@ namespace Threadlink.Utilities.Addressables
 
 		private AsyncOperationHandle<GameObject> Handle { get; set; }
 
-		[SerializeField] AssetGroupAddressPair addressableInfo = new AssetGroupAddressPair();
+		[SerializeField] AssetGroupAddressPair addressableInfo = new();
 
-		public override void Unload() { AddressablesUtilities.TryRelease(Handle); }
+		public override void Unload() { AddressablesUtilities.ReleaseIfValid(Handle); }
 
 		public async Task<T> LoadAsync()
 		{
@@ -164,20 +144,20 @@ namespace Threadlink.Utilities.Addressables
 	public sealed class AddressableScene : Addressable<SceneInstance>
 	{
 		public override bool Loaded => Handle.IsValid() && Handle.Result.Scene != null;
-		public override string LinkID => sceneInfo.assetAddress;
+		public override string LinkID => addressableReference.assetAddress;
 		public override SceneInstance Result => Handle.IsValid() ? Handle.Result : new SceneInstance();
 
 		private AsyncOperationHandle<SceneInstance> Handle { get; set; }
 
-		[SerializeField] private AssetGroupAddressPair sceneInfo = new AssetGroupAddressPair();
+		[SerializeField] private AssetGroupAddressPair addressableReference = new();
 
-		public override void Unload() { AddressablesUtilities.TryRelease(Handle); }
+		public override void Unload() { AddressablesUtilities.ReleaseIfValid(Handle); }
 
 		public IEnumerator LoadingCoroutine(LoadSceneMode loadSceneMode)
 		{
 			if (Loaded) yield break;
 
-			Handle = Addressables.LoadSceneAsync(sceneInfo.assetAddress, loadSceneMode, false);
+			Handle = Addressables.LoadSceneAsync(addressableReference.assetAddress, loadSceneMode, false);
 
 			while (Handle.IsDone == false) yield return null;
 
@@ -186,7 +166,7 @@ namespace Threadlink.Utilities.Addressables
 				Unload();
 
 				UnityConsole.Notify(DebugNotificationType.Error,
-				"Failed to load scene from address: ", sceneInfo.assetAddress);
+				"Failed to load scene from address: ", addressableReference.assetAddress);
 			}
 			else
 			{
@@ -205,7 +185,7 @@ namespace Threadlink.Utilities.Addressables
 			if (AddressablesUtilities.OperationSucceeded(operation) == false)
 			{
 				UnityConsole.Notify(DebugNotificationType.Error,
-				"Failed to unload scene from address: ", sceneInfo.assetAddress);
+				"Failed to unload scene from address: ", addressableReference.assetAddress);
 			}
 			else Unload();
 		}

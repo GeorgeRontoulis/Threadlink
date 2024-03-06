@@ -45,6 +45,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   persistentScene:
-    sceneInfo:
-      targetGroup: Build Scenes
-      assetAddress: Assets/Scenes/ThreadlinkScene.unity
+    addressableReference:
+      assetAddress: Assets/Threadlink/Required Scenes/ThreadlinkScene.unity

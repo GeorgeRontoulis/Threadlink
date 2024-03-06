@@ -12,7 +12,7 @@
 
 	internal sealed class AddressablesInitializer : MonoBehaviour
 	{
-		[SerializeField] private AddressableScene persistentScene = new AddressableScene();
+		[SerializeField] private AddressableScene persistentScene = new();
 
 		private IEnumerator Start()
 		{
@@ -26,7 +26,7 @@
 
 			Scribe.SystemLog("Addressables Initializer", notifType, notification);
 
-			AddressablesUtilities.TryRelease(handle);
+			AddressablesUtilities.ReleaseIfValid(handle);
 
 			yield return persistentScene.LoadingCoroutine(LoadSceneMode.Single);
 		}

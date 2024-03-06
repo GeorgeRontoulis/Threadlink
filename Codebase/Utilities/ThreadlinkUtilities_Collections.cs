@@ -2,10 +2,8 @@ namespace Threadlink.Utilities.Collections
 {
 	using Editor;
 	using RNG;
-	using Sirenix.OdinInspector;
 	using System;
 	using System.Collections.Generic;
-	using Threadlink.Utilities.UnityLogging;
 	using UnityEngine;
 
 	public interface IIdentifiable { string LinkID { get; } }
@@ -51,7 +49,7 @@ namespace Threadlink.Utilities.Collections
 		public int Count { get; private set; }
 
 		private int ChunkSize { get; set; }
-		[ShowInInspector] private List<T[]> Chunks { get; set; }
+		private List<T[]> Chunks { get; set; }
 
 		public ChunkedArray(int chunkSize)
 		{
@@ -111,14 +109,26 @@ namespace Threadlink.Utilities.Collections
 			All = Top | Bottom | Left | Right | Corners
 		}
 
-		private static void LogException(Exception exception) { UnityConsole.Notify(DebugNotificationType.Error, exception); }
-
-		public static void SortByID(this IIdentifiable[] collection, UnityEngine.Object collectionOwner)
+		public static void SortByID(this IIdentifiable[] collection, UnityEngine.Object collectionOwner = null)
 		{
 			Array.Sort(collection, (x, y) => string.Compare(x.LinkID, y.LinkID));
 
 #if UNITY_EDITOR
-			if (collectionOwner != null && EditorUtilities.EditorInOrWillChangeToPlaymode)
+			if (collectionOwner != null && EditorUtilities.EditorInOrWillChangeToPlaymode == false)
+			{
+				EditorUtilities.SetDirty(collectionOwner);
+				EditorUtilities.SaveAllAssets();
+			}
+#endif
+		}
+
+		public static void SortByID<T>(this List<T> collection, UnityEngine.Object collectionOwner = null)
+		where T : IIdentifiable
+		{
+			collection.Sort((x, y) => string.Compare(x.LinkID, y.LinkID));
+
+#if UNITY_EDITOR
+			if (collectionOwner != null && EditorUtilities.EditorInOrWillChangeToPlaymode == false)
 			{
 				EditorUtilities.SetDirty(collectionOwner);
 				EditorUtilities.SaveAllAssets();
@@ -128,6 +138,13 @@ namespace Threadlink.Utilities.Collections
 
 		public static int Rows<T>(this T[,] matrix) { return matrix.GetLength(0); }
 		public static int Columns<T>(this T[,] matrix) { return matrix.GetLength(1); }
+
+		public static void For<T>(this T[] collection, Action<T> function)
+		{
+			int length = collection.Length;
+
+			for (int i = 0; i < length; i++) function(collection[i]);
+		}
 
 		/// <summary>
 		/// Removes the elements of a list from another list. Does not modify the source list 

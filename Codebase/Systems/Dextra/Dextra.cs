@@ -4,7 +4,6 @@ namespace Threadlink.Systems.Dextra
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
-	using System.Linq;
 	using Threadlink.Core;
 	using UnityEngine;
 	using UnityEngine.EventSystems;
@@ -12,6 +11,7 @@ namespace Threadlink.Systems.Dextra
 	using UnityEngine.UI;
 	using Utilities.Events;
 	using Context = UnityEngine.InputSystem.InputAction.CallbackContext;
+	using VoidDelegate = Utilities.Events.ThreadlinkDelegate<Utilities.Events.VoidOutput, Utilities.Events.VoidInput>;
 
 	public interface IInputHandler
 	{
@@ -66,66 +66,47 @@ namespace Threadlink.Systems.Dextra
 	/// <summary>
 	/// System responsible for managing user interfaces, input and interactions (Input, UI, Interactables).
 	/// </summary>
-	public sealed class Dextra : LinkableSystem<UserInterface>
+	public sealed class Dextra : ThreadlinkSystem<Dextra, UserInterface>
 	{
 		public enum InputDevice { MouseKeyboard, XBOXController, DualSense }
 
-		internal static Dextra Instance { get; private set; }
+		public static VoidGenericEvent<RectTransform> OnElementSelected => Instance.onElementSelected;
+		public static VoidGenericEvent<InputDevice> OnInputDeviceChanged => Instance.onInputDeviceChanged;
+
+		public static event VoidDelegate OnInteractButtonPressed
+		{
+			add { if (CustomInputModule != null) CustomInputModule.OnInteractButtonPressed.TryAddListener(value); }
+			remove { if (CustomInputModule != null) CustomInputModule.OnInteractButtonPressed.Remove(value); }
+		}
+
 		internal static UserInterface TopInterface => StackedInterfaces.Count <= 0 ? null : StackedInterfaces.Peek();
 		internal static InputDevice CurrentInputDevice { get; private set; }
 
 		private static Stack<UserInterface> StackedInterfaces { get; set; }
-
 		private static DextraInputModuleExtension CustomInputModule => Instance.customInputModule;
 		private static Gamepad CurrentGamepad => Gamepad.current;
 		private static EventSystem EventSystem => Instance.eventSystem;
 
 		private static Coroutine controllerVibration = null;
 
-		public static event GenericVoidDelegate<RectTransform> OnElementSelected
-		{
-			add
-			{
-				ref var myEvent = ref Instance.onElementSelected;
-
-				if (myEvent.Contains(value) == false) myEvent += value;
-			}
-
-			remove { Instance.onElementSelected -= value; }
-		}
-
-		public static event GenericVoidDelegate<InputDevice> OnInputDeviceChanged
-		{
-			add
-			{
-				ref var myEvent = ref Instance.onInputDeviceChanged;
-
-				if (myEvent == null) myEvent += value;
-				else if (myEvent.Contains(value) == false) myEvent += value;
-			}
-			remove { Instance.onInputDeviceChanged -= value; }
-		}
-
-		public static event VoidDelegate OnInteractButtonPressed
-		{
-			add { if (CustomInputModule != null) CustomInputModule.OnInteractButtonPressed += value; }
-			remove { if (CustomInputModule != null) CustomInputModule.OnInteractButtonPressed -= value; }
-		}
-
 		[SerializeField] private EventSystem eventSystem = null;
 		[SerializeField] private PlayerInput deviceDetector = null;
 		[SerializeField] private DextraInputModuleExtension customInputModule = null;
 
-		private event GenericVoidDelegate<RectTransform> onElementSelected = null;
-		private event GenericVoidDelegate<InputDevice> onInputDeviceChanged = null;
+		private readonly VoidGenericEvent<RectTransform> onElementSelected = new();
+		private readonly VoidGenericEvent<InputDevice> onInputDeviceChanged = new();
 
 		public override void Discard()
 		{
 			deviceDetector.onControlsChanged -= UpdateInputDevice;
 			if (customInputModule != null) customInputModule.Discard();
+			DisconnectAll();
+
 			eventSystem = null;
 			deviceDetector = null;
 			customInputModule = null;
+			Instance = null;
+
 			base.Discard();
 		}
 
@@ -137,8 +118,11 @@ namespace Threadlink.Systems.Dextra
 
 			deviceDetector.onControlsChanged += UpdateInputDevice;
 
-			customInputModule = Instantiate(customInputModule);
-			if (customInputModule != null) customInputModule.Boot();
+			if (customInputModule != null)
+			{
+				customInputModule = Instantiate(customInputModule);
+				customInputModule.Boot();
+			}
 
 			base.Boot();
 		}
@@ -153,7 +137,7 @@ namespace Threadlink.Systems.Dextra
 			for (int i = 0; i < length; i++)
 			{
 				interfaces[i].Initialize();
-				LinkInstance(interfaces[i]);
+				Link(interfaces[i]);
 			}
 
 			if (customInputModule != null) customInputModule.Initialize();
@@ -178,7 +162,7 @@ namespace Threadlink.Systems.Dextra
 		#region UI Code:
 		public static void StackInterface(string interfaceID)
 		{
-			UserInterface target = Instance.FindLinkedEntity(interfaceID);
+			UserInterface target = Instance.FindManagedEntity(interfaceID);
 
 			if (target == null)
 			{
@@ -227,7 +211,8 @@ namespace Threadlink.Systems.Dextra
 
 		public static void SyncSelection()
 		{
-			Instance.onElementSelected?.Invoke(EventSystem.currentSelectedGameObject.transform as RectTransform);
+			Instance.onElementSelected.
+			Invoke(EventSystem.currentSelectedGameObject.transform as RectTransform);
 		}
 
 		public static void SelectUIElement(Selectable element)
@@ -257,7 +242,7 @@ namespace Threadlink.Systems.Dextra
 			else
 			{
 				Select(null);
-				Instance.onElementSelected?.Invoke(null);
+				Instance.onElementSelected.Invoke(default);
 			}
 		}
 		#endregion
@@ -282,7 +267,7 @@ namespace Threadlink.Systems.Dextra
 			}
 
 			CurrentInputDevice = newDevice;
-			Instance.onInputDeviceChanged?.Invoke(newDevice);
+			Instance.onInputDeviceChanged.Invoke(newDevice);
 
 			ForceStopControllerVibration();
 		}

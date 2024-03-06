@@ -5,19 +5,14 @@ namespace Threadlink.Systems.Initium
 	using Threadlink.Core;
 	using UnityEngine;
 
-	public sealed class Initium : LinkableSystem<LinkableEntity>
+	public sealed class Initium : LinkableBehaviourSingleton<Initium>
 	{
-		private static Initium Instance { get; set; }
+		public override void Boot() { Instance = this; }
+		public override void Initialize() { }
 
-		public override void Boot()
+		private static IEnumerator WaitForOneFrame()
 		{
-			Instance = this;
-			base.Boot();
-		}
-
-		public override void Initialize()
-		{
-			Nexus.Nexus.OnBeforeSceneUnload += SeverAll;
+			yield return Threadlink.WaitForFrameCount(1);
 		}
 
 		internal static InitializableCollection GetSceneInitCollection(string sceneName)
@@ -36,74 +31,70 @@ namespace Threadlink.Systems.Initium
 			return null;
 		}
 
+		#region Bootup And Initialization:
 		public static IEnumerator BootAndInitCollection(InitializableCollection target)
 		{
 			yield return target.BootObjects();
 			yield return target.InitializeObjects();
 		}
 
-		public static IEnumerator BootAndInitLinkableObject(LinkableObject target)
+		public static IEnumerator BootAndInit<T>(T target) where T : ILinkable
 		{
-			yield return BootLinkableObject(target);
-			yield return InitializeLinkableObject(target);
+			yield return Boot(target);
+			yield return Initialize(target);
 		}
 
-		public static IEnumerator BootAndInitLinkableAsset(LinkableAsset target)
+		public static IEnumerator BootAndInit<T>(params T[] targets) where T : ILinkable
 		{
-			yield return BootLinkableAsset(target);
-			yield return InitializeLinkableAsset(target);
+			yield return Boot(targets);
+			yield return Initialize(targets);
 		}
 
-		public static IEnumerator BootLinkableObject(LinkableObject target)
+		public static IEnumerator BootAndInit<T>(List<T> targets) where T : ILinkable
 		{
-			target.Boot();
-			yield return Threadlink.WaitForFrameCount(1);
+			yield return Boot(targets);
+			yield return Initialize(targets);
 		}
+		#endregion
 
-		public static IEnumerator InitializeLinkableObject(LinkableObject target)
-		{
-			target.Initialize();
-			yield return Threadlink.WaitForFrameCount(1);
-		}
-
-		public static IEnumerator BootLinkableAsset(LinkableAsset target)
+		#region Bootup Only:
+		public static IEnumerator Boot<T>(T target) where T : ILinkable
 		{
 			target.Boot();
-			yield return Threadlink.WaitForFrameCount(1);
+			yield return WaitForOneFrame();
 		}
 
-		public static IEnumerator InitializeLinkableAsset(LinkableAsset target)
+		public static IEnumerator Boot<T>(params T[] targets) where T : ILinkable
+		{
+			int length = targets.Length;
+			for (int i = 0; i < length; i++) yield return Boot(targets[i]);
+		}
+
+		public static IEnumerator Boot<T>(List<T> targets) where T : ILinkable
+		{
+			int length = targets.Count;
+			for (int i = 0; i < length; i++) yield return Boot(targets[i]);
+		}
+		#endregion
+
+		#region InitializationOnly:
+		public static IEnumerator Initialize<T>(T target) where T : ILinkable
 		{
 			target.Initialize();
-			yield return Threadlink.WaitForFrameCount(1);
+			yield return WaitForOneFrame();
 		}
 
-		public static IEnumerator BootLinkableObjects(params LinkableObject[] target)
+		public static IEnumerator Initialize<T>(params T[] targets) where T : ILinkable
 		{
-			int length = target.Length;
-
-			for (int i = 0; i < length; i++) yield return BootLinkableObject(target[i]);
+			int length = targets.Length;
+			for (int i = 0; i < length; i++) yield return Initialize(targets[i]);
 		}
 
-		public static IEnumerator InitializeLinkableObjects(params LinkableObject[] target)
+		public static IEnumerator Initialize<T>(List<T> targets) where T : ILinkable
 		{
-			int length = target.Length;
-
-			for (int i = 0; i < length; i++) yield return InitializeLinkableObject(target[i]);
+			int length = targets.Count;
+			for (int i = 0; i < length; i++) yield return Initialize(targets[i]);
 		}
-
-		public static IEnumerator BootLinkableObjects<T>(List<T> target) where T : LinkableObject
-		{
-			int length = target.Count;
-
-			for (int i = 0; i < length; i++) yield return BootLinkableObject(target[i]);
-		}
-
-		public static IEnumerator InitializeLinkableObjects<T>(List<T> target) where T : LinkableObject
-		{
-			int length = target.Count;
-
-			for (int i = 0; i < length; i++) yield return InitializeLinkableObject(target[i]);
-		}
+		#endregion
 	}
 }

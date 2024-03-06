@@ -1,10 +1,11 @@
 namespace Threadlink.Systems.Dextra
 {
 	using Threadlink.Core;
+	using Threadlink.Utilities.Events;
 	using UnityEngine;
 	using UnityEngine.UI;
 
-	public sealed class DextraInputPrompt : LinkableEntity
+	public sealed class DextraInputPrompt : LinkableBehaviour
 	{
 		[SerializeField] private Image promptImage = null;
 		[SerializeField] private Text promptLabel = null;
@@ -13,7 +14,7 @@ namespace Threadlink.Systems.Dextra
 
 		public override void Discard()
 		{
-			Dextra.OnInputDeviceChanged -= UpdateGraphics;
+			Dextra.OnInputDeviceChanged.Remove(OnDeviceChanged);
 			promptImage = null;
 			promptLabel = null;
 			data = null;
@@ -23,11 +24,15 @@ namespace Threadlink.Systems.Dextra
 		public override void Boot() { }
 		public override void Initialize()
 		{
-			UpdateGraphics();
-			Dextra.OnInputDeviceChanged += UpdateGraphics;
+			OnDeviceChanged();
+			Dextra.OnInputDeviceChanged.TryAddListener(OnDeviceChanged);
 		}
 
-		public void UpdateGraphics() { UpdateGraphics(Dextra.CurrentInputDevice); }
+		public VoidOutput OnDeviceChanged(Dextra.InputDevice currentInputDevice = 0)
+		{
+			UpdateGraphics(Dextra.CurrentInputDevice);
+			return default;
+		}
 
 		private void UpdateGraphics(Dextra.InputDevice currentInputDevice)
 		{

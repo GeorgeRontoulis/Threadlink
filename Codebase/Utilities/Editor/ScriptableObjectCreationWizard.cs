@@ -1,10 +1,11 @@
 namespace Threadlink.Utilities.Editor
 {
-	using Sirenix.OdinInspector;
+	using System;
 	using System.IO;
+	using Threadlink.Utilities.Editor.Attributes;
 	using UnityEditor;
 	using UnityEngine;
-	using Utilities.Text;
+	using String = Text.String;
 
 	internal sealed class ScriptableObjectCreationWizard : ScriptableWizard
 	{
@@ -18,8 +19,10 @@ namespace Threadlink.Utilities.Editor
 		[SerializeField] private string baseType = "ScriptableObject";
 		[SerializeField] private string classScope = string.Empty;
 		[SerializeField] private string namespaceName = string.Empty;
+		[SerializeField] private string[] necessaryUsings = new string[1] { "UnityEngine" };
+		[SerializeField] private TextAsset implementationTemplate = null;
 
-		[MenuItem("Tools/Scriptable Object Wizard")]
+		[MenuItem("Threadlink/Scriptable Object Wizard")]
 		private static void CreateWizard()
 		{
 			DisplayWizard<ScriptableObjectCreationWizard>("Create Scriptable Object Class");
@@ -32,16 +35,21 @@ namespace Threadlink.Utilities.Editor
 			//Prepare the file:
 			string templateContents = template.text;
 
+			string[] generatedUsings = new string[necessaryUsings.Length];
+			for (int i = 0; i < generatedUsings.Length; i++) generatedUsings[i] = String.Construct("using ", necessaryUsings[i], ";");
+
 			//Modify the template copy:
 			templateContents = templateContents.Replace("<Namespace>", namespaceName);
+			templateContents = templateContents.Replace("<Usings>", string.Join(Environment.NewLine, generatedUsings));
 			templateContents = templateContents.Replace("<AssetMenuPath>", assetMenuPath);
 			templateContents = templateContents.Replace("<Scope>", classScope);
 			templateContents = templateContents.Replace("<ClassName>", className);
 			templateContents = templateContents.Replace("<BaseClass>", baseType);
+			templateContents = templateContents.Replace("<Implementation>", implementationTemplate == null ? string.Empty : implementationTemplate.text);
 
 			//Save to a new script in the specified path.
 			string path = String.Construct(scriptPath, "/", className, ".cs");
-			StreamWriter writer = new StreamWriter(path);
+			StreamWriter writer = new(path);
 
 			writer.Write(templateContents);
 			writer.Close();

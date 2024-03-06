@@ -5,30 +5,19 @@ namespace Threadlink.Extensions.Dextra
 
 	public abstract class DextraInputModuleExtension : LinkableAsset
 	{
-		public event VoidDelegate OnInteractButtonPressed
-		{
-			add
-			{
-				if (onInteractButtonPressed == null) onInteractButtonPressed += value;
-				else if (onInteractButtonPressed.Contains(value) == false) onInteractButtonPressed += value;
-			}
-			remove
-			{
-				onInteractButtonPressed -= value;
+		public VoidEvent OnInteractButtonPressed => onInteractButtonPressed;
 
-				if (onInteractButtonPressed != null && onInteractButtonPressed.GetListenerCount() <= 0)
-					onInteractButtonPressed = null;
-			}
-		}
-
-		private event VoidDelegate onInteractButtonPressed = null;
+		private VoidEvent onInteractButtonPressed = new();
 
 		public override void Discard()
 		{
+			onInteractButtonPressed.Discard();
 			onInteractButtonPressed = null;
 			base.Discard();
 		}
 
-		public void Interact() { onInteractButtonPressed?.Invoke(); }
+		public void Interact() { onInteractButtonPressed.Invoke(); }
+
+		public abstract void SetPlayerInputMapActiveState(bool playerMapState);
 	}
 }

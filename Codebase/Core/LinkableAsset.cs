@@ -1,37 +1,35 @@
 namespace Threadlink.Core
 {
+	using System;
 	using UnityEngine;
 	using Utilities.Events;
 
 	/// <summary>
-	/// Base class for all Threadlink-Compatible assets. All assets compatible with Threadlink should derive from this class.
+	/// Base class for all Threadlink-Compatible assets.
 	/// </summary>
-	public abstract class LinkableAsset : ScriptableObject
+	public abstract class LinkableAsset : ScriptableObject, ILinkable
 	{
-		public event VoidDelegate OnBeforeDiscarded
-		{
-			add { if (onBeforeDiscarded.Contains(value) == false) onBeforeDiscarded += value; }
-			remove { onBeforeDiscarded -= value; }
-		}
+		public virtual string LinkID => name;
+		public bool IsInstance { get; internal set; }
 
-		public bool Initialized { get; private set; }
-		public string ID { get; private set; }
+		public VoidEvent OnBeforeDiscarded => onBeforeDiscarded;
 
-		private event VoidDelegate onBeforeDiscarded = null;
+		[NonSerialized] private VoidEvent onBeforeDiscarded = new();
 
 		public abstract void Boot();
-
-		public virtual void Initialize() { Initialized = true; }
+		public abstract void Initialize();
 
 		public virtual void Discard()
 		{
-			onBeforeDiscarded?.Invoke();
+			if (onBeforeDiscarded != null)
+			{
+				onBeforeDiscarded.Invoke();
+				onBeforeDiscarded.Discard();
 
-			ID = null;
-			onBeforeDiscarded = null;
+				onBeforeDiscarded = null;
+			}
+
 			Destroy(this);
 		}
-
-		public void SetID() { ID = string.Empty; }
 	}
 }

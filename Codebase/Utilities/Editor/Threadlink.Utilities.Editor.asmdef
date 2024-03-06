@@ -2,7 +2,10 @@
     "name": "Threadlink.Utilities.Editor",
     "rootNamespace": "Threadlink.Utilities.Editor",
     "references": [
-        "GUID:55c8270eaa5b5bb47bd94046e1b5bd19"
+        "GUID:55c8270eaa5b5bb47bd94046e1b5bd19",
+        "GUID:69448af7b92c7f342b298e06a37122aa",
+        "GUID:b92235c5e4101034b9b5bbaf95890dc2",
+        "GUID:84651a3751eca9349aac36a66bba901b"
     ],
     "includePlatforms": [
         "Editor"

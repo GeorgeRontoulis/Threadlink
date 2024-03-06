@@ -3,7 +3,12 @@ guid: 6ff4b31633d184445bd3c28668247e70
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - selfTransform: {instanceID: 0}
+  - eventSystem: {instanceID: 0}
+  - deviceDetector: {instanceID: 0}
+  - customInputModule: {fileID: 11400000, guid: 164c84310c59e7940b1a5ee7a6cbd037,
+      type: 2}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 
