@@ -25,11 +25,13 @@ namespace Threadlink.Templates.PlayerCharacterController
 			CameraTransform = Camera.main.transform;
 			Controller = player.Controller;
 
-			movementInput.SetUp(owner);
-			turnSpeed.SetUp(owner);
-			xzVelocity.SetUp(owner);
+			movementInput.PointToInternalReferenceOf(owner);
+			turnSpeed.PointToInternalReferenceOf(owner);
+			xzVelocity.PointToInternalReferenceOf(owner);
 
-			Dextra.GetCustomInputModule<DextraInputModuleExtension>().SetPlayerInputMapActiveState(true);
+			var inputModule = Dextra.GetCustomInputModule<DextraInputModuleExtension>();
+
+			if (inputModule != null) inputModule.InputMode = DextraInputMode.Player;
 		}
 
 		public override void OnEnter()
@@ -103,6 +105,8 @@ namespace Threadlink.Templates.PlayerCharacterController
 
 		private void TurnToMovementDirection(Vector3 direction, float deltaTime)
 		{
+			if (direction.Equals(Vector3.zero)) return;
+
 			var targetRotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
 			var turnSpeed = deltaTime * this.turnSpeed.CurrentValue;
 			PlayerTransform.rotation = Quaternion.SlerpUnclamped(PlayerTransform.rotation, targetRotation, turnSpeed);

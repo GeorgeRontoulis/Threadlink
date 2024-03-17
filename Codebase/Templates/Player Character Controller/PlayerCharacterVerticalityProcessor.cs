@@ -20,7 +20,7 @@ namespace Threadlink.Templates.PlayerCharacterController
 		{
 			Controller = owner.Owner.Controller;
 
-			yVelocity.SetUp(owner);
+			yVelocity.PointToInternalReferenceOf(owner);
 
 			base.Initialize(owner);
 		}

@@ -13,54 +13,49 @@ namespace Threadlink.Systems.Dextra
 	using Context = UnityEngine.InputSystem.InputAction.CallbackContext;
 	using VoidDelegate = Utilities.Events.ThreadlinkDelegate<Utilities.Events.VoidOutput, Utilities.Events.VoidInput>;
 
-	public interface IInputHandler
-	{
-		void SetUpHandlers();
-		void SubscribeInputHandlers();
-		void UnsubscribeInputHandlers();
-	}
-
 	public struct ControllerVibrationData
 	{
-		public CustomYieldInstruction waitInstruction;
-		public float lowFrequency;
-		public float highFrequency;
+		internal CustomYieldInstruction WaitInstruction { get; private set; }
+		internal float LowFrequency { get; private set; }
+		internal float HighFrequency { get; private set; }
 
-		public ControllerVibrationData(CustomYieldInstruction waitInstruction, float lowFrequency, float highFrequency)
+		public ControllerVibrationData(float lowFrequency, float highFrequency, CustomYieldInstruction waitInstruction = null)
 		{
-			this.waitInstruction = waitInstruction;
-			this.lowFrequency = lowFrequency;
-			this.highFrequency = highFrequency;
+			WaitInstruction = waitInstruction;
+			LowFrequency = lowFrequency;
+			HighFrequency = highFrequency;
 		}
 	}
 
 	[Serializable]
 	public sealed class ActionHandlerReferencePair<T> where T : struct
 	{
-		public Action<Context> Handler { get; private set; }
+		private Action<Context> Handler { get; set; }
 
 		private InputAction InputAction => reference.action;
 
 		[SerializeField] private InputActionReference reference = null;
 
-		public void SetUpHandler(Action action)
-		{
-			Handler = (Context ctx) => Dextra.PerformContextualAction(action);
-		}
-
-		public void SetUpHandler(Action<T> action)
-		{
-			Handler = (Context ctx) => Dextra.PerformContextualAction(action, ctx.ReadValue<T>());
-		}
-
-		public void Subscribe() { InputAction.performed += Handler; }
-		public void Unsubscribe() { InputAction.performed -= Handler; }
-
-		public void Dispose()
+		public void Discard()
 		{
 			Unsubscribe();
 			Handler = null;
 		}
+
+		public void Handle(Action action)
+		{
+			Handler = (Context ctx) => Dextra.PerformContextualAction(action);
+			Subscribe();
+		}
+
+		public void Handle(Action<T> action)
+		{
+			Handler = (Context ctx) => Dextra.PerformContextualAction(action, ctx.ReadValue<T>());
+			Subscribe();
+		}
+
+		private void Subscribe() { InputAction.performed += Handler; }
+		private void Unsubscribe() { InputAction.performed -= Handler; }
 	}
 
 	/// <summary>
@@ -77,6 +72,12 @@ namespace Threadlink.Systems.Dextra
 		{
 			add { if (CustomInputModule != null) CustomInputModule.OnInteractButtonPressed.TryAddListener(value); }
 			remove { if (CustomInputModule != null) CustomInputModule.OnInteractButtonPressed.Remove(value); }
+		}
+
+		public static event VoidDelegate OnPauseButtonPressed
+		{
+			add { if (CustomInputModule != null) CustomInputModule.OnPauseButtonPressed.TryAddListener(value); }
+			remove { if (CustomInputModule != null) CustomInputModule.OnPauseButtonPressed.Remove(value); }
 		}
 
 		internal static UserInterface TopInterface => StackedInterfaces.Count <= 0 ? null : StackedInterfaces.Peek();
@@ -129,7 +130,7 @@ namespace Threadlink.Systems.Dextra
 
 		public override void Initialize()
 		{
-			UserInterface[] interfaces = FindObjectsByType<UserInterface>(FindObjectsSortMode.None);
+			var interfaces = FindObjectsByType<UserInterface>(FindObjectsSortMode.None);
 			int length = interfaces.Length;
 
 			for (int i = 0; i < length; i++) interfaces[i].Boot();
@@ -149,7 +150,7 @@ namespace Threadlink.Systems.Dextra
 			if (TopInterface != null && TopInterface.CanBeCancelled)
 			{
 				var poppedInterface = PopTopInterface();
-				poppedInterface.OnCancelled();
+				if (poppedInterface != null) poppedInterface.OnCancelled();
 			}
 		}
 
@@ -272,6 +273,7 @@ namespace Threadlink.Systems.Dextra
 			ForceStopControllerVibration();
 		}
 
+		public static void PerformContextualAction(VoidDelegate action) { action?.Invoke(default); }
 		public static void PerformContextualAction(Action action) { action(); }
 		public static void PerformContextualAction<T>(Action<T> action, T arg) { action(arg); }
 		public static void PerformContextualAction<T>(Action<T[]> action, params T[] args) { action(args); }
@@ -285,15 +287,19 @@ namespace Threadlink.Systems.Dextra
 		/// <param name="vibrationData">The data used for the vibration.</param>
 		public static void VibrateController(ControllerVibrationData vibrationData)
 		{
-			Gamepad currentGamepad = CurrentGamepad;
+			if (CurrentInputDevice.Equals(InputDevice.MouseKeyboard)) return;
+
+			var currentGamepad = CurrentGamepad;
 
 			if (currentGamepad != null)
 			{
 				IEnumerator VibrateForSeconds()
 				{
-					currentGamepad.SetMotorSpeeds(vibrationData.lowFrequency, vibrationData.highFrequency);
+					currentGamepad.SetMotorSpeeds(vibrationData.LowFrequency, vibrationData.HighFrequency);
 
-					yield return vibrationData.waitInstruction;
+					var yieldInstruction = vibrationData.WaitInstruction;
+
+					if (yieldInstruction != null) yield return yieldInstruction;
 
 					currentGamepad.ResetHaptics();
 					controllerVibration = null;
@@ -306,20 +312,21 @@ namespace Threadlink.Systems.Dextra
 
 		public static void VibrateControllerThisFrame(ControllerVibrationData vibrationData)
 		{
-			Gamepad currentGamepad = CurrentGamepad;
+			if (CurrentInputDevice.Equals(InputDevice.MouseKeyboard)) return;
 
-			if (currentGamepad != null)
-			{
-				currentGamepad.SetMotorSpeeds(vibrationData.lowFrequency, vibrationData.highFrequency);
-			}
+			var currentGamepad = CurrentGamepad;
+
+			currentGamepad?.SetMotorSpeeds(vibrationData.LowFrequency, vibrationData.HighFrequency);
 		}
 
 		public static void ForceStopControllerVibration()
 		{
-			Gamepad currentGamepad = CurrentGamepad;
+			if (CurrentInputDevice.Equals(InputDevice.MouseKeyboard)) return;
+
+			var currentGamepad = CurrentGamepad;
 
 			if (controllerVibration != null) Threadlink.StopCoroutine(ref controllerVibration);
-			if (currentGamepad != null) currentGamepad.ResetHaptics();
+			currentGamepad?.ResetHaptics();
 		}
 		#endregion
 	}

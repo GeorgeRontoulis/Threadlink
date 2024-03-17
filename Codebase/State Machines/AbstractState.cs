@@ -5,9 +5,9 @@ namespace Threadlink.StateMachines
 {
 	using UnityEngine;
 
-	public interface AbstractStateData { }
+	public interface IAbstractStateData { }
 
-	public interface IScriptableState<DataType> where DataType : AbstractStateData
+	public interface IScriptableState<DataType> where DataType : IAbstractStateData
 	{
 		public void ProcessData(DataType data);
 	}

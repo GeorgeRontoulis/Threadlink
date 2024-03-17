@@ -10,6 +10,11 @@ namespace Threadlink.StateMachines
 	using UnityEngine;
 	using Utilities.Collections;
 
+	public interface IStateMachinePointer
+	{
+		public void PointToInternalReferenceOf(BaseAbstractStateMachine owner);
+	}
+
 	public abstract class BaseAbstractStateMachine : ScriptableObject
 	{
 		[Flags]
@@ -44,6 +49,8 @@ namespace Threadlink.StateMachines
 
 			return paramFound as AbstractParameter<T>;
 		}
+
+		public abstract AbstractProcessor<T> GetProcessor<T>(string id) where T : BaseAbstractStateMachine;
 
 		public static T CreateCopyFrom<T>(T original) where T : BaseAbstractStateMachine
 		{
@@ -82,6 +89,20 @@ namespace Threadlink.StateMachines
 #endif
 		private void SortParametersByID() { parameters.SortByID(this); }
 #endif
+
+
+		public override AbstractProcessor<T> GetProcessor<T>(string id)
+		{
+			var processorFound = processors.BinarySearch(id);
+
+			if (processorFound == null)
+			{
+				Scribe.LogError("The requested processor could not be found! Check your request!");
+				return null;
+			}
+
+			return processorFound as AbstractProcessor<T>;
+		}
 
 		public virtual void Initialize(OwnerType owner)
 		{
@@ -178,7 +199,7 @@ namespace Threadlink.StateMachines
 		}
 
 		public void AttemptTransitionTo<ScriptableStateType, DataType>(StateType newState, DataType data)
-		where DataType : AbstractStateData
+		where DataType : IAbstractStateData
 		where ScriptableStateType : IScriptableState<DataType>
 		{
 			if (newState == null || newState.Equals(CurrentState)

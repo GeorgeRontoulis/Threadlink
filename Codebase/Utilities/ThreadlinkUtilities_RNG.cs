@@ -1,11 +1,14 @@
 namespace Threadlink.Utilities.RNG
 {
-	using System;
-	using System.Linq;
-	using UnityEngine;
 	using System.Collections.Generic;
-	using Threadlink.Utilities.UnityLogging;
 	using Threadlink.Utilities.Collections;
+	using Threadlink.Utilities.UnityLogging;
+	using UnityEngine;
+
+	public interface IRNGWeighted
+	{
+		public bool WeightedRandomEvaluation { get; }
+	}
 
 	public static class RNG
 	{
@@ -13,7 +16,7 @@ namespace Threadlink.Utilities.RNG
 		public static double NextDouble => Generator.NextDouble();
 		public static bool Coinflip => IntegerFromRange(0, 2) > 0;
 
-		private static System.Random Generator = new System.Random();
+		private static readonly System.Random Generator = new();
 
 		public static int IntegerFromRange(int minInclusive, int maxExclusive)
 		{
@@ -32,6 +35,13 @@ namespace Threadlink.Utilities.RNG
 			return randomFloat < weight || Mathf.Approximately(randomFloat, weight);
 		}
 
+		public static Color RandomColor(float alpha)
+		{
+			static float ColorValue() => (float)NextDoubleAugmented;
+
+			return new Color(ColorValue(), ColorValue(), ColorValue(), alpha);
+		}
+
 		public static void Shuffle<T>(this IList<T> list)
 		{
 			int n = list.Count;
@@ -40,9 +50,7 @@ namespace Threadlink.Utilities.RNG
 			{
 				n--;
 				int k = Generator.Next(n + 1);
-				T value = list[k];
-				list[k] = list[n];
-				list[n] = value;
+				(list[n], list[k]) = (list[k], list[n]);
 			}
 		}
 
@@ -54,9 +62,7 @@ namespace Threadlink.Utilities.RNG
 			{
 				n--;
 				int k = Generator.Next(n + 1);
-				T value = array[k];
-				array[k] = array[n];
-				array[n] = value;
+				(array[n], array[k]) = (array[k], array[n]);
 			}
 		}
 
@@ -72,9 +78,7 @@ namespace Threadlink.Utilities.RNG
 					int m = Generator.Next(i + 1);
 					int n = Generator.Next(j + 1);
 
-					T temp = array[i, j];
-					array[i, j] = array[m, n];
-					array[m, n] = temp;
+					(array[m, n], array[i, j]) = (array[i, j], array[m, n]);
 				}
 			}
 
@@ -95,7 +99,7 @@ namespace Threadlink.Utilities.RNG
 			int startY = IntegerFromRange(0, gridHeight - patchHeight + 1);
 
 			// Create a new array to hold the patch
-			T[,] patch = new T[patchWidth, patchHeight];
+			var patch = new T[patchWidth, patchHeight];
 
 			// Fill the new array with elements from the grid
 			for (int i = 0; i < patchWidth; i++)
@@ -120,7 +124,7 @@ namespace Threadlink.Utilities.RNG
 			int startY = IntegerFromRange(0, gridHeight - patchHeight + 1);
 
 			// Create a new array to hold the patch
-			T[,] patch = new T[patchWidth, patchHeight];
+			var patch = new T[patchWidth, patchHeight];
 
 			// Fill the new array with elements from the grid
 			for (int i = 0; i < patchWidth; i++)
@@ -155,9 +159,9 @@ namespace Threadlink.Utilities.RNG
 
 			int indexMul3 = triIndex * 3;
 
-			Vector3 a = verts[tris[indexMul3]];
-			Vector3 b = verts[tris[indexMul3 + 1]];
-			Vector3 c = verts[tris[indexMul3 + 2]];
+			var a = verts[tris[indexMul3]];
+			var b = verts[tris[indexMul3 + 1]];
+			var c = verts[tris[indexMul3 + 2]];
 
 			// Generate random barycentric coordinates
 			float r = (float)NextDoubleAugmented;
@@ -175,7 +179,7 @@ namespace Threadlink.Utilities.RNG
 		public static float[] GetTriangleSizes(int[] tris, Vector3[] verts)
 		{
 			int triCount = tris.Length / 3;
-			float[] sizes = new float[triCount];
+			var sizes = new float[triCount];
 
 			for (int i = 0; i < triCount; i++)
 			{
@@ -189,7 +193,7 @@ namespace Threadlink.Utilities.RNG
 
 		public static (float[], float) CalculateMeshAreas(float[] sizes)
 		{
-			float[] cumulativeSizes = new float[sizes.Length];
+			var cumulativeSizes = new float[sizes.Length];
 			float total = 0;
 
 			for (int i = 0; i < sizes.Length; i++)

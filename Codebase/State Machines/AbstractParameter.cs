@@ -11,7 +11,7 @@ namespace Threadlink.StateMachines
 #endif
 
 	[Serializable]
-	public sealed class ParameterPointer<T>
+	public sealed class ParameterPointer<T> : IStateMachinePointer
 	{
 #if ODIN_INSPECTOR
 		[ReadOnly]
@@ -32,7 +32,7 @@ namespace Threadlink.StateMachines
 #endif
 		[SerializeField] private string parameterID = string.Empty;
 
-		public void SetUp(BaseAbstractStateMachine owner)
+		public void PointToInternalReferenceOf(BaseAbstractStateMachine owner)
 		{
 			Reference = owner.GetParameter<T>(parameterID);
 		}

@@ -1,23 +1,48 @@
 namespace Threadlink.Extensions.Dextra
 {
 	using Threadlink.Core;
+	using Threadlink.Systems.Dextra;
 	using Threadlink.Utilities.Events;
+	using UnityEngine;
+
+	public enum DextraInputMode { UI, Player }
 
 	public abstract class DextraInputModuleExtension : LinkableAsset
 	{
-		public VoidEvent OnInteractButtonPressed => onInteractButtonPressed;
+		public abstract DextraInputMode InputMode { set; }
 
-		private VoidEvent onInteractButtonPressed = new();
+		internal VoidEvent OnInteractButtonPressed => onInteractButtonPressed;
+		internal VoidEvent OnPauseButtonPressed => onPausePressed;
+
+		private readonly VoidEvent onInteractButtonPressed = new();
+		private readonly VoidEvent onPausePressed = new();
+
+		[SerializeField] private ActionHandlerReferencePair<VoidOutput> cancelAction = new();
+		[SerializeField] private ActionHandlerReferencePair<VoidOutput> pauseAction = new();
+		[SerializeField] private ActionHandlerReferencePair<VoidOutput> interactAction = new();
 
 		public override void Discard()
 		{
+			interactAction.Discard();
+			pauseAction.Discard();
+			cancelAction.Discard();
+			onPausePressed.Discard();
 			onInteractButtonPressed.Discard();
-			onInteractButtonPressed = null;
+
+			cancelAction = null;
+			interactAction = null;
+
 			base.Discard();
 		}
 
-		public void Interact() { onInteractButtonPressed.Invoke(); }
+		public override void Initialize()
+		{
+			cancelAction.Handle(Dextra.Cancel);
+			pauseAction.Handle(PauseGame);
+			interactAction.Handle(Interact);
+		}
 
-		public abstract void SetPlayerInputMapActiveState(bool playerMapState);
+		private void Interact() { onInteractButtonPressed?.Invoke(); }
+		private void PauseGame() { onPausePressed?.Invoke(); }
 	}
 }

@@ -37,7 +37,7 @@ namespace Threadlink.Utilities.Collections
 			C = vector.x;
 		}
 
-		public bool Equals(MatrixPosition other)
+		public readonly bool Equals(MatrixPosition other)
 		{
 			return R == other.R && C == other.C;
 		}
@@ -146,6 +146,13 @@ namespace Threadlink.Utilities.Collections
 			for (int i = 0; i < length; i++) function(collection[i]);
 		}
 
+		public static void For<T>(this List<T> collection, Action<T> function)
+		{
+			int length = collection.Count;
+
+			for (int i = 0; i < length; i++) function(collection[i]);
+		}
+
 		/// <summary>
 		/// Removes the elements of a list from another list. Does not modify the source list 
 		/// and assumes that the elements of the rangeToRemove are shared with the source.
@@ -156,7 +163,7 @@ namespace Threadlink.Utilities.Collections
 		/// <returns>Returns a new list identical to the source, minus the removed elements.</returns>
 		public static List<T> RemoveRange<T>(this List<T> source, List<T> rangeToRemove)
 		{
-			List<T> result = new(source);
+			var result = new List<T>(source);
 
 			int count = rangeToRemove.Count;
 			for (int i = 0; i < count; i++) result.Remove(rangeToRemove[i]);
@@ -243,8 +250,8 @@ namespace Threadlink.Utilities.Collections
 
 		public static T[] Filter<T>(this T[] originalArray, Predicate<T> filter, int maxCount = -1, bool shuffle = true)
 		{
-			List<T> shuffledOriginal = shuffle ? new List<T>(originalArray) : null;
-			List<T> filteredList = new List<T>();
+			var shuffledOriginal = shuffle ? new List<T>(originalArray) : null;
+			var filteredList = new List<T>();
 			int count = originalArray.Length;
 			bool capList = maxCount > 0;
 
@@ -252,7 +259,7 @@ namespace Threadlink.Utilities.Collections
 
 			for (int i = 0; i < count; i++)
 			{
-				T element = shuffle ? shuffledOriginal[i] : originalArray[i];
+				var element = shuffle ? shuffledOriginal[i] : originalArray[i];
 
 				if (filter(element))
 				{
@@ -263,7 +270,7 @@ namespace Threadlink.Utilities.Collections
 			}
 
 			int length = filteredList.Count;
-			T[] filteredArray = new T[length];
+			var filteredArray = new T[length];
 
 			for (int i = 0; i < length; i++) filteredArray[i] = filteredList[i];
 
@@ -272,8 +279,8 @@ namespace Threadlink.Utilities.Collections
 
 		public static List<T> Filter<T>(this List<T> originalList, Predicate<T> filter, int maxCount = -1, bool shuffle = true)
 		{
-			List<T> shuffledOriginal = shuffle ? new List<T>(originalList) : null;
-			List<T> filteredList = new List<T>();
+			var shuffledOriginal = shuffle ? new List<T>(originalList) : null;
+			var filteredList = new List<T>();
 			int count = originalList.Count;
 			bool capList = maxCount > 0;
 
@@ -281,7 +288,7 @@ namespace Threadlink.Utilities.Collections
 
 			for (int i = 0; i < count; i++)
 			{
-				T element = shuffle ? shuffledOriginal[i] : originalList[i];
+				var element = shuffle ? shuffledOriginal[i] : originalList[i];
 
 				if (filter(element))
 				{
@@ -296,7 +303,7 @@ namespace Threadlink.Utilities.Collections
 
 		public static List<T> Flatten<T>(this T[,] matrix)
 		{
-			List<T> flattenedList = new List<T>(matrix.Length);
+			var flattenedList = new List<T>(matrix.Length);
 			int z = matrix.Rows();
 			int x = matrix.Columns();
 

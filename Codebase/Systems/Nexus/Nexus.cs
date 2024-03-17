@@ -92,12 +92,12 @@ namespace Threadlink.Systems.Nexus
 			//Hide the Fader and wait until it is fully hidden.
 			yield return Instance.onHideFader.Invoke();
 
-			PlayerLoadingAction playerLoadingAction = sceneEntry.playerLoadingAction;
-			BasePlayerLoaderExtension playerLoader = Instance.customPlayerLoader;
+			var playerLoadingAction = sceneEntry.playerLoadingAction;
+			var playerLoader = Instance.customPlayerLoader;
 
 			if (playerLoader != null && playerLoader.PlayerIsLoaded && playerLoadingAction.Equals(PlayerLoadingAction.Unload)) playerLoader.Unload();
 
-			SceneEntry activeScene = RetrieveActiveScene();
+			var activeScene = RetrieveActiveScene();
 
 			if (activeScene != null)
 			{
@@ -123,7 +123,7 @@ namespace Threadlink.Systems.Nexus
 			:
 			UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
 
-			InitializableCollection initCollection = Initium.GetSceneInitCollection(sceneName);
+			var initCollection = Initium.GetSceneInitCollection(sceneName);
 			if (initCollection != null) yield return Initium.BootAndInitCollection(initCollection);
 
 			yield return sceneEntry.PostLoadingCoroutine();

@@ -149,7 +149,7 @@
 		}
 
 		/// <summary>
-		/// Disconnect a linked <typeparamref name="ILinkable"/> from this system. This will not discard the <typeparamref name="ILinkable"/>.
+		/// Disconnect a linked <typeparamref name="ILinkable"/> from this system. This will NOT discard the <typeparamref name="ILinkable"/>.
 		/// </summary>
 		/// <param name="instance">The existing <typeparamref name="ILinkable"/>.</param>
 		/// <param name="logAction">Whether to provide console logs of the process.</param>

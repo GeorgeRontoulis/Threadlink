@@ -4,12 +4,41 @@ namespace Threadlink.StateMachines
 	using Threadlink.Systems;
 	using Threadlink.Utilities.Events;
 
-	public abstract class BaseAbstractProcessor : ScriptableObject
+#if ODIN_INSPECTOR
+	using Sirenix.OdinInspector;
+#endif
+
+	using System.Collections.Generic;
+	using System;
+	using Threadlink.Utilities.Reflection;
+	using Threadlink.Utilities.Collections;
+
+	[Serializable]
+	public sealed class ProcessorPointer<T> : IStateMachinePointer where T : BaseAbstractStateMachine
+	{
+		public AbstractProcessor<T> Target { get; private set; }
+
+#if UNITY_EDITOR && ODIN_INSPECTOR
+		private IEnumerable<ValueDropdownItem> AvailableMatches => Reflection.CreateNameDropdownFor<AbstractProcessor<T>>();
+
+		[ValueDropdown("AvailableMatches")]
+#endif
+		[SerializeField] private string processorID = string.Empty;
+
+		public void PointToInternalReferenceOf(BaseAbstractStateMachine owner)
+		{
+			Target = owner.GetProcessor<T>(processorID);
+		}
+	}
+
+	public abstract class BaseAbstractProcessor : ScriptableObject, IIdentifiable
 	{
 		private enum UpdateMode { Update, FixedUpdate, LateUpdate }
 
 		[SerializeField] private UpdateMode runIn = UpdateMode.Update;
 		[SerializeField] protected bool startUpdatingOnInit = true;
+
+		public string LinkID => name;
 
 		protected abstract VoidOutput Run(VoidInput input);
 

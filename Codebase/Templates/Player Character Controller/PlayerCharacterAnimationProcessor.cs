@@ -24,10 +24,13 @@ namespace Threadlink.Templates.PlayerCharacterController
 
 		[Space(10)]
 
+#if THREADLINK_TEMPLATES_CONTROLLER_3D || THREADLINK_TEMPLATES_CONTROLLER_2D
 		[SerializeField] private float idleMomentum = 0f;
 		[SerializeField] private float walkMomentum = 0.5f;
-		[SerializeField] private float jobMomentum = 1f;
+		[SerializeField] private float jogMomentum = 1f;
 		[SerializeField] private float sprintMomentum = 1.5f;
+#endif
+
 
 		[Space(10)]
 
@@ -44,9 +47,9 @@ namespace Threadlink.Templates.PlayerCharacterController
 		{
 			Character = owner.Owner;
 
-			movementInput.SetUp(owner);
-			xzVelocity.SetUp(owner);
-			yVelocity.SetUp(owner);
+			movementInput.PointToInternalReferenceOf(owner);
+			xzVelocity.PointToInternalReferenceOf(owner);
+			yVelocity.PointToInternalReferenceOf(owner);
 
 			base.Initialize(owner);
 		}
@@ -55,13 +58,21 @@ namespace Threadlink.Templates.PlayerCharacterController
 		{
 			Animator animator = Character.Animator;
 			float deltaTime = Chronos.DeltaTime;
-			float absoluteX = Mathf.Abs(movementInput.CurrentValue.x);
-			float momentum;
+			float momentum = 0;
 
+#if THREADLINK_TEMPLATES_CONTROLLER_3D
+			float clampedInputMagnitude = Mathf.Clamp01(movementInput.CurrentValue.magnitude);
+			if (Character.IsSprinting) momentum = sprintMomentum;
+			else if (clampedInputMagnitude > Mathf.Epsilon && clampedInputMagnitude <= walkMomentum) momentum = walkMomentum;
+			else if (clampedInputMagnitude > walkMomentum && clampedInputMagnitude < sprintMomentum) momentum = jogMomentum;
+			else momentum = idleMomentum;
+#elif THREADLINK_TEMPLATES_CONTROLLER_2D
+			float absoluteX = Mathf.Abs(movementInput.CurrentValue.x);
 			if (Character.IsSprinting) momentum = sprintMomentum;
 			else if (absoluteX > Mathf.Epsilon && absoluteX <= walkMomentum) momentum = walkMomentum;
-			else if (absoluteX > walkMomentum && absoluteX < sprintMomentum) momentum = jobMomentum;
+			else if (absoluteX > walkMomentum && absoluteX < sprintMomentum) momentum = jogMomentum;
 			else momentum = idleMomentum;
+#endif
 
 			animator.SetFloat(momentumHash.Value, momentum, motionDamping, deltaTime);
 
