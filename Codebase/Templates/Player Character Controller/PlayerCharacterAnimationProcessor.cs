@@ -15,6 +15,7 @@ namespace Threadlink.Templates.PlayerCharacterController
 		[SerializeField] private AnimatorHash yVelocityHash = null;
 		[SerializeField] private AnimatorHash xzVelocityHash = null;
 		[SerializeField] private AnimatorHash groundedHash = null;
+		[SerializeField] private AnimatorHash idleFidgetHash = null;
 
 		[Space(10)]
 
@@ -30,7 +31,6 @@ namespace Threadlink.Templates.PlayerCharacterController
 		[SerializeField] private float jogMomentum = 1f;
 		[SerializeField] private float sprintMomentum = 1.5f;
 #endif
-
 
 		[Space(10)]
 
@@ -92,7 +92,7 @@ namespace Threadlink.Templates.PlayerCharacterController
 			else yVelocity.CurrentValue = tempYVelocity;
 
 			animator.SetBool(groundedHash.Value, Character.IsGrounded);
-			animator.SetFloat("IdleFidgetState", Character.IsStandingOnEdge ? 2 : 0, 0.2f, deltaTime);
+			animator.SetFloat(idleFidgetHash.Value, Character.IsStandingOnEdge ? 2 : 0, 0.2f, deltaTime);
 
 			return default;
 		}

@@ -17,7 +17,7 @@
 		public void Initialize();
 
 		/// <summary>
-		/// Nullifies all fields of this <typeparamref name="ILinkable"/> and destroys it.
+		/// Nullifies all properties and fields of this <typeparamref name="ILinkable"/> and destroys it.
 		/// You can use <typeparamref name="OnBeforeDiscarded"/> to get a callback right before that happens.
 		/// </summary>
 		public void Discard();

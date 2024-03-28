@@ -11,6 +11,7 @@ namespace Threadlink.Templates.PlayerCharacterController
 	public sealed class PlayerCharacterInputProcessor : PlayerCharacterProcessor
 	{
 		public VoidEvent OnJumpInput => onJumpInput;
+		public VoidEvent OnAttackInput => onAttackInput;
 
 		private DextraInputModuleExtension InputModule { get; set; }
 		private IPlayerCharacter Character { get; set; }
@@ -23,10 +24,12 @@ namespace Threadlink.Templates.PlayerCharacterController
 		[SerializeField] private ActionHandlerReferencePair<VoidOutput> startSprintAction = new();
 		[SerializeField] private ActionHandlerReferencePair<VoidOutput> stopSprintAction = new();
 		[SerializeField] private ActionHandlerReferencePair<VoidOutput> jumpAction = new();
+		[SerializeField] private ActionHandlerReferencePair<VoidOutput> attackAction = new();
 
 		[Space(10)]
 
 		private readonly VoidEvent onJumpInput = new();
+		private readonly VoidEvent onAttackInput = new();
 
 		public override void Discard()
 		{
@@ -49,6 +52,7 @@ namespace Threadlink.Templates.PlayerCharacterController
 			void StartSprinting() { if (movementInput.CurrentValue.magnitude > Mathf.Epsilon) Character.IsSprinting = true; }
 			void StopSprinting() { Character.IsSprinting = false; }
 			void Jump() { onJumpInput?.Invoke(); }
+			void Attack() { onAttackInput?.Invoke(); }
 
 			Character = owner.Owner;
 			InputModule = Dextra.GetCustomInputModule<DextraInputModuleExtension>();
@@ -59,6 +63,7 @@ namespace Threadlink.Templates.PlayerCharacterController
 			startSprintAction.Handle(StartSprinting);
 			stopSprintAction.Handle(StopSprinting);
 			jumpAction.Handle(Jump);
+			attackAction.Handle(Attack);
 
 			Chronos.OnGamePaused.TryAddListener(OnGamePaused);
 			Chronos.OnGameResumed.TryAddListener(OnGameResumed);

@@ -12,7 +12,7 @@ namespace Threadlink.Systems.Dextra
 		protected override void Reset()
 		{
 			base.Reset();
-			effectiveRadius = GetComponent<Collider>();
+			TryGetComponent(out effectiveRadius);
 		}
 
 		public override void Discard()

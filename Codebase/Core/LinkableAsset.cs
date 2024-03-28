@@ -26,10 +26,10 @@ namespace Threadlink.Core
 				onBeforeDiscarded.Invoke();
 				onBeforeDiscarded.Discard();
 
-				onBeforeDiscarded = null;
+				if (IsInstance) onBeforeDiscarded = null;
 			}
 
-			Destroy(this);
+			if (IsInstance) Destroy(this);
 		}
 	}
 }

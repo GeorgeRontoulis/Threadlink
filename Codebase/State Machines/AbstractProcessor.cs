@@ -12,6 +12,7 @@ namespace Threadlink.StateMachines
 	using System;
 	using Threadlink.Utilities.Reflection;
 	using Threadlink.Utilities.Collections;
+	using Threadlink.Core;
 
 	[Serializable]
 	public sealed class ProcessorPointer<T> : IStateMachinePointer where T : BaseAbstractStateMachine
@@ -31,21 +32,23 @@ namespace Threadlink.StateMachines
 		}
 	}
 
-	public abstract class BaseAbstractProcessor : ScriptableObject, IIdentifiable
+	public abstract class BaseAbstractProcessor : LinkableAsset, IIdentifiable
 	{
 		private enum UpdateMode { Update, FixedUpdate, LateUpdate }
 
 		[SerializeField] private UpdateMode runIn = UpdateMode.Update;
 		[SerializeField] protected bool startUpdatingOnInit = true;
 
-		public string LinkID => name;
-
 		protected abstract VoidOutput Run(VoidInput input);
 
-		public virtual void Discard()
+		public override void Discard()
 		{
 			SetRunningState(false);
+			base.Discard();
 		}
+
+		public override void Boot() { }
+		public override void Initialize() { }
 
 		internal void SetRunningState(bool state)
 		{
