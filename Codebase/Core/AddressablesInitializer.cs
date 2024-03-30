@@ -20,13 +20,13 @@
 
 			while (handle.IsDone == false) yield return null;
 
-			bool initialized = AddressablesUtilities.OperationSucceeded(handle);
+			bool initialized = AddressablesUtilities.Succeeded(handle);
 			DebugNotificationType notifType = initialized ? DebugNotificationType.Info : DebugNotificationType.Error;
 			string notification = initialized ? "Successfully initialized Addressables!" : "Addressables failed to initialize! Aborting!";
 
 			Scribe.SystemLog("Addressables Initializer", notifType, notification);
 
-			AddressablesUtilities.ReleaseIfValid(handle);
+			handle.TryRelease();
 
 			yield return persistentScene.LoadingCoroutine(LoadSceneMode.Single);
 		}

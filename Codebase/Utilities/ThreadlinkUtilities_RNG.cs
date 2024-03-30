@@ -39,7 +39,7 @@ namespace Threadlink.Utilities.RNG
 		{
 			static float ColorValue() => (float)NextDoubleAugmented;
 
-			return new Color(ColorValue(), ColorValue(), ColorValue(), alpha);
+			return new(ColorValue(), ColorValue(), ColorValue(), alpha);
 		}
 
 		public static void Shuffle<T>(this IList<T> list)
@@ -174,35 +174,6 @@ namespace Threadlink.Utilities.RNG
 			}
 
 			return a + r * (b - a) + s * (c - a);
-		}
-
-		public static float[] GetTriangleSizes(int[] tris, Vector3[] verts)
-		{
-			int triCount = tris.Length / 3;
-			var sizes = new float[triCount];
-
-			for (int i = 0; i < triCount; i++)
-			{
-				int iMul3 = i * 3;
-
-				sizes[i] = .5f * Vector3.Cross(verts[tris[iMul3 + 1]] - verts[tris[iMul3]], verts[tris[iMul3 + 2]] - verts[tris[iMul3]]).magnitude;
-			}
-
-			return sizes;
-		}
-
-		public static (float[], float) CalculateMeshAreas(float[] sizes)
-		{
-			var cumulativeSizes = new float[sizes.Length];
-			float total = 0;
-
-			for (int i = 0; i < sizes.Length; i++)
-			{
-				total += sizes[i];
-				cumulativeSizes[i] = total;
-			}
-
-			return (cumulativeSizes, total);
 		}
 	}
 }

@@ -1,5 +1,6 @@
 namespace Threadlink.Utilities.Editor
 {
+#if UNITY_EDITOR
 	using System.IO;
 	using UnityEditor;
 	using UnityEngine;
@@ -25,7 +26,7 @@ namespace Threadlink.Utilities.Editor
 
 			//Create text asset in the specified path.
 			string path = String.Construct(filePath, "/", assetName, ".txt");
-			StreamWriter writer = new StreamWriter(path);
+			var writer = new StreamWriter(path);
 
 			writer.Write(string.Empty);
 			writer.Close();
@@ -36,4 +37,5 @@ namespace Threadlink.Utilities.Editor
 
 		private void OnWizardUpdate() { helpString = "Please set the path and name of the text file."; }
 	}
+#endif
 }

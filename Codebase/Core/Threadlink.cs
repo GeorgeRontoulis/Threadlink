@@ -10,7 +10,7 @@
 	using Utilities.Collections;
 	using Utilities.Editor.Attributes;
 	using Utilities.UnityLogging;
-	using String = Utilities.Text.String;
+	using Utilities.Text;
 
 	public static class ThreadlinkCoreExtensionMethods
 	{
@@ -98,7 +98,7 @@
 			if (logLaunch)
 			{
 				Scribe.SystemLog(Instance.LinkID, DebugNotificationType.Info,
-				"Launching Coroutine '", String.ExtractCoroutineName(coroutine), "'");
+				"Launching Coroutine '", coroutine.ExtractName(), "'");
 			}
 
 			return Instance.StartCoroutine(coroutine);

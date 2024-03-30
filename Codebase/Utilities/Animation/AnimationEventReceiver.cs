@@ -1,7 +1,7 @@
 namespace Threadlink.Utilities.Animation
 {
-	using Utilities.Events;
 	using UnityEngine;
+	using ValidEvent = Events.ScriptableEvent;
 
 	public sealed class AnimationEventReceiver : MonoBehaviour
 	{
@@ -11,7 +11,7 @@ namespace Threadlink.Utilities.Animation
 		/// <param name="eventObject">The scriptable event object passed by the animation event.</param>
 		public void React(Object eventObject)
 		{
-			if (eventObject != null && eventObject is ScriptableEvent) (eventObject as ScriptableEvent).Raise();
+			if (eventObject != null && eventObject is ValidEvent) (eventObject as ValidEvent).Raise();
 		}
 	}
 }

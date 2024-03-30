@@ -16,7 +16,7 @@ namespace Threadlink.Utilities.Events
 	{
 		public string LinkID => name;
 
-		[NonSerialized] private List<Pair> subscribers = new List<Pair>();
+		[NonSerialized] private readonly List<Pair> subscribers = new();
 
 		internal void Register(Pair pair) { subscribers.Add(pair); }
 		internal void Unregister(Pair pair) { subscribers.Remove(pair); }

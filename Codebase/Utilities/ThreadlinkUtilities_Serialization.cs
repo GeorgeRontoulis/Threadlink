@@ -15,7 +15,7 @@ namespace Threadlink.Utilities.Serialization
 	{
 		private const string saveFileExtension = ".sav";
 
-		private static readonly fsSerializer Serializer = new fsSerializer();
+		private static readonly fsSerializer Serializer = new();
 
 		internal static class PersistentDirectoryManager
 		{
@@ -73,10 +73,9 @@ namespace Threadlink.Utilities.Serialization
 
 		public static void SaveRetrieveableData<T>(T retrievableData, string folderName, string fileName) where T : IRetrievable
 		{
-			StreamWriter writer = new StreamWriter(GetSaveFilePath(folderName, fileName));
-			fsData data;
+			var writer = new StreamWriter(GetSaveFilePath(folderName, fileName));
 
-			Serializer.TrySerialize(retrievableData, out data).AssertSuccess();
+			Serializer.TrySerialize(retrievableData, out var data).AssertSuccess();
 
 			writer.Write(fsJsonPrinter.CompressedJson(data));
 			writer.Close();
@@ -90,7 +89,7 @@ namespace Threadlink.Utilities.Serialization
 
 			if (validPath)
 			{
-				StreamReader reader = new StreamReader(filePath);
+				var reader = new StreamReader(filePath);
 				string text = reader.ReadToEnd();
 
 				reader.Close();
@@ -103,10 +102,10 @@ namespace Threadlink.Utilities.Serialization
 
 		internal static T TryDeserialize<T>(string input) where T : IRetrievable, new()
 		{
-			fsData data = fsJsonParser.Parse(input);
+			var data = fsJsonParser.Parse(input);
 			T deserialized = default;
 
-			fsResult result = Serializer.TryDeserialize(data, ref deserialized).AssertSuccess();
+			var result = Serializer.TryDeserialize(data, ref deserialized).AssertSuccess();
 
 			return result.Equals(fsResult.Success) && deserialized.IsValid ? deserialized : GetInvalidData<T>();
 		}
@@ -114,8 +113,7 @@ namespace Threadlink.Utilities.Serialization
 		private static T GetInvalidData<T>() where T : IRetrievable, new()
 		{
 			UnityConsole.Notify(DebugNotificationType.Warning, typeof(T).Name, " could not be loaded. File not found.");
-			T data = new T();
-			data.IsValid = false;
+			var data = new T { IsValid = false };
 			return data;
 		}
 	}

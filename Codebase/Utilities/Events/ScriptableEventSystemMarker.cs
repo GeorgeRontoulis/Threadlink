@@ -6,8 +6,8 @@
 
 	public sealed class ScriptableEventSystemMarker : Marker, INotification
 	{
-		public PropertyName id => new PropertyName();
-		public ScriptableEvent EventToRaise { get => eventToRaise; }
+		public PropertyName id => new();
+		public ScriptableEvent EventToRaise => eventToRaise;
 
 		[SerializeField] private ScriptableEvent eventToRaise = null;
 	}

@@ -5,21 +5,28 @@ namespace Threadlink.Utilities.Events
 
 	public static class EventUtilities
 	{
+		private static Delegate[] GetSubscribers(this Delegate source)
+		{
+			return source.GetInvocationList();
+		}
+
 		public static int GetListenerCount(this Delegate source)
-		{ return source.GetInvocationList().Length; }
+		{
+			return source.GetSubscribers().Length;
+		}
 
 		public static bool Contains(this Delegate source, Delegate target)
 		{
 			if (source == null) return false;
 
-			return source.GetInvocationList().Contains(target);
+			return source.GetSubscribers().Contains(target);
 		}
 
 		public static bool Evaluate(this GenericEvent<bool> source)
 		{
 			if (source == null) return false;
 
-			Delegate[] subscribers = source.InvocationList;
+			var subscribers = source.InvocationList;
 			int length = subscribers.Length;
 
 			for (int i = 0; i < length; i++)

@@ -24,21 +24,16 @@ namespace Threadlink.Utilities.Editor
 		void FindObjects()
 		{
 			var objs = Resources.FindObjectsOfTypeAll(typeof(GameObject)) as GameObject[];
+			int length = objs.Length;
+
 			m_Objects.Clear();
 
-			foreach (var O in objs)
+			for (int i = 0; i < length; i++)
 			{
-				var go = O.transform.root.gameObject;
+				var go = objs[i].transform.root.gameObject;
 
-				if (!m_Objects.Contains(go)) m_Objects.Add(go);
+				if (m_Objects.Contains(go) == false) m_Objects.Add(go);
 			}
-		}
-		void FindObjectsAll()
-		{
-			var objs = Resources.FindObjectsOfTypeAll(typeof(GameObject)) as GameObject[];
-
-			m_Objects.Clear();
-			m_Objects.AddRange(objs);
 		}
 
 		HideFlags HideFlagsButton(string aTitle, HideFlags aFlags, HideFlags aValue)
@@ -56,7 +51,14 @@ namespace Threadlink.Utilities.Editor
 			GUILayout.BeginHorizontal();
 
 			if (GUILayout.Button("Find top-level")) FindObjects();
-			if (GUILayout.Button("Find ALL objects")) FindObjectsAll();
+
+			if (GUILayout.Button("Find ALL objects"))
+			{
+				var objs = Resources.FindObjectsOfTypeAll(typeof(GameObject)) as GameObject[];
+
+				m_Objects.Clear();
+				m_Objects.AddRange(objs);
+			}
 
 			GUILayout.EndHorizontal();
 
@@ -64,29 +66,29 @@ namespace Threadlink.Utilities.Editor
 
 			for (int i = 0; i < m_Objects.Count; i++)
 			{
-				GameObject O = m_Objects[i];
+				var go = m_Objects[i];
 
-				if (O == null) continue;
+				if (go == null) continue;
 
 				GUILayout.BeginHorizontal();
 
-				EditorGUILayout.ObjectField(O.name, O, typeof(GameObject), true);
+				EditorGUILayout.ObjectField(go.name, go, typeof(GameObject), true);
 
-				HideFlags flags = O.hideFlags;
+				var flags = go.hideFlags;
 
 				flags = HideFlagsButton("HideInHierarchy", flags, HideFlags.HideInHierarchy);
 				flags = HideFlagsButton("HideInInspector", flags, HideFlags.HideInInspector);
 				flags = HideFlagsButton("DontSave", flags, HideFlags.DontSave);
 				flags = HideFlagsButton("NotEditable", flags, HideFlags.NotEditable);
 
-				O.hideFlags = flags;
+				go.hideFlags = flags;
 
-				GUILayout.Label(string.Empty + ((int)flags), GUILayout.Width(20));
+				GUILayout.Label(((int)flags).ToString(), GUILayout.Width(20));
 				GUILayout.Space(20);
 
 				if (GUILayout.Button("DELETE"))
 				{
-					DestroyImmediate(O);
+					DestroyImmediate(go);
 					FindObjects();
 					GUIUtility.ExitGUI();
 				}

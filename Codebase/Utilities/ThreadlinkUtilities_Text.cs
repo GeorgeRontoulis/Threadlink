@@ -10,7 +10,7 @@ namespace Threadlink.Utilities.Text
 
 	public static class String
 	{
-		private static readonly StringBuilder StaticStringBuilder = new StringBuilder();
+		private static readonly StringBuilder StaticStringBuilder = new();
 
 		private static string SPLIT_RE = @";(?=(?:[^""]*""[^""]*"")*(?![^""]*""))";
 		private static string LINE_SPLIT_RE = @"\r\n|\n\r|\n|\r";
@@ -87,7 +87,7 @@ namespace Threadlink.Utilities.Text
 			return result;
 		}
 
-		internal static string ExtractCoroutineName(IEnumerator target)
+		internal static string ExtractName(this IEnumerator target)
 		{
 			return target.GetType().Name.Split('>')[0].TrimStart('<');
 		}

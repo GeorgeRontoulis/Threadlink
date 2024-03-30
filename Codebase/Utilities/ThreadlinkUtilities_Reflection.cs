@@ -16,8 +16,8 @@ namespace Threadlink.Utilities.Reflection
 	{
 		public static ArrayType[] TryGetArrayOfType<OwnerType, ArrayType>(this OwnerType owner)
 		{
-			Type ownerType = owner.GetType();
-			PropertyInfo[] properties = ownerType.GetProperties();
+			var ownerType = owner.GetType();
+			var properties = ownerType.GetProperties();
 
 			if (properties == null)
 			{
@@ -29,15 +29,15 @@ namespace Threadlink.Utilities.Reflection
 
 			for (int i = 0; i < length; i++)
 			{
-				PropertyInfo info = properties[i];
-				Type propertyTpe = info.PropertyType;
+				var info = properties[i];
+				var propertyTpe = info.PropertyType;
 
 				if (propertyTpe.IsArray && propertyTpe.GetElementType() == typeof(ArrayType)) return (ArrayType[])info.GetValue(owner);
 			}
 
 			UnityConsole.Notify("Could not find requested array in Properties. Checking Fields.");
 
-			FieldInfo[] fields = ownerType.GetFields(BindingFlags.Instance | BindingFlags.NonPublic);
+			var fields = ownerType.GetFields(BindingFlags.Instance | BindingFlags.NonPublic);
 
 			if (properties == null)
 			{
@@ -49,8 +49,8 @@ namespace Threadlink.Utilities.Reflection
 
 			for (int i = 0; i < length; i++)
 			{
-				FieldInfo info = fields[i];
-				Type fieldType = info.FieldType;
+				var info = fields[i];
+				var fieldType = info.FieldType;
 
 				if (fieldType.IsArray && fieldType.GetElementType() == typeof(ArrayType)) return (ArrayType[])info.GetValue(owner);
 			}
@@ -62,8 +62,8 @@ namespace Threadlink.Utilities.Reflection
 
 		public static Dictionary<Key, Value> TryGetDictionaryOfType<Key, Value>(this object owner)
 		{
-			Type ownerType = owner.GetType();
-			PropertyInfo[] properties = ownerType.GetProperties();
+			var ownerType = owner.GetType();
+			var properties = ownerType.GetProperties();
 
 			if (properties == null)
 			{
@@ -75,8 +75,8 @@ namespace Threadlink.Utilities.Reflection
 
 			for (int i = 0; i < length; i++)
 			{
-				PropertyInfo info = properties[i];
-				Type propertyTpe = info.PropertyType;
+				var info = properties[i];
+				var propertyTpe = info.PropertyType;
 
 				if (propertyTpe.IsGenericType && propertyTpe.GetGenericTypeDefinition().Equals(typeof(Dictionary<Key, Value>)))
 					return (Dictionary<Key, Value>)info.GetValue(owner);
@@ -89,8 +89,8 @@ namespace Threadlink.Utilities.Reflection
 
 		public static IEnumerable<string> GetAllUnityComponents()
 		{
-			Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
-			List<string> componentTypes = new();
+			var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+			var componentTypes = new List<string>();
 
 			int length = assemblies.Length;
 
@@ -107,8 +107,8 @@ namespace Threadlink.Utilities.Reflection
 
 		public static IEnumerable<string> GetAllDerivedTypesOf<T>() where T : class
 		{
-			Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
-			List<string> componentTypes = new();
+			var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+			var componentTypes = new List<string>();
 
 			int length = assemblies.Length;
 
@@ -125,18 +125,18 @@ namespace Threadlink.Utilities.Reflection
 
 		public static IEnumerable<string> GetAllTypesImplementing<T>()
 		{
-			Type interfaceType = typeof(T);
-			Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
-			List<string> componentTypes = new();
+			var interfaceType = typeof(T);
+			var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+			var componentTypes = new List<string>();
 
 			int length = assemblies.Length;
 
-			Func<Type, bool> func = t => t.GetInterfaces().Contains(interfaceType) && t.IsAbstract == false && t.IsGenericType == false;
+			bool IsValid(Type t) => t.GetInterfaces().Contains(interfaceType) && t.IsAbstract == false && t.IsGenericType == false;
 
 			for (int i = 0; i < length; i++)
 			{
 				var assembly = assemblies[i];
-				var requestedTypes = assembly.GetTypes().Where(func);
+				var requestedTypes = assembly.GetTypes().Where(IsValid);
 
 				foreach (var type in requestedTypes) componentTypes.Add(type.FullName);
 			}
@@ -155,7 +155,7 @@ namespace Threadlink.Utilities.Reflection
 				var path = AssetDatabase.GUIDToAssetPath(guid);
 				var asset = AssetDatabase.LoadAssetAtPath<T>(path);
 
-				if (asset != null) items.Add(new ValueDropdownItem(asset.name, asset));
+				if (asset != null) items.Add(new(asset.name, asset));
 			}
 
 			return items;
@@ -171,7 +171,7 @@ namespace Threadlink.Utilities.Reflection
 				var path = AssetDatabase.GUIDToAssetPath(guid);
 				var asset = AssetDatabase.LoadAssetAtPath<T>(path);
 
-				if (asset != null) items.Add(new ValueDropdownItem(asset.name, asset.name));
+				if (asset != null) items.Add(new(asset.name, asset.name));
 			}
 
 			return items;
