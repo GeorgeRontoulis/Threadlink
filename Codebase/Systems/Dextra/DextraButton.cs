@@ -43,8 +43,7 @@ namespace Threadlink.Systems.Dextra
 		}
 	}
 
-	public sealed class DextraButton : Selectable,
-	ISelectHandler, IDeselectHandler, IPointerClickHandler, IPointerEnterHandler
+	public sealed class DextraButton : Selectable, ISelectHandler, IDeselectHandler, IPointerClickHandler, IPointerEnterHandler
 	{
 		public DextraButtonEvent OnClickEvent { get => onClick; }
 		public DextraButtonEvent OnSelectEvent { get => onSelect; }
@@ -74,13 +73,13 @@ namespace Threadlink.Systems.Dextra
 			onClick.Invoke(this);
 		}
 
-		void ISelectHandler.OnSelect(BaseEventData eventData)
+		new public void OnSelect(BaseEventData eventData)
 		{
 			onSelect.Invoke(this);
 			Dextra.SyncSelection();
 		}
 
-		void IDeselectHandler.OnDeselect(BaseEventData eventData)
+		new public void OnDeselect(BaseEventData eventData)
 		{
 			onDeselect.Invoke(this);
 		}

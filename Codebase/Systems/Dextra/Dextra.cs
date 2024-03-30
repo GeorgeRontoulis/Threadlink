@@ -121,7 +121,7 @@ namespace Threadlink.Systems.Dextra
 
 			if (customInputModule != null)
 			{
-				customInputModule = Instantiate(customInputModule);
+				customInputModule = customInputModule.Clone();
 				customInputModule.Boot();
 			}
 

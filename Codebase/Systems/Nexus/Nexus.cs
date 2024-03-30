@@ -66,7 +66,7 @@ namespace Threadlink.Systems.Nexus
 
 			if (customPlayerLoader != null)
 			{
-				customPlayerLoader = Instantiate(customPlayerLoader);
+				customPlayerLoader = customPlayerLoader.Clone();
 				customPlayerLoader.Boot();
 			}
 
