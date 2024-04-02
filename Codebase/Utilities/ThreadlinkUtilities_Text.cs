@@ -1,6 +1,5 @@
 namespace Threadlink.Utilities.Text
 {
-	using System;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.IO;
@@ -81,7 +80,7 @@ namespace Threadlink.Utilities.Text
 			{
 				string line;
 
-				while (string.IsNullOrEmpty((line = reader.ReadLine())) == false) result.Add(line);
+				while (string.IsNullOrEmpty(line = reader.ReadLine()) == false) result.Add(line);
 			}
 
 			return result;

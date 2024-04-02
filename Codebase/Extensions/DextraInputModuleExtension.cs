@@ -23,11 +23,11 @@ namespace Threadlink.Extensions.Dextra
 
 		public override void Discard()
 		{
-			interactAction.Discard();
-			pauseAction.Discard();
-			cancelAction.Discard();
-			onPausePressed.Discard();
-			onInteractButtonPressed.Discard();
+			interactAction?.Discard();
+			pauseAction?.Discard();
+			cancelAction?.Discard();
+			onPausePressed?.Discard();
+			onInteractButtonPressed?.Discard();
 
 			cancelAction = null;
 			interactAction = null;
@@ -37,9 +37,9 @@ namespace Threadlink.Extensions.Dextra
 
 		public override void Initialize()
 		{
-			cancelAction.Handle(Dextra.Cancel);
-			pauseAction.Handle(PauseGame);
-			interactAction.Handle(Interact);
+			cancelAction?.Handle(Dextra.Cancel);
+			pauseAction?.Handle(PauseGame);
+			interactAction?.Handle(Interact);
 		}
 
 		private void Interact() { onInteractButtonPressed?.Invoke(); }

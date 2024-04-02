@@ -17,7 +17,7 @@ namespace Threadlink.Utilities.Serialization
 
 		private static readonly fsSerializer Serializer = new();
 
-		internal static class PersistentDirectoryManager
+		public static class PersistentDirectoryManager
 		{
 			private static string ConstructPath(string folderName)
 			{
@@ -43,7 +43,7 @@ namespace Threadlink.Utilities.Serialization
 			/// Does nothing if the folder does not exist.
 			/// </summary>
 			/// <param name="folderName">The path to the folder we want to delete.</param>
-			internal static void DeletePersistentFolder(string folderName, bool recursive)
+			public static void DeletePersistentFolder(string folderName, bool recursive)
 			{
 				if (string.IsNullOrEmpty(folderName)) return;
 
@@ -71,7 +71,7 @@ namespace Threadlink.Utilities.Serialization
 			return String.Construct(folderDirectory, "/", fileName, saveFileExtension);
 		}
 
-		public static void SaveRetrieveableData<T>(T retrievableData, string folderName, string fileName) where T : IRetrievable
+		public static void SaveRetrievableData<T>(T retrievableData, string folderName, string fileName) where T : IRetrievable
 		{
 			var writer = new StreamWriter(GetSaveFilePath(folderName, fileName));
 
@@ -82,7 +82,7 @@ namespace Threadlink.Utilities.Serialization
 			writer.Dispose();
 		}
 
-		public static T LoadRetrieveableData<T>(string folderName, string fileName) where T : IRetrievable, new()
+		public static T LoadRetrievableData<T>(string folderName, string fileName) where T : IRetrievable, new()
 		{
 			string filePath = GetSaveFilePath(folderName, fileName);
 			bool validPath = string.IsNullOrEmpty(filePath) == false && File.Exists(filePath);

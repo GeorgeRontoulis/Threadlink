@@ -32,30 +32,35 @@ namespace Threadlink.Systems.Dextra
 	{
 		private Action<Context> Handler { get; set; }
 
-		private InputAction InputAction => reference.action;
+		private InputAction InputAction => reference == null ? null : reference.action;
 
 		[SerializeField] private InputActionReference reference = null;
 
 		public void Discard()
 		{
-			Unsubscribe();
+			if (InputAction != null) InputAction.performed -= Handler;
 			Handler = null;
 		}
 
 		public void Handle(Action action)
 		{
-			Handler = (Context ctx) => Dextra.PerformContextualAction(action);
-			Subscribe();
+			if (InputAction != null)
+			{
+				Handler = (Context ctx) => Dextra.PerformContextualAction(action);
+				Subscribe();
+			}
 		}
 
 		public void Handle(Action<T> action)
 		{
-			Handler = (Context ctx) => Dextra.PerformContextualAction(action, ctx.ReadValue<T>());
-			Subscribe();
+			if (InputAction != null)
+			{
+				Handler = (Context ctx) => Dextra.PerformContextualAction(action, ctx.ReadValue<T>());
+				Subscribe();
+			}
 		}
 
 		private void Subscribe() { InputAction.performed += Handler; }
-		private void Unsubscribe() { InputAction.performed -= Handler; }
 	}
 
 	/// <summary>
@@ -80,6 +85,12 @@ namespace Threadlink.Systems.Dextra
 			remove { if (CustomInputModule != null) CustomInputModule.OnPauseButtonPressed.Remove(value); }
 		}
 
+		public static event VoidDelegate OnInterfaceCancelled
+		{
+			add { Instance.onInterfaceCancelled.TryAddListener(value); }
+			remove { Instance.onInterfaceCancelled.Remove(value); }
+		}
+
 		internal static UserInterface TopInterface => StackedInterfaces.Count <= 0 ? null : StackedInterfaces.Peek();
 		internal static InputDevice CurrentInputDevice { get; private set; }
 
@@ -94,12 +105,18 @@ namespace Threadlink.Systems.Dextra
 		[SerializeField] private PlayerInput deviceDetector = null;
 		[SerializeField] private DextraInputModuleExtension customInputModule = null;
 
-		private readonly VoidGenericEvent<RectTransform> onElementSelected = new();
-		private readonly VoidGenericEvent<InputDevice> onInputDeviceChanged = new();
+		private VoidGenericEvent<RectTransform> onElementSelected = new();
+		private VoidGenericEvent<InputDevice> onInputDeviceChanged = new();
+		private VoidEvent onInterfaceCancelled = new();
 
 		public override void Discard()
 		{
 			deviceDetector.onControlsChanged -= UpdateInputDevice;
+
+			onInputDeviceChanged?.Discard();
+			onElementSelected?.Discard();
+			onInterfaceCancelled?.Discard();
+
 			if (customInputModule != null) customInputModule.Discard();
 			DisconnectAll();
 
@@ -107,6 +124,9 @@ namespace Threadlink.Systems.Dextra
 			deviceDetector = null;
 			customInputModule = null;
 			Instance = null;
+			onInputDeviceChanged = null;
+			onElementSelected = null;
+			onInterfaceCancelled = null;
 
 			base.Discard();
 		}
@@ -150,7 +170,11 @@ namespace Threadlink.Systems.Dextra
 			if (TopInterface != null && TopInterface.CanBeCancelled)
 			{
 				var poppedInterface = PopTopInterface();
-				if (poppedInterface != null) poppedInterface.OnCancelled();
+				if (poppedInterface != null)
+				{
+					poppedInterface.OnCancelled();
+					Instance.onInterfaceCancelled?.Invoke();
+				}
 			}
 		}
 
@@ -161,19 +185,19 @@ namespace Threadlink.Systems.Dextra
 		#endregion
 
 		#region UI Code:
-		public static void StackInterface(string interfaceID)
+		public static void StackInterface(string interfaceID, bool hideTop = true)
 		{
-			UserInterface target = Instance.FindManagedEntity(interfaceID);
+			var target = Instance.FindManagedEntity(interfaceID);
 
 			if (target == null)
 			{
 				Scribe.SystemLog(Instance.LinkID, Utilities.UnityLogging.DebugNotificationType.Error,
 				"Could not find the requested managed interface! This should never happen!");
 			}
-			else StackInterface(target);
+			else StackInterface(target, hideTop);
 		}
 
-		public static void StackInterface(UserInterface target)
+		public static void StackInterface(UserInterface target, bool hideTop = true)
 		{
 			if (target.Equals(TopInterface))
 			{
@@ -184,9 +208,9 @@ namespace Threadlink.Systems.Dextra
 
 			if (TopInterface != null)
 			{
-				if (TopInterface.UpdatingAlpha) return;
+				//if (TopInterface.UpdatingAlpha) return;
 
-				TopInterface.OnCovered();
+				if (hideTop) TopInterface.OnCovered();
 			}
 
 			StackedInterfaces.Push(target);
@@ -199,7 +223,7 @@ namespace Threadlink.Systems.Dextra
 			{
 				SelectUIElement(null);
 
-				UserInterface previous = StackedInterfaces.Pop();
+				var previous = StackedInterfaces.Pop();
 
 				previous.OnPopped();
 
@@ -212,21 +236,18 @@ namespace Threadlink.Systems.Dextra
 
 		public static void SyncSelection()
 		{
-			Instance.onElementSelected.
-			Invoke(EventSystem.currentSelectedGameObject.transform as RectTransform);
+			Instance.onElementSelected?.Invoke(EventSystem.currentSelectedGameObject.transform as RectTransform);
 		}
 
-		public static void SelectUIElement(Selectable element)
+		public static void SelectUIElement(GameObject element)
 		{
-			void Select(GameObject selectable) { EventSystem.SetSelectedGameObject(selectable); }
+			static void Select(GameObject selectable) { EventSystem.SetSelectedGameObject(selectable); }
 
 			if (element != null)
 			{
 				IEnumerator Selection()
 				{
-					IEnumerator WaitForOneFrame() { yield return Threadlink.WaitForFrameCount(1); }
-
-					GameObject gameObject = element.gameObject;
+					static IEnumerator WaitForOneFrame() { yield return Threadlink.WaitForFrameCount(1); }
 
 					yield return WaitForOneFrame();
 
@@ -234,16 +255,16 @@ namespace Threadlink.Systems.Dextra
 
 					yield return WaitForOneFrame();
 
-					Select(gameObject);
+					Select(element);
 					SyncSelection();
 				}
 
-				Threadlink.LaunchCoroutine(Selection(), false);
+				Threadlink.LaunchCoroutine(Selection());
 			}
 			else
 			{
 				Select(null);
-				Instance.onElementSelected.Invoke(default);
+				Instance.onElementSelected?.Invoke(default);
 			}
 		}
 		#endregion
@@ -268,7 +289,7 @@ namespace Threadlink.Systems.Dextra
 			}
 
 			CurrentInputDevice = newDevice;
-			Instance.onInputDeviceChanged.Invoke(newDevice);
+			Instance.onInputDeviceChanged?.Invoke(newDevice);
 
 			ForceStopControllerVibration();
 		}

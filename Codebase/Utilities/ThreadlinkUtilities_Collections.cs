@@ -3,6 +3,7 @@ namespace Threadlink.Utilities.Collections
 	using Editor;
 	using RNG;
 	using System;
+	using System.Collections;
 	using System.Collections.Generic;
 	using UnityEngine;
 
@@ -246,6 +247,20 @@ namespace Threadlink.Utilities.Collections
 			int index = BinarySearchIterative();
 
 			if (index >= 0) return collection[index]; else return default;
+		}
+
+		public static T BruteForceSearch<T>(this T[] collection, string id) where T : IIdentifiable
+		{
+			if (string.IsNullOrEmpty(id)) return default;
+
+			int length = collection.Length;
+
+			for (int i = 0; i < length; i++)
+			{
+				if (collection[i].LinkID.Equals(id)) return collection[i];
+			}
+
+			return default;
 		}
 
 		public static T[] Filter<T>(this T[] originalArray, Predicate<T> filter, int maxCount = -1, bool shuffle = true)

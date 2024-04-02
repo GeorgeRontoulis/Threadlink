@@ -47,9 +47,9 @@ namespace Threadlink.Systems
 
 		private void DiscardUpdateCallbacks()
 		{
-			onUpdate.Discard();
-			onFixedUpdate.Discard();
-			onLateUpdate.Discard();
+			onUpdate?.Discard();
+			onFixedUpdate?.Discard();
+			onLateUpdate?.Discard();
 
 			onUpdate = null;
 			onFixedUpdate = null;

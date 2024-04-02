@@ -1,87 +1,65 @@
 namespace Threadlink.Systems.Dextra
 {
-	using System;
-	using Threadlink.Utilities.Events;
+	using Threadlink.Core;
 	using UnityEngine;
 	using UnityEngine.Events;
 	using UnityEngine.EventSystems;
 	using UnityEngine.UI;
 
-	[Serializable]
-	public sealed class DextraButtonEvent
+#if ODIN_INSPECTOR
+	using Sirenix.OdinInspector;
+#elif THREADLINK_INSPECTOR
+	using Utilities.Editor.Attributes;
+#endif
+
+	[RequireComponent(typeof(Button))]
+	public sealed class DextraButton : LinkableBehaviour, ISelectHandler, IDeselectHandler, IPointerEnterHandler
 	{
-		public VoidGenericEvent<DextraButton> CSharpAction => cSharpAction;
+		public UnityEvent OnClick => button.onClick;
+		public UnityEvent OnSelect => onSelect;
+		public UnityEvent OnDeselect => onDeselect;
 
-		public event UnityAction UnityEvent
+#if ODIN_INSPECTOR || THREADLINK_INSPECTOR
+		[ReadOnly]
+#endif
+		[SerializeField] private Button button = null;
+
+		[SerializeField] private UnityEvent onSelect = new();
+		[SerializeField] private UnityEvent onDeselect = new();
+
+		protected override void Reset()
 		{
-			add { unityEvent.AddListener(value); }
-			remove { unityEvent.RemoveListener(value); }
+			TryGetComponent(out button);
+			base.Reset();
 		}
 
-		private VoidGenericEvent<DextraButton> cSharpAction = new();
-
-		[SerializeField] private UnityEvent unityEvent = new();
-
-		public void Discard()
+		public override void Discard()
 		{
-			cSharpAction.Discard();
-			RemoveAllListeners();
-			cSharpAction = null;
-			unityEvent = null;
-		}
-
-		public void RemoveAllListeners()
-		{
-			CSharpAction.Discard();
-			unityEvent.RemoveAllListeners();
-		}
-
-		public void Invoke(DextraButton argument = default)
-		{
-			unityEvent?.Invoke();
-			cSharpAction.Invoke(argument);
-		}
-	}
-
-	public sealed class DextraButton : Selectable, ISelectHandler, IDeselectHandler, IPointerClickHandler, IPointerEnterHandler
-	{
-		public DextraButtonEvent OnClickEvent { get => onClick; }
-		public DextraButtonEvent OnSelectEvent { get => onSelect; }
-		public DextraButtonEvent OnDeselectEvent { get => onDeselect; }
-
-		[SerializeField] private DextraButtonEvent onClick = new();
-		[SerializeField] private DextraButtonEvent onSelect = new();
-		[SerializeField] private DextraButtonEvent onDeselect = new();
-
-		public void Discard()
-		{
-			onClick.Discard();
-			onSelect.Discard();
-			onDeselect.Discard();
-			onClick = null;
+			button.onClick.RemoveAllListeners();
+			onSelect.RemoveAllListeners();
+			onDeselect.RemoveAllListeners();
 			onSelect = null;
 			onDeselect = null;
+			button = null;
 		}
 
-		new public void OnPointerEnter(PointerEventData eventData)
+		public override void Boot() { }
+		public override void Initialize() { }
+
+		public void OnPointerEnter(PointerEventData eventData)
 		{
-			Dextra.SelectUIElement(this);
+			Dextra.SelectUIElement(button.gameObject);
 		}
 
-		public void OnPointerClick(PointerEventData eventData)
+		void ISelectHandler.OnSelect(BaseEventData eventData)
 		{
-			onClick.Invoke(this);
-		}
-
-		new public void OnSelect(BaseEventData eventData)
-		{
-			onSelect.Invoke(this);
+			onSelect.Invoke();
 			Dextra.SyncSelection();
 		}
 
-		new public void OnDeselect(BaseEventData eventData)
+		void IDeselectHandler.OnDeselect(BaseEventData eventData)
 		{
-			onDeselect.Invoke(this);
+			onDeselect.Invoke();
 		}
 	}
 }

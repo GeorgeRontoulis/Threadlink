@@ -79,7 +79,6 @@
 		public override void Discard()
 		{
 			SeverAll();
-			Instance.Discard();
 
 			Instance.addressables = null;
 			Instance = null;
@@ -93,7 +92,7 @@
 		#endregion
 
 		#region Coroutine Management
-		public static Coroutine LaunchCoroutine(IEnumerator coroutine, bool logLaunch = true)
+		public static Coroutine LaunchCoroutine(IEnumerator coroutine, bool logLaunch = false)
 		{
 			if (logLaunch)
 			{
@@ -108,14 +107,16 @@
 		/// Stops the desired coroutine and nullifies the reference to it.
 		/// </summary>
 		/// <param name="coroutine">The coroutine to stop.</param>
-		public static void StopCoroutine(ref Coroutine coroutine)
+		public static void StopCoroutine(ref Coroutine coroutine, bool logStop = false)
 		{
 			if (coroutine == null) return;
+
+			string coroutineName = coroutine.GetType().Name;
 
 			Instance.StopCoroutine(coroutine);
 			coroutine = null;
 
-			Scribe.SystemLog(Instance.LinkID, DebugNotificationType.Info, "Stopped Coroutine ", coroutine.GetType().Name);
+			if (logStop) Scribe.SystemLog(Instance.LinkID, DebugNotificationType.Info, "Stopped Coroutine ", coroutineName);
 		}
 
 		public static IEnumerator WaitForFrameCount(int count)

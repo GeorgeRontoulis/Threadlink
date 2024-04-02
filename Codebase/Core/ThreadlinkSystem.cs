@@ -35,8 +35,8 @@
 
 		private void ClearManagedEntitiesList()
 		{
-			LinkedEntities.Clear();
-			LinkedEntities.TrimExcess();
+			LinkedEntities?.Clear();
+			LinkedEntities?.TrimExcess();
 			EntityListAlteredSinceLastSort = true;
 			Scribe.SystemLog(LinkID, DebugNotificationType.Info, "Cleared all managed Entities.");
 		}
