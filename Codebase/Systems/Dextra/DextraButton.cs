@@ -8,6 +8,7 @@ namespace Threadlink.Systems.Dextra
 
 #if ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
+	using Threadlink.Utilities.Events;
 #elif THREADLINK_INSPECTOR
 	using Utilities.Editor.Attributes;
 #endif
@@ -16,16 +17,16 @@ namespace Threadlink.Systems.Dextra
 	public sealed class DextraButton : LinkableBehaviour, ISelectHandler, IDeselectHandler, IPointerEnterHandler
 	{
 		public UnityEvent OnClick => button.onClick;
-		public UnityEvent OnSelect => onSelect;
-		public UnityEvent OnDeselect => onDeselect;
+		public VoidGenericEvent<DextraButton> OnSelect => onSelect;
+		public VoidGenericEvent<DextraButton> OnDeselect => onDeselect;
 
 #if ODIN_INSPECTOR || THREADLINK_INSPECTOR
 		[ReadOnly]
 #endif
 		[SerializeField] private Button button = null;
 
-		[SerializeField] private UnityEvent onSelect = new();
-		[SerializeField] private UnityEvent onDeselect = new();
+		[SerializeField] private VoidGenericEvent<DextraButton> onSelect = new();
+		[SerializeField] private VoidGenericEvent<DextraButton> onDeselect = new();
 
 		protected override void Reset()
 		{
@@ -36,8 +37,8 @@ namespace Threadlink.Systems.Dextra
 		public override void Discard()
 		{
 			button.onClick.RemoveAllListeners();
-			onSelect.RemoveAllListeners();
-			onDeselect.RemoveAllListeners();
+			onSelect.Discard();
+			onDeselect.Discard();
 			onSelect = null;
 			onDeselect = null;
 			button = null;
@@ -53,13 +54,13 @@ namespace Threadlink.Systems.Dextra
 
 		void ISelectHandler.OnSelect(BaseEventData eventData)
 		{
-			onSelect.Invoke();
+			onSelect.Invoke(this);
 			Dextra.SyncSelection();
 		}
 
 		void IDeselectHandler.OnDeselect(BaseEventData eventData)
 		{
-			onDeselect.Invoke();
+			onDeselect.Invoke(this);
 		}
 	}
 }
