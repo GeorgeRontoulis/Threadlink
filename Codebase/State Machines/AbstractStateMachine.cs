@@ -5,12 +5,18 @@ namespace Threadlink.StateMachines
 #endif
 
 	using System;
+	using Threadlink.Core;
 	using Threadlink.Systems;
 	using Threadlink.Utilities.Events;
 	using UnityEngine;
 	using Utilities.Collections;
 
-	public abstract class BaseAbstractStateMachine : ScriptableObject
+	public interface IStateMachinePointer
+	{
+		public void PointToInternalReferenceOf(BaseAbstractStateMachine owner);
+	}
+
+	public abstract class BaseAbstractStateMachine : LinkableAsset
 	{
 		[Flags]
 		protected enum RuntimeInstantiation
@@ -20,8 +26,6 @@ namespace Threadlink.StateMachines
 			Processors = 1 << 2,
 		}
 
-		public bool IsInstance { get; private set; }
-
 		[Space(10)]
 
 		[SerializeField] protected RuntimeInstantiation runtimeInstantiation = 0;
@@ -29,6 +33,15 @@ namespace Threadlink.StateMachines
 		[Space(15)]
 
 		[SerializeField] protected BaseAbstractParameter[] parameters = new BaseAbstractParameter[0];
+
+		public override void Discard()
+		{
+			if (IsInstance) parameters = null;
+			base.Discard();
+		}
+
+		public override void Boot() { }
+		public override void Initialize() { }
 
 		protected abstract void InitializeStatesAndProcessors();
 
@@ -45,13 +58,7 @@ namespace Threadlink.StateMachines
 			return paramFound as AbstractParameter<T>;
 		}
 
-		public static T CreateCopyFrom<T>(T original) where T : BaseAbstractStateMachine
-		{
-			T copy = Instantiate(original);
-			copy.IsInstance = true;
-
-			return copy;
-		}
+		public abstract AbstractProcessor<T> GetProcessor<T>(string id) where T : BaseAbstractStateMachine;
 	}
 
 	public abstract class AbstractStateMachine<OwnerType, StateType, ProcessorType> : BaseAbstractStateMachine
@@ -83,6 +90,20 @@ namespace Threadlink.StateMachines
 		private void SortParametersByID() { parameters.SortByID(this); }
 #endif
 
+
+		public override AbstractProcessor<T> GetProcessor<T>(string id)
+		{
+			var processorFound = processors.BinarySearch(id);
+
+			if (processorFound == null)
+			{
+				Scribe.LogError("The requested processor could not be found! Check your request!");
+				return null;
+			}
+
+			return processorFound as AbstractProcessor<T>;
+		}
+
 		public virtual void Initialize(OwnerType owner)
 		{
 			Owner = owner;
@@ -108,63 +129,58 @@ namespace Threadlink.StateMachines
 
 		private void ManageInstantiation()
 		{
-			bool ShouldInstantiate(Enum flag) { return runtimeInstantiation.HasFlag(flag); }
-
-			void InstantiateCollection(ScriptableObject[] collection)
+			static void CloneCollection(LinkableAsset[] collection)
 			{
 				int length = collection.Length;
-				for (int i = 0; i < length; i++)
-				{
-					string originalName = collection[i].name;
-					collection[i] = Instantiate(collection[i]);
-					collection[i].name = originalName;
-				}
+				for (int i = 0; i < length; i++) collection[i] = collection[i].Clone();
 			}
 
-			if (ShouldInstantiate(RuntimeInstantiation.Parameters)) InstantiateCollection(parameters);
+			bool ShouldInstantiate(Enum flag) { return runtimeInstantiation.HasFlag(flag); }
 
-			if (ShouldInstantiate(RuntimeInstantiation.States)) InstantiateCollection(states);
+			if (ShouldInstantiate(RuntimeInstantiation.Parameters)) CloneCollection(parameters);
 
-			if (ShouldInstantiate(RuntimeInstantiation.Processors)) InstantiateCollection(processors);
+			if (ShouldInstantiate(RuntimeInstantiation.States)) CloneCollection(states);
+
+			if (ShouldInstantiate(RuntimeInstantiation.Processors)) CloneCollection(processors);
 		}
 
-		private VoidOutput UpdateCurrentState(VoidInput input)
+		private VoidOutput UpdateCurrentState(VoidInput _)
 		{
 			CurrentState.OnUpdate();
 			return default;
 		}
 
-		public virtual void Discard()
+		public override void Discard()
 		{
-			bool Instantiated(Enum flag) { return runtimeInstantiation.HasFlag(flag); }
-
-			void DestroyCollection(ScriptableObject[] collection)
+			static void DiscardCollection(LinkableAsset[] collection)
 			{
 				int length = collection.Length;
-				for (int i = 0; i < length; i++) Destroy(collection[i]);
+				for (int i = 0; i < length; i++) collection[i].Discard();
 			}
+
+			bool Instantiated(Enum flag) { return runtimeInstantiation.HasFlag(flag); }
 
 			Iris.UnsubscribeFromUpdate(UpdateCurrentState);
 
 			int length = processors.Length;
 			for (int i = 0; i < length; i++) processors[i].Discard();
 
-			if (Instantiated(RuntimeInstantiation.Parameters)) DestroyCollection(parameters);
+			if (Instantiated(RuntimeInstantiation.Parameters)) DiscardCollection(parameters);
 
-			if (Instantiated(RuntimeInstantiation.States)) DestroyCollection(states);
+			if (Instantiated(RuntimeInstantiation.States)) DiscardCollection(states);
 
-			if (Instantiated(RuntimeInstantiation.Processors)) DestroyCollection(processors);
+			if (Instantiated(RuntimeInstantiation.Processors)) DiscardCollection(processors);
 
-			if (IsInstance && Application.isEditor == false)
+			if (IsInstance)
 			{
 				CurrentState = null;
 				Owner = default;
 				parameters = null;
 				states = null;
 				processors = null;
-
-				Destroy(this);
 			}
+
+			base.Discard();
 		}
 
 		public void AttemptTransitionTo(StateType newState)
@@ -177,17 +193,14 @@ namespace Threadlink.StateMachines
 			CurrentState = newState;
 		}
 
-		public void AttemptTransitionTo<ScriptableStateType, DataType>(StateType newState, DataType data)
-		where DataType : AbstractStateData
-		where ScriptableStateType : IScriptableState<DataType>
+		public void AttemptTransitionTo<DataType>(StateType newState, DataType data)
 		{
 			if (newState == null || newState.Equals(CurrentState)
 			|| (CurrentState != null && newState.name.Equals(CurrentState.name))) return;
 
 			try
 			{
-				IScriptableState<DataType> scriptableState = newState as IScriptableState<DataType>;
-				scriptableState.ProcessData(data);
+				(newState as IScriptableState<DataType>).ProcessData(data);
 			}
 			catch (Exception exception)
 			{

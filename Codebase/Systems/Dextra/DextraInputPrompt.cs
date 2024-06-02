@@ -1,9 +1,13 @@
 namespace Threadlink.Systems.Dextra
 {
-	using Threadlink.Core;
-	using Threadlink.Utilities.Events;
+	using Core;
+	using Utilities.Events;
 	using UnityEngine;
 	using UnityEngine.UI;
+
+#if UNITY_EDITOR
+	using Utilities.Editor;
+#endif
 
 	public sealed class DextraInputPrompt : LinkableBehaviour
 	{
@@ -11,6 +15,16 @@ namespace Threadlink.Systems.Dextra
 		[SerializeField] private Text promptLabel = null;
 
 		[SerializeField] private DextraInputPromptData data = null;
+
+#if UNITY_EDITOR
+		[SerializeField] private Dextra.InputDevice previewDevice = 0;
+
+		private void OnValidate()
+		{
+			if (EditorUtilities.EditorInOrWillChangeToPlaymode == false && data != null)
+				UpdateGraphics(previewDevice);
+		}
+#endif
 
 		public override void Discard()
 		{
@@ -53,7 +67,7 @@ namespace Threadlink.Systems.Dextra
 
 			promptImage.type = Image.Type.Simple;
 			promptImage.preserveAspect = true;
-			promptLabel.text = data.promptText;
+			if (promptLabel != null) promptLabel.text = data.promptText;
 		}
 	}
 }

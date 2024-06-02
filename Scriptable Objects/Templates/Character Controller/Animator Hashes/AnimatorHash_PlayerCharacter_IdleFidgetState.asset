@@ -9,11 +9,8 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 96956555ba239b74d9049749fa77c42a, type: 3}
-  m_Name: SMProcessor_PlayerCharacter_Verticality
+  m_Script: {fileID: 11500000, guid: 52af50fbc5a7d194a94d4e022a33d585, type: 3}
+  m_Name: AnimatorHash_PlayerCharacter_IdleFidgetState
   m_EditorClassIdentifier: 
-  runIn: 0
-  startUpdatingOnInit: 1
-  yVelocity:
-    parameterID: SMParameter_PlayerCharacter_YVelocity
-  gravityMultiplier: 2.5
+  stringValue: IdleFidgetState
+  hashValue: -9391087

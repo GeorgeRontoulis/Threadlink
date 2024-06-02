@@ -12,7 +12,7 @@ namespace Threadlink.Systems.Dextra
 		protected override void Reset()
 		{
 			base.Reset();
-			effectiveRadius = GetComponent<Collider>();
+			TryGetComponent(out effectiveRadius);
 		}
 
 		public override void Discard()
@@ -23,7 +23,7 @@ namespace Threadlink.Systems.Dextra
 			base.Discard();
 		}
 
-		public abstract VoidOutput Interact(VoidInput input);
+		public abstract VoidOutput Interact(VoidInput _);
 
 		public virtual void OnDetected() { Dextra.OnInteractButtonPressed += Interact; }
 		public virtual void OnSkipped() { UnsubscribeFromInteractAction(); }

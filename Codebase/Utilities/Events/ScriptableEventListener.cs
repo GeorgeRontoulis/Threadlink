@@ -15,7 +15,7 @@ namespace Threadlink.Utilities.Events
 
 			internal UnityEvent Reaction => reaction;
 			[SerializeField] private ScriptableEvent eventAsset = null;
-			[SerializeField] private UnityEvent reaction = new UnityEvent();
+			[SerializeField] private UnityEvent reaction = new();
 
 #if UNITY_EDITOR
 			internal void PrintMethodNames()

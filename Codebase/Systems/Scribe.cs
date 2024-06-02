@@ -10,6 +10,10 @@ namespace Threadlink.Systems
 	/// </summary>
 	public sealed class Scribe : LinkableBehaviourSingleton<Scribe>
 	{
+		public const DebugNotificationType InfoNotif = DebugNotificationType.Info;
+		public const DebugNotificationType WarningNotif = DebugNotificationType.Warning;
+		public const DebugNotificationType ErrorNotif = DebugNotificationType.Error;
+
 #if UNITY_EDITOR && THREADLINK_SCRIBE
 		[UnityEngine.SerializeField] private bool pauseOnSystemLog = false;
 #endif
@@ -20,25 +24,24 @@ namespace Threadlink.Systems
 		public static void SystemLog(string systemID, DebugNotificationType logType, params string[] message)
 		{
 #if THREADLINK_SCRIBE
-			string prefix = String.Construct("[", systemID, "] - ");
-			string decodedMessage = String.Construct(message);
+			string temp = String.Construct(message);
+			string systemMessage = String.Construct("[", systemID, "] - ", temp);
 
 			switch (logType)
 			{
-				case DebugNotificationType.Info:
-				LogInfo(prefix, decodedMessage);
+				case InfoNotif:
+				LogInfo(systemMessage);
 				break;
-				case DebugNotificationType.Warning:
-				LogWarning(prefix, decodedMessage);
+				case WarningNotif:
+				LogWarning(systemMessage);
 				break;
-				case DebugNotificationType.Error:
-				LogError(prefix, decodedMessage);
+				case ErrorNotif:
+				LogError(systemMessage);
 				break;
 			}
 
 #if UNITY_EDITOR
-			if (Instance != null && Instance.pauseOnSystemLog)
-				UnityEditor.EditorApplication.isPaused = true;
+			if (Instance != null && Instance.pauseOnSystemLog) UnityEditor.EditorApplication.isPaused = true;
 #endif
 #endif
 		}
@@ -53,21 +56,21 @@ namespace Threadlink.Systems
 		public static void LogWarning(params string[] message)
 		{
 #if THREADLINK_SCRIBE
-			UnityConsole.Notify(DebugNotificationType.Warning, message);
+			UnityConsole.Notify(WarningNotif, message);
 #endif
 		}
 
 		public static void LogError(params string[] message)
 		{
 #if THREADLINK_SCRIBE
-			UnityConsole.Notify(DebugNotificationType.Error, message);
+			UnityConsole.Notify(ErrorNotif, message);
 #endif
 		}
 
 		public static void LogException(Exception exception)
 		{
 #if THREADLINK_SCRIBE
-			UnityConsole.Notify(DebugNotificationType.Error, exception);
+			UnityConsole.Notify(ErrorNotif, exception);
 #endif
 		}
 	}

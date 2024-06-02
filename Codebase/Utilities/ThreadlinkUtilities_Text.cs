@@ -1,6 +1,5 @@
 namespace Threadlink.Utilities.Text
 {
-	using System;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.IO;
@@ -10,7 +9,8 @@ namespace Threadlink.Utilities.Text
 
 	public static class String
 	{
-		private static readonly StringBuilder StaticStringBuilder = new StringBuilder();
+		public static readonly StringBuilder StaticStringBuilder = new();
+		public static readonly char Whitespace = (char)32;
 
 		private static string SPLIT_RE = @";(?=(?:[^""]*""[^""]*"")*(?![^""]*""))";
 		private static string LINE_SPLIT_RE = @"\r\n|\n\r|\n|\r";
@@ -18,6 +18,8 @@ namespace Threadlink.Utilities.Text
 
 		public static string Construct(params object[] strings)
 		{
+			if (StaticStringBuilder.Length > 0) StaticStringBuilder.Clear();
+
 			int length = strings.Length;
 
 			for (int i = 0; i < length; i++) StaticStringBuilder.Append(strings[i]);
@@ -81,13 +83,13 @@ namespace Threadlink.Utilities.Text
 			{
 				string line;
 
-				while (string.IsNullOrEmpty((line = reader.ReadLine())) == false) result.Add(line);
+				while (string.IsNullOrEmpty(line = reader.ReadLine()) == false) result.Add(line);
 			}
 
 			return result;
 		}
 
-		internal static string ExtractCoroutineName(IEnumerator target)
+		internal static string ExtractName(this IEnumerator target)
 		{
 			return target.GetType().Name.Split('>')[0].TrimStart('<');
 		}

@@ -6,7 +6,7 @@ namespace Threadlink.Utilities.Events
 
 	public class ThreadlinkEvent<Output, Input>
 	{
-		public System.Delegate[] InvocationList => ContainedEvent.GetInvocationList();
+		public System.Delegate[] InvocationList => ContainedEvent?.GetInvocationList();
 
 		private event ThreadlinkDelegate<Output, Input> ContainedEvent = null;
 
@@ -17,7 +17,7 @@ namespace Threadlink.Utilities.Events
 		/// </summary>
 		/// <param name="listener">The listener to add as a subscriber to the event.</param>
 		/// <returns> <see langword="false"/> if the <paramref name="listener"/> 
-		/// is already subscribed to this event. <see langword="true"> otherwise.</returns>
+		/// is already subscribed to this event. <see langword="true"/> otherwise.</returns>
 		public bool TryAddListener(ThreadlinkDelegate<Output, Input> listener)
 		{
 			if (ContainedEvent == null)

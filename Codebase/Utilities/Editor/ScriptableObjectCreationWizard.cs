@@ -1,5 +1,6 @@
 namespace Threadlink.Utilities.Editor
 {
+#if UNITY_EDITOR
 	using System;
 	using System.IO;
 	using Threadlink.Utilities.Editor.Attributes;
@@ -35,7 +36,7 @@ namespace Threadlink.Utilities.Editor
 			//Prepare the file:
 			string templateContents = template.text;
 
-			string[] generatedUsings = new string[necessaryUsings.Length];
+			var generatedUsings = new string[necessaryUsings.Length];
 			for (int i = 0; i < generatedUsings.Length; i++) generatedUsings[i] = String.Construct("using ", necessaryUsings[i], ";");
 
 			//Modify the template copy:
@@ -49,7 +50,7 @@ namespace Threadlink.Utilities.Editor
 
 			//Save to a new script in the specified path.
 			string path = String.Construct(scriptPath, "/", className, ".cs");
-			StreamWriter writer = new(path);
+			var writer = new StreamWriter(path);
 
 			writer.Write(templateContents);
 			writer.Close();
@@ -63,4 +64,5 @@ namespace Threadlink.Utilities.Editor
 			helpString = "Please set the class name and path of the ScriptableObject.";
 		}
 	}
+#endif
 }

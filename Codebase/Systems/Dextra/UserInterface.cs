@@ -9,13 +9,16 @@ namespace Threadlink.Systems.Dextra
 	{
 		public bool IsOnTop => Equals(Dextra.TopInterface);
 		public bool IsVisible => Mathf.Approximately(canvasGroup.alpha, 1f);
-		public bool CanBeCancelled => canBeCancelled;
+		public bool CanBeCancelled => callbackSettings.HasFlag(UIStackingCallbackSettings.CanBeCancelled);
 		public bool UpdatingAlpha { get; private set; }
 
 		private float TargetAlpha { get; set; }
 
+		[SerializeField] private UIStackingCallbackSettings callbackSettings = UIStackingCallbackSettings.Default;
+
+		[Space(10)]
+
 		[SerializeField] private CanvasGroup canvasGroup = null;
-		[SerializeField] private bool canBeCancelled = false;
 
 		public override void Discard()
 		{
@@ -31,7 +34,7 @@ namespace Threadlink.Systems.Dextra
 			Iris.SubscribeToUpdate(MoveTowardsTargetAlpha);
 		}
 
-		private VoidOutput MoveTowardsTargetAlpha(VoidInput input)
+		private VoidOutput MoveTowardsTargetAlpha(VoidInput _)
 		{
 			canvasGroup.alpha = Mathf.MoveTowards(canvasGroup.alpha, TargetAlpha, 4 * Chronos.UnscaledDeltaTime);
 
@@ -62,10 +65,31 @@ namespace Threadlink.Systems.Dextra
 			if (UpdatingAlpha == false) UpdateAlpha();
 		}
 
-		public abstract void OnStacked();
-		public abstract void OnCovered();
-		public abstract void OnResurfaced();
-		public abstract void OnPopped();
+		public virtual void OnStacked()
+		{
+			Display();
+			if (callbackSettings.HasFlag(UIStackingCallbackSettings.EnableInteractabilityOnStack)) SetInteractableState(true);
+		}
+
+		public virtual void OnCovered()
+		{
+			if (callbackSettings.HasFlag(UIStackingCallbackSettings.HideGraphicsOnCover)) Hide();
+
+			if (callbackSettings.HasFlag(UIStackingCallbackSettings.DisableInteractabilityOnCover)) SetInteractableState(false);
+		}
+
+		public virtual void OnResurfaced()
+		{
+			Display();
+			if (callbackSettings.HasFlag(UIStackingCallbackSettings.EnableInteractabilityOnStack)) SetInteractableState(true);
+		}
+
+		public virtual void OnPopped()
+		{
+			Hide();
+			SetInteractableState(false);
+		}
+
 		public abstract void OnCancelled();
 	}
 }

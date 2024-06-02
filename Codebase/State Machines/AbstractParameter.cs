@@ -10,8 +10,10 @@ namespace Threadlink.StateMachines
 	using Sirenix.OdinInspector;
 #endif
 
+	using Threadlink.Core;
+
 	[Serializable]
-	public sealed class ParameterPointer<T>
+	public sealed class ParameterPointer<T> : IStateMachinePointer
 	{
 #if ODIN_INSPECTOR
 		[ReadOnly]
@@ -32,15 +34,16 @@ namespace Threadlink.StateMachines
 #endif
 		[SerializeField] private string parameterID = string.Empty;
 
-		public void SetUp(BaseAbstractStateMachine owner)
+		public void PointToInternalReferenceOf(BaseAbstractStateMachine owner)
 		{
 			Reference = owner.GetParameter<T>(parameterID);
 		}
 	}
 
-	public abstract class BaseAbstractParameter : ScriptableObject, IIdentifiable
+	public abstract class BaseAbstractParameter : LinkableAsset, IIdentifiable
 	{
-		public string LinkID => name;
+		public override void Boot() { }
+		public override void Initialize() { }
 
 		public abstract void ResetToDefaultValue();
 	}

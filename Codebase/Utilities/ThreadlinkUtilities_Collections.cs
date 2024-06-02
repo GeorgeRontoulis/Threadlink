@@ -4,20 +4,25 @@ namespace Threadlink.Utilities.Collections
 	using RNG;
 	using System;
 	using System.Collections.Generic;
+	using System.Linq;
 	using UnityEngine;
+	using UnityEngine.InputSystem.Utilities;
+	using String = Text.String;
 
 	public interface IIdentifiable { string LinkID { get; } }
 
-	public struct MatrixPosition
+	public struct MatrixPosition : IComparable<MatrixPosition>
 	{
+		public readonly bool IsValid => R >= 0 && C >= 0;
+
 		/// <summary>
 		/// Row.
 		/// </summary>
-		public int R { get; private set; }
+		public int R { get; set; }
 		/// <summary>
 		/// Column.
 		/// </summary>
-		public int C { get; private set; }
+		public int C { get; set; }
 
 		public MatrixPosition(int invalidIndex = -1)
 		{
@@ -33,13 +38,25 @@ namespace Threadlink.Utilities.Collections
 
 		public MatrixPosition(Vector2Int vector)
 		{
-			R = vector.y;
-			C = vector.x;
+			R = vector.x;
+			C = vector.y;
 		}
 
-		public bool Equals(MatrixPosition other)
+		public readonly bool Equals(MatrixPosition other)
 		{
 			return R == other.R && C == other.C;
+		}
+
+		public override readonly string ToString()
+		{
+			return String.Construct("[", R.ToString(), ",", C.ToString(), "]");
+		}
+
+		public readonly int CompareTo(MatrixPosition other)
+		{
+			if (C != other.C) return C.CompareTo(other.C);
+
+			return R.CompareTo(other.R);
 		}
 	}
 
@@ -98,17 +115,6 @@ namespace Threadlink.Utilities.Collections
 
 	public static class Collections
 	{
-		[Flags]
-		public enum GridEdge
-		{
-			Top = 1 << 0,
-			Bottom = 1 << 1,
-			Left = 1 << 2,
-			Right = 1 << 3,
-			Corners = 1 << 4,
-			All = Top | Bottom | Left | Right | Corners
-		}
-
 		public static void SortByID(this IIdentifiable[] collection, UnityEngine.Object collectionOwner = null)
 		{
 			Array.Sort(collection, (x, y) => string.Compare(x.LinkID, y.LinkID));
@@ -136,6 +142,21 @@ namespace Threadlink.Utilities.Collections
 #endif
 		}
 
+		public static bool IsRingCell(this MatrixPosition position, int matrixDimensionSize)
+		{
+			var endIndex = matrixDimensionSize - 1;
+			return position.R == 0 || position.R == endIndex || position.C == 0 || position.C == endIndex;
+		}
+
+		public static bool IsCornerCell(this MatrixPosition position, int matrixDimensionSize)
+		{
+			var endIndex = matrixDimensionSize - 1;
+			return (position.R == 0 && position.C == 0)
+			|| (position.R == 0 && position.C == endIndex)
+			|| (position.R == endIndex && position.C == 0)
+			|| (position.R == endIndex && position.C == endIndex);
+		}
+
 		public static int Rows<T>(this T[,] matrix) { return matrix.GetLength(0); }
 		public static int Columns<T>(this T[,] matrix) { return matrix.GetLength(1); }
 
@@ -146,22 +167,16 @@ namespace Threadlink.Utilities.Collections
 			for (int i = 0; i < length; i++) function(collection[i]);
 		}
 
-		/// <summary>
-		/// Removes the elements of a list from another list. Does not modify the source list 
-		/// and assumes that the elements of the rangeToRemove are shared with the source.
-		/// </summary>
-		/// <typeparam name="T">Type of lists to use.</typeparam>
-		/// <param name="source">The source list, a copy of which will be used to remove elements.</param>
-		/// <param name="rangeToRemove">The list containing the elements to be removed.</param>
-		/// <returns>Returns a new list identical to the source, minus the removed elements.</returns>
-		public static List<T> RemoveRange<T>(this List<T> source, List<T> rangeToRemove)
+		public static void For<T>(this List<T> collection, Action<T> function)
 		{
-			List<T> result = new(source);
+			int length = collection.Count;
 
-			int count = rangeToRemove.Count;
-			for (int i = 0; i < count; i++) result.Remove(rangeToRemove[i]);
+			for (int i = 0; i < length; i++) function(collection[i]);
+		}
 
-			return result;
+		public static int RemapToArrayIndex(this MatrixPosition matrixPosition, int gridDimensionSize)
+		{
+			return matrixPosition.R * gridDimensionSize + matrixPosition.C;
 		}
 
 		public static bool IsWithinBoundsOf(this int index, Array array)
@@ -171,11 +186,21 @@ namespace Threadlink.Utilities.Collections
 			return true;
 		}
 
-		public static bool IsWithinBoundsOf<T>(this MatrixPosition position, T[,] array)
+		public static bool IsWithinBoundsOf<T>(this int index, List<T> list)
 		{
-			if (position.C < 0 || position.R < 0 || position.R >= array.Rows() || position.C >= array.Columns()) return false;
+			if (index < 0 || index >= list.Count) return false;
 
 			return true;
+		}
+
+		public static bool IsWithinBoundsOf<T>(this MatrixPosition position, T[,] matrix)
+		{
+			return position.IsValid && position.R < matrix.Rows() && position.C < matrix.Columns();
+		}
+
+		public static bool IsWithinBoundsOf(this MatrixPosition position, int matrixRows, int matrixCols)
+		{
+			return position.IsValid && position.R < matrixRows && position.C < matrixCols;
 		}
 
 		public static bool IsWithinBoundsOf<T>(this (int, int) position, T[,] array)
@@ -241,71 +266,120 @@ namespace Threadlink.Utilities.Collections
 			if (index >= 0) return collection[index]; else return default;
 		}
 
-		public static T[] Filter<T>(this T[] originalArray, Predicate<T> filter, int maxCount = -1, bool shuffle = true)
+		public static T BruteForceSearch<T>(this T[] collection, string id) where T : IIdentifiable
 		{
-			List<T> shuffledOriginal = shuffle ? new List<T>(originalArray) : null;
-			List<T> filteredList = new List<T>();
-			int count = originalArray.Length;
-			bool capList = maxCount > 0;
+			if (string.IsNullOrEmpty(id)) return default;
 
-			if (shuffle) shuffledOriginal.Shuffle();
+			int length = collection.Length;
 
-			for (int i = 0; i < count; i++)
+			for (int i = 0; i < length; i++)
 			{
-				T element = shuffle ? shuffledOriginal[i] : originalArray[i];
+				var element = collection[i];
 
-				if (filter(element))
+				if (element == null) continue;
+				else if (element.LinkID.Equals(id)) return element;
+			}
+
+			return default;
+		}
+
+		public static void Filter<T>(this T[] source, List<T> destination, Func<T, bool> filter, int maxCount = -1, bool shuffle = true)
+		{
+			destination.Clear();
+
+			if (shuffle)
+			{
+				var shuffledSource = new List<T>(source);
+				shuffledSource.Shuffle();
+
+				destination.AddRange(shuffledSource.Where(filter));
+			}
+			else destination.AddRange(source.Where(filter));
+
+			if (maxCount > 0 && destination.Count > 0 && destination.Count > maxCount)
+				destination.RemoveRange(maxCount, destination.Count - maxCount);
+
+			destination.TrimExcess();
+		}
+
+		public static void Filter<T>(this List<T> source, List<T> destination, Func<T, bool> filter, int maxCount = -1, bool shuffle = true)
+		{
+			destination.Clear();
+
+			if (shuffle)
+			{
+				var shuffledSource = new List<T>(source);
+				shuffledSource.Shuffle();
+
+				destination.AddRange(shuffledSource.Where(filter));
+			}
+			else destination.AddRange(source.Where(filter));
+
+			if (maxCount > 0 && destination.Count > 0 && destination.Count > maxCount)
+				destination.RemoveRange(maxCount, destination.Count - maxCount);
+
+			destination.TrimExcess();
+		}
+
+		public static List<T> Filter<T>(this List<T> source, Func<T, bool> filter, int maxCount = -1, bool shuffle = true)
+		{
+			var result = new List<T>(maxCount > 0 ? maxCount : 0);
+
+			if (shuffle)
+			{
+				var shuffledSource = new List<T>(source);
+				shuffledSource.Shuffle();
+
+				result.AddRange(shuffledSource.Where(filter));
+			}
+			else result.AddRange(source.Where(filter));
+
+			if (maxCount > 0 && result.Count > maxCount && result.Count > maxCount)
+				result.RemoveRange(maxCount, result.Count - maxCount);
+
+			result.TrimExcess();
+
+			return result;
+		}
+
+		public static List<T> Filter<T>(this T[,] matrix, Func<T, bool> filter, int maxCount = -1, bool shuffle = true)
+		{
+			var result = new List<T>(maxCount > 0 ? maxCount : 0);
+			int rows = matrix.Rows();
+			int cols = matrix.Columns();
+
+			void FilterMatrix(T[,] matrix)
+			{
+				for (int i = 0; i < rows; i++)
 				{
-					filteredList.Add(element);
+					for (int j = 0; j < cols; j++)
+					{
+						var element = matrix[i, j];
 
-					if (capList && filteredList.Count >= maxCount) break;
+						if (filter.Invoke(element)) result.Add(element);
+					}
 				}
 			}
 
-			int length = filteredList.Count;
-			T[] filteredArray = new T[length];
-
-			for (int i = 0; i < length; i++) filteredArray[i] = filteredList[i];
-
-			return filteredArray;
-		}
-
-		public static List<T> Filter<T>(this List<T> originalList, Predicate<T> filter, int maxCount = -1, bool shuffle = true)
-		{
-			List<T> shuffledOriginal = shuffle ? new List<T>(originalList) : null;
-			List<T> filteredList = new List<T>();
-			int count = originalList.Count;
-			bool capList = maxCount > 0;
-
-			if (shuffle) shuffledOriginal.Shuffle();
-
-			for (int i = 0; i < count; i++)
+			if (shuffle)
 			{
-				T element = shuffle ? shuffledOriginal[i] : originalList[i];
+				var shuffledSource = new T[rows, cols];
 
-				if (filter(element))
-				{
-					filteredList.Add(element);
+				Array.Copy(matrix, shuffledSource, matrix.Length);
+				shuffledSource.Shuffle();
 
-					if (capList && filteredList.Count >= maxCount) break;
-				}
+				FilterMatrix(shuffledSource);
 			}
+			else FilterMatrix(matrix);
 
-			return filteredList;
+			if (maxCount > 0 && result.Count > maxCount && result.Count > maxCount)
+				result.RemoveRange(maxCount, result.Count - maxCount);
+
+			result.TrimExcess();
+
+			return result;
 		}
 
-		public static List<T> Flatten<T>(this T[,] matrix)
-		{
-			List<T> flattenedList = new List<T>(matrix.Length);
-			int z = matrix.Rows();
-			int x = matrix.Columns();
-
-			for (int i = 0; i < z; i++)
-			{
-				for (int j = 0; j < x; j++) flattenedList.Add(matrix[i, j]);
-			}
-
-			return flattenedList;
-		}
+		public static List<T> Flatten<T>(this T[,] matrix) { return matrix.Cast<T>().ToList(); }
 	}
 }

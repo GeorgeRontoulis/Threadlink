@@ -1,9 +1,7 @@
 namespace Threadlink.Templates.PlayerCharacterController
 {
-	using Threadlink.Extensions.Dextra;
 	using Threadlink.StateMachines;
 	using Threadlink.Systems;
-	using Threadlink.Systems.Dextra;
 	using UnityEngine;
 
 	[CreateAssetMenu(menuName = "Threadlink/Templates/Character Controller/States/Locomotion")]
@@ -25,11 +23,9 @@ namespace Threadlink.Templates.PlayerCharacterController
 			CameraTransform = Camera.main.transform;
 			Controller = player.Controller;
 
-			movementInput.SetUp(owner);
-			turnSpeed.SetUp(owner);
-			xzVelocity.SetUp(owner);
-
-			Dextra.GetCustomInputModule<DextraInputModuleExtension>().SetPlayerInputMapActiveState(true);
+			movementInput.PointToInternalReferenceOf(owner);
+			turnSpeed.PointToInternalReferenceOf(owner);
+			xzVelocity.PointToInternalReferenceOf(owner);
 		}
 
 		public override void OnEnter()
@@ -103,6 +99,8 @@ namespace Threadlink.Templates.PlayerCharacterController
 
 		private void TurnToMovementDirection(Vector3 direction, float deltaTime)
 		{
+			if (direction.Equals(Vector3.zero)) return;
+
 			var targetRotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
 			var turnSpeed = deltaTime * this.turnSpeed.CurrentValue;
 			PlayerTransform.rotation = Quaternion.SlerpUnclamped(PlayerTransform.rotation, targetRotation, turnSpeed);

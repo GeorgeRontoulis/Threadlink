@@ -19,9 +19,9 @@ namespace Threadlink.Utilities.Editor
 #if UNITY_SERVER
                     return NamedBuildTarget.Server;
 #else
-				BuildTarget buildTarget = EditorUserBuildSettings.activeBuildTarget;
-				BuildTargetGroup targetGroup = BuildPipeline.GetBuildTargetGroup(buildTarget);
-				NamedBuildTarget namedBuildTarget = NamedBuildTarget.FromBuildTargetGroup(targetGroup);
+				var buildTarget = EditorUserBuildSettings.activeBuildTarget;
+				var targetGroup = BuildPipeline.GetBuildTargetGroup(buildTarget);
+				var namedBuildTarget = NamedBuildTarget.FromBuildTargetGroup(targetGroup);
 				return namedBuildTarget;
 #endif
 			}
@@ -32,9 +32,8 @@ namespace Threadlink.Utilities.Editor
 		/// </summary>
 		public static void TrySetAttachedComponent<T>(this MonoBehaviour caller, ref T target) where T : Component
 		{
-			T component = caller.GetComponent<T>();
-
-			if (target == null || target != component)
+			if (caller == null) return;
+			else if (caller.TryGetComponent<T>(out var component) && (target == null || target != component))
 			{
 				target = component;
 				SetDirty(caller);
@@ -90,7 +89,7 @@ namespace Threadlink.Utilities.Editor
 
 		public static AssetType LoadEditorAsset<AssetType>(string address) where AssetType : Object
 		{
-			AssetType asset = AssetDatabase.LoadAssetAtPath<AssetType>(address);
+			var asset = AssetDatabase.LoadAssetAtPath<AssetType>(address);
 
 			if (asset == null) Debug.LogError("Could not find the editor asset requested.");
 
@@ -102,7 +101,7 @@ namespace Threadlink.Utilities.Editor
 			string assetType = typeof(T).Name;
 			string[] guids = AssetDatabase.FindAssets($"t:{assetType}");
 			int length = guids.Length;
-			T[] assets = new T[length];
+			var assets = new T[length];
 
 			for (int i = 0; i < length; i++)
 			{

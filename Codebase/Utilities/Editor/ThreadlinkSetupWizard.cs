@@ -1,5 +1,6 @@
 namespace Threadlink.Utilities.Editor
 {
+#if UNITY_EDITOR
 	using Attributes;
 	using System.Linq;
 	using Threadlink.Utilities.UnityLogging;
@@ -78,7 +79,7 @@ namespace Threadlink.Utilities.Editor
 		AddressableAssetGroup CreateGroup(string groupName)
 		{
 			// Get the AddressableAssetSettings which holds all the groups
-			AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+			var settings = AddressableAssetSettingsDefaultObject.Settings;
 
 			// Check if the group already exists
 			AddressableAssetGroup group = null;
@@ -136,4 +137,5 @@ namespace Threadlink.Utilities.Editor
 			CreateOrModifyAddressableGroup(groupName, assetPath);
 		}
 	}
+#endif
 }

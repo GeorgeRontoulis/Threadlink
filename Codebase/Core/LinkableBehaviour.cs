@@ -22,7 +22,7 @@ namespace Threadlink.Core
 
 		protected virtual void Reset()
 		{
-			selfTransform = GetComponent<Transform>();
+			TryGetComponent(out selfTransform);
 		}
 
 		public abstract void Boot();

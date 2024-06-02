@@ -27,7 +27,7 @@ namespace Threadlink.Templates.PlayerCharacterController
 			base.Initialize(owner);
 		}
 
-		protected override VoidOutput Run(VoidInput input)
+		protected override VoidOutput Run(VoidInput _)
 		{
 			var transform = Character.Transform;
 			var checkOrigin = transform.position + Vector3.Scale(transform.forward, Scalar) * edgeCheckOffset;

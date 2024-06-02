@@ -17,7 +17,7 @@ namespace Threadlink.Templates.PlayerCharacterController
 			base.Initialize(owner);
 		}
 #endif
-		protected override VoidOutput Run(VoidInput input)
+		protected override VoidOutput Run(VoidInput _)
 		{
 #if THREADLINK_TEMPLATES_CONTROLLER_2D
 			Vector3 currentPosition = CharacterTransform.position;

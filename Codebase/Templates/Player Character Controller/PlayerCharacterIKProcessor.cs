@@ -23,7 +23,7 @@ namespace Threadlink.Templates.PlayerCharacterController
 		}
 #endif
 
-		protected override VoidOutput Run(VoidInput input)
+		protected override VoidOutput Run(VoidInput _)
 		{
 #if THREADLINK_INTEGRATIONS_FINALIK
 			if (Character.IsGrounded == false || Character.IsMoving) Grounder.weight = 0f;

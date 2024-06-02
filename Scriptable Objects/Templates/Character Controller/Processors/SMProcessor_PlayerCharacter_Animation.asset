@@ -18,6 +18,7 @@ MonoBehaviour:
   yVelocityHash: {fileID: 11400000, guid: 002719b9b8f02b843b914e7250d212d7, type: 2}
   xzVelocityHash: {fileID: 11400000, guid: 48966d97b7c1908479b34bd5c62e25fe, type: 2}
   groundedHash: {fileID: 11400000, guid: 562def1d052319643acd55468422a216, type: 2}
+  idleFidgetHash: {fileID: 11400000, guid: b0cc613b7f93c114d898fb95a10e8701, type: 2}
   movementInput:
     parameterID: SMParameter_PlayerCharacter_MovementInput
   xzVelocity:
@@ -26,7 +27,7 @@ MonoBehaviour:
     parameterID: SMParameter_PlayerCharacter_YVelocity
   idleMomentum: 0
   walkMomentum: 0.5
-  jobMomentum: 1
+  jogMomentum: 1
   sprintMomentum: 1.5
   motionDamping: 0.12
   xzVelocitySharpness: 0

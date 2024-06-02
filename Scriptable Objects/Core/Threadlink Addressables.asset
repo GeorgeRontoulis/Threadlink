@@ -12,7 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 445e97f09833e024492886ffae187806, type: 3}
   m_Name: Threadlink Addressables
   m_EditorClassIdentifier: 
-  scenes: []
+  scenes:
+  - addressableReference:
+      assetAddress: Assets/Scenes/Hub_Falkrin.unity
+  - addressableReference:
+      assetAddress: Assets/Scenes/YggdrasilRiftTest.unity
+  - addressableReference:
+      assetAddress: Assets/Threadlink/Required Scenes/ThreadlinkScene.unity
   coreSystems:
   - addressableInfo:
       assetAddress: Assets/Threadlink/Prefabs/Scribe.prefab
@@ -23,5 +29,13 @@ MonoBehaviour:
   - addressableInfo:
       assetAddress: Assets/Threadlink/Prefabs/Dextra.prefab
   - addressableInfo:
+      assetAddress: Assets/Prefabs/Threadlink System Prefabs/Sentinel.prefab
+  - addressableInfo:
+      assetAddress: Assets/Prefabs/Threadlink System Prefabs/Sculptor.prefab
+  - addressableInfo:
+      assetAddress: Assets/Prefabs/Threadlink System Prefabs/Yggdrasil.prefab
+  - addressableInfo:
+      assetAddress: Assets/Prefabs/Threadlink System Prefabs/Loreweaver.prefab
+  - addressableInfo:
       assetAddress: Assets/Threadlink/Prefabs/Nexus.prefab
-  customExtension: {fileID: 0}
+  customExtension: {fileID: 11400000, guid: 29621f0fc23c6c245b7dc4e53bcc016b, type: 2}

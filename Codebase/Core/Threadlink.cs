@@ -9,8 +9,7 @@
 	using Utilities.Addressables;
 	using Utilities.Collections;
 	using Utilities.Editor.Attributes;
-	using Utilities.UnityLogging;
-	using String = Utilities.Text.String;
+	using Utilities.Text;
 
 	public static class ThreadlinkCoreExtensionMethods
 	{
@@ -68,7 +67,7 @@
 			yield return Initium.Boot(Instance.LinkedEntities);
 			yield return Initium.Initialize(Instance.LinkedEntities);
 
-			Scribe.SystemLog(LinkID, DebugNotificationType.Info, "Threadlink successfully deployed. All Systems operational.");
+			Scribe.SystemLog(LinkID, Scribe.InfoNotif, "Threadlink successfully deployed. All Systems operational.");
 		}
 
 		public static void ShutDown()
@@ -79,7 +78,6 @@
 		public override void Discard()
 		{
 			SeverAll();
-			Instance.Discard();
 
 			Instance.addressables = null;
 			Instance = null;
@@ -93,13 +91,10 @@
 		#endregion
 
 		#region Coroutine Management
-		public static Coroutine LaunchCoroutine(IEnumerator coroutine, bool logLaunch = true)
+		public static Coroutine LaunchCoroutine(IEnumerator coroutine, bool logLaunch = false)
 		{
 			if (logLaunch)
-			{
-				Scribe.SystemLog(Instance.LinkID, DebugNotificationType.Info,
-				"Launching Coroutine '", String.ExtractCoroutineName(coroutine), "'");
-			}
+				Scribe.SystemLog(Instance.LinkID, Scribe.InfoNotif, "Launching Coroutine '", coroutine.ExtractName(), "'");
 
 			return Instance.StartCoroutine(coroutine);
 		}
@@ -108,21 +103,23 @@
 		/// Stops the desired coroutine and nullifies the reference to it.
 		/// </summary>
 		/// <param name="coroutine">The coroutine to stop.</param>
-		public static void StopCoroutine(ref Coroutine coroutine)
+		public static void StopCoroutine(ref Coroutine coroutine, bool logStop = false)
 		{
 			if (coroutine == null) return;
+
+			string coroutineName = coroutine.GetType().Name;
 
 			Instance.StopCoroutine(coroutine);
 			coroutine = null;
 
-			Scribe.SystemLog(Instance.LinkID, DebugNotificationType.Info, "Stopped Coroutine ", coroutine.GetType().Name);
+			if (logStop) Scribe.SystemLog(Instance.LinkID, Scribe.InfoNotif, "Stopped Coroutine ", coroutineName);
 		}
 
 		public static IEnumerator WaitForFrameCount(int count)
 		{
 			if (count <= 0)
 			{
-				Scribe.SystemLog(Instance.LinkID, DebugNotificationType.Warning, "Attempted to wait a non-positive number of frames! Call will be skipped!");
+				Scribe.SystemLog(Instance.LinkID, Scribe.WarningNotif, "Attempted to wait a non-positive number of frames! Call will be skipped!");
 				yield break;
 			}
 
@@ -146,7 +143,7 @@
 			if (extension != null) return extension.SearchForAddressablePrefab<AddressableType, PrefabType>(prefabID);
 			else
 			{
-				Scribe.SystemLog(Instance.LinkID, DebugNotificationType.Error,
+				Scribe.SystemLog(Instance.LinkID, Scribe.ErrorNotif,
 				"A request to search the Addressables Extension was made, however no extension has been provided! Please provide an extension before proceeding!");
 				return null;
 			}
@@ -160,7 +157,7 @@
 			if (extension != null) return extension.SearchForAddressableAsset<AddressableType, AssetType>(assetID);
 			else
 			{
-				Scribe.SystemLog(Instance.LinkID, DebugNotificationType.Error,
+				Scribe.SystemLog(Instance.LinkID, Scribe.ErrorNotif,
 				"A request to search the Addressables Extension was made, however no extension has been provided! Please provide an extension before proceeding!");
 				return null;
 			}

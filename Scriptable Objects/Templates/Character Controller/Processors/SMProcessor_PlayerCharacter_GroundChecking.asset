@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   runIn: 1
   startUpdatingOnInit: 1
-  groundCheckRadious: 0.15
+  groundCheckRadious: 0.3
   groundMask:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 17
   interaction: 1

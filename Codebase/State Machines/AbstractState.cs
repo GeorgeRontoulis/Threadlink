@@ -3,17 +3,19 @@
 
 namespace Threadlink.StateMachines
 {
+	using Threadlink.Core;
 	using UnityEngine;
 
-	public interface AbstractStateData { }
-
-	public interface IScriptableState<DataType> where DataType : AbstractStateData
+	public interface IScriptableState<DataType>
 	{
 		public void ProcessData(DataType data);
 	}
 
-	public abstract class BaseAbstractState : ScriptableObject
+	public abstract class BaseAbstractState : LinkableAsset
 	{
+		public override void Boot() { }
+		public override void Initialize() { }
+
 		public abstract void OnEnter();
 		public abstract void OnUpdate();
 		public abstract void OnExit();

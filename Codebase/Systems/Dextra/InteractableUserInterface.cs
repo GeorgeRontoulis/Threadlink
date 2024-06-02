@@ -2,50 +2,65 @@ namespace Threadlink.Systems.Dextra
 {
 	using Threadlink.Utilities.Events;
 
-	public static class InteractableUserInterfaceExtensions
+	public abstract class InteractableUserInterface<T> : UserInterface where T : DextraButton
 	{
-		public static void ManageDefaultSubscriptionsOf(this InteractableUserInterface ui, DextraButton[] collection, bool subscribe)
-		{
-			int length = collection.Length;
+		protected abstract T[] Buttons { get; }
 
-			if (subscribe)
-			{
-				for (int i = 0; i < length; i++) collection[i].OnSelectEvent.CSharpAction.TryAddListener(ui.UpdateLastSelectedButton);
-			}
-			else
-			{
-				for (int i = 0; i < length; i++) collection[i].OnSelectEvent.CSharpAction.Remove(ui.UpdateLastSelectedButton);
-			}
-		}
-
-		public static void DiscardButtons(this UserInterface ui, ref DextraButton[] buttons)
-		{
-			int length = buttons.Length;
-			for (int i = 0; i < length; i++) buttons[i].Discard();
-
-			buttons = null;
-		}
-	}
-
-	public abstract class InteractableUserInterface : UserInterface
-	{
-		protected DextraButton LastSelectedButton { get; set; }
-
-		/// <summary>
-		/// Used by events inside the Editor. May also be called manually.
-		/// </summary>
-		/// <param name="newSelection">The new selected button.</param>
-		protected internal VoidOutput UpdateLastSelectedButton(DextraButton newSelection)
-		{
-			LastSelectedButton = newSelection;
-			return default;
-		}
+		protected T LastSelectedButton { get; set; }
 
 		public override void Discard()
 		{
+			var buttons = Buttons;
+
+			if (buttons != null)
+			{
+				int length = buttons.Length;
+				for (int i = 0; i < length; i++) buttons[i].Discard();
+			}
+
 			LastSelectedButton = null;
 
 			base.Discard();
+		}
+
+		public override void Boot()
+		{
+			var buttons = Buttons;
+
+			if (buttons != null)
+			{
+				int length = buttons.Length;
+				for (int i = 0; i < length; i++) buttons[i].OnSelect.TryAddListener(UpdateLastSelectedButton);
+			}
+		}
+
+		public override void Initialize()
+		{
+			var buttons = Buttons;
+			if (buttons != null && buttons.Length > 0) UpdateLastSelectedButton(buttons[0]);
+		}
+
+		protected internal VoidOutput UpdateLastSelectedButton(DextraButton newSelection)
+		{
+			LastSelectedButton = newSelection as T;
+			return default;
+		}
+
+		protected internal virtual void SelectLastSelectedButton()
+		{
+			Dextra.SelectUIElement(LastSelectedButton.gameObject);
+		}
+
+		public override void OnStacked()
+		{
+			base.OnStacked();
+			SelectLastSelectedButton();
+		}
+
+		public override void OnResurfaced()
+		{
+			base.OnResurfaced();
+			SelectLastSelectedButton();
 		}
 	}
 }

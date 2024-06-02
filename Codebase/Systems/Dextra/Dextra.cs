@@ -8,60 +8,81 @@ namespace Threadlink.Systems.Dextra
 	using UnityEngine;
 	using UnityEngine.EventSystems;
 	using UnityEngine.InputSystem;
-	using UnityEngine.UI;
 	using Utilities.Events;
 	using Context = UnityEngine.InputSystem.InputAction.CallbackContext;
 	using VoidDelegate = Utilities.Events.ThreadlinkDelegate<Utilities.Events.VoidOutput, Utilities.Events.VoidInput>;
 
-	public interface IInputHandler
+	[Flags]
+	public enum UIStackingCallbackSettings
 	{
-		void SetUpHandlers();
-		void SubscribeInputHandlers();
-		void UnsubscribeInputHandlers();
+		Default = HideGraphicsOnCover | DisableInteractabilityOnCover,
+		HideGraphicsOnCover = 1 << 0,
+		DisableInteractabilityOnCover = 1 << 1,
+		EnableInteractabilityOnStack = 1 << 2,
+		CanBeCancelled = 1 << 3,
+	}
+
+	public interface IScriptableStackingData { }
+	public interface IScriptableStackingDataProcessor<T> where T : IScriptableStackingData
+	{
+		public void Process(T data);
 	}
 
 	public struct ControllerVibrationData
 	{
-		public CustomYieldInstruction waitInstruction;
-		public float lowFrequency;
-		public float highFrequency;
+		internal CustomYieldInstruction WaitInstruction { get; private set; }
+		internal float LowFrequency { get; private set; }
+		internal float HighFrequency { get; private set; }
 
-		public ControllerVibrationData(CustomYieldInstruction waitInstruction, float lowFrequency, float highFrequency)
+		public ControllerVibrationData(float lowFrequency, float highFrequency, CustomYieldInstruction waitInstruction = null)
 		{
-			this.waitInstruction = waitInstruction;
-			this.lowFrequency = lowFrequency;
-			this.highFrequency = highFrequency;
+			WaitInstruction = waitInstruction;
+			LowFrequency = lowFrequency;
+			HighFrequency = highFrequency;
 		}
 	}
 
 	[Serializable]
-	public sealed class ActionHandlerReferencePair<T> where T : struct
+	public class DextraAction<T> where T : struct
 	{
-		public Action<Context> Handler { get; private set; }
+		public bool HeldDownThisFrame => InputAction != null && InputAction.IsPressed();
 
-		private InputAction InputAction => reference.action;
+		private Action<Context> Handler { get; set; }
+
+		private InputAction InputAction => reference == null ? null : reference.action;
 
 		[SerializeField] private InputActionReference reference = null;
 
-		public void SetUpHandler(Action action)
+		public void Discard()
 		{
-			Handler = (Context ctx) => Dextra.PerformContextualAction(action);
-		}
-
-		public void SetUpHandler(Action<T> action)
-		{
-			Handler = (Context ctx) => Dextra.PerformContextualAction(action, ctx.ReadValue<T>());
-		}
-
-		public void Subscribe() { InputAction.performed += Handler; }
-		public void Unsubscribe() { InputAction.performed -= Handler; }
-
-		public void Dispose()
-		{
-			Unsubscribe();
+			if (InputAction != null) InputAction.performed -= Handler;
 			Handler = null;
 		}
+
+		public void Handle(Action action)
+		{
+			if (InputAction != null)
+			{
+				Handler = (Context ctx) => Dextra.PerformContextualAction(action);
+				Subscribe();
+			}
+			else Scribe.LogWarning("Input Action has not been assigned for ", action.Method.Name, "!");
+		}
+
+		public void Handle(Action<T> action)
+		{
+			if (InputAction != null)
+			{
+				Handler = (Context ctx) => Dextra.PerformContextualAction(action, ctx.ReadValue<T>());
+				Subscribe();
+			}
+			else Scribe.LogWarning("Input Action has not been assigned for ", action.Method.Name, "!");
+		}
+
+		private void Subscribe() { InputAction.performed += Handler; }
 	}
+
+	[Serializable] public sealed class VoidDextraAction : DextraAction<VoidOutput> { }
 
 	/// <summary>
 	/// System responsible for managing user interfaces, input and interactions (Input, UI, Interactables).
@@ -79,6 +100,18 @@ namespace Threadlink.Systems.Dextra
 			remove { if (CustomInputModule != null) CustomInputModule.OnInteractButtonPressed.Remove(value); }
 		}
 
+		public static event VoidDelegate OnPauseButtonPressed
+		{
+			add { if (CustomInputModule != null) CustomInputModule.OnPauseButtonPressed.TryAddListener(value); }
+			remove { if (CustomInputModule != null) CustomInputModule.OnPauseButtonPressed.Remove(value); }
+		}
+
+		public static event VoidDelegate OnInterfaceCancelled
+		{
+			add { Instance.onInterfaceCancelled.TryAddListener(value); }
+			remove { Instance.onInterfaceCancelled.Remove(value); }
+		}
+
 		internal static UserInterface TopInterface => StackedInterfaces.Count <= 0 ? null : StackedInterfaces.Peek();
 		internal static InputDevice CurrentInputDevice { get; private set; }
 
@@ -93,12 +126,18 @@ namespace Threadlink.Systems.Dextra
 		[SerializeField] private PlayerInput deviceDetector = null;
 		[SerializeField] private DextraInputModuleExtension customInputModule = null;
 
-		private readonly VoidGenericEvent<RectTransform> onElementSelected = new();
-		private readonly VoidGenericEvent<InputDevice> onInputDeviceChanged = new();
+		private VoidGenericEvent<RectTransform> onElementSelected = new();
+		private VoidGenericEvent<InputDevice> onInputDeviceChanged = new();
+		private VoidEvent onInterfaceCancelled = new();
 
 		public override void Discard()
 		{
 			deviceDetector.onControlsChanged -= UpdateInputDevice;
+
+			onInputDeviceChanged?.Discard();
+			onElementSelected?.Discard();
+			onInterfaceCancelled?.Discard();
+
 			if (customInputModule != null) customInputModule.Discard();
 			DisconnectAll();
 
@@ -106,6 +145,9 @@ namespace Threadlink.Systems.Dextra
 			deviceDetector = null;
 			customInputModule = null;
 			Instance = null;
+			onInputDeviceChanged = null;
+			onElementSelected = null;
+			onInterfaceCancelled = null;
 
 			base.Discard();
 		}
@@ -120,7 +162,7 @@ namespace Threadlink.Systems.Dextra
 
 			if (customInputModule != null)
 			{
-				customInputModule = Instantiate(customInputModule);
+				customInputModule = customInputModule.Clone();
 				customInputModule.Boot();
 			}
 
@@ -129,7 +171,7 @@ namespace Threadlink.Systems.Dextra
 
 		public override void Initialize()
 		{
-			UserInterface[] interfaces = FindObjectsByType<UserInterface>(FindObjectsSortMode.None);
+			var interfaces = FindObjectsByType<UserInterface>(FindObjectsSortMode.None);
 			int length = interfaces.Length;
 
 			for (int i = 0; i < length; i++) interfaces[i].Boot();
@@ -149,7 +191,11 @@ namespace Threadlink.Systems.Dextra
 			if (TopInterface != null && TopInterface.CanBeCancelled)
 			{
 				var poppedInterface = PopTopInterface();
-				poppedInterface.OnCancelled();
+				if (poppedInterface != null)
+				{
+					poppedInterface.OnCancelled();
+					Instance.onInterfaceCancelled?.Invoke();
+				}
 			}
 		}
 
@@ -160,35 +206,60 @@ namespace Threadlink.Systems.Dextra
 		#endregion
 
 		#region UI Code:
+
 		public static void StackInterface(string interfaceID)
 		{
-			UserInterface target = Instance.FindManagedEntity(interfaceID);
+			var target = Instance.FindManagedEntity(interfaceID);
 
 			if (target == null)
 			{
-				Scribe.SystemLog(Instance.LinkID, Utilities.UnityLogging.DebugNotificationType.Error,
+				Scribe.SystemLog(Instance.LinkID, Scribe.ErrorNotif,
 				"Could not find the requested managed interface! This should never happen!");
 			}
 			else StackInterface(target);
+		}
+
+		public static void StackInterface<T>(string interfaceID, T stackingData)
+		where T : IScriptableStackingData
+		{
+			var target = Instance.FindManagedEntity(interfaceID);
+
+			if (target == null)
+			{
+				Scribe.SystemLog(Instance.LinkID, Scribe.ErrorNotif,
+				"Could not find the requested managed interface! This should never happen!");
+			}
+			else StackInterface(target, stackingData);
 		}
 
 		public static void StackInterface(UserInterface target)
 		{
 			if (target.Equals(TopInterface))
 			{
-				Scribe.SystemLog(Instance.LinkID, Utilities.UnityLogging.DebugNotificationType.Warning,
-				"The requested interface to stack is already at the top!");
+				Scribe.SystemLog(Instance.LinkID, Scribe.WarningNotif, "The requested interface to stack is already at the top!");
 				return;
 			}
 
-			if (TopInterface != null)
-			{
-				if (TopInterface.UpdatingAlpha) return;
-
-				TopInterface.OnCovered();
-			}
+			if (TopInterface != null) TopInterface.OnCovered();
 
 			StackedInterfaces.Push(target);
+			target.OnStacked();
+		}
+
+		public static void StackInterface<T>(UserInterface target, T stackingData)
+		where T : IScriptableStackingData
+		{
+			if (target.Equals(TopInterface))
+			{
+				Scribe.SystemLog(Instance.LinkID, Scribe.WarningNotif, "The requested interface to stack is already at the top!");
+				return;
+			}
+
+			if (TopInterface != null) TopInterface.OnCovered();
+
+			StackedInterfaces.Push(target);
+
+			(target as IScriptableStackingDataProcessor<T>).Process(stackingData);
 			target.OnStacked();
 		}
 
@@ -198,7 +269,7 @@ namespace Threadlink.Systems.Dextra
 			{
 				SelectUIElement(null);
 
-				UserInterface previous = StackedInterfaces.Pop();
+				var previous = StackedInterfaces.Pop();
 
 				previous.OnPopped();
 
@@ -211,21 +282,18 @@ namespace Threadlink.Systems.Dextra
 
 		public static void SyncSelection()
 		{
-			Instance.onElementSelected.
-			Invoke(EventSystem.currentSelectedGameObject.transform as RectTransform);
+			Instance.onElementSelected?.Invoke(EventSystem.currentSelectedGameObject.transform as RectTransform);
 		}
 
-		public static void SelectUIElement(Selectable element)
+		public static void SelectUIElement(GameObject element, bool syncSelection = true)
 		{
-			void Select(GameObject selectable) { EventSystem.SetSelectedGameObject(selectable); }
+			static void Select(GameObject selectable) { EventSystem.SetSelectedGameObject(selectable); }
 
 			if (element != null)
 			{
 				IEnumerator Selection()
 				{
-					IEnumerator WaitForOneFrame() { yield return Threadlink.WaitForFrameCount(1); }
-
-					GameObject gameObject = element.gameObject;
+					static IEnumerator WaitForOneFrame() { yield return Threadlink.WaitForFrameCount(1); }
 
 					yield return WaitForOneFrame();
 
@@ -233,16 +301,17 @@ namespace Threadlink.Systems.Dextra
 
 					yield return WaitForOneFrame();
 
-					Select(gameObject);
-					SyncSelection();
+					Select(element);
+					if (syncSelection) SyncSelection();
+					else Instance.onElementSelected?.Invoke(default);
 				}
 
-				Threadlink.LaunchCoroutine(Selection(), false);
+				Threadlink.LaunchCoroutine(Selection());
 			}
 			else
 			{
 				Select(null);
-				Instance.onElementSelected.Invoke(default);
+				Instance.onElementSelected?.Invoke(default);
 			}
 		}
 		#endregion
@@ -267,11 +336,12 @@ namespace Threadlink.Systems.Dextra
 			}
 
 			CurrentInputDevice = newDevice;
-			Instance.onInputDeviceChanged.Invoke(newDevice);
+			Instance.onInputDeviceChanged?.Invoke(newDevice);
 
 			ForceStopControllerVibration();
 		}
 
+		public static void PerformContextualAction(VoidDelegate action) { action?.Invoke(default); }
 		public static void PerformContextualAction(Action action) { action(); }
 		public static void PerformContextualAction<T>(Action<T> action, T arg) { action(arg); }
 		public static void PerformContextualAction<T>(Action<T[]> action, params T[] args) { action(args); }
@@ -285,15 +355,19 @@ namespace Threadlink.Systems.Dextra
 		/// <param name="vibrationData">The data used for the vibration.</param>
 		public static void VibrateController(ControllerVibrationData vibrationData)
 		{
-			Gamepad currentGamepad = CurrentGamepad;
+			if (CurrentInputDevice.Equals(InputDevice.MouseKeyboard)) return;
+
+			var currentGamepad = CurrentGamepad;
 
 			if (currentGamepad != null)
 			{
 				IEnumerator VibrateForSeconds()
 				{
-					currentGamepad.SetMotorSpeeds(vibrationData.lowFrequency, vibrationData.highFrequency);
+					currentGamepad.SetMotorSpeeds(vibrationData.LowFrequency, vibrationData.HighFrequency);
 
-					yield return vibrationData.waitInstruction;
+					var yieldInstruction = vibrationData.WaitInstruction;
+
+					if (yieldInstruction != null) yield return yieldInstruction;
 
 					currentGamepad.ResetHaptics();
 					controllerVibration = null;
@@ -306,20 +380,17 @@ namespace Threadlink.Systems.Dextra
 
 		public static void VibrateControllerThisFrame(ControllerVibrationData vibrationData)
 		{
-			Gamepad currentGamepad = CurrentGamepad;
+			if (CurrentInputDevice.Equals(InputDevice.MouseKeyboard)) return;
 
-			if (currentGamepad != null)
-			{
-				currentGamepad.SetMotorSpeeds(vibrationData.lowFrequency, vibrationData.highFrequency);
-			}
+			CurrentGamepad?.SetMotorSpeeds(vibrationData.LowFrequency, vibrationData.HighFrequency);
 		}
 
 		public static void ForceStopControllerVibration()
 		{
-			Gamepad currentGamepad = CurrentGamepad;
+			if (CurrentInputDevice.Equals(InputDevice.MouseKeyboard)) return;
 
-			if (controllerVibration != null) Threadlink.StopCoroutine(ref controllerVibration);
-			if (currentGamepad != null) currentGamepad.ResetHaptics();
+			Threadlink.StopCoroutine(ref controllerVibration);
+			CurrentGamepad?.ResetHaptics();
 		}
 		#endregion
 	}

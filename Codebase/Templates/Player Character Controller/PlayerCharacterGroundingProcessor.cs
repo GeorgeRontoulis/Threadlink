@@ -21,7 +21,7 @@ namespace Threadlink.Templates.PlayerCharacterController
 			base.Initialize(owner);
 		}
 
-		protected override VoidOutput Run(VoidInput input)
+		protected override VoidOutput Run(VoidInput _)
 		{
 			Vector3 checkOrigin = Character.Transform.position + Vector3.Scale(Character.Controller.center, new(1, 0, 1));
 			Character.IsGrounded = Physics.OverlapSphereNonAlloc(checkOrigin,

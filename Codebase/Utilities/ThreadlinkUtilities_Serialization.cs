@@ -15,9 +15,9 @@ namespace Threadlink.Utilities.Serialization
 	{
 		private const string saveFileExtension = ".sav";
 
-		private static readonly fsSerializer Serializer = new fsSerializer();
+		private static readonly fsSerializer Serializer = new();
 
-		internal static class PersistentDirectoryManager
+		public static class PersistentDirectoryManager
 		{
 			private static string ConstructPath(string folderName)
 			{
@@ -43,7 +43,7 @@ namespace Threadlink.Utilities.Serialization
 			/// Does nothing if the folder does not exist.
 			/// </summary>
 			/// <param name="folderName">The path to the folder we want to delete.</param>
-			internal static void DeletePersistentFolder(string folderName, bool recursive)
+			public static void DeletePersistentFolder(string folderName, bool recursive)
 			{
 				if (string.IsNullOrEmpty(folderName)) return;
 
@@ -71,26 +71,25 @@ namespace Threadlink.Utilities.Serialization
 			return String.Construct(folderDirectory, "/", fileName, saveFileExtension);
 		}
 
-		public static void SaveRetrieveableData<T>(T retrievableData, string folderName, string fileName) where T : IRetrievable
+		public static void SaveRetrievableData<T>(T retrievableData, string folderName, string fileName) where T : IRetrievable
 		{
-			StreamWriter writer = new StreamWriter(GetSaveFilePath(folderName, fileName));
-			fsData data;
+			var writer = new StreamWriter(GetSaveFilePath(folderName, fileName));
 
-			Serializer.TrySerialize(retrievableData, out data).AssertSuccess();
+			Serializer.TrySerialize(retrievableData, out var data).AssertSuccess();
 
 			writer.Write(fsJsonPrinter.CompressedJson(data));
 			writer.Close();
 			writer.Dispose();
 		}
 
-		public static T LoadRetrieveableData<T>(string folderName, string fileName) where T : IRetrievable, new()
+		public static T LoadRetrievableData<T>(string folderName, string fileName) where T : IRetrievable, new()
 		{
 			string filePath = GetSaveFilePath(folderName, fileName);
 			bool validPath = string.IsNullOrEmpty(filePath) == false && File.Exists(filePath);
 
 			if (validPath)
 			{
-				StreamReader reader = new StreamReader(filePath);
+				var reader = new StreamReader(filePath);
 				string text = reader.ReadToEnd();
 
 				reader.Close();
@@ -103,10 +102,10 @@ namespace Threadlink.Utilities.Serialization
 
 		internal static T TryDeserialize<T>(string input) where T : IRetrievable, new()
 		{
-			fsData data = fsJsonParser.Parse(input);
+			var data = fsJsonParser.Parse(input);
 			T deserialized = default;
 
-			fsResult result = Serializer.TryDeserialize(data, ref deserialized).AssertSuccess();
+			var result = Serializer.TryDeserialize(data, ref deserialized).AssertSuccess();
 
 			return result.Equals(fsResult.Success) && deserialized.IsValid ? deserialized : GetInvalidData<T>();
 		}
@@ -114,8 +113,7 @@ namespace Threadlink.Utilities.Serialization
 		private static T GetInvalidData<T>() where T : IRetrievable, new()
 		{
 			UnityConsole.Notify(DebugNotificationType.Warning, typeof(T).Name, " could not be loaded. File not found.");
-			T data = new T();
-			data.IsValid = false;
+			var data = new T { IsValid = false };
 			return data;
 		}
 	}

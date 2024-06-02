@@ -1,6 +1,7 @@
 namespace Threadlink.Core
 {
 	using System;
+	using Systems;
 	using UnityEngine;
 	using Utilities.Events;
 
@@ -26,10 +27,26 @@ namespace Threadlink.Core
 				onBeforeDiscarded.Invoke();
 				onBeforeDiscarded.Discard();
 
-				onBeforeDiscarded = null;
+				if (IsInstance) onBeforeDiscarded = null;
 			}
 
-			Destroy(this);
+			if (IsInstance) Destroy(this);
+		}
+
+		public static T Create<T>(string assetName) where T : LinkableAsset
+		{
+			if (string.IsNullOrEmpty(assetName))
+			{
+				Scribe.LogException(new NullReferenceException("Linkable Asset name cannot be null or empty!"));
+				return null;
+			}
+
+			var output = CreateInstance<T>();
+
+			output.name = assetName;
+			output.IsInstance = true;
+
+			return output;
 		}
 	}
 }

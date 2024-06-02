@@ -10,15 +10,11 @@ namespace Threadlink.Systems
 	/// </summary>
 	public sealed class Iris : LinkableBehaviourSingleton<Iris>
 	{
-		public static VoidEvent OnUpdate => Instance.onUpdate;
-		public static VoidEvent OnFixedUpdate => Instance.onFixedUpdate;
-		public static VoidEvent OnLateUpdate => Instance.onLateUpdate;
+		private static VoidEvent OnUpdate { get; set; }
+		private static VoidEvent OnFixedUpdate { get; set; }
+		private static VoidEvent OnLateUpdate { get; set; }
 
 		public static bool UpdateSelf { get; set; }
-
-		private VoidEvent onUpdate = new();
-		private VoidEvent onFixedUpdate = new();
-		private VoidEvent onLateUpdate = new();
 
 		private void OnDestroy()
 		{
@@ -31,7 +27,13 @@ namespace Threadlink.Systems
 			base.Discard();
 		}
 
-		public override void Boot() { Instance = this; }
+		public override void Boot()
+		{
+			OnUpdate ??= new();
+			OnFixedUpdate ??= new();
+			OnLateUpdate ??= new();
+			Instance = this;
+		}
 		public override void Initialize() { UpdateSelf = true; }
 
 		public static void SubscribeToUpdate(VoidDelegate action) { OnUpdate?.TryAddListener(action); }
@@ -41,19 +43,19 @@ namespace Threadlink.Systems
 		public static void SubscribeToLateUpdate(VoidDelegate action) { OnLateUpdate?.TryAddListener(action); }
 		public static void UnsubscribeFromLateUpdate(VoidDelegate action) { OnLateUpdate?.Remove(action); }
 
-		private void Update() { if (UpdateSelf) onUpdate.Invoke(); }
-		private void FixedUpdate() { if (UpdateSelf) onFixedUpdate.Invoke(); }
-		private void LateUpdate() { if (UpdateSelf) onLateUpdate.Invoke(); }
+		private void Update() { if (UpdateSelf) OnUpdate?.Invoke(); }
+		private void FixedUpdate() { if (UpdateSelf) OnFixedUpdate?.Invoke(); }
+		private void LateUpdate() { if (UpdateSelf) OnLateUpdate?.Invoke(); }
 
 		private void DiscardUpdateCallbacks()
 		{
-			onUpdate.Discard();
-			onFixedUpdate.Discard();
-			onLateUpdate.Discard();
+			OnUpdate?.Discard();
+			OnFixedUpdate?.Discard();
+			OnLateUpdate?.Discard();
 
-			onUpdate = null;
-			onFixedUpdate = null;
-			onLateUpdate = null;
+			OnUpdate = null;
+			OnFixedUpdate = null;
+			OnLateUpdate = null;
 		}
 	}
 }

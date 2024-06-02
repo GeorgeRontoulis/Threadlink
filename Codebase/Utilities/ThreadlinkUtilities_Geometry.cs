@@ -1,5 +1,6 @@
 namespace Threadlink.Utilities.Geometry
 {
+	using System;
 	using System.Collections.Generic;
 	using Threadlink.Core;
 	using Threadlink.Utilities.Collections;
@@ -19,9 +20,38 @@ namespace Threadlink.Utilities.Geometry
 			}
 		}
 
-		public static (Vector2 viewportPosition, Vector2 canvasPosition) WorldToCanvasPoint(this RectTransform canvasRect, Vector3 worldPoint)
+		public static float[] GetTriangleSizes(int[] tris, Vector3[] verts)
 		{
-			Vector2 viewportPos = Camera.main.WorldToViewportPoint(worldPoint, Camera.MonoOrStereoscopicEye.Mono);
+			int triCount = tris.Length / 3;
+			var sizes = new float[triCount];
+
+			for (int i = 0; i < triCount; i++)
+			{
+				int iMul3 = i * 3;
+
+				sizes[i] = .5f * Vector3.Cross(verts[tris[iMul3 + 1]] - verts[tris[iMul3]], verts[tris[iMul3 + 2]] - verts[tris[iMul3]]).magnitude;
+			}
+
+			return sizes;
+		}
+
+		public static KeyValuePair<float[], float> CalculateMeshAreas(float[] sizes)
+		{
+			var cumulativeSizes = new float[sizes.Length];
+			float total = 0;
+
+			for (int i = 0; i < sizes.Length; i++)
+			{
+				total += sizes[i];
+				cumulativeSizes[i] = total;
+			}
+
+			return new(cumulativeSizes, total);
+		}
+
+		public static ValueTuple<Vector2, Vector2> WorldToCanvasPoint(this RectTransform canvasRect, Vector3 worldPoint)
+		{
+			var viewportPos = Camera.main.WorldToViewportPoint(worldPoint, Camera.MonoOrStereoscopicEye.Mono);
 
 			float deltaX = canvasRect.sizeDelta.x;
 			float deltaY = canvasRect.sizeDelta.y;
@@ -29,16 +59,16 @@ namespace Threadlink.Utilities.Geometry
 			float x = (viewportPos.x * deltaX) - (deltaX * 0.5f);
 			float y = (viewportPos.y * deltaY) - (deltaY * 0.5f);
 
-			Vector2 canvasPos = new Vector2(x, y);
+			var canvasPos = new Vector2(x, y);
 
-			return (viewportPos, canvasPos);
+			return new(viewportPos, canvasPos);
 		}
 
 		public static bool ConeCheck(Vector3 center, Vector3 pointA, Vector3 pointB, Vector3 direction)
 		{
 			// Calculate vectors from center to points A and B
-			Vector3 vectorAC = pointA - center;
-			Vector3 vectorBC = pointB - center;
+			var vectorAC = pointA - center;
+			var vectorBC = pointB - center;
 
 			// Calculate the angle between vector AC and vector BC
 			float angleABC = Vector3.SignedAngle(vectorAC.normalized, vectorBC.normalized, Vector3.up);
@@ -52,35 +82,35 @@ namespace Threadlink.Utilities.Geometry
 
 		public static bool Approximately(Vector3 a, Vector3 b)
 		{
-			bool Approx(float a, float b) { return Mathf.Approximately(a, b); }
+			static bool Approx(float a, float b) { return Mathf.Approximately(a, b); }
 
 			return Approx(a.x, b.x) && Approx(a.y, b.y) && Approx(a.z, b.z);
 		}
 
 		public static Vector2 ToUVCoordinates(this Vector2Int input, Vector2Int dimensions)
 		{
-			return new Vector2(input.x / (float)dimensions.x, input.y / (float)dimensions.y);
+			return new(input.x / (float)dimensions.x, input.y / (float)dimensions.y);
 		}
 
 		public static Vector2 ToScreenPosition(this Vector2 input, Vector2 dimensions)
 		{
-			return new Vector2(input.x * dimensions.x, input.y * dimensions.y);
+			return new(input.x * dimensions.x, input.y * dimensions.y);
 		}
 
 		public static List<Vector3> CalculateBisectors(Vector3[] originalPath, float offsetAmount)
 		{
-			List<Vector3> bisectorPath = new List<Vector3>();
+			var bisectorPath = new List<Vector3>();
 
 			int pathCount = originalPath.Length;
 
 			for (int i = 0; i < pathCount; i++)
 			{
-				Vector3 currentPoint = originalPath[i];
-				Vector3 nextPoint = originalPath[(i + 1) % pathCount];
-				Vector3 prevPoint = originalPath[(i - 1 + pathCount) % pathCount];
+				var currentPoint = originalPath[i];
+				var nextPoint = originalPath[(i + 1) % pathCount];
+				var prevPoint = originalPath[(i - 1 + pathCount) % pathCount];
 
-				Vector3 bisector = CalculateBisector(prevPoint, currentPoint, nextPoint).normalized * offsetAmount;
-				Vector3 bisectedPoint = currentPoint + bisector;
+				var bisector = CalculateBisector(prevPoint, currentPoint, nextPoint).normalized * offsetAmount;
+				var bisectedPoint = currentPoint + bisector;
 
 				bisectorPath.Add(bisectedPoint);
 			}
@@ -88,19 +118,38 @@ namespace Threadlink.Utilities.Geometry
 			return bisectorPath;
 		}
 
+		public static Vector3 Interpolate(this AnimationCurve curve, Vector3 startVector, Vector3 endVector, float t)
+		{
+			// Evaluate the animation curve at the given time
+			float curveValue = curve.Evaluate(t);
+
+			// Interpolate between the start and end vectors using the curve value
+			var interpolatedVector = Vector3.Lerp(startVector, endVector, curveValue);
+
+			return interpolatedVector;
+		}
+
+		public static Vector3 CubicInterpolation(Vector3 k0, Vector3 k1, float u)
+		{
+			float u2 = u * u;
+			float u3 = u2 * u;
+			var interpolation = k0 * (2 * u3 - 3 * u2 + 1) + k1 * (3 * u2 - 2 * u3);
+			return interpolation;
+		}
+
 		public static Vector3 CalculateBisector(Vector3 pointA, Vector3 pointB, Vector3 pointC)
 		{
-			Vector3 vectorAB = (pointB - pointA).normalized;
-			Vector3 vectorBC = (pointC - pointB).normalized;
+			var vectorAB = (pointB - pointA).normalized;
+			var vectorBC = (pointC - pointB).normalized;
 
-			Vector3 bisector = vectorAB + vectorBC;
+			var bisector = vectorAB + vectorBC;
 			return bisector.normalized;
 		}
 
 		public static Vector3 GetPerpendicularVector(Vector3 vectorB, Vector3 midPointB)
 		{
 			// Calculate a vector perpendicular to B
-			Vector3 vectorA = new Vector3(-vectorB.y, vectorB.x, vectorB.z);
+			var vectorA = new Vector3(-vectorB.y, vectorB.x, vectorB.z);
 
 			// Ensure that vectorA starts from the middle point of B
 			return midPointB + vectorA;
@@ -110,7 +159,7 @@ namespace Threadlink.Utilities.Geometry
 		{
 			int count = points.Count;
 
-			if (points == null || count == 0) return new MatrixPosition(0, 0);
+			if (points == null || count == 0) return new(0, 0);
 
 			int totalX = 0;
 			int totalZ = 0;
@@ -124,7 +173,7 @@ namespace Threadlink.Utilities.Geometry
 			int averageX = (int)(totalX / (float)count);
 			int averageZ = (int)(totalZ / (float)count);
 
-			return new MatrixPosition(averageZ, averageX);
+			return new(averageZ, averageX);
 		}
 
 		public static int IndexOfFurthestPointFrom(this List<MatrixPosition> collection, MatrixPosition referencePoint)
@@ -160,14 +209,11 @@ namespace Threadlink.Utilities.Geometry
 
 			for (int i = 0; i < count; i++)
 			{
-				List<MatrixPosition> col = collections[i];
+				var col = collections[i];
 				int colCount = col.Count;
 				int distance = 0;
 
-				for (int j = 0; j < colCount; j++)
-				{
-					distance += ManhattanDistance(col[j], referencePoint);
-				}
+				for (int j = 0; j < colCount; j++) distance += ManhattanDistance(col[j], referencePoint);
 
 				if (distance > maxDistance)
 				{
@@ -184,6 +230,8 @@ namespace Threadlink.Utilities.Geometry
 			return Mathf.Abs(point1.C - point2.C) + Mathf.Abs(point1.R - point2.R);
 		}
 
+		private static Vector3 GetVector(Transform end, Transform start) { return end.position - start.position; }
+
 		/// <typeparam name="T">The Type of the Entity.</typeparam>
 		/// <param name="referencePoint">The point from which to calculate distances from.</param>
 		/// <param name="collection">The collection of entities.</param>
@@ -191,11 +239,9 @@ namespace Threadlink.Utilities.Geometry
 		internal static DistanceData<T> GetClosestEntityFromCollection<T>(Transform referencePoint, T[] collection)
 		where T : LinkableBehaviour
 		{
-			Vector3 GetVector(Transform end, Transform start) { return end.position - start.position; }
-
 			int count = collection.Length;
 
-			if (count <= 0) return new DistanceData<T>(null, -1);
+			if (count <= 0) return new(null, -1);
 
 			T closestEntity = null;
 			float closestSqrDist = Mathf.Infinity;
@@ -205,9 +251,9 @@ namespace Threadlink.Utilities.Geometry
 				//Inverse loop to avoid sketchy behaviour in case the collection is altered while it is running.
 				for (int i = count - 1; i >= 0; i--)
 				{
-					T candidate = collection[i];
-					Transform candidateTransform = candidate.SelfTransform;
-					Vector3 directionToCandidate = GetVector(candidateTransform, referencePoint);
+					var candidate = collection[i];
+					var candidateTransform = candidate.SelfTransform;
+					var directionToCandidate = GetVector(candidateTransform, referencePoint);
 					float sqrDistFromCandidate = directionToCandidate.sqrMagnitude;
 
 					if (sqrDistFromCandidate < closestSqrDist)
@@ -219,14 +265,14 @@ namespace Threadlink.Utilities.Geometry
 			}
 			else
 			{
-				T entity = collection[0];
-				Transform entityTransform = entity.SelfTransform;
+				var entity = collection[0];
+				var entityTransform = entity.SelfTransform;
 
 				closestSqrDist = GetVector(entityTransform, referencePoint).sqrMagnitude;
 				closestEntity = entity;
 			}
 
-			return new DistanceData<T>(closestEntity, Mathf.Sqrt(closestSqrDist));
+			return new(closestEntity, Mathf.Sqrt(closestSqrDist));
 		}
 
 		/// <typeparam name="T">The Type of the Entity.</typeparam>
@@ -236,14 +282,15 @@ namespace Threadlink.Utilities.Geometry
 		internal static DistanceData<T> GetClosestEntityFromCollection<T>(Transform referencePoint, List<T> collection)
 		where T : LinkableBehaviour
 		{
-			List<T> newList = new List<T>();
+			var newList = new List<T>();
+
 			newList.AddRange(collection);
-			newList.Remove(referencePoint.GetComponent<T>());
-			Vector3 GetVector(Transform end, Transform start) { return end.position - start.position; }
+			referencePoint.TryGetComponent<T>(out var self);
+			newList.Remove(self);
 
 			int count = newList.Count;
 
-			if (count <= 0) return new DistanceData<T>(null, -1);
+			if (count <= 0) return new(null, -1);
 
 			T closestEntity = null;
 			float closestSqrDist = Mathf.Infinity;
@@ -253,9 +300,9 @@ namespace Threadlink.Utilities.Geometry
 				//Inverse loop to avoid sketchy behaviour in case the collection is altered while it is running.
 				for (int i = count - 1; i >= 0; i--)
 				{
-					T candidate = newList[i];
-					Transform candidateTransform = candidate.SelfTransform;
-					Vector3 directionToCandidate = GetVector(candidateTransform, referencePoint);
+					var candidate = newList[i];
+					var candidateTransform = candidate.SelfTransform;
+					var directionToCandidate = GetVector(candidateTransform, referencePoint);
 					float sqrDistFromCandidate = directionToCandidate.sqrMagnitude;
 
 					if (sqrDistFromCandidate < closestSqrDist)
@@ -267,14 +314,14 @@ namespace Threadlink.Utilities.Geometry
 			}
 			else
 			{
-				T entity = newList[0];
-				Transform entityTransform = entity.SelfTransform;
+				var entity = newList[0];
+				var entityTransform = entity.SelfTransform;
 
 				closestSqrDist = GetVector(entityTransform, referencePoint).sqrMagnitude;
 				closestEntity = entity;
 			}
 
-			return new DistanceData<T>(closestEntity, Mathf.Sqrt(closestSqrDist));
+			return new(closestEntity, Mathf.Sqrt(closestSqrDist));
 		}
 
 		/// <typeparam name="T">The Type of the Entity.</typeparam>
@@ -284,8 +331,6 @@ namespace Threadlink.Utilities.Geometry
 		internal static DistanceData<T> GetClosestEntityFromCollection<T>(Transform referencePoint, List<T> collection,
 		LayerMask lineOfSightObstructionMask) where T : LinkableBehaviour
 		{
-			Vector3 GetVector(Transform end, Transform start) { return end.position - start.position; }
-
 			bool LineOfSightObstructed(Vector3 start, Vector3 end)
 			{
 				return Physics.Linecast(start, end, lineOfSightObstructionMask, QueryTriggerInteraction.Ignore);
@@ -293,7 +338,7 @@ namespace Threadlink.Utilities.Geometry
 
 			int count = collection.Count;
 
-			if (count <= 0) return new DistanceData<T>(null, -1);
+			if (count <= 0) return new(null, -1);
 
 			T closestEntity = null;
 			float closestSqrDist = Mathf.Infinity;
@@ -303,12 +348,12 @@ namespace Threadlink.Utilities.Geometry
 				//Inverse loop to avoid sketchy behaviour in case the collection is altered while it is running.
 				for (int i = count - 1; i >= 0; i--)
 				{
-					T candidate = collection[i];
-					Transform candidateTransform = candidate.SelfTransform;
-					Vector3 directionToCandidate = GetVector(candidateTransform, referencePoint);
+					var candidate = collection[i];
+					var candidateTransform = candidate.SelfTransform;
+					var directionToCandidate = GetVector(candidateTransform, referencePoint);
 					float sqrDistFromCandidate = directionToCandidate.sqrMagnitude;
-					Vector3 start = referencePoint.position + referencePoint.up;
-					Vector3 end = candidateTransform.position + candidateTransform.up;
+					var start = referencePoint.position + referencePoint.up;
+					var end = candidateTransform.position + candidateTransform.up;
 
 					if (sqrDistFromCandidate < closestSqrDist && LineOfSightObstructed(start, end) == false)
 					{
@@ -319,10 +364,10 @@ namespace Threadlink.Utilities.Geometry
 			}
 			else
 			{
-				T entity = collection[0];
-				Transform entityTransform = entity.SelfTransform;
-				Vector3 start = referencePoint.position + referencePoint.up;
-				Vector3 end = entityTransform.position + entityTransform.up;
+				var entity = collection[0];
+				var entityTransform = entity.SelfTransform;
+				var start = referencePoint.position + referencePoint.up;
+				var end = entityTransform.position + entityTransform.up;
 
 				if (LineOfSightObstructed(start, end) == false)
 				{
@@ -336,7 +381,7 @@ namespace Threadlink.Utilities.Geometry
 				}
 			}
 
-			return new DistanceData<T>(closestEntity, Mathf.Sqrt(closestSqrDist));
+			return new(closestEntity, Mathf.Sqrt(closestSqrDist));
 		}
 	}
 }

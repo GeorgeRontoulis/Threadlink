@@ -3,7 +3,6 @@ namespace Threadlink.Systems
 	using Core;
 	using UnityEngine;
 	using Utilities.Events;
-	using Utilities.UnityLogging;
 
 	/// <summary>
 	/// System responsible for Time Management during Threadlink's runtime.
@@ -96,7 +95,7 @@ namespace Threadlink.Systems
 			Iris.SubscribeToFixedUpdate(UpdatePhysicsTime);
 		}
 
-		private VoidOutput UpdateStandardTime(VoidInput input)
+		private VoidOutput UpdateStandardTime(VoidInput _)
 		{
 			DeltaTime = Time.deltaTime;
 			SmoothDeltaTime = Time.smoothDeltaTime;
@@ -107,7 +106,7 @@ namespace Threadlink.Systems
 			return default;
 		}
 
-		private VoidOutput UpdatePhysicsTime(VoidInput input)
+		private VoidOutput UpdatePhysicsTime(VoidInput _)
 		{
 			FixedDeltaTime = Time.fixedDeltaTime;
 			return default;
@@ -127,11 +126,11 @@ namespace Threadlink.Systems
 
 		private static void LogInvalidTimescaleWarning()
 		{
-			Scribe.SystemLog(Instance.LinkID, DebugNotificationType.Warning,
+			Scribe.SystemLog(Instance.LinkID, Scribe.WarningNotif,
 			"Invalid Timescale requested! Valid values are 0 and 1. Check your Timescale assignments!");
 		}
 
-		private static VoidOutput IncrementTotalPlaytime(VoidInput input)
+		private static VoidOutput IncrementTotalPlaytime(VoidInput _)
 		{
 			TotalPlaytime += UnscaledDeltaTime;
 			return default;

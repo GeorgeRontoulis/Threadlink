@@ -29,9 +29,18 @@ namespace Threadlink.Utilities.Addressables
 
 	public static class AddressablesUtilities
 	{
-		public static void ReleaseIfValid(AsyncOperationHandle handle) { if (handle.IsValid()) Addressables.Release(handle); }
+		public static bool TryRelease<T>(this AsyncOperationHandle<T> handle)
+		{
+			if (handle.IsValid())
+			{
+				Addressables.Release(handle);
+				return true;
+			}
 
-		public static bool OperationSucceeded(AsyncOperationHandle operation)
+			return false;
+		}
+
+		public static bool Succeeded<T>(this AsyncOperationHandle<T> operation)
 		{
 			return operation.Status.Equals(AsyncOperationStatus.Succeeded);
 		}
@@ -66,7 +75,7 @@ namespace Threadlink.Utilities.Addressables
 
 		[SerializeField] AssetGroupAddressPair addressableInfo = new AssetGroupAddressPair();
 
-		public override void Unload() { AddressablesUtilities.ReleaseIfValid(Handle); }
+		public override void Unload() { Handle.TryRelease(); }
 
 		public async Task<T> LoadAsync()
 		{
@@ -83,7 +92,7 @@ namespace Threadlink.Utilities.Addressables
 
 			while (Handle.IsDone == false) yield return null;
 
-			if (AddressablesUtilities.OperationSucceeded(Handle) == false)
+			if (Handle.Succeeded() == false)
 			{
 				UnityConsole.Notify(DebugNotificationType.Error,
 				"Failed to load asset from address: ", addressableInfo.assetAddress);
@@ -109,7 +118,7 @@ namespace Threadlink.Utilities.Addressables
 
 		[SerializeField] AssetGroupAddressPair addressableInfo = new();
 
-		public override void Unload() { AddressablesUtilities.ReleaseIfValid(Handle); }
+		public override void Unload() { Handle.TryRelease(); }
 
 		public async Task<T> LoadAsync()
 		{
@@ -130,7 +139,7 @@ namespace Threadlink.Utilities.Addressables
 
 			while (Handle.IsDone == false) yield return null;
 
-			if (AddressablesUtilities.OperationSucceeded(Handle) == false)
+			if (Handle.Succeeded() == false)
 			{
 				Unload();
 
@@ -151,7 +160,7 @@ namespace Threadlink.Utilities.Addressables
 
 		[SerializeField] private AssetGroupAddressPair addressableReference = new();
 
-		public override void Unload() { AddressablesUtilities.ReleaseIfValid(Handle); }
+		public override void Unload() { Handle.TryRelease(); }
 
 		public IEnumerator LoadingCoroutine(LoadSceneMode loadSceneMode)
 		{
@@ -161,7 +170,7 @@ namespace Threadlink.Utilities.Addressables
 
 			while (Handle.IsDone == false) yield return null;
 
-			if (AddressablesUtilities.OperationSucceeded(Handle) == false)
+			if (Handle.Succeeded() == false)
 			{
 				Unload();
 
@@ -178,11 +187,11 @@ namespace Threadlink.Utilities.Addressables
 
 		public IEnumerator UnloadingCoroutine()
 		{
-			AsyncOperationHandle<SceneInstance> operation = Addressables.UnloadSceneAsync(Handle, true);
+			var operation = Addressables.UnloadSceneAsync(Handle, true);
 
 			while (operation.IsDone == false) yield return null;
 
-			if (AddressablesUtilities.OperationSucceeded(operation) == false)
+			if (operation.Succeeded() == false)
 			{
 				UnityConsole.Notify(DebugNotificationType.Error,
 				"Failed to unload scene from address: ", addressableReference.assetAddress);

@@ -4,7 +4,6 @@
 	using Systems;
 	using UnityEngine;
 	using Utilities.Collections;
-	using Utilities.UnityLogging;
 
 	/// <summary>
 	/// Base class used to define a Threadlink Sub-System.
@@ -22,8 +21,8 @@
 
 		public override void Discard()
 		{
-			ClearManagedEntitiesList();
 			LinkedEntities = null;
+			Instance = null;
 			base.Discard();
 		}
 
@@ -35,10 +34,10 @@
 
 		private void ClearManagedEntitiesList()
 		{
-			LinkedEntities.Clear();
-			LinkedEntities.TrimExcess();
+			LinkedEntities?.Clear();
+			LinkedEntities?.TrimExcess();
 			EntityListAlteredSinceLastSort = true;
-			Scribe.SystemLog(LinkID, DebugNotificationType.Info, "Cleared all managed Entities.");
+			Scribe.SystemLog(LinkID, Scribe.InfoNotif, "Cleared all managed Entities.");
 		}
 
 		public virtual void DisconnectAll() { ClearManagedEntitiesList(); }
@@ -46,7 +45,17 @@
 		public virtual void SeverAll()
 		{
 			int count = LinkedEntities.Count;
-			for (int i = 0; i < count; i++) LinkedEntities[i].Discard();
+			for (int i = 0; i < count; i++)
+			{
+				try
+				{
+					LinkedEntities[i].Discard();
+				}
+				catch (System.Exception exception)
+				{
+					Scribe.SystemLog(LinkID, Scribe.ErrorNotif, exception.Message);
+				}
+			}
 
 			ClearManagedEntitiesList();
 		}
@@ -63,17 +72,17 @@
 		}
 
 		/// <summary>
-		/// Create a copy of the original <typeparamref name="ILinkable"/> provided and link it to this system.
+		/// Create a copy of the original <typeparamref name="Entity"/> provided and link it to <typeparamref name="SingletonType"/>.
 		/// </summary>
 		/// <typeparam name="Entity"> The type of <typeparamref name="ILinkable"/> to create and link.</typeparam>
-		/// <param name="original">The original <typeparamref name="ILinkable"/>.</param>
+		/// <param name="original">The original <typeparamref name="Entity"/>.</param>
 		/// <param name="logAction">Whether to provide console logs of the process.</param>
-		/// <returns>The created and linked <typeparamref name="ILinkable"/>.</returns>
+		/// <returns>The created and linked <typeparamref name="Entity"/>.</returns>
 		public virtual Entity Weave<Entity>(Entity original, bool logAction = false) where Entity : ManagedType
 		{
 			if (original == null)
 			{
-				Scribe.SystemLog(LinkID, DebugNotificationType.Error, "The requested Entity to weave is NULL!");
+				Scribe.SystemLog(LinkID, Scribe.ErrorNotif, "The requested Entity to weave is NULL!");
 				return null;
 			}
 
@@ -82,51 +91,51 @@
 
 			copy.name = original.name;
 
-			if (logAction) Scribe.SystemLog(LinkID, DebugNotificationType.Info, "Weaved Entity ", copy.name, ".");
+			if (logAction) Scribe.SystemLog(LinkID, Scribe.InfoNotif, "Weaved Entity ", copy.name, ".");
 
 			EntityListAlteredSinceLastSort = true;
 			return copy;
 		}
 
 		/// <summary>
-		/// Link an existing <typeparamref name="ILinkable"/> to this system.
+		/// Link an existing <typeparamref name="Entity"/> to <typeparamref name="SingletonType"/>.
 		/// </summary>
 		/// <typeparam name="Entity"> The type of <typeparamref name="ILinkable"/> to link.</typeparam>
-		/// <param name="instance">The existing <typeparamref name="ILinkable"/>.</param>
+		/// <param name="instance">The existing <typeparamref name="Entity"/>.</param>
 		/// <param name="logAction">Whether to provide console logs of the process.</param>
-		/// <returns>The linked <typeparamref name="ILinkable"/>.</returns>
+		/// <returns>The linked <typeparamref name="Entity"/>.</returns>
 		public virtual Entity Link<Entity>(Entity instance, bool logAction = false) where Entity : ManagedType
 		{
 			if (instance == null)
 			{
-				Scribe.SystemLog(LinkID, DebugNotificationType.Error, "The requested Entity to link is NULL!");
+				Scribe.SystemLog(LinkID, Scribe.ErrorNotif, "The requested Entity to link is NULL!");
 				return null;
 			}
 			else if (LinkedEntities.Contains(instance))
 			{
-				Scribe.SystemLog(LinkID, DebugNotificationType.Error, "The requested Entity to link is already linked! Discarding the duplicate Entity!");
+				Scribe.SystemLog(LinkID, Scribe.ErrorNotif, "The requested Entity to link is already linked! Discarding the duplicate Entity!");
 				instance.Discard();
 				return null;
 			}
 
 			LinkedEntities.Add(instance);
 
-			if (logAction) Scribe.SystemLog(LinkID, DebugNotificationType.Info, "Linked Entity ", instance.name, ".");
+			if (logAction) Scribe.SystemLog(LinkID, Scribe.InfoNotif, "Linked Entity ", instance.name, ".");
 
 			EntityListAlteredSinceLastSort = true;
 			return instance;
 		}
 
 		/// <summary>
-		/// Discard a created <typeparamref name="ILinkable"/> from this system.
+		/// Discard a created <typeparamref name="ManagedType"/> from <typeparamref name="SingletonType"/>.
 		/// </summary>
-		/// <param name="instance">The created <typeparamref name="ILinkable"/>.</param>
+		/// <param name="instance">The created <typeparamref name="ManagedType"/>.</param>
 		/// <param name="logAction">Whether to provide console logs of the process.</param>
 		public virtual void Sever(ManagedType entity, bool logAction = false)
 		{
 			if (entity == null)
 			{
-				Scribe.SystemLog(LinkID, DebugNotificationType.Error, "The requested Entity to sever is NULL!");
+				Scribe.SystemLog(LinkID, Scribe.ErrorNotif, "The requested Entity to sever is NULL!");
 				return;
 			}
 
@@ -137,11 +146,11 @@
 				LinkedEntities.RemoveEfficiently(LinkedEntities.IndexOf(entity));
 				DiscardTargetEntity();
 				EntityListAlteredSinceLastSort = true;
-				if (logAction) Scribe.SystemLog(LinkID, DebugNotificationType.Info, "Severed Entity ", entity.name, ".");
+				if (logAction) Scribe.SystemLog(LinkID, Scribe.InfoNotif, "Severed Entity ", entity.name, ".");
 			}
 			else
 			{
-				Scribe.SystemLog(LinkID, DebugNotificationType.Error, "A Sever request was made for Entity ", entity.name,
+				Scribe.SystemLog(LinkID, Scribe.ErrorNotif, "A Sever request was made for Entity ", entity.name,
 				", however it's not managed by ", LinkID, ". This is probably a memory leak and should never happen! Discarding the Entity...");
 
 				DiscardTargetEntity();
@@ -149,15 +158,16 @@
 		}
 
 		/// <summary>
-		/// Disconnect a linked <typeparamref name="ILinkable"/> from this system. This will not discard the <typeparamref name="ILinkable"/>.
+		/// Disconnect a linked <typeparamref name="ManagedType"/> from <typeparamref name="SingletonType"/>. 
+		/// This will NOT discard the <typeparamref name="ManagedType"/>.
 		/// </summary>
-		/// <param name="instance">The existing <typeparamref name="ILinkable"/>.</param>
+		/// <param name="instance">The existing <typeparamref name="ManagedType"/>.</param>
 		/// <param name="logAction">Whether to provide console logs of the process.</param>
 		public virtual void Disconnect(ManagedType instance, bool logAction = false)
 		{
 			if (instance == null)
 			{
-				Scribe.SystemLog(LinkID, DebugNotificationType.Error, "The requested Entity to disconnect is NULL!");
+				Scribe.SystemLog(LinkID, Scribe.ErrorNotif, "The requested Entity to disconnect is NULL!");
 				return;
 			}
 
@@ -165,11 +175,11 @@
 			{
 				LinkedEntities.RemoveEfficiently(LinkedEntities.IndexOf(instance));
 				EntityListAlteredSinceLastSort = true;
-				if (logAction) Scribe.SystemLog(LinkID, DebugNotificationType.Info, "Disconnected Entity ", instance.name, ".");
+				if (logAction) Scribe.SystemLog(LinkID, Scribe.InfoNotif, "Disconnected Entity ", instance.name, ".");
 			}
 			else
 			{
-				Scribe.SystemLog(LinkID, DebugNotificationType.Error, "A Disconnect request was made for Entity ", instance.name,
+				Scribe.SystemLog(LinkID, Scribe.ErrorNotif, "A Disconnect request was made for Entity ", instance.name,
 				", however it's not managed by ", LinkID, ". This is probably a memory leak and should never happen! Discarding the Entity...");
 
 				instance.Discard();

@@ -14,11 +14,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   adressableAssets:
   - {fileID: 2353098639884700563, guid: c73e09cb04b1f3c4da0e0fc2cde7b152, type: 3}
+  - {fileID: 5234810027998119979, guid: 15056476a3375894482fe45363ad7ef4, type: 3}
   - {fileID: 5695203055909816368, guid: cd94fb137fa39024db15c2c403b017b8, type: 3}
+  - {fileID: 8154691224545986643, guid: 8efc158c1ab4b384fb98552fac0f9f26, type: 3}
   - {fileID: 237814870907634636, guid: 1f8b4bf9e38597f4790b27627540a23a, type: 3}
   - {fileID: 4590498493719747628, guid: 92f07acef08315c458283758a14df27d, type: 3}
+  - {fileID: 2677499032764769104, guid: 56e5f7299cdd9d248a77dd7b85dc449a, type: 3}
   - {fileID: 7949589783255200089, guid: dd8d0a6a40ac09f4bbb2b9dfef37d191, type: 3}
+  - {fileID: 4312450438182375944, guid: 613450e3d7dc50a46a5cd11b593158ed, type: 3}
   - {fileID: 4680741001840992725, guid: 45a9607353e9ea644b7bfd01244ff7f3, type: 3}
+  - {fileID: 7244612697111005926, guid: 2dcf61b69c53f6a4785b323d33f4b6b8, type: 3}
+  - {fileID: 7076842185477645045, guid: e1c90e995b01e5b408ee6d2c2e1d8188, type: 3}
+  - {fileID: 5844335767821798565, guid: 2f2d54ff786f38e47b098077e85d22ba, type: 3}
   - {fileID: -944628639613478452, guid: ec990fd73e3eddf4a832bdda31fa4d67, type: 3}
   - {fileID: -944628639613478452, guid: b4d3e0ce0bbbf364791a60de790e78d7, type: 3}
-  - {fileID: 102900000, guid: 04fee8aa00377324aad7556b7bdea619, type: 3}
+  - {fileID: 102900000, guid: 9932f4d21cf63ac4ba4276f0eefde0c6, type: 3}
+  - {fileID: 102900000, guid: 7dfc33774ff9564418475dea2272b167, type: 3}

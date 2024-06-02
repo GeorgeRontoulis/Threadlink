@@ -18,11 +18,47 @@ namespace Threadlink.Utilities.Mathematics
 			}
 		}
 
-		public static float NormalizeBetween(float target, float min, float max) { return (target - min) / (max - min); }
+		public static float NormalizeBetween(this float target, float min, float max) { return (target - min) / (max - min); }
 
 		public static float Denormalize(float normalizedValue, float min, float max)
 		{
 			return normalizedValue * (max - min) + min;
+		}
+
+		public static float CubicInterpolation(float k0, float k1, float u)
+		{
+			float u2 = u * u;
+			float u3 = u2 * u;
+			float interpolation = k0 * (2 * u3 - 3 * u2 + 1) + k1 * (3 * u2 - 2 * u3);
+			return interpolation;
+		}
+
+		public static Color MoveTowards(this Color source, Color target, float coefficient)
+		{
+			var result = source;
+
+			result.r = Mathf.MoveTowards(result.r, target.r, coefficient);
+			result.g = Mathf.MoveTowards(result.g, target.g, coefficient);
+			result.b = Mathf.MoveTowards(result.b, target.b, coefficient);
+			result.a = Mathf.MoveTowards(result.a, target.a, coefficient);
+
+			return result;
+		}
+
+		public static bool Approximately(Color a, Color b)
+		{
+			return Mathf.Approximately(a.r, b.r)
+			&& Mathf.Approximately(a.g, b.g)
+			&& Mathf.Approximately(a.b, b.b)
+			&& Mathf.Approximately(a.a, b.a);
+		}
+
+		public static Color ColorWithAlpha(Color color, float alpha)
+		{
+			alpha = Mathf.Clamp01(alpha);
+
+			color.a = alpha;
+			return color;
 		}
 
 		public static int Clamp01ToInt(float value) { return Mathf.RoundToInt(Mathf.Clamp01(value)); }

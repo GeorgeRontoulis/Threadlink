@@ -1,45 +1,50 @@
 namespace Threadlink.Utilities.Rendering
 {
+	using Sirenix.OdinInspector;
 	using System;
-	using Threadlink.Utilities.Editor.Attributes;
 	using UnityEngine;
 	using String = Text.String;
 
 	[Serializable]
 	public sealed class GraphicsCache
 	{
-		public Material[] SharedMaterials { get => renderer.sharedMaterials; }
-		public Renderer renderer = null;
-		[ReadOnly] public Material[] materials = new Material[0];
+		public Material[] SharedMaterials => renderer.sharedMaterials;
+		public Renderer Renderer => renderer;
+		public bool IsValid => renderer != null && CachedMaterials != null && CachedMaterials.Length > 0;
 
-		public void CacheMaterials() { materials = renderer.materials; }
-		public void DiscardRenderer() { renderer = null; }
+		[ShowInInspector][ReadOnly] public Material[] CachedMaterials { get; set; }
 
-		public void DiscardCachedMaterials()
+		[SerializeField] private Renderer renderer = null;
+
+		public void CacheMaterials() { CachedMaterials = renderer.materials; }
+		public void CacheRenderer(Renderer renderer) { this.renderer = renderer; }
+
+		public void Discard()
 		{
-			int length = materials.Length;
+			int length = CachedMaterials.Length;
 
 			for (int i = 0; i < length; i++)
 			{
-				UnityEngine.Object.Destroy(materials[i]);
-				materials[i] = null;
+				UnityEngine.Object.Destroy(CachedMaterials[i]);
+				CachedMaterials[i] = null;
 			}
 
-			materials = null;
+			CachedMaterials = null;
+			renderer = null;
 		}
 
 		public void SetRenderingState(bool state) { renderer.enabled = state; }
 
-		public Material FindCachedMaterial(int index) { return materials[index]; }
+		public Material FindCachedMaterial(int index) { return CachedMaterials[index]; }
 
 		public Material FindCachedMaterial(string name)
 		{
 			string instanceName = String.Construct(name, " (Instance)");
 
-			int length = materials.Length;
+			int length = CachedMaterials.Length;
 			for (int i = 0; i < length; i++)
 			{
-				if (materials[i].name.Equals(instanceName)) return materials[i];
+				if (CachedMaterials[i].name.Equals(instanceName)) return CachedMaterials[i];
 			}
 
 			return null;

@@ -4,19 +4,51 @@ namespace Threadlink.StateMachines
 	using Threadlink.Systems;
 	using Threadlink.Utilities.Events;
 
-	public abstract class BaseAbstractProcessor : ScriptableObject
+#if ODIN_INSPECTOR
+	using Sirenix.OdinInspector;
+#endif
+
+	using System.Collections.Generic;
+	using System;
+	using Threadlink.Utilities.Reflection;
+	using Threadlink.Utilities.Collections;
+	using Threadlink.Core;
+
+	[Serializable]
+	public sealed class ProcessorPointer<T> : IStateMachinePointer where T : BaseAbstractStateMachine
+	{
+		public AbstractProcessor<T> Target { get; private set; }
+
+#if UNITY_EDITOR && ODIN_INSPECTOR
+		private IEnumerable<ValueDropdownItem> AvailableMatches => Reflection.CreateNameDropdownFor<AbstractProcessor<T>>();
+
+		[ValueDropdown("AvailableMatches")]
+#endif
+		[SerializeField] private string processorID = string.Empty;
+
+		public void PointToInternalReferenceOf(BaseAbstractStateMachine owner)
+		{
+			Target = owner.GetProcessor<T>(processorID);
+		}
+	}
+
+	public abstract class BaseAbstractProcessor : LinkableAsset, IIdentifiable
 	{
 		private enum UpdateMode { Update, FixedUpdate, LateUpdate }
 
 		[SerializeField] private UpdateMode runIn = UpdateMode.Update;
 		[SerializeField] protected bool startUpdatingOnInit = true;
 
-		protected abstract VoidOutput Run(VoidInput input);
+		protected abstract VoidOutput Run(VoidInput _);
 
-		public virtual void Discard()
+		public override void Discard()
 		{
 			SetRunningState(false);
+			base.Discard();
 		}
+
+		public override void Boot() { }
+		public override void Initialize() { }
 
 		internal void SetRunningState(bool state)
 		{

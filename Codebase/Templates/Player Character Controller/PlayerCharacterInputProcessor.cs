@@ -1,7 +1,8 @@
 namespace Threadlink.Templates.PlayerCharacterController
 {
-	using System;
+	using Threadlink.Extensions.Dextra;
 	using Threadlink.StateMachines;
+	using Threadlink.Systems;
 	using Threadlink.Systems.Dextra;
 	using Threadlink.Utilities.Events;
 	using UnityEngine;
@@ -9,54 +10,95 @@ namespace Threadlink.Templates.PlayerCharacterController
 	[CreateAssetMenu(menuName = "Threadlink/Templates/Character Controller/Processors/Input")]
 	public sealed class PlayerCharacterInputProcessor : PlayerCharacterProcessor
 	{
+		public VoidEvent OnJumpInput => onJumpInput;
+		public VoidEvent OnAttackInput => onAttackInput;
+
+		private IPlayerCharacter Character { get; set; }
+
 		[SerializeField] private ParameterPointer<Vector2> movementInput = new();
 
 		[Space(10)]
 
-		[SerializeField] private ActionHandlerReferencePair<Vector2> moveAction = new();
-		[SerializeField] private ActionHandlerReferencePair<bool> startSprintAction = new();
-		[SerializeField] private ActionHandlerReferencePair<bool> stopSprintAction = new();
-		[SerializeField] private ActionHandlerReferencePair<bool> jumpAction = new();
+		[SerializeField] private DextraAction<Vector2> moveAction = new();
+		[SerializeField] private VoidDextraAction startSprintAction = new();
+		[SerializeField] private VoidDextraAction stopSprintAction = new();
+		[SerializeField] private VoidDextraAction jumpAction = new();
+		[SerializeField] private VoidDextraAction attackAction = new();
+
+		[Space(10)]
+
+		private VoidEvent onJumpInput = new();
+		private VoidEvent onAttackInput = new();
+
+		public override void Discard()
+		{
+			Dextra.OnPauseButtonPressed -= StackPauseMenu;
+			Chronos.OnGamePaused.Remove(OnGamePaused);
+			Chronos.OnGameResumed.Remove(OnGameResumed);
+
+			moveAction.Discard();
+			startSprintAction.Discard();
+			stopSprintAction.Discard();
+			jumpAction.Discard();
+
+			onJumpInput?.Discard();
+			onAttackInput?.Discard();
+
+			onJumpInput = null;
+			onAttackInput = null;
+
+			base.Discard();
+		}
 
 		public override void Initialize(PlayerCharacterStateMachine owner)
 		{
-			var character = owner.Owner;
-
-			movementInput.SetUp(owner);
-
 			void TrackMovementInput(Vector2 input) { movementInput.CurrentValue = input; }
-			void StartSprinting() { if (movementInput.CurrentValue.magnitude > Mathf.Epsilon) character.IsSprinting = true; }
-			void StopSprinting() { character.IsSprinting = false; }
-			void Jump()
-			{
-				if (character.IsGrounded) character.Animator.CrossFadeInFixedTime("Jump", 0.12f, 1, 0, 0);
-			}
+			void StartSprinting() { if (movementInput.CurrentValue.magnitude > Mathf.Epsilon) Character.IsSprinting = true; }
+			void StopSprinting() { Character.IsSprinting = false; }
+			void Jump() { onJumpInput?.Invoke(); }
+			void Attack() { onAttackInput?.Invoke(); }
 
-			RegisterInputAction(moveAction, TrackMovementInput);
-			RegisterInputAction(startSprintAction, StartSprinting);
-			RegisterInputAction(stopSprintAction, StopSprinting);
-			RegisterInputAction(jumpAction, Jump);
+			Character = owner.Owner;
+
+			movementInput.PointToInternalReferenceOf(owner);
+
+			moveAction?.Handle(TrackMovementInput);
+			startSprintAction?.Handle(StartSprinting);
+			stopSprintAction?.Handle(StopSprinting);
+			jumpAction?.Handle(Jump);
+			attackAction?.Handle(Attack);
+
+			Chronos.OnGamePaused.TryAddListener(OnGamePaused);
+			Chronos.OnGameResumed.TryAddListener(OnGameResumed);
+			Dextra.OnPauseButtonPressed += StackPauseMenu;
+
+			Dextra.GetCustomInputModule<DextraInputModuleExtension>().InputMode = DextraInputMode.Player;
 
 			base.Initialize(owner);
 		}
 
-		protected override VoidOutput Run(VoidInput input)
+		private VoidOutput StackPauseMenu(VoidInput _)
+		{
+			Dextra.StackInterface("OverlayUI_PauseMenu");
+			return default;
+		}
+
+		private VoidOutput OnGamePaused(VoidInput _)
+		{
+			movementInput.CurrentValue = Vector2.zero;
+			return default;
+		}
+
+		private VoidOutput OnGameResumed(VoidInput _)
 		{
 			return default;
 		}
 
-		private void RegisterInputAction<T>(ActionHandlerReferencePair<T> inputAction, Action action)
-		where T : struct
+		protected override VoidOutput Run(VoidInput _)
 		{
-			inputAction.SetUpHandler(action);
-			inputAction.Subscribe();
-		}
+			//if (movementInput.CurrentValue.magnitude <= Mathf.Epsilon) Character.IsSprinting = false;
 
-		private void RegisterInputAction<T>(ActionHandlerReferencePair<T> inputAction, Action<T> action)
-		where T : struct
-		{
-			inputAction.SetUpHandler(action);
-			inputAction.Subscribe();
+			return default;
 		}
 	}
 }

@@ -66,24 +66,15 @@ MonoBehaviour:
   m_MoveRepeatDelay: 0.5
   m_MoveRepeatRate: 0.1
   m_XRTrackingOrigin: {fileID: 0}
-  m_ActionsAsset: {fileID: -944628639613478452, guid: b4d3e0ce0bbbf364791a60de790e78d7,
-    type: 3}
-  m_PointAction: {fileID: 1054132383583890850, guid: b4d3e0ce0bbbf364791a60de790e78d7,
-    type: 3}
-  m_MoveAction: {fileID: -4506166972227125774, guid: b4d3e0ce0bbbf364791a60de790e78d7,
-    type: 3}
-  m_SubmitAction: {fileID: 5328258235155790854, guid: b4d3e0ce0bbbf364791a60de790e78d7,
-    type: 3}
-  m_CancelAction: {fileID: -2925336090471535445, guid: b4d3e0ce0bbbf364791a60de790e78d7,
-    type: 3}
-  m_LeftClickAction: {fileID: -3945224378931186703, guid: b4d3e0ce0bbbf364791a60de790e78d7,
-    type: 3}
-  m_MiddleClickAction: {fileID: -4838294764213772833, guid: b4d3e0ce0bbbf364791a60de790e78d7,
-    type: 3}
-  m_RightClickAction: {fileID: 3837173908680883260, guid: b4d3e0ce0bbbf364791a60de790e78d7,
-    type: 3}
-  m_ScrollWheelAction: {fileID: 4967664412425848923, guid: b4d3e0ce0bbbf364791a60de790e78d7,
-    type: 3}
+  m_ActionsAsset: {fileID: -944628639613478452, guid: b4d3e0ce0bbbf364791a60de790e78d7, type: 3}
+  m_PointAction: {fileID: 1054132383583890850, guid: b4d3e0ce0bbbf364791a60de790e78d7, type: 3}
+  m_MoveAction: {fileID: -4506166972227125774, guid: b4d3e0ce0bbbf364791a60de790e78d7, type: 3}
+  m_SubmitAction: {fileID: 5328258235155790854, guid: b4d3e0ce0bbbf364791a60de790e78d7, type: 3}
+  m_CancelAction: {fileID: -2925336090471535445, guid: b4d3e0ce0bbbf364791a60de790e78d7, type: 3}
+  m_LeftClickAction: {fileID: -3945224378931186703, guid: b4d3e0ce0bbbf364791a60de790e78d7, type: 3}
+  m_MiddleClickAction: {fileID: -4838294764213772833, guid: b4d3e0ce0bbbf364791a60de790e78d7, type: 3}
+  m_RightClickAction: {fileID: 3837173908680883260, guid: b4d3e0ce0bbbf364791a60de790e78d7, type: 3}
+  m_ScrollWheelAction: {fileID: 4967664412425848923, guid: b4d3e0ce0bbbf364791a60de790e78d7, type: 3}
   m_TrackedDevicePositionAction: {fileID: 0}
   m_TrackedDeviceOrientationAction: {fileID: 0}
   m_DeselectOnBackgroundClick: 0
@@ -101,8 +92,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Actions: {fileID: -944628639613478452, guid: ec990fd73e3eddf4a832bdda31fa4d67,
-    type: 3}
+  m_Actions: {fileID: -944628639613478452, guid: ec990fd73e3eddf4a832bdda31fa4d67, type: 3}
   m_NotificationBehavior: 3
   m_UIInputModule: {fileID: 0}
   m_DeviceLostEvent:
@@ -135,4 +125,4 @@ MonoBehaviour:
   selfTransform: {fileID: 7825023193038920954}
   eventSystem: {fileID: -3723733279200821361}
   deviceDetector: {fileID: 8810402675517737953}
-  customInputModule: {fileID: 11400000, guid: 164c84310c59e7940b1a5ee7a6cbd037, type: 2}
+  customInputModule: {fileID: 11400000, guid: 78875ad74a99bad42b58e88558916521, type: 2}

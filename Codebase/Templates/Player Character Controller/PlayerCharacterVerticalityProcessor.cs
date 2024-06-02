@@ -20,12 +20,12 @@ namespace Threadlink.Templates.PlayerCharacterController
 		{
 			Controller = owner.Owner.Controller;
 
-			yVelocity.SetUp(owner);
+			yVelocity.PointToInternalReferenceOf(owner);
 
 			base.Initialize(owner);
 		}
 
-		protected override VoidOutput Run(VoidInput input)
+		protected override VoidOutput Run(VoidInput _)
 		{
 			float yVelocity = this.yVelocity.CurrentValue;
 			Vector3 verticalVelocity = Vector3.up * yVelocity;

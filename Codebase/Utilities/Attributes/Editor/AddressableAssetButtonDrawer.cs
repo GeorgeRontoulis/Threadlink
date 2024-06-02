@@ -21,7 +21,7 @@ namespace Threadlink.Utilities.Editor.Attributes
 
 			GUI.backgroundColor = pathIsValid ? Color.green : Color.red;
 
-			GUIContent buttonContent = new(assetName, assetPath);
+			var buttonContent = new GUIContent(assetName, assetPath);
 
 			if (GUI.Button(position, buttonContent))
 			{

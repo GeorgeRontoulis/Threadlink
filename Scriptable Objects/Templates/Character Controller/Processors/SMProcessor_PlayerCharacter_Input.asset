@@ -17,14 +17,14 @@ MonoBehaviour:
   movementInput:
     parameterID: SMParameter_PlayerCharacter_MovementInput
   moveAction:
-    reference: {fileID: 8621846661473709080, guid: 11c0363274b874d47a51607b1753b752,
-      type: 3}
+    reference: {fileID: 8621846661473709080, guid: 9f7f459804bc5cc42b5b92613b483630, type: 3}
   startSprintAction:
-    reference: {fileID: -2748605840527979459, guid: 11c0363274b874d47a51607b1753b752,
-      type: 3}
+    reference: {fileID: -2748605840527979459, guid: 9f7f459804bc5cc42b5b92613b483630, type: 3}
   stopSprintAction:
-    reference: {fileID: -575053867004082311, guid: 11c0363274b874d47a51607b1753b752,
-      type: 3}
+    reference: {fileID: -575053867004082311, guid: 9f7f459804bc5cc42b5b92613b483630, type: 3}
   jumpAction:
-    reference: {fileID: -4893405792947023730, guid: 11c0363274b874d47a51607b1753b752,
-      type: 3}
+    reference: {fileID: -4893405792947023730, guid: 9f7f459804bc5cc42b5b92613b483630, type: 3}
+  attackAction:
+    reference: {fileID: -7970578253468837156, guid: 9f7f459804bc5cc42b5b92613b483630, type: 3}
+  sheatheWeapons:
+    reference: {fileID: -6567164674246299988, guid: 9f7f459804bc5cc42b5b92613b483630, type: 3}
