@@ -1,6 +1,7 @@
 namespace Threadlink.Systems.Dextra
 {
 	using Threadlink.Core;
+	using Threadlink.Utilities.Events;
 	using UnityEngine;
 	using UnityEngine.Events;
 	using UnityEngine.EventSystems;
@@ -8,7 +9,6 @@ namespace Threadlink.Systems.Dextra
 
 #if ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
-	using Threadlink.Utilities.Events;
 #elif THREADLINK_INSPECTOR
 	using Utilities.Editor.Attributes;
 #endif
