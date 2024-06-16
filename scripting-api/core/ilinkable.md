@@ -43,7 +43,7 @@ public void Initialize();
 
 The `Initialize` method is called to configure the object after it has been booted. This is where the main setup work occurs, making the object ready for use.
 
-The two methods are identical to the Awake and Start Unity messages, with their main difference being that they can be invoked through Threadlink's custom Initialization System, Initium, or manually. When called manually, keep in mind that they work as expected only when called at the correct time during gameplay. This is left at the programmer's discretion.
+The two methods are identical to the `Awake` and `Start` Unity messages, with their main difference being that they can be invoked through Threadlink's custom Initialization System, `Initium`, or manually. When called manually, keep in mind that they work as expected only when called at the correct time during gameplay. This is left at the programmer's discretion.
 
 {% code overflow="wrap" %}
 ```csharp
