@@ -7,3 +7,5 @@
 
 * [Core](scripting-api/core/README.md)
   * [ILinkable](scripting-api/core/ilinkable.md)
+* [Utilities](scripting-api/utilities/README.md)
+  * [IIdentifiable](scripting-api/utilities/iidentifiable.md)
