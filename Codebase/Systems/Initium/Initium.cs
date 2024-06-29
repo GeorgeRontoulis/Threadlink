@@ -15,20 +15,22 @@ namespace Threadlink.Systems.Initium
 			yield return Threadlink.WaitForFrameCount(1);
 		}
 
-		internal static InitializableCollection GetSceneInitCollection(string sceneName)
+		internal static void GetSceneInitCollection(string sceneName, out InitializableCollection result)
 		{
-			InitializableCollection[] candiates = FindObjectsByType<InitializableCollection>
-			(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+			var candiates = FindObjectsByType<InitializableCollection>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
 
 			int length = candiates.Length;
 
 			for (int i = 0; i < length; i++)
 			{
 				if (candiates[i].gameObject.scene.name.Equals(sceneName))
-					return candiates[i];
+				{
+					result = candiates[i];
+					return;
+				}
 			}
 
-			return null;
+			result = null;
 		}
 
 		#region Bootup And Initialization:

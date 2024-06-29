@@ -4,6 +4,7 @@ namespace Threadlink.Systems.Nexus
 	using Threadlink.Core;
 	using Threadlink.Extensions.Nexus;
 	using Threadlink.Systems.Initium;
+	using Threadlink.Utilities.Collections;
 	using UnityEngine;
 	using Utilities.Events;
 
@@ -12,11 +13,12 @@ namespace Threadlink.Systems.Nexus
 	/// </summary>
 	public sealed class Nexus : ThreadlinkSystem<Nexus, LinkableBehaviour>
 	{
-		public static BasePlayerLoaderExtension CustomPlayerLoader => Instance.customPlayerLoader;
+		public static PlayerLoaderExtension CustomPlayerLoader => Instance.customPlayerLoader;
 
 		public static VoidEvent OnBeforeSceneUnload => Instance.onBeforeSceneUnload;
 		public static VoidEvent OnAfterSceneUnload => Instance.onAfterSceneUnload;
 		public static VoidGenericEvent<SceneEntry> OnAfterSceneLoad => Instance.onAfterSceneLoad;
+		public static VoidGenericEvent<Vector3> OnPlayerPlacementAfterSceneLoad => Instance.onPlayerPlacementAfterSceneLoad;
 		public static GenericEvent<SceneEntry> OnActiveSceneRetrieval => Instance.onActiveSceneRetrieval;
 		public static GenericEvent<IEnumerator> OnDisplayFader => Instance.onDisplayFader;
 		public static GenericEvent<IEnumerator> OnDisplayLoadingScreen => Instance.onDisplayLoadingScreen;
@@ -24,14 +26,16 @@ namespace Threadlink.Systems.Nexus
 		public static GenericEvent<IEnumerator> OnHideLoadingScreen => Instance.onHideLoadingScreen;
 
 		[SerializeField] private SceneEntry startingSceneEntry = null;
+		[SerializeField] private int startingEntranceIndex = -1;
 
 		[Space(10)]
 
-		[SerializeField] private BasePlayerLoaderExtension customPlayerLoader = null;
+		[SerializeField] private PlayerLoaderExtension customPlayerLoader = null;
 
 		private VoidEvent onBeforeSceneUnload = new();
 		private VoidEvent onAfterSceneUnload = new();
 		private VoidGenericEvent<SceneEntry> onAfterSceneLoad = new();
+		private VoidGenericEvent<Vector3> onPlayerPlacementAfterSceneLoad = new();
 		private GenericEvent<SceneEntry> onActiveSceneRetrieval = new();
 		private GenericEvent<IEnumerator> onDisplayFader = new();
 		private GenericEvent<IEnumerator> onDisplayLoadingScreen = new();
@@ -40,6 +44,7 @@ namespace Threadlink.Systems.Nexus
 
 		public override void Discard()
 		{
+			if (customPlayerLoader != null) customPlayerLoader.Discard();
 			onBeforeSceneUnload.Discard();
 			onAfterSceneUnload.Discard();
 			onAfterSceneLoad.Discard();
@@ -48,7 +53,9 @@ namespace Threadlink.Systems.Nexus
 			onDisplayLoadingScreen.Discard();
 			onHideFader.Discard();
 			onHideLoadingScreen.Discard();
+			onPlayerPlacementAfterSceneLoad.Discard();
 
+			onPlayerPlacementAfterSceneLoad = null;
 			onBeforeSceneUnload = null;
 			onAfterSceneUnload = null;
 			onAfterSceneLoad = null;
@@ -57,6 +64,8 @@ namespace Threadlink.Systems.Nexus
 			onDisplayLoadingScreen = null;
 			onHideFader = null;
 			onHideLoadingScreen = null;
+			customPlayerLoader = null;
+			startingSceneEntry = null;
 			base.Discard();
 		}
 
@@ -76,21 +85,21 @@ namespace Threadlink.Systems.Nexus
 		public override void Initialize()
 		{
 			if (customPlayerLoader != null) customPlayerLoader.Initialize();
-			if (startingSceneEntry != null) Threadlink.LaunchCoroutine(SceneLoadingCoroutine(startingSceneEntry), false);
+			if (startingSceneEntry != null) Threadlink.LaunchCoroutine(SceneLoadingCoroutine(startingSceneEntry, startingEntranceIndex));
 		}
 
-		public static IEnumerator SceneLoadingCoroutine(SceneEntry sceneEntry)
+		public static IEnumerator SceneLoadingCoroutine(SceneEntry sceneEntry, int entranceIndex = -1)
 		{
-			static SceneEntry RetrieveActiveScene() { return Instance.onActiveSceneRetrieval.Invoke(); }
+			static SceneEntry RetrieveActiveScene() { return Instance.onActiveSceneRetrieval?.Invoke(); }
 
 			//Pause the game.
 			Chronos.RawTimeScale = 0;
 			//Display the Fader and wait until it is fully visible.
-			yield return Instance.onDisplayFader.Invoke();
+			yield return Instance.onDisplayFader?.Invoke();
 			//Display the Loading Screen and wait until it is fully visible.
-			yield return Instance.onDisplayLoadingScreen.Invoke();
+			yield return Instance.onDisplayLoadingScreen?.Invoke();
 			//Hide the Fader and wait until it is fully hidden.
-			yield return Instance.onHideFader.Invoke();
+			yield return Instance.onHideFader?.Invoke();
 
 			var playerLoadingAction = sceneEntry.playerLoadingAction;
 			var playerLoader = Instance.customPlayerLoader;
@@ -101,16 +110,16 @@ namespace Threadlink.Systems.Nexus
 
 			if (activeScene != null)
 			{
-				Instance.onBeforeSceneUnload.Invoke();
+				Instance.onBeforeSceneUnload?.Invoke();
 
 				yield return activeScene.AddressableScene.UnloadingCoroutine();
 
-				Instance.onAfterSceneUnload.Invoke();
+				Instance.onAfterSceneUnload?.Invoke();
 			}
 
 			yield return sceneEntry.AddressableScene.LoadingCoroutine(sceneEntry.loadingMode);
 
-			Instance.onAfterSceneLoad.Invoke(sceneEntry);
+			Instance.onAfterSceneLoad?.Invoke(sceneEntry);
 			activeScene = RetrieveActiveScene();
 
 			if (playerLoader != null && playerLoader.PlayerIsLoaded == false && playerLoadingAction.Equals(PlayerLoadingAction.Load))
@@ -118,21 +127,28 @@ namespace Threadlink.Systems.Nexus
 				yield return playerLoader.LoadingCoroutine();
 			}
 
+			if (playerLoader.PlayerIsLoaded)
+			{
+				var spawnPoints = sceneEntry.playerSpawnPoints;
+				Instance.onPlayerPlacementAfterSceneLoad?.Invoke(entranceIndex.IsWithinBoundsOf(spawnPoints) ?
+				spawnPoints[entranceIndex] : default);
+			}
+
 			string sceneName = activeScene != null ?
 			activeScene.AddressableScene.Result.Scene.name
 			:
 			UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
 
-			var initCollection = Initium.GetSceneInitCollection(sceneName);
+			Initium.GetSceneInitCollection(sceneName, out var initCollection);
 			if (initCollection != null) yield return Initium.BootAndInitCollection(initCollection);
 
 			yield return sceneEntry.PostLoadingCoroutine();
 
-			yield return Instance.onDisplayFader.Invoke();
+			yield return Instance.onDisplayFader?.Invoke();
 
-			yield return Instance.onHideLoadingScreen.Invoke();
+			yield return Instance.onHideLoadingScreen?.Invoke();
 
-			yield return Instance.onHideFader.Invoke();
+			yield return Instance.onHideFader?.Invoke();
 
 			Chronos.RawTimeScale = 1;
 		}

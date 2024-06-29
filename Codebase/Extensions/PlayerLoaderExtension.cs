@@ -5,7 +5,7 @@ namespace Threadlink.Extensions.Nexus
 
 	public enum PlayerLoadingAction { None, Load, Unload }
 
-	public abstract class BasePlayerLoaderExtension : LinkableAsset
+	public abstract class PlayerLoaderExtension : LinkableAsset
 	{
 		public bool PlayerIsLoaded { get; protected set; }
 

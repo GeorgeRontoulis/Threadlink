@@ -18,6 +18,10 @@ namespace Threadlink.Systems.Nexus
 		[SerializeField] internal LoadSceneMode loadingMode = LoadSceneMode.Additive;
 		[SerializeField] internal PlayerLoadingAction playerLoadingAction = PlayerLoadingAction.Load;
 
+		[Space(10)]
+
+		[SerializeField] internal Vector3[] playerSpawnPoints = new Vector3[0];
+
 		public abstract IEnumerator PostLoadingCoroutine();
 	}
 }

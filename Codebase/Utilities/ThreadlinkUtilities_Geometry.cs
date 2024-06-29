@@ -176,6 +176,27 @@ namespace Threadlink.Utilities.Geometry
 			return new(averageZ, averageX);
 		}
 
+		public static MatrixPosition AverageCenter(this MatrixPosition[] points)
+		{
+			int count = points.Length;
+
+			if (points == null || count == 0) return new(0, 0);
+
+			int totalX = 0;
+			int totalZ = 0;
+
+			for (int i = 0; i < count; i++)
+			{
+				totalX += points[i].C;
+				totalZ += points[i].R;
+			}
+
+			int averageX = (int)(totalX / (float)count);
+			int averageZ = (int)(totalZ / (float)count);
+
+			return new(averageZ, averageX);
+		}
+
 		public static int IndexOfFurthestPointFrom(this List<MatrixPosition> collection, MatrixPosition referencePoint)
 		{
 			if (collection == null || collection.Count == 0) return -1; // Return -1 to indicate an invalid index
@@ -197,6 +218,27 @@ namespace Threadlink.Utilities.Geometry
 			return furthestIndex;
 		}
 
+		public static int IndexOfFurthestPointFrom(this MatrixPosition[] collection, MatrixPosition referencePoint)
+		{
+			int length = collection.Length;
+			if (collection == null || length == 0) return -1; // Return -1 to indicate an invalid index
+
+			int maxDistance = int.MinValue;
+			int furthestIndex = -1;
+
+			for (int i = 0; i < length; i++)
+			{
+				int distance = ManhattanDistance(collection[i], referencePoint);
+
+				if (distance > maxDistance)
+				{
+					maxDistance = distance;
+					furthestIndex = i;
+				}
+			}
+
+			return furthestIndex;
+		}
 
 		public static List<MatrixPosition> GetFurthestFrom(this List<List<MatrixPosition>> collections, MatrixPosition referencePoint)
 		{
@@ -236,7 +278,7 @@ namespace Threadlink.Utilities.Geometry
 		/// <param name="referencePoint">The point from which to calculate distances from.</param>
 		/// <param name="collection">The collection of entities.</param>
 		/// <returns>The Entity closest to referencePoint. Null if the collection is invalid.</returns>
-		internal static DistanceData<T> GetClosestEntityFromCollection<T>(Transform referencePoint, T[] collection)
+		public static DistanceData<T> GetClosestEntityFromCollection<T>(this T[] collection, Transform referencePoint)
 		where T : LinkableBehaviour
 		{
 			int count = collection.Length;
@@ -279,12 +321,11 @@ namespace Threadlink.Utilities.Geometry
 		/// <param name="referencePoint">The point from which to calculate distances from.</param>
 		/// <param name="collection">The collection of entities.</param>
 		/// <returns>The Entity closest to referencePoint. Null if the collection is invalid.</returns>
-		internal static DistanceData<T> GetClosestEntityFromCollection<T>(Transform referencePoint, List<T> collection)
+		public static DistanceData<T> GetClosestEntityFromCollection<T>(this List<T> collection, Transform referencePoint)
 		where T : LinkableBehaviour
 		{
-			var newList = new List<T>();
+			var newList = new List<T>(collection);
 
-			newList.AddRange(collection);
 			referencePoint.TryGetComponent<T>(out var self);
 			newList.Remove(self);
 
@@ -327,8 +368,57 @@ namespace Threadlink.Utilities.Geometry
 		/// <typeparam name="T">The Type of the Entity.</typeparam>
 		/// <param name="referencePoint">The point from which to calculate distances from.</param>
 		/// <param name="collection">The collection of entities.</param>
+		/// <returns>The Entity furthest from referencePoint. Null if the collection is invalid.</returns>
+		public static DistanceData<T> GetFurthestEntityFromCollection<T>(this List<T> collection, Transform referencePoint)
+		where T : LinkableBehaviour
+		{
+			var newList = new List<T>(collection);
+
+			referencePoint.TryGetComponent<T>(out var self);
+			newList.Remove(self);
+
+			int count = newList.Count;
+
+			if (count <= 0) return new(null, -1);
+
+			T furthestEntity = null;
+			float furthestSqrDist = -Mathf.Infinity;
+
+			if (count > 1)
+			{
+				// Inverse loop to avoid sketchy behaviour in case the collection is altered while it is running.
+				for (int i = count - 1; i >= 0; i--)
+				{
+					var candidate = newList[i];
+					var candidateTransform = candidate.SelfTransform;
+					var directionToCandidate = GetVector(candidateTransform, referencePoint);
+					float sqrDistFromCandidate = directionToCandidate.sqrMagnitude;
+
+					if (sqrDistFromCandidate > furthestSqrDist)
+					{
+						furthestSqrDist = sqrDistFromCandidate;
+						furthestEntity = candidate;
+					}
+				}
+			}
+			else
+			{
+				var entity = newList[0];
+				var entityTransform = entity.SelfTransform;
+
+				furthestSqrDist = GetVector(entityTransform, referencePoint).sqrMagnitude;
+				furthestEntity = entity;
+			}
+
+			return new(furthestEntity, Mathf.Sqrt(furthestSqrDist));
+		}
+
+
+		/// <typeparam name="T">The Type of the Entity.</typeparam>
+		/// <param name="referencePoint">The point from which to calculate distances from.</param>
+		/// <param name="collection">The collection of entities.</param>
 		/// <returns>The Entity closest to referencePoint. Null if the collection is invalid.</returns>
-		internal static DistanceData<T> GetClosestEntityFromCollection<T>(Transform referencePoint, List<T> collection,
+		public static DistanceData<T> GetClosestEntityFromCollection<T>(this List<T> collection, Transform referencePoint,
 		LayerMask lineOfSightObstructionMask) where T : LinkableBehaviour
 		{
 			bool LineOfSightObstructed(Vector3 start, Vector3 end)
