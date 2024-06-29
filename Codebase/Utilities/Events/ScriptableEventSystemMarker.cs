@@ -1,4 +1,5 @@
-﻿namespace Threadlink.Utilities.Events
+﻿#if THREADLINK_INTEGRATIONS_TIMELINE
+namespace Threadlink.Utilities.Events
 {
 	using UnityEngine;
 	using UnityEngine.Playables;
@@ -12,3 +13,4 @@
 		[SerializeField] private ScriptableEvent eventToRaise = null;
 	}
 }
+#endif

@@ -64,8 +64,8 @@
 
 			for (int i = 0; i < length; i++) Weave(systems[i].Result);
 
-			yield return Initium.Boot(Instance.LinkedEntities);
-			yield return Initium.Initialize(Instance.LinkedEntities);
+			yield return Initium.Boot(LinkedEntities);
+			yield return Initium.Initialize(LinkedEntities);
 
 			Scribe.SystemLog(LinkID, Scribe.InfoNotif, "Threadlink successfully deployed. All Systems operational.");
 		}
@@ -79,7 +79,7 @@
 		{
 			SeverAll();
 
-			Instance.addressables = null;
+			addressables = null;
 			Instance = null;
 
 #if UNITY_EDITOR

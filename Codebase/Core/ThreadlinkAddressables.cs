@@ -38,7 +38,7 @@ namespace Threadlink.Core
 		internal IEnumerator[] LoadCoreSystems()
 		{
 			int length = coreSystems.Length;
-			IEnumerator[] coroutines = new IEnumerator[length];
+			var coroutines = new IEnumerator[length];
 
 			for (int i = 0; i < length; i++) coroutines[i] = coreSystems[i].LoadingCoroutine();
 
