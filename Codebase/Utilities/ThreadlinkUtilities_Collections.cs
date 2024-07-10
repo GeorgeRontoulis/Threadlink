@@ -1,6 +1,8 @@
 namespace Threadlink.Utilities.Collections
 {
+#if UNITY_EDITOR
 	using Editor;
+#endif
 	using RNG;
 	using System;
 	using System.Collections.Generic;
@@ -10,6 +12,45 @@ namespace Threadlink.Utilities.Collections
 	using String = Text.String;
 
 	public interface IIdentifiable { string LinkID { get; } }
+
+	public interface IPoolable : IIdentifiable
+	{
+		public bool IsUtilized { get; }
+
+		/// <summary>
+		/// Callback invoked right before the pool containing this entity is discarded.
+		/// </summary>
+		public void OnBeforePoolDiscarded();
+
+		/// <summary>
+		/// Callback invoked right before this entity is retrieved from the pool to be utilized in the runtime.
+		/// </summary>
+		public void OnBeforeUtilized();
+
+		/// <summary>
+		/// Callback invoked when this entity is returned back to the pool.
+		/// </summary>
+		public void OnRecovered();
+	}
+
+	public interface IPoolManager
+	{
+		public Dictionary<string, ThreadlinkPool> Pools { get; set; }
+
+		public void Pool(IPoolable target, string poolID, int initialCapacity = 100)
+		{
+			if (Pools.ContainsKey(poolID) == false) Pools.Add(poolID, new(initialCapacity));
+
+			Pools[poolID].Push(target);
+		}
+
+		public T RetrieveFrom<T>(string poolID) where T : IPoolable
+		{
+			if (Pools.ContainsKey(poolID) == false) return default;
+
+			return Pools[poolID].Pull<T>();
+		}
+	}
 
 	public struct MatrixPosition : IComparable<MatrixPosition>
 	{
@@ -60,6 +101,78 @@ namespace Threadlink.Utilities.Collections
 		}
 	}
 
+	public sealed class ThreadlinkPool
+	{
+		private List<IPoolable> Pool { get; set; }
+
+		private delegate void VoidDelegate();
+
+		private event VoidDelegate OnBeforeDiscarded = null;
+		private event VoidDelegate OnRecovered = null;
+
+		public ThreadlinkPool(int capacity)
+		{
+			Pool ??= new(capacity);
+		}
+
+		public void Discard()
+		{
+			OnBeforeDiscarded?.Invoke();
+			Clear(true);
+
+			Pool = null;
+			OnRecovered = null;
+			OnBeforeDiscarded = null;
+		}
+
+		public void Clear(bool trim = false)
+		{
+			Pool.Clear();
+			if (trim) Pool.TrimExcess();
+		}
+
+		public T Pull<T>() where T : IPoolable
+		{
+			int count = Pool.Count - 1;
+
+			for (int i = count; i >= 0; i--)
+			{
+				var item = (T)Pool[i];
+
+				if (item == null || item.IsUtilized) continue;
+
+				item.OnBeforeUtilized();
+
+				return item;
+			}
+
+			return default;
+		}
+
+		public void Push(IPoolable target)
+		{
+			if (Pool.Contains(target) == false)
+			{
+				Pool.Add(target);
+
+				OnBeforeDiscarded += target.OnBeforePoolDiscarded;
+				OnRecovered += target.OnRecovered;
+			}
+		}
+
+		public void RecoverAll() { OnRecovered?.Invoke(); }
+
+		public List<IPoolable> Filter(Func<IPoolable, bool> filter, int maxCount = -1, bool shuffle = true)
+		{
+			return Pool.Filter(filter, maxCount, shuffle);
+		}
+
+		public void Filter(List<IPoolable> destination, Func<IPoolable, bool> filter, int maxCount = -1, bool shuffle = true)
+		{
+			Pool.Filter(destination, filter, maxCount, shuffle);
+		}
+	}
+
 	[Serializable]
 	public sealed class ChunkedArray<T>
 	{
@@ -67,6 +180,24 @@ namespace Threadlink.Utilities.Collections
 
 		private int ChunkSize { get; set; }
 		private List<T[]> Chunks { get; set; }
+
+		public T this[int index]
+		{
+			get
+			{
+				int chunkIndex = index / ChunkSize;
+				int localIndex = index % ChunkSize;
+
+				return Chunks[chunkIndex][localIndex];
+			}
+			set
+			{
+				int chunkIndex = index / ChunkSize;
+				int localIndex = index % ChunkSize;
+
+				Chunks[chunkIndex][localIndex] = value;
+			}
+		}
 
 		public ChunkedArray(int chunkSize)
 		{
@@ -92,24 +223,6 @@ namespace Threadlink.Utilities.Collections
 
 			Chunks.Clear();
 			Chunks.TrimExcess();
-		}
-
-		public T this[int index]
-		{
-			get
-			{
-				int chunkIndex = index / ChunkSize;
-				int localIndex = index % ChunkSize;
-
-				return Chunks[chunkIndex][localIndex];
-			}
-			set
-			{
-				int chunkIndex = index / ChunkSize;
-				int localIndex = index % ChunkSize;
-
-				Chunks[chunkIndex][localIndex] = value;
-			}
 		}
 	}
 
