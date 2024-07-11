@@ -45,5 +45,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   selfTransform: {fileID: 6395504302552424439}
-  startingSceneEntry: {fileID: 11400000, guid: dfde204a16b4db4408c17d9b96d4f77b, type: 2}
-  customPlayerLoader: {fileID: 11400000, guid: cad81e19fcb711747b512f1aa8fb9eee, type: 2}
+  startingSceneEntry: {fileID: 0}
+  startingEntranceIndex: -1
+  customPlayerLoader: {fileID: 0}

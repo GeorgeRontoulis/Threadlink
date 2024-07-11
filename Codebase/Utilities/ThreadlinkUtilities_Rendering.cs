@@ -1,6 +1,8 @@
 namespace Threadlink.Utilities.Rendering
 {
+#if ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
+#endif
 	using System;
 	using UnityEngine;
 	using String = Text.String;
@@ -12,7 +14,11 @@ namespace Threadlink.Utilities.Rendering
 		public Renderer Renderer => renderer;
 		public bool IsValid => renderer != null && CachedMaterials != null && CachedMaterials.Length > 0;
 
-		[ShowInInspector][ReadOnly] public Material[] CachedMaterials { get; set; }
+#if ODIN_INSPECTOR
+		[ShowInInspector]
+		[ReadOnly]
+#endif
+		public Material[] CachedMaterials { get; set; }
 
 		[SerializeField] private Renderer renderer = null;
 
