@@ -28,7 +28,8 @@ namespace Threadlink.StateMachines
 
 		public void PointToInternalReferenceOf(BaseAbstractStateMachine owner)
 		{
-			Target = owner.GetProcessor<T>(processorID);
+			owner.GetProcessor<T>(processorID, out var target);
+			Target = target;
 		}
 	}
 

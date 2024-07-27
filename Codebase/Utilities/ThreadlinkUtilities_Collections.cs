@@ -4,51 +4,79 @@ namespace Threadlink.Utilities.Collections
 	using Editor;
 #endif
 	using RNG;
+	using String = Text.String;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
 	using UnityEngine;
 	using UnityEngine.InputSystem.Utilities;
-	using String = Text.String;
+	using Threadlink.Utilities.UnityLogging;
 
 	public interface IIdentifiable { string LinkID { get; } }
 
-	public interface IPoolable : IIdentifiable
+	public interface IRegistryElement : IIdentifiable
 	{
 		public bool IsUtilized { get; }
 
 		/// <summary>
-		/// Callback invoked right before the pool containing this entity is discarded.
+		/// Callback invoked right before the registry containing this element is discarded.
 		/// </summary>
-		public void OnBeforePoolDiscarded();
+		public void OnBeforeRegistryDiscarded();
 
 		/// <summary>
-		/// Callback invoked right before this entity is retrieved from the pool to be utilized in the runtime.
+		/// Callback invoked right before this entity is retrieved from the registry to be utilized in the runtime.
 		/// </summary>
 		public void OnBeforeUtilized();
 
 		/// <summary>
-		/// Callback invoked when this entity is returned back to the pool.
+		/// Callback invoked when this entity is set to the unitilized state.
 		/// </summary>
-		public void OnRecovered();
+		public void OnSetToUnutilized();
 	}
 
-	public interface IPoolManager
+	public interface IRegistriesManager
 	{
-		public Dictionary<string, ThreadlinkPool> Pools { get; set; }
+		public Dictionary<string, ThreadlinkRegistry> Registries { get; set; }
 
-		public void Pool(IPoolable target, string poolID, int initialCapacity = 100)
+		public void InitializeRegistries() { Registries = new(); }
+
+		public void DiscardAllRegistries()
 		{
-			if (Pools.ContainsKey(poolID) == false) Pools.Add(poolID, new(initialCapacity));
+			foreach (var registry in Registries.Values) registry.Discard();
 
-			Pools[poolID].Push(target);
+			Registries.Clear();
+			Registries.TrimExcess();
+			Registries = null;
 		}
 
-		public T RetrieveFrom<T>(string poolID) where T : IPoolable
+		public bool TryRegister(IRegistryElement target, string registryID, int initialCapacity = 100)
 		{
-			if (Pools.ContainsKey(poolID) == false) return default;
+			if (Registries.TryGetValue(registryID, out var registry)) return registry.TryRegister(target);
+			else
+			{
+				Registries.Add(registryID, new(initialCapacity));
 
-			return Pools[poolID].Pull<T>();
+				return Registries[registryID].TryRegister(target);
+			}
+		}
+
+		public bool RetrieveFrom<T>(string registryID, out T retrievedElement) where T : IRegistryElement
+		{
+			if (Registries.TryGetValue(registryID, out var registry) && registry.TryRetrieve<T>(out var result))
+			{
+				retrievedElement = result;
+				return true;
+			}
+			else
+			{
+				retrievedElement = default;
+				return false;
+			}
+		}
+
+		public void SetAllToUnutilizedState()
+		{
+			foreach (var entry in Registries) entry.Value.SetAllToUnutilizedState();
 		}
 	}
 
@@ -83,6 +111,11 @@ namespace Threadlink.Utilities.Collections
 			C = vector.y;
 		}
 
+		public override readonly int GetHashCode()
+		{
+			return HashCode.Combine(R, C);
+		}
+
 		public readonly bool Equals(MatrixPosition other)
 		{
 			return R == other.R && C == other.C;
@@ -101,18 +134,18 @@ namespace Threadlink.Utilities.Collections
 		}
 	}
 
-	public sealed class ThreadlinkPool
+	public sealed class ThreadlinkRegistry
 	{
-		private List<IPoolable> Pool { get; set; }
+		private List<IRegistryElement> List { get; set; }
 
 		private delegate void VoidDelegate();
 
 		private event VoidDelegate OnBeforeDiscarded = null;
-		private event VoidDelegate OnRecovered = null;
+		private event VoidDelegate OnAllSetToUnitilizedState = null;
 
-		public ThreadlinkPool(int capacity)
+		public ThreadlinkRegistry(int capacity)
 		{
-			Pool ??= new(capacity);
+			List = new(capacity);
 		}
 
 		public void Discard()
@@ -120,56 +153,48 @@ namespace Threadlink.Utilities.Collections
 			OnBeforeDiscarded?.Invoke();
 			Clear(true);
 
-			Pool = null;
-			OnRecovered = null;
+			OnAllSetToUnitilizedState = null;
 			OnBeforeDiscarded = null;
+			List = null;
 		}
 
-		public void Clear(bool trim = false)
+		public void Clear(bool trimInternalCollection = false)
 		{
-			Pool.Clear();
-			if (trim) Pool.TrimExcess();
+			List.Clear();
+			if (trimInternalCollection) List.TrimExcess();
 		}
 
-		public T Pull<T>() where T : IPoolable
+		public bool TryRetrieve<T>(out T result) where T : IRegistryElement
 		{
-			int count = Pool.Count - 1;
+			static bool Filter(IRegistryElement element) { return element.IsUtilized == false; }
 
-			for (int i = count; i >= 0; i--)
+			var retrievedElement = List.FirstOrDefault(Filter);
+
+			if (retrievedElement == null)
 			{
-				var item = (T)Pool[i];
-
-				if (item == null || item.IsUtilized) continue;
-
-				item.OnBeforeUtilized();
-
-				return item;
+				result = default;
+				return false;
 			}
 
-			return default;
+			retrievedElement.OnBeforeUtilized();
+
+			result = (T)retrievedElement;
+			return true;
 		}
 
-		public void Push(IPoolable target)
+		public bool TryRegister(IRegistryElement element)
 		{
-			if (Pool.Contains(target) == false)
-			{
-				Pool.Add(target);
+			List.Add(element);
 
-				OnBeforeDiscarded += target.OnBeforePoolDiscarded;
-				OnRecovered += target.OnRecovered;
-			}
+			OnBeforeDiscarded += element.OnBeforeRegistryDiscarded;
+			OnAllSetToUnitilizedState += element.OnSetToUnutilized;
+
+			return true;
 		}
 
-		public void RecoverAll() { OnRecovered?.Invoke(); }
-
-		public List<IPoolable> Filter(Func<IPoolable, bool> filter, int maxCount = -1, bool shuffle = true)
+		public void SetAllToUnutilizedState()
 		{
-			return Pool.Filter(filter, maxCount, shuffle);
-		}
-
-		public void Filter(List<IPoolable> destination, Func<IPoolable, bool> filter, int maxCount = -1, bool shuffle = true)
-		{
-			Pool.Filter(destination, filter, maxCount, shuffle);
+			OnAllSetToUnitilizedState?.Invoke();
 		}
 	}
 
@@ -351,7 +376,7 @@ namespace Threadlink.Utilities.Collections
 			list.RemoveAt(lastElementIdx);
 		}
 
-		public static T BinarySearch<T>(this IList<T> collection, string id) where T : IIdentifiable
+		public static void BinarySearch<T>(this IList<T> collection, string id, out T result, bool logIndex = false) where T : IIdentifiable
 		{
 			int BinarySearchIterative()
 			{
@@ -376,12 +401,17 @@ namespace Threadlink.Utilities.Collections
 
 			int index = BinarySearchIterative();
 
-			if (index >= 0) return collection[index]; else return default;
+			if (logIndex) UnityConsole.Notify(DebugNotificationType.Info, "Binary Search yielded object at index ", index);
+			result = index >= 0 ? collection[index] : default;
 		}
 
-		public static T BruteForceSearch<T>(this T[] collection, string id) where T : IIdentifiable
+		public static void BruteForceSearch<T>(this T[] collection, string id, out T result) where T : IIdentifiable
 		{
-			if (string.IsNullOrEmpty(id)) return default;
+			if (string.IsNullOrEmpty(id))
+			{
+				result = default;
+				return;
+			}
 
 			int length = collection.Length;
 
@@ -390,10 +420,14 @@ namespace Threadlink.Utilities.Collections
 				var element = collection[i];
 
 				if (element == null) continue;
-				else if (element.LinkID.Equals(id)) return element;
+				else if (element.LinkID.Equals(id))
+				{
+					result = element;
+					return;
+				}
 			}
 
-			return default;
+			result = default;
 		}
 
 		public static void Filter<T>(this T[] source, List<T> destination, Func<T, bool> filter, int maxCount = -1, bool shuffle = true)

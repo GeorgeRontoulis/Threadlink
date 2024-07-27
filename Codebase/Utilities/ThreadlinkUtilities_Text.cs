@@ -11,10 +11,11 @@ namespace Threadlink.Utilities.Text
 	{
 		public static readonly StringBuilder StaticStringBuilder = new();
 		public static readonly char Whitespace = (char)32;
+		public static readonly string EmptyString = string.Empty;
 
-		private static string SPLIT_RE = @";(?=(?:[^""]*""[^""]*"")*(?![^""]*""))";
-		private static string LINE_SPLIT_RE = @"\r\n|\n\r|\n|\r";
-		private static char[] TRIM_CHARS = { '\"' };
+		private static readonly string SPLIT_RE = @";(?=(?:[^""]*""[^""]*"")*(?![^""]*""))";
+		private static readonly string LINE_SPLIT_RE = @"\r\n|\n\r|\n|\r";
+		private static readonly char[] TRIM_CHARS = { '\"' };
 
 		public static string Construct(params object[] strings)
 		{
@@ -48,14 +49,14 @@ namespace Threadlink.Utilities.Text
 				var values = Regex.Split(lines[i], SPLIT_RE);
 				var valueLength = values.Length;
 
-				if (valueLength == 0 || values[0] == "") continue;
+				if (valueLength == 0 || string.IsNullOrEmpty(values[0])) continue;
 
 				var entry = new Dictionary<string, object>();
 
 				for (var j = 0; j < headerLength && j < valueLength; j++)
 				{
 					string value = values[j];
-					value = value.TrimStart(TRIM_CHARS).TrimEnd(TRIM_CHARS).Replace("\\", "");
+					value = value.TrimStart(TRIM_CHARS).TrimEnd(TRIM_CHARS).Replace("\\", EmptyString);
 					object finalvalue = value;
 
 					int integerResult;
@@ -92,6 +93,40 @@ namespace Threadlink.Utilities.Text
 		internal static string ExtractName(this IEnumerator target)
 		{
 			return target.GetType().Name.Split('>')[0].TrimStart('<');
+		}
+
+		public static void SeparateUpperCaseAndCommas(string input, out string output)
+		{
+			if (string.IsNullOrEmpty(input))
+			{
+				output = input;
+				return;
+			}
+
+			StaticStringBuilder.Clear();
+			StaticStringBuilder.Append(input[0]);
+
+			char whitespace = Whitespace;
+			char comma = ',';
+			char dash = '-';
+			int length = input.Length;
+
+			for (int i = 1; i < length; i++)
+			{
+				char current = input[i];
+				char previous = input[i - 1];
+
+				if (char.IsUpper(current) && char.IsWhiteSpace(previous) == false && previous != dash)
+					StaticStringBuilder.Append(whitespace);
+
+				StaticStringBuilder.Append(current);
+
+				if (current == comma && (i + 1 < input.Length && char.IsUpper(input[i + 1]) == false))
+					StaticStringBuilder.Append(whitespace);
+			}
+
+			output = StaticStringBuilder.ToString();
+			StaticStringBuilder.Clear();
 		}
 	}
 }

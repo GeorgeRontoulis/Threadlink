@@ -209,7 +209,7 @@ namespace Threadlink.Systems.Dextra
 
 		public static void StackInterface(string interfaceID)
 		{
-			var target = Instance.FindManagedEntity(interfaceID);
+			Instance.FindManagedEntity(interfaceID, out var target);
 
 			if (target == null)
 			{
@@ -222,7 +222,7 @@ namespace Threadlink.Systems.Dextra
 		public static void StackInterface<T>(string interfaceID, T stackingData)
 		where T : IScriptableStackingData
 		{
-			var target = Instance.FindManagedEntity(interfaceID);
+			Instance.FindManagedEntity(interfaceID, out var target);
 
 			if (target == null)
 			{
@@ -259,7 +259,15 @@ namespace Threadlink.Systems.Dextra
 
 			StackedInterfaces.Push(target);
 
-			(target as IScriptableStackingDataProcessor<T>).Process(stackingData);
+			try
+			{
+				(target as IScriptableStackingDataProcessor<T>).Process(stackingData);
+			}
+			catch (Exception exception)
+			{
+				Scribe.LogException(exception);
+			}
+
 			target.OnStacked();
 		}
 

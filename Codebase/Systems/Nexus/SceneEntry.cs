@@ -1,15 +1,22 @@
 namespace Threadlink.Systems.Nexus
 {
+	using Core;
+	using Extensions.Nexus;
 	using System.Collections;
-	using Threadlink.Core;
-	using Threadlink.Extensions.Nexus;
 	using UnityEngine;
 	using UnityEngine.SceneManagement;
 	using Utilities.Addressables;
 
 	public abstract class SceneEntry : ScriptableObject
 	{
-		internal AddressableScene AddressableScene => Threadlink.FindAddressableScene(sceneInfo.assetAddress);
+		internal AddressableScene AddressableScene
+		{
+			get
+			{
+				Threadlink.FindAddressableScene(sceneInfo.assetAddress, out var scene);
+				return scene;
+			}
+		}
 
 		[SerializeField] private AssetGroupAddressPair sceneInfo = new();
 

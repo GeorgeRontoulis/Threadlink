@@ -135,46 +135,61 @@
 		#endregion
 
 		#region Addressables Lookup Methods
-		public static AddressableType FindAddressablePrefab<AddressableType, PrefabType>(string prefabID)
+		public static void FindAddressablePrefab<AddressableType, PrefabType>(string prefabID, out AddressableType result)
 		where AddressableType : AddressablePrefab<PrefabType> where PrefabType : Component
 		{
 			var extension = Addressables.customExtension;
 
-			if (extension != null) return extension.SearchForAddressablePrefab<AddressableType, PrefabType>(prefabID);
+			if (extension != null)
+			{
+				extension.SearchForAddressablePrefab<AddressableType, PrefabType>(prefabID, out var prefab);
+				result = prefab;
+				return;
+			}
 			else
 			{
 				Scribe.SystemLog(Instance.LinkID, Scribe.ErrorNotif,
 				"A request to search the Addressables Extension was made, however no extension has been provided! Please provide an extension before proceeding!");
-				return null;
+				result = null;
 			}
 		}
 
-		public static AddressableType FindAddressableAsset<AddressableType, AssetType>(string assetID)
+		public static void FindAddressableAsset<AddressableType, AssetType>(string assetID, out AddressableType result)
 		where AddressableType : AddressableAsset<AssetType> where AssetType : UnityEngine.Object
 		{
 			var extension = Addressables.customExtension;
 
-			if (extension != null) return extension.SearchForAddressableAsset<AddressableType, AssetType>(assetID);
+			if (extension != null)
+			{
+				extension.SearchForAddressableAsset<AddressableType, AssetType>(assetID, out var asset);
+				result = asset;
+				return;
+			}
 			else
 			{
 				Scribe.SystemLog(Instance.LinkID, Scribe.ErrorNotif,
 				"A request to search the Addressables Extension was made, however no extension has been provided! Please provide an extension before proceeding!");
-				return null;
+				result = null;
 			}
 		}
 
-		public static AddressableScene FindAddressableScene(string address)
+		public static void FindAddressableScene(string address, out AddressableScene result)
 		{
-			return Addressables.scenes.BinarySearch(address);
+			Addressables.scenes.BinarySearch(address, out var addressable);
+			result = addressable;
 		}
 
-		public static T GetCustomAddressablesExtension<T>() where T : ThreadlinkAddressablesExtension
+		public static void GetCustomAddressablesExtension<T>(out T result) where T : ThreadlinkAddressablesExtension
 		{
 			var extension = Addressables.customExtension;
 
-			if (extension == null) return null;
+			if (extension == null)
+			{
+				result = null;
+				return;
+			}
 
-			return extension as T;
+			result = extension as T;
 		}
 		#endregion
 	}

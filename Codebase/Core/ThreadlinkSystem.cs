@@ -60,7 +60,7 @@
 			ClearManagedEntitiesList();
 		}
 
-		public virtual ManagedType FindManagedEntity(string entityLinkID)
+		public virtual void FindManagedEntity(string entityLinkID, out ManagedType result)
 		{
 			if (EntityListAlteredSinceLastSort)
 			{
@@ -68,7 +68,8 @@
 				EntityListAlteredSinceLastSort = false;
 			}
 
-			return LinkedEntities.BinarySearch(entityLinkID);
+			LinkedEntities.BinarySearch(entityLinkID, out var entity);
+			result = entity;
 		}
 
 		/// <summary>

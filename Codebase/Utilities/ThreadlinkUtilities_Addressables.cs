@@ -8,11 +8,11 @@ namespace Threadlink.Utilities.Addressables
 	using UnityEngine.ResourceManagement.AsyncOperations;
 	using UnityEngine.ResourceManagement.ResourceProviders;
 	using UnityEngine.SceneManagement;
-	using Utilities.Collections;
+	using Collections;
 #if UNITY_EDITOR
-	using Utilities.Editor.Attributes;
+	using Editor.Attributes;
 #endif
-	using Utilities.UnityLogging;
+	using UnityLogging;
 
 	public abstract class Addressable : IIdentifiable
 	{
@@ -43,16 +43,6 @@ namespace Threadlink.Utilities.Addressables
 		public static bool Succeeded<T>(this AsyncOperationHandle<T> operation)
 		{
 			return operation.Status.Equals(AsyncOperationStatus.Succeeded);
-		}
-
-		public static Task UnloadUnusedAssetsAsync()
-		{
-			var tcs = new TaskCompletionSource<bool>();
-			var asyncOp = Resources.UnloadUnusedAssets();
-
-			asyncOp.completed += (operation) => { tcs.SetResult(true); };
-
-			return tcs.Task;
 		}
 	}
 

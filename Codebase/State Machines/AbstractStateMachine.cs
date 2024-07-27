@@ -5,9 +5,9 @@ namespace Threadlink.StateMachines
 #endif
 
 	using System;
-	using Threadlink.Core;
-	using Threadlink.Systems;
-	using Threadlink.Utilities.Events;
+	using Core;
+	using Systems;
+	using Utilities.Events;
 	using UnityEngine;
 	using Utilities.Collections;
 
@@ -45,20 +45,21 @@ namespace Threadlink.StateMachines
 
 		protected abstract void InitializeStatesAndProcessors();
 
-		public AbstractParameter<T> GetParameter<T>(string id)
+		public void GetParameter<T>(string id, out AbstractParameter<T> result)
 		{
-			var paramFound = parameters.BinarySearch(id);
+			parameters.BinarySearch(id, out var paramFound);
 
 			if (paramFound == null)
 			{
 				Scribe.LogError("The requested parameter could not be found! Check your request!");
-				return null;
+				result = null;
+				return;
 			}
 
-			return paramFound as AbstractParameter<T>;
+			result = paramFound as AbstractParameter<T>;
 		}
 
-		public abstract AbstractProcessor<T> GetProcessor<T>(string id) where T : BaseAbstractStateMachine;
+		public abstract void GetProcessor<T>(string id, out AbstractProcessor<T> result) where T : BaseAbstractStateMachine;
 	}
 
 	public abstract class AbstractStateMachine<OwnerType, StateType, ProcessorType> : BaseAbstractStateMachine
@@ -91,17 +92,18 @@ namespace Threadlink.StateMachines
 #endif
 
 
-		public override AbstractProcessor<T> GetProcessor<T>(string id)
+		public override void GetProcessor<T>(string id, out AbstractProcessor<T> result)
 		{
-			var processorFound = processors.BinarySearch(id);
+			processors.BinarySearch(id, out var processorFound);
 
 			if (processorFound == null)
 			{
 				Scribe.LogError("The requested processor could not be found! Check your request!");
-				return null;
+				result = null;
+				return;
 			}
 
-			return processorFound as AbstractProcessor<T>;
+			result = processorFound as AbstractProcessor<T>;
 		}
 
 		public virtual void Initialize(OwnerType owner)

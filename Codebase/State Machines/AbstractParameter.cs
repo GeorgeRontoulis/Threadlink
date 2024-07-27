@@ -2,7 +2,7 @@ namespace Threadlink.StateMachines
 {
 	using System;
 	using System.Collections.Generic;
-	using Threadlink.Utilities.Reflection;
+	using Utilities.Reflection;
 	using UnityEngine;
 	using Utilities.Collections;
 
@@ -36,7 +36,8 @@ namespace Threadlink.StateMachines
 
 		public void PointToInternalReferenceOf(BaseAbstractStateMachine owner)
 		{
-			Reference = owner.GetParameter<T>(parameterID);
+			owner.GetParameter<T>(parameterID, out var reference);
+			Reference = reference;
 		}
 	}
 

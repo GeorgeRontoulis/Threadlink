@@ -5,16 +5,29 @@ namespace Threadlink.Systems.Dextra
 	using UnityEngine;
 	using UnityEngine.UI;
 
+#if THREADLINK_INTEGRATIONS_TMPRO
+	using TMPro;
+#endif
+
+
 #if UNITY_EDITOR
 	using Utilities.Editor;
 #endif
 
 	public sealed class DextraInputPrompt : LinkableBehaviour
 	{
-		[SerializeField] private Image promptImage = null;
-		[SerializeField] private Text promptLabel = null;
-
 		[SerializeField] private DextraInputPromptData data = null;
+
+		[Space(10)]
+
+		[SerializeField] private Image promptImage = null;
+
+#if THREADLINK_INTEGRATIONS_TMPRO
+		[SerializeField] private TextMeshProUGUI promptLabel = null;
+#else
+		[SerializeField] private Text promptLabel = null;
+#endif
+
 
 #if UNITY_EDITOR
 		[SerializeField] private Dextra.InputDevice previewDevice = 0;
