@@ -527,6 +527,43 @@ namespace Threadlink.Utilities.Collections
 			return result;
 		}
 
+		public static void Filter<T>(this T[,] matrix, Func<T, bool> filter, List<T> destination, int maxCount = -1, bool shuffle = true)
+		{
+			destination.Clear();
+
+			int rows = matrix.Rows();
+			int cols = matrix.Columns();
+
+			void FilterMatrix(T[,] matrix)
+			{
+				for (int i = 0; i < rows; i++)
+				{
+					for (int j = 0; j < cols; j++)
+					{
+						var element = matrix[i, j];
+
+						if (filter.Invoke(element)) destination.Add(element);
+					}
+				}
+			}
+
+			if (shuffle)
+			{
+				var shuffledSource = new T[rows, cols];
+
+				Array.Copy(matrix, shuffledSource, matrix.Length);
+				shuffledSource.Shuffle();
+
+				FilterMatrix(shuffledSource);
+			}
+			else FilterMatrix(matrix);
+
+			if (maxCount > 0 && destination.Count > maxCount && destination.Count > maxCount)
+				destination.RemoveRange(maxCount, destination.Count - maxCount);
+
+			destination.TrimExcess();
+		}
+
 		public static List<T> Flatten<T>(this T[,] matrix) { return matrix.Cast<T>().ToList(); }
 	}
 }

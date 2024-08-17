@@ -27,12 +27,14 @@ namespace Threadlink.Core
 		[SerializeField] internal ThreadlinkAddressablesExtension customExtension = null;
 
 #if UNITY_EDITOR
+#pragma warning disable IDE0051
 #if ODIN_INSPECTOR
 		[Button]
 #else
 		[ContextMenu("Sort Scenes By ID")]
 #endif
 		private void SortScenesByID() { scenes.SortByID(this); }
+#pragma warning restore IDE0051
 #endif
 
 		internal IEnumerator[] LoadCoreSystems()

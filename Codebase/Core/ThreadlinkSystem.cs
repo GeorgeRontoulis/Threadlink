@@ -34,8 +34,12 @@
 
 		private void ClearManagedEntitiesList()
 		{
-			LinkedEntities?.Clear();
-			LinkedEntities?.TrimExcess();
+			if (LinkedEntities != null)
+			{
+				LinkedEntities.Clear();
+				LinkedEntities.TrimExcess();
+			}
+
 			EntityListAlteredSinceLastSort = true;
 			Scribe.SystemLog(LinkID, Scribe.InfoNotif, "Cleared all managed Entities.");
 		}
@@ -91,6 +95,8 @@
 			LinkedEntities.Add(copy);
 
 			copy.name = original.name;
+
+			if (copy is LinkableAsset) (copy as LinkableAsset).IsInstance = true;
 
 			if (logAction) Scribe.SystemLog(LinkID, Scribe.InfoNotif, "Weaved Entity ", copy.name, ".");
 

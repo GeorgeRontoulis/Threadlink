@@ -1,15 +1,13 @@
 namespace Threadlink.Extensions.Dextra
 {
-	using Threadlink.Core;
-	using Threadlink.Systems.Dextra;
-	using Threadlink.Utilities.Events;
+	using Core;
+	using Systems.Dextra;
 	using UnityEngine;
-
-	public enum DextraInputMode { UI, Player }
+	using Utilities.Events;
 
 	public abstract class DextraInputModuleExtension : LinkableAsset
 	{
-		public abstract DextraInputMode InputMode { set; }
+		public abstract Dextra.InputMode InputMode { set; }
 
 		public VoidEvent OnInteractButtonPressed => onInteractButtonPressed;
 		public VoidEvent OnPauseButtonPressed => onPausePressed;

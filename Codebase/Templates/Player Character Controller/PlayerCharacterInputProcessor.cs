@@ -1,17 +1,18 @@
 namespace Threadlink.Templates.PlayerCharacterController
 {
-	using Threadlink.Extensions.Dextra;
-	using Threadlink.StateMachines;
-	using Threadlink.Systems;
-	using Threadlink.Systems.Dextra;
-	using Threadlink.Utilities.Events;
+	using StateMachines;
+	using System;
+	using Systems.Dextra;
 	using UnityEngine;
+	using Utilities.Events;
 
 	[CreateAssetMenu(menuName = "Threadlink/Templates/Character Controller/Processors/Input")]
 	public sealed class PlayerCharacterInputProcessor : PlayerCharacterProcessor
 	{
 		public VoidEvent OnJumpInput => onJumpInput;
 		public VoidEvent OnAttackInput => onAttackInput;
+		public VoidEvent OnStartSprintInput => onStartSprintInput;
+		public VoidEvent OnStopSprintInput => onStopSprintInput;
 
 		private IPlayerCharacter Character { get; set; }
 
@@ -27,14 +28,14 @@ namespace Threadlink.Templates.PlayerCharacterController
 
 		[Space(10)]
 
-		private VoidEvent onJumpInput = new();
-		private VoidEvent onAttackInput = new();
+		[NonSerialized] private VoidEvent onJumpInput = new();
+		[NonSerialized] private VoidEvent onAttackInput = new();
+		[NonSerialized] private VoidEvent onStartSprintInput = new();
+		[NonSerialized] private VoidEvent onStopSprintInput = new();
 
 		public override void Discard()
 		{
 			Dextra.OnPauseButtonPressed -= StackPauseMenu;
-			Chronos.OnGamePaused.Remove(OnGamePaused);
-			Chronos.OnGameResumed.Remove(OnGameResumed);
 
 			moveAction.Discard();
 			startSprintAction.Discard();
@@ -43,9 +44,13 @@ namespace Threadlink.Templates.PlayerCharacterController
 
 			onJumpInput?.Discard();
 			onAttackInput?.Discard();
+			onStartSprintInput?.Discard();
+			onStopSprintInput?.Discard();
 
 			onJumpInput = null;
 			onAttackInput = null;
+			onStartSprintInput = null;
+			onStopSprintInput = null;
 
 			base.Discard();
 		}
@@ -53,8 +58,22 @@ namespace Threadlink.Templates.PlayerCharacterController
 		public override void Initialize(PlayerCharacterStateMachine owner)
 		{
 			void TrackMovementInput(Vector2 input) { movementInput.CurrentValue = input; }
-			void StartSprinting() { if (movementInput.CurrentValue.magnitude > Mathf.Epsilon) Character.IsSprinting = true; }
-			void StopSprinting() { Character.IsSprinting = false; }
+
+			void StartSprinting()
+			{
+				if (movementInput.CurrentValue.magnitude > Mathf.Epsilon)
+				{
+					Character.IsSprinting = true;
+					onStartSprintInput?.Invoke();
+				}
+			}
+
+			void StopSprinting()
+			{
+				Character.IsSprinting = false;
+				onStopSprintInput?.Invoke();
+			}
+
 			void Jump() { onJumpInput?.Invoke(); }
 			void Attack() { onAttackInput?.Invoke(); }
 
@@ -68,29 +87,24 @@ namespace Threadlink.Templates.PlayerCharacterController
 			jumpAction?.Handle(Jump);
 			attackAction?.Handle(Attack);
 
-			Chronos.OnGamePaused.TryAddListener(OnGamePaused);
-			Chronos.OnGameResumed.TryAddListener(OnGameResumed);
 			Dextra.OnPauseButtonPressed += StackPauseMenu;
+			Dextra.OnInputModeChanged.TryAddListener(OnInputModeChanged);
 
-			Dextra.GetCustomInputModule<DextraInputModuleExtension>().InputMode = DextraInputMode.Player;
+			Dextra.CurrentInputMode = Dextra.InputMode.Player;
 
 			base.Initialize(owner);
+		}
+
+		private VoidOutput OnInputModeChanged(Dextra.InputMode input)
+		{
+			movementInput.CurrentValue = Vector2.zero;
+			Character.IsSprinting = false;
+			return default;
 		}
 
 		private VoidOutput StackPauseMenu(VoidInput _)
 		{
 			Dextra.StackInterface("OverlayUI_PauseMenu");
-			return default;
-		}
-
-		private VoidOutput OnGamePaused(VoidInput _)
-		{
-			movementInput.CurrentValue = Vector2.zero;
-			return default;
-		}
-
-		private VoidOutput OnGameResumed(VoidInput _)
-		{
 			return default;
 		}
 

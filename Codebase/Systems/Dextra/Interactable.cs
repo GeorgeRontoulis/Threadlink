@@ -1,14 +1,24 @@
 namespace Threadlink.Systems.Dextra
 {
-	using Threadlink.Core;
-	using Threadlink.Utilities.Editor.Attributes;
-	using Threadlink.Utilities.Events;
+	using Core;
+#if UNITY_EDITOR && THREADLINK_INSPECTOR
+	using Utilities.Editor.Attributes;
+#elif UNITY_EDITOR && ODIN_INSPECTOR
+	using Sirenix.OdinInspector;
+#endif
+	using Utilities.Events;
 	using UnityEngine;
 
 	public abstract class Interactable : LinkableBehaviour
 	{
-		[ReadOnly][SerializeField] private Collider effectiveRadius = null;
-		[SerializeField] private bool interactOnContact = false;
+#if UNITY_EDITOR && (THREADLINK_INSPECTOR || ODIN_INSPECTOR)
+		[ReadOnly]
+#endif
+		[SerializeField] private Collider effectiveRadius = null;
+
+		[Space(10)]
+
+		[SerializeField] protected bool interactOnContact = false;
 
 		protected override void Reset()
 		{
@@ -37,7 +47,7 @@ namespace Threadlink.Systems.Dextra
 			if (interactOnContact == false) UnsubscribeFromInteractAction();
 		}
 
-		protected virtual void SetSensorActiveState(bool state) { effectiveRadius.enabled = state; }
+		public virtual void SetSensorActiveState(bool state) { effectiveRadius.enabled = state; }
 		protected void UnsubscribeFromInteractAction() { Dextra.OnInteractButtonPressed -= Interact; }
 	}
 }

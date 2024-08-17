@@ -88,7 +88,9 @@ namespace Threadlink.StateMachines
 #else
 		[ContextMenu("Sort Parameters By ID")]
 #endif
+#pragma warning disable IDE0051
 		private void SortParametersByID() { parameters.SortByID(this); }
+#pragma warning restore IDE0051
 #endif
 
 

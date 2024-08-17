@@ -9,13 +9,14 @@ namespace Threadlink.Systems.Dextra
 	using TMPro;
 #endif
 
-
 #if UNITY_EDITOR
 	using Utilities.Editor;
 #endif
 
 	public sealed class DextraInputPrompt : LinkableBehaviour
 	{
+		public string PromptText { set => promptLabel.text = value; }
+
 		[SerializeField] private DextraInputPromptData data = null;
 
 		[Space(10)]

@@ -1,13 +1,14 @@
 namespace Threadlink.Systems.Dextra
 {
+	using Core;
 	using Extensions.Dextra;
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
-	using Threadlink.Core;
 	using UnityEngine;
 	using UnityEngine.EventSystems;
 	using UnityEngine.InputSystem;
+	using UnityEngine.InputSystem.DualShock;
 	using Utilities.Events;
 	using Context = UnityEngine.InputSystem.InputAction.CallbackContext;
 	using VoidDelegate = Utilities.Events.ThreadlinkDelegate<Utilities.Events.VoidOutput, Utilities.Events.VoidInput>;
@@ -31,8 +32,8 @@ namespace Threadlink.Systems.Dextra
 	public struct ControllerVibrationData
 	{
 		internal CustomYieldInstruction WaitInstruction { get; private set; }
-		internal float LowFrequency { get; private set; }
-		internal float HighFrequency { get; private set; }
+		internal float LowFrequency { get; set; }
+		internal float HighFrequency { get; set; }
 
 		public ControllerVibrationData(float lowFrequency, float highFrequency, CustomYieldInstruction waitInstruction = null)
 		{
@@ -90,20 +91,32 @@ namespace Threadlink.Systems.Dextra
 	public sealed class Dextra : ThreadlinkSystem<Dextra, UserInterface>
 	{
 		public enum InputDevice { MouseKeyboard, XBOXController, DualSense }
+		public enum InputMode { Invalid = -1, UI = 0, Player = 1 }
 
 		public static VoidGenericEvent<RectTransform> OnElementSelected => Instance.onElementSelected;
 		public static VoidGenericEvent<InputDevice> OnInputDeviceChanged => Instance.onInputDeviceChanged;
+		public static VoidGenericEvent<InputMode> OnInputModeChanged => Instance.onInputModeChanged;
+		public static InputMode CurrentInputMode
+		{
+			set
+			{
+				var module = CustomInputModule;
+
+				if (module != null) module.InputMode = value;
+				Instance.onInputModeChanged?.Invoke(value);
+			}
+		}
 
 		public static event VoidDelegate OnInteractButtonPressed
 		{
-			add { if (CustomInputModule != null) CustomInputModule.OnInteractButtonPressed.TryAddListener(value); }
-			remove { if (CustomInputModule != null) CustomInputModule.OnInteractButtonPressed.Remove(value); }
+			add { if (CustomInputModule != null) CustomInputModule.OnInteractButtonPressed?.TryAddListener(value); }
+			remove { if (CustomInputModule != null) CustomInputModule.OnInteractButtonPressed?.Remove(value); }
 		}
 
 		public static event VoidDelegate OnPauseButtonPressed
 		{
-			add { if (CustomInputModule != null) CustomInputModule.OnPauseButtonPressed.TryAddListener(value); }
-			remove { if (CustomInputModule != null) CustomInputModule.OnPauseButtonPressed.Remove(value); }
+			add { if (CustomInputModule != null) CustomInputModule.OnPauseButtonPressed?.TryAddListener(value); }
+			remove { if (CustomInputModule != null) CustomInputModule.OnPauseButtonPressed?.Remove(value); }
 		}
 
 		public static event VoidDelegate OnInterfaceCancelled
@@ -128,12 +141,14 @@ namespace Threadlink.Systems.Dextra
 
 		private VoidGenericEvent<RectTransform> onElementSelected = new();
 		private VoidGenericEvent<InputDevice> onInputDeviceChanged = new();
+		private VoidGenericEvent<InputMode> onInputModeChanged = new();
 		private VoidEvent onInterfaceCancelled = new();
 
 		public override void Discard()
 		{
 			deviceDetector.onControlsChanged -= UpdateInputDevice;
 
+			onInputModeChanged?.Discard();
 			onInputDeviceChanged?.Discard();
 			onElementSelected?.Discard();
 			onInterfaceCancelled?.Discard();
@@ -145,6 +160,7 @@ namespace Threadlink.Systems.Dextra
 			deviceDetector = null;
 			customInputModule = null;
 			Instance = null;
+			onInputModeChanged = null;
 			onInputDeviceChanged = null;
 			onElementSelected = null;
 			onInterfaceCancelled = null;
@@ -333,14 +349,13 @@ namespace Threadlink.Systems.Dextra
 
 			if (string.IsNullOrEmpty(currentControlScheme)) return;
 
-			if (currentControlScheme.Equals("KeyboardAndMouse"))
+			if (currentControlScheme.Equals("KeyboardAndMouse")) newDevice = InputDevice.MouseKeyboard;
+			else if (currentControlScheme.Equals("Gamepad") && CurrentGamepad != null)
 			{
-				newDevice = InputDevice.MouseKeyboard;
-				ForceStopControllerVibration();
-			}
-			else if (currentControlScheme.Equals("Gamepad"))
-			{
-				newDevice = InputDevice.XBOXController;
+				if (CurrentGamepad is DualShockGamepad)
+					newDevice = InputDevice.DualSense;
+				else
+					newDevice = InputDevice.XBOXController;
 			}
 
 			CurrentInputDevice = newDevice;
@@ -371,13 +386,13 @@ namespace Threadlink.Systems.Dextra
 			{
 				IEnumerator VibrateForSeconds()
 				{
-					currentGamepad.SetMotorSpeeds(vibrationData.LowFrequency, vibrationData.HighFrequency);
+					currentGamepad?.SetMotorSpeeds(vibrationData.LowFrequency, vibrationData.HighFrequency);
 
 					var yieldInstruction = vibrationData.WaitInstruction;
 
 					if (yieldInstruction != null) yield return yieldInstruction;
 
-					currentGamepad.ResetHaptics();
+					currentGamepad?.ResetHaptics();
 					controllerVibration = null;
 				}
 
@@ -386,17 +401,15 @@ namespace Threadlink.Systems.Dextra
 			}
 		}
 
-		public static void VibrateControllerThisFrame(ControllerVibrationData vibrationData)
+		public static void VibrateController(float lof, float hif)
 		{
 			if (CurrentInputDevice.Equals(InputDevice.MouseKeyboard)) return;
 
-			CurrentGamepad?.SetMotorSpeeds(vibrationData.LowFrequency, vibrationData.HighFrequency);
+			CurrentGamepad?.SetMotorSpeeds(lof, hif);
 		}
 
 		public static void ForceStopControllerVibration()
 		{
-			if (CurrentInputDevice.Equals(InputDevice.MouseKeyboard)) return;
-
 			Threadlink.StopCoroutine(ref controllerVibration);
 			CurrentGamepad?.ResetHaptics();
 		}

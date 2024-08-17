@@ -21,8 +21,8 @@ namespace Threadlink.Utilities.Editor.Attributes
 			onSelectCallback = onSelect;
 			var window = GetWindow<AddressableSelectorWindow>("Addressable Selector", true);
 			window.Show();
-			window.minSize = new Vector2(200, 128);
-			window.maxSize = new Vector2(420, 200);
+			window.minSize = new(200, 128);
+			window.maxSize = new(420, 200);
 		}
 
 		private void OnGUI()

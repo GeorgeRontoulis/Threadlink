@@ -107,12 +107,12 @@
 		{
 			if (coroutine == null) return;
 
-			string coroutineName = coroutine.GetType().Name;
-
 			Instance.StopCoroutine(coroutine);
-			coroutine = null;
 
-			if (logStop) Scribe.SystemLog(Instance.LinkID, Scribe.InfoNotif, "Stopped Coroutine ", coroutineName);
+			if (logStop) Scribe.SystemLog(Instance.LinkID,
+			Scribe.InfoNotif, "Stopped Coroutine ", coroutine.GetType().Name);
+
+			coroutine = null;
 		}
 
 		public static IEnumerator WaitForFrameCount(int count)

@@ -11,7 +11,6 @@ namespace Threadlink.Utilities.Text
 	{
 		public static readonly StringBuilder StaticStringBuilder = new();
 		public static readonly char Whitespace = (char)32;
-		public static readonly string EmptyString = string.Empty;
 
 		private static readonly string SPLIT_RE = @";(?=(?:[^""]*""[^""]*"")*(?![^""]*""))";
 		private static readonly string LINE_SPLIT_RE = @"\r\n|\n\r|\n|\r";
@@ -56,15 +55,12 @@ namespace Threadlink.Utilities.Text
 				for (var j = 0; j < headerLength && j < valueLength; j++)
 				{
 					string value = values[j];
-					value = value.TrimStart(TRIM_CHARS).TrimEnd(TRIM_CHARS).Replace("\\", EmptyString);
+					value = value.TrimStart(TRIM_CHARS).TrimEnd(TRIM_CHARS).Replace("\\", string.Empty);
 					object finalvalue = value;
 
-					int integerResult;
-					float floatResult;
-
-					if (int.TryParse(value, out integerResult))
+					if (int.TryParse(value, out int integerResult))
 						finalvalue = integerResult;
-					else if (float.TryParse(value, out floatResult))
+					else if (float.TryParse(value, out float floatResult))
 						finalvalue = floatResult;
 
 					entry[header[j]] = finalvalue;

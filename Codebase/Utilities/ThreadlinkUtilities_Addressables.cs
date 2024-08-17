@@ -97,9 +97,11 @@ namespace Threadlink.Utilities.Addressables
 		{
 			get
 			{
-				if (Handle.IsValid() == false) return null;
+				if (Handle.IsValid() == false || Handle.Result == null) return null;
 
-				return Handle.Result != null ? Handle.Result.GetComponent<T>() : null;
+				Handle.Result.TryGetComponent<T>(out var result);
+
+				return result;
 			}
 		}
 		public override string LinkID => addressableInfo.assetAddress;
@@ -171,7 +173,11 @@ namespace Threadlink.Utilities.Addressables
 			{
 				yield return Result.ActivateAsync();
 
-				SceneManager.SetActiveScene(Result.Scene);
+				if (SceneManager.SetActiveScene(Result.Scene) == false)
+				{
+					UnityConsole.Notify(DebugNotificationType.Error,
+					"Scene Manager failed to activate the requested scene, because it is not loaded! This should never happen!");
+				}
 			}
 		}
 
