@@ -1,17 +1,17 @@
 namespace Threadlink.Systems.Nexus
 {
+	using Core;
+	using Extensions.Nexus;
 	using System.Collections;
-	using Threadlink.Core;
-	using Threadlink.Extensions.Nexus;
-	using Threadlink.Systems.Initium;
-	using Threadlink.Utilities.Collections;
+	using Systems.Initium;
 	using UnityEngine;
+	using Utilities.Collections;
 	using Utilities.Events;
 
 	/// <summary>
 	/// System responsible for scene and player loading during Threadlink's runtime.
 	/// </summary>
-	public sealed class Nexus : ThreadlinkSystem<Nexus, LinkableBehaviour>
+	public sealed class Nexus : UnitySystem<Nexus, LinkableBehaviour>
 	{
 		public static PlayerLoaderExtension CustomPlayerLoader => Instance.customPlayerLoader;
 

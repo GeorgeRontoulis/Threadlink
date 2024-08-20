@@ -88,7 +88,7 @@ namespace Threadlink.Systems.Dextra
 	/// <summary>
 	/// System responsible for managing user interfaces, input and interactions (Input, UI, Interactables).
 	/// </summary>
-	public sealed class Dextra : ThreadlinkSystem<Dextra, UserInterface>
+	public sealed class Dextra : UnitySystem<Dextra, UserInterface>
 	{
 		public enum InputDevice { MouseKeyboard, XBOXController, DualSense }
 		public enum InputMode { Invalid = -1, UI = 0, Player = 1 }

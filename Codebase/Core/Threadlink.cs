@@ -28,7 +28,7 @@
 	/// The Core Game System. Controls all aspects of the runtime
 	/// and manages sub-systems and entities at the lowest level.
 	/// </summary>
-	public sealed class Threadlink : ThreadlinkSystem<Threadlink, LinkableBehaviour>
+	public sealed class Threadlink : UnitySystem<Threadlink, LinkableBehaviour>
 	{
 		private static readonly WaitForEndOfFrame waitForEndOfFrame = new();
 
@@ -62,7 +62,7 @@
 			var systems = addressables.coreSystems;
 			int length = systems.Length;
 
-			for (int i = 0; i < length; i++) Weave(systems[i].Result);
+			for (int i = 0; i < length; i++) Weave(new(systems[i].Result));
 
 			yield return Initium.Boot(LinkedEntities);
 			yield return Initium.Initialize(LinkedEntities);
