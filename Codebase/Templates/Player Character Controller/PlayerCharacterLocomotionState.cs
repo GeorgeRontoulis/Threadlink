@@ -1,7 +1,7 @@
 namespace Threadlink.Templates.PlayerCharacterController
 {
-	using Threadlink.StateMachines;
-	using Threadlink.Systems;
+	using StateMachines;
+	using Systems;
 	using UnityEngine;
 
 	[CreateAssetMenu(menuName = "Threadlink/Templates/Character Controller/States/Locomotion")]

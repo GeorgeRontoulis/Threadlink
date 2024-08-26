@@ -1,8 +1,6 @@
 namespace Threadlink.Templates.PlayerCharacterController
 {
-	using Threadlink.StateMachines;
+	using StateMachines;
 
-	public abstract class PlayerCharacterState : AbstractState<PlayerCharacterStateMachine>
-	{
-	}
+	public abstract class PlayerCharacterState : AbstractState<PlayerCharacterStateMachine> { }
 }

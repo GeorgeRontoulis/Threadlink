@@ -1,6 +1,6 @@
 namespace Threadlink.Templates.PlayerCharacterController
 {
-	using Threadlink.Utilities.Events;
+	using Utilities.Events;
 	using UnityEngine;
 
 	[CreateAssetMenu(menuName = "Threadlink/Templates/Character Controller/Processors/2D")]

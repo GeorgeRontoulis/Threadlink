@@ -1,9 +1,9 @@
 namespace Threadlink.Templates.PlayerCharacterController
 {
-	using Threadlink.StateMachines;
-	using Threadlink.Systems;
-	using Threadlink.Utilities.Events;
+	using StateMachines;
+	using Systems;
 	using UnityEngine;
+	using Utilities.Events;
 
 	[CreateAssetMenu(menuName = "Threadlink/Templates/Character Controller/Processors/Verticality")]
 	internal sealed class PlayerCharacterVerticalityProcessor : PlayerCharacterProcessor
@@ -28,10 +28,10 @@ namespace Threadlink.Templates.PlayerCharacterController
 		protected override VoidOutput Run(VoidInput _)
 		{
 			float yVelocity = this.yVelocity.CurrentValue;
-			Vector3 verticalVelocity = Vector3.up * yVelocity;
+			var verticalVelocity = yVelocity * Vector3.up;
 			float magnitude = Chronos.DeltaTime * (yVelocity > 0f ? 1 : gravityMultiplier);
 
-			Controller.Move(verticalVelocity * magnitude);
+			Controller.Move(magnitude * verticalVelocity);
 
 			return default;
 		}

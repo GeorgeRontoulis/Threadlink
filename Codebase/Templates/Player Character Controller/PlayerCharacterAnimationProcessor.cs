@@ -1,10 +1,10 @@
 namespace Threadlink.Templates.PlayerCharacterController
 {
-	using Threadlink.StateMachines;
-	using Threadlink.Systems;
-	using Threadlink.Utilities.Animation;
-	using Threadlink.Utilities.Events;
+	using StateMachines;
+	using Systems;
 	using UnityEngine;
+	using Utilities.Animation;
+	using Utilities.Events;
 
 	[CreateAssetMenu(menuName = "Threadlink/Templates/Character Controller/Processors/Animation")]
 	public sealed class PlayerCharacterAnimationProcessor : PlayerCharacterProcessor

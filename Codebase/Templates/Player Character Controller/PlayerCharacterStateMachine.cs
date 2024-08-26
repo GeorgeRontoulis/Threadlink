@@ -1,6 +1,6 @@
 namespace Threadlink.Templates.PlayerCharacterController
 {
-	using Threadlink.StateMachines;
+	using StateMachines;
 	using UnityEngine;
 
 	[CreateAssetMenu(menuName = "Threadlink/Templates/Character Controller/State Machine")]

@@ -2,9 +2,9 @@ namespace Threadlink.Templates.PlayerCharacterController
 {
 #if THREADLINK_INTEGRATIONS_FINALIK
 	using RootMotion.FinalIK;
+	using Systems;
 #endif
-	using Threadlink.Systems;
-	using Threadlink.Utilities.Events;
+	using Utilities.Events;
 	using UnityEngine;
 
 	[CreateAssetMenu(menuName = "Threadlink/Templates/Character Controller/Processors/IK")]
@@ -27,7 +27,11 @@ namespace Threadlink.Templates.PlayerCharacterController
 		{
 #if THREADLINK_INTEGRATIONS_FINALIK
 			if (Character.IsGrounded == false || Character.IsMoving) Grounder.weight = 0f;
-			else Grounder.weight = Mathf.MoveTowards(Grounder.weight, 1, Chronos.DeltaTime * 2);
+			else
+			{
+				float deltaTime = Chronos.DeltaTime;
+				Grounder.weight = Mathf.MoveTowards(Grounder.weight, 1, deltaTime + deltaTime);
+			}
 #endif
 			return default;
 		}
