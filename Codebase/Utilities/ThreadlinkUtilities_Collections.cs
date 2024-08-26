@@ -376,7 +376,7 @@ namespace Threadlink.Utilities.Collections
 			list.RemoveAt(lastElementIdx);
 		}
 
-		public static void BinarySearch<T>(this IList<T> collection, string id, out T result, bool logIndex = false) where T : IIdentifiable
+		public static int BinarySearch<T>(this IList<T> collection, string id, out T result, bool logIndex = false) where T : IIdentifiable
 		{
 			int BinarySearchIterative()
 			{
@@ -403,6 +403,7 @@ namespace Threadlink.Utilities.Collections
 
 			if (logIndex) UnityConsole.Notify(DebugNotificationType.Info, "Binary Search yielded object at index ", index);
 			result = index >= 0 ? collection[index] : default;
+			return index;
 		}
 
 		public static void BruteForceSearch<T>(this T[] collection, string id, out T result) where T : IIdentifiable

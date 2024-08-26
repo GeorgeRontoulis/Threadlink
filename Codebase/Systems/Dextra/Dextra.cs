@@ -223,15 +223,22 @@ namespace Threadlink.Systems.Dextra
 
 		#region UI Code:
 
+		private static void LogFailedInterfaceSearch()
+		{
+			Scribe.SystemLog<ArgumentException>(Instance.LinkID,
+			"Could not find the requested managed interface! This should never happen!");
+		}
+
+		private static void LogInterfaceAlreadyAtTopWarning()
+		{
+			Scribe.SystemLog(Instance.LinkID, Scribe.WarningNotif, "The requested interface to stack is already at the top!");
+		}
+
 		public static void StackInterface(string interfaceID)
 		{
 			Instance.FindManagedEntity(interfaceID, out var target);
 
-			if (target == null)
-			{
-				Scribe.SystemLog(Instance.LinkID, Scribe.ErrorNotif,
-				"Could not find the requested managed interface! This should never happen!");
-			}
+			if (target == null) LogFailedInterfaceSearch();
 			else StackInterface(target);
 		}
 
@@ -240,11 +247,7 @@ namespace Threadlink.Systems.Dextra
 		{
 			Instance.FindManagedEntity(interfaceID, out var target);
 
-			if (target == null)
-			{
-				Scribe.SystemLog(Instance.LinkID, Scribe.ErrorNotif,
-				"Could not find the requested managed interface! This should never happen!");
-			}
+			if (target == null) LogFailedInterfaceSearch();
 			else StackInterface(target, stackingData);
 		}
 
@@ -252,7 +255,7 @@ namespace Threadlink.Systems.Dextra
 		{
 			if (target.Equals(TopInterface))
 			{
-				Scribe.SystemLog(Instance.LinkID, Scribe.WarningNotif, "The requested interface to stack is already at the top!");
+				LogInterfaceAlreadyAtTopWarning();
 				return;
 			}
 
@@ -267,7 +270,7 @@ namespace Threadlink.Systems.Dextra
 		{
 			if (target.Equals(TopInterface))
 			{
-				Scribe.SystemLog(Instance.LinkID, Scribe.WarningNotif, "The requested interface to stack is already at the top!");
+				LogInterfaceAlreadyAtTopWarning();
 				return;
 			}
 
@@ -281,7 +284,7 @@ namespace Threadlink.Systems.Dextra
 			}
 			catch (Exception exception)
 			{
-				Scribe.LogException(exception);
+				Scribe.LogError<InvalidOperationException>(exception.Message);
 			}
 
 			target.OnStacked();

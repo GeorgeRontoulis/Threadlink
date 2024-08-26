@@ -10,6 +10,7 @@ namespace Threadlink.StateMachines
 	using Utilities.Events;
 	using UnityEngine;
 	using Utilities.Collections;
+	using System.IO;
 
 	public interface IStateMachinePointer
 	{
@@ -49,12 +50,7 @@ namespace Threadlink.StateMachines
 		{
 			parameters.BinarySearch(id, out var paramFound);
 
-			if (paramFound == null)
-			{
-				Scribe.LogError("The requested parameter could not be found! Check your request!");
-				result = null;
-				return;
-			}
+			if (paramFound == null) Scribe.LogError<FileNotFoundException>("The requested parameter could not be found! Check your request!");
 
 			result = paramFound as AbstractParameter<T>;
 		}
@@ -98,12 +94,7 @@ namespace Threadlink.StateMachines
 		{
 			processors.BinarySearch(id, out var processorFound);
 
-			if (processorFound == null)
-			{
-				Scribe.LogError("The requested processor could not be found! Check your request!");
-				result = null;
-				return;
-			}
+			if (processorFound == null) Scribe.LogError<FileNotFoundException>("The requested processor could not be found! Check your request!");
 
 			result = processorFound as AbstractProcessor<T>;
 		}
@@ -208,7 +199,7 @@ namespace Threadlink.StateMachines
 			}
 			catch (Exception exception)
 			{
-				Scribe.LogException(exception);
+				Scribe.LogError<InvalidOperationException>(exception.Message);
 			}
 
 			CurrentState.OnExit();

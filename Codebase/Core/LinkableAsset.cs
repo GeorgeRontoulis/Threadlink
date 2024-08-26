@@ -36,10 +36,7 @@ namespace Threadlink.Core
 		public static T Create<T>(string assetName) where T : LinkableAsset
 		{
 			if (string.IsNullOrEmpty(assetName))
-			{
-				Scribe.LogException(new NullReferenceException("Linkable Asset name cannot be null or empty!"));
-				return null;
-			}
+				Scribe.LogError<ArgumentException>("Linkable Asset name cannot be null or empty!");
 
 			var output = CreateInstance<T>();
 

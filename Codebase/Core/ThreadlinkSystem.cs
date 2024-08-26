@@ -1,8 +1,8 @@
 ﻿namespace Threadlink.Core
 {
+	using System;
 	using System.Collections.Generic;
 	using Systems;
-	using UnityEngine;
 	using Utilities.Collections;
 
 	public interface IScriptableWeavingData<T> where T : ILinkable { }
@@ -60,9 +60,9 @@
 				{
 					LinkedEntities[i].Discard();
 				}
-				catch (System.Exception exception)
+				catch (Exception exception)
 				{
-					Scribe.SystemLog(LinkID, Scribe.ErrorNotif, exception.Message);
+					Scribe.SystemLog<InvalidOperationException>(LinkID, exception.Message);
 				}
 			}
 
@@ -101,14 +101,11 @@
 		{
 			if (instance == null)
 			{
-				Scribe.SystemLog(LinkID, Scribe.ErrorNotif, "The requested Entity to link is NULL!");
-				return default;
+				Scribe.SystemLog<ArgumentNullException>(LinkID, "The requested Entity to link is NULL!");
 			}
 			else if (LinkedEntities.Contains(instance))
 			{
-				Scribe.SystemLog(LinkID, Scribe.ErrorNotif, "The requested Entity to link is already linked! Discarding the duplicate Entity!");
-				instance.Discard();
-				return default;
+				Scribe.SystemLog<InvalidOperationException>(LinkID, "The requested Entity to link is already linked!");
 			}
 
 			LinkedEntities.Add(instance);
@@ -128,25 +125,20 @@
 		{
 			if (entity == null)
 			{
-				Scribe.SystemLog(LinkID, Scribe.ErrorNotif, "The requested Entity to sever is NULL!");
-				return;
+				Scribe.SystemLog<ArgumentNullException>(LinkID, "The requested Entity to sever is NULL!");
 			}
-
-			void DiscardTargetEntity() { entity.Discard(); }
 
 			if (LinkedEntities.Contains(entity))
 			{
 				LinkedEntities.RemoveEfficiently(LinkedEntities.IndexOf(entity));
-				DiscardTargetEntity();
+				entity.Discard();
 				EntityListAlteredSinceLastSort = true;
 				if (logAction) Scribe.SystemLog(LinkID, Scribe.InfoNotif, "Severed Entity ", entity.LinkID, ".");
 			}
 			else
 			{
-				Scribe.SystemLog(LinkID, Scribe.ErrorNotif, "A Sever request was made for Entity ", entity.LinkID,
-				", however it's not managed by ", LinkID, ". This is probably a memory leak and should never happen! Discarding the Entity...");
-
-				DiscardTargetEntity();
+				Scribe.SystemLog<InvalidOperationException>(LinkID, "A Sever request was made for Entity ", entity.LinkID,
+				", however it's not managed by ", LinkID, ". This is probably a memory leak and should never happen!");
 			}
 		}
 
@@ -160,8 +152,7 @@
 		{
 			if (instance == null)
 			{
-				Scribe.SystemLog(LinkID, Scribe.ErrorNotif, "The requested Entity to disconnect is NULL!");
-				return;
+				Scribe.SystemLog<ArgumentNullException>(LinkID, "The requested Entity to disconnect is NULL!");
 			}
 
 			if (LinkedEntities.Contains(instance))
@@ -172,10 +163,8 @@
 			}
 			else
 			{
-				Scribe.SystemLog(LinkID, Scribe.ErrorNotif, "A Disconnect request was made for Entity ", instance.LinkID,
-				", however it's not managed by ", LinkID, ". This is probably a memory leak and should never happen! Discarding the Entity...");
-
-				instance.Discard();
+				Scribe.SystemLog<InvalidOperationException>(LinkID, "A Disconnect request was made for Entity ", instance.LinkID,
+				", however it's not managed by ", LinkID, ". This is probably a memory leak and should never happen!");
 			}
 		}
 	}
@@ -187,14 +176,13 @@
 	/// </summary>
 	public abstract class UnitySystem<SingletonType, ManagedType> : ThreadlinkSystem<SingletonType, ManagedType, UnityWeavingData<ManagedType>>
 	where SingletonType : LinkableBehaviourSingleton<SingletonType>
-	where ManagedType : Object, ILinkable
+	where ManagedType : UnityEngine.Object, ILinkable
 	{
 		public override ManagedType Weave(UnityWeavingData<ManagedType> data, bool logAction = false)
 		{
 			if (data.Original == null)
 			{
-				Scribe.SystemLog(LinkID, Scribe.ErrorNotif, "The requested Entity to weave is NULL!");
-				return null;
+				Scribe.SystemLog<ArgumentNullException>(LinkID, "The requested Entity to weave is NULL!");
 			}
 
 			var copy = Instantiate(data.Original);
@@ -220,7 +208,7 @@
 	where SingletonType : LinkableBehaviourSingleton<SingletonType>
 	where ManagedType : ILinkable, new()
 	{
-		public override ManagedType Weave(NativeWeavingData<ManagedType> data, bool logAction = false)
+		public override ManagedType Weave(NativeWeavingData<ManagedType> data = default, bool logAction = false)
 		{
 			var copy = new ManagedType();
 			LinkedEntities.Add(copy);

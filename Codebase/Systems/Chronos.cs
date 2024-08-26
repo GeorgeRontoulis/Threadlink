@@ -1,6 +1,7 @@
 namespace Threadlink.Systems
 {
 	using Core;
+	using System;
 	using UnityEngine;
 	using Utilities.Events;
 
@@ -126,7 +127,7 @@ namespace Threadlink.Systems
 
 		private static void LogInvalidTimescaleWarning()
 		{
-			Scribe.SystemLog(Instance.LinkID, Scribe.WarningNotif,
+			Scribe.SystemLog<ArgumentException>(Instance.LinkID,
 			"Invalid Timescale requested! Valid values are 0 and 1. Check your Timescale assignments!");
 		}
 

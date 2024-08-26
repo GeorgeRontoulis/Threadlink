@@ -134,6 +134,9 @@
 		}
 		#endregion
 
+		private const string SearchNullAddressablesExtensionError =
+		"A request to search the Addressables Extension was made, however no extension has been provided! Please provide an extension before proceeding!";
+
 		#region Addressables Lookup Methods
 		public static void FindAddressablePrefab<AddressableType, PrefabType>(string prefabID, out AddressableType result)
 		where AddressableType : AddressablePrefab<PrefabType> where PrefabType : Component
@@ -148,8 +151,7 @@
 			}
 			else
 			{
-				Scribe.SystemLog(Instance.LinkID, Scribe.ErrorNotif,
-				"A request to search the Addressables Extension was made, however no extension has been provided! Please provide an extension before proceeding!");
+				Scribe.SystemLog<NullReferenceException>(Instance.LinkID, SearchNullAddressablesExtensionError);
 				result = null;
 			}
 		}
@@ -167,8 +169,7 @@
 			}
 			else
 			{
-				Scribe.SystemLog(Instance.LinkID, Scribe.ErrorNotif,
-				"A request to search the Addressables Extension was made, however no extension has been provided! Please provide an extension before proceeding!");
+				Scribe.SystemLog<NullReferenceException>(Instance.LinkID, SearchNullAddressablesExtensionError);
 				result = null;
 			}
 		}
@@ -183,11 +184,7 @@
 		{
 			var extension = Addressables.customExtension;
 
-			if (extension == null)
-			{
-				result = null;
-				return;
-			}
+			if (extension == null) Scribe.SystemLog<NullReferenceException>(Instance.LinkID, "No Custom Addressables Extension specified!");
 
 			result = extension as T;
 		}

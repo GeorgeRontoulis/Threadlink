@@ -1,7 +1,7 @@
 namespace Threadlink.Systems
 {
+	using Core;
 	using System;
-	using Threadlink.Core;
 	using Utilities.UnityLogging;
 	using String = Utilities.Text.String;
 
@@ -18,8 +18,8 @@ namespace Threadlink.Systems
 		[UnityEngine.SerializeField] private bool pauseOnSystemLog = false;
 #endif
 
-		public override void Boot() { }
-		public override void Initialize() { Instance = this; }
+		public override void Boot() { Instance = this; }
+		public override void Initialize() { }
 
 		public static void SystemLog(string systemID, DebugNotificationType logType, params string[] message)
 		{
@@ -36,13 +36,33 @@ namespace Threadlink.Systems
 				LogWarning(systemMessage);
 				break;
 				case ErrorNotif:
-				LogError(systemMessage);
+				LogError<ApplicationException>(systemMessage);
 				break;
 			}
 
 #if UNITY_EDITOR
 			if (Instance != null && Instance.pauseOnSystemLog) UnityEditor.EditorApplication.isPaused = true;
 #endif
+#endif
+		}
+
+		/// <summary>
+		/// Exception overload of the <see cref="SystemLog(string, DebugNotificationType, string[])"/> method. Throws the exception when called.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="systemID"></param>
+		/// <param name="message"></param>
+		public static void SystemLog<T>(string systemID, params string[] message)
+		where T : Exception, new()
+		{
+			//We are not restricting this piece of code to the #THREADLINK_SCRIBE
+			//define symbol to keep the throwing functionality for reusability.
+			string temp = String.Construct(message);
+			string systemMessage = String.Construct("[", systemID, "] - ", temp);
+
+			LogError<T>(systemMessage);
+#if UNITY_EDITOR
+			if (Instance != null && Instance.pauseOnSystemLog) UnityEditor.EditorApplication.isPaused = true;
 #endif
 		}
 
@@ -60,18 +80,11 @@ namespace Threadlink.Systems
 #endif
 		}
 
-		public static void LogError(params string[] message)
+		public static void LogError<T>(string exceptionMessage) where T : Exception, new()
 		{
-#if THREADLINK_SCRIBE
-			UnityConsole.Notify(ErrorNotif, message);
-#endif
-		}
-
-		public static void LogException(Exception exception)
-		{
-#if THREADLINK_SCRIBE
-			UnityConsole.Notify(ErrorNotif, exception);
-#endif
+			//We are not restricting this piece of code to the #THREADLINK_SCRIBE
+			//define symbol to keep the throwing functionality for reusability.
+			throw (T)Activator.CreateInstance(typeof(T), exceptionMessage);
 		}
 	}
 }

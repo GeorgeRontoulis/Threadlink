@@ -99,7 +99,7 @@ namespace Threadlink.Utilities.Editor
 		public static T[] FindAssetsOfType<T>() where T : Object
 		{
 			string assetType = typeof(T).Name;
-			string[] guids = AssetDatabase.FindAssets($"t:{assetType}");
+			var guids = AssetDatabase.FindAssets($"t:{assetType}");
 			int length = guids.Length;
 			var assets = new T[length];
 

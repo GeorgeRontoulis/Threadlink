@@ -1,5 +1,6 @@
 ﻿namespace Threadlink.Core
 {
+	using System;
 	using System.Collections;
 	using Systems;
 	using UnityEngine;
@@ -17,11 +18,12 @@
 
 			while (handle.IsDone == false) yield return null;
 
-			bool initialized = AddressablesUtilities.Succeeded(handle);
-			var notifType = initialized ? Scribe.InfoNotif : Scribe.ErrorNotif;
-			string notification = initialized ? "Successfully initialized Addressables!" : "Addressables failed to initialize! Aborting!";
+			const string id = "Addressables Initializer";
 
-			Scribe.SystemLog("Addressables Initializer", notifType, notification);
+			if (AddressablesUtilities.Succeeded(handle))
+				Scribe.SystemLog(id, Scribe.InfoNotif, "Successfully initialized Addressables!");
+			else
+				Scribe.SystemLog<OperationCanceledException>(id, "Addressables failed to initialize! Aborting!");
 
 			handle.TryRelease();
 
