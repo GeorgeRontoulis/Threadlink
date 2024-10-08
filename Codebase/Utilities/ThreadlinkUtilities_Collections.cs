@@ -2,6 +2,7 @@ namespace Threadlink.Utilities.Collections
 {
 #if UNITY_EDITOR
 	using Editor;
+	using UnityEditor;
 #endif
 	using RNG;
 	using String = Text.String;
@@ -11,6 +12,7 @@ namespace Threadlink.Utilities.Collections
 	using UnityEngine;
 	using UnityEngine.InputSystem.Utilities;
 	using Threadlink.Utilities.UnityLogging;
+	using FullSerializer;
 
 	public interface IIdentifiable { string LinkID { get; } }
 
@@ -251,6 +253,65 @@ namespace Threadlink.Utilities.Collections
 		}
 	}
 
+	[Serializable]
+	public class HybridDictionary<TKey, TValue> : ISerializationCallbackReceiver
+	{
+		// Public indexer for accessing dictionary values
+		public TValue this[TKey key] => dictionary[key];
+
+#if UNITY_EDITOR
+		// FullSerializer object for handling editor-only serialization
+		private static readonly fsSerializer serializer = new();
+
+		// Serialized field to store the dictionary's JSON string (Editor only)
+		[SerializeField, HideInInspector] private string serializedData;
+#endif
+
+		// The actual dictionary that will be used at runtime
+		public Dictionary<TKey, TValue> dictionary = new();
+
+		// This method will be called before Unity serializes this object
+		public void OnBeforeSerialize()
+		{
+#if UNITY_EDITOR
+			// Use FullSerializer to serialize the dictionary to JSON only in Editor mode
+			if (dictionary != null)
+			{
+				serializer.TrySerialize(dictionary, out fsData data).AssertSuccessWithoutWarnings();
+				serializedData = fsJsonPrinter.CompressedJson(data); // Store the serialized JSON
+			}
+#endif
+		}
+
+		// This method will be called after Unity deserializes this object
+		public void OnAfterDeserialize()
+		{
+#if UNITY_EDITOR
+			if (!string.IsNullOrEmpty(serializedData))
+			{
+				// Editor: Deserialize the JSON back into the dictionary
+				fsData data = fsJsonParser.Parse(serializedData);
+				Dictionary<TKey, TValue> deserializedDictionary = null;
+				serializer.TryDeserialize(data, ref deserializedDictionary).AssertSuccessWithoutWarnings();
+
+				if (deserializedDictionary != null) dictionary = deserializedDictionary;
+			}
+#endif
+		}
+
+		// Utility methods for manipulating the dictionary
+		public bool TryAddItem(TKey key, TValue value)
+		{
+			return dictionary.TryAdd(key, value);
+		}
+
+		public void RemoveItem(TKey key)
+		{
+			dictionary.Remove(key);
+		}
+	}
+
+
 	public static class Collections
 	{
 		public static void SortByID(this IIdentifiable[] collection, UnityEngine.Object collectionOwner = null)
@@ -376,7 +437,7 @@ namespace Threadlink.Utilities.Collections
 			list.RemoveAt(lastElementIdx);
 		}
 
-		public static int BinarySearch<T>(this IList<T> collection, string id, out T result, bool logIndex = false) where T : IIdentifiable
+		public static int BinarySearch<T>(this IReadOnlyList<T> collection, string id, out T result, bool logIndex = false) where T : IIdentifiable
 		{
 			int BinarySearchIterative()
 			{

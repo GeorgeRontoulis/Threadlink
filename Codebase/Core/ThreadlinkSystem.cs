@@ -1,9 +1,11 @@
 ﻿namespace Threadlink.Core
 {
+	using Cysharp.Threading.Tasks;
 	using System;
 	using System.Collections.Generic;
 	using Systems;
 	using Utilities.Collections;
+	using Utilities.Events;
 
 	public interface IScriptableWeavingData<T> where T : ILinkable { }
 	public struct UnityWeavingData<T> : IScriptableWeavingData<T> where T : ILinkable
@@ -24,15 +26,16 @@
 		protected bool EntityListAlteredSinceLastSort { get; set; }
 		protected List<ManagedType> LinkedEntities { get; private set; }
 
-		public override void Discard()
+		public override VoidOutput Discard(VoidInput _ = default)
 		{
 			LinkedEntities = null;
 			Instance = null;
-			base.Discard();
+			return base.Discard(_);
 		}
 
 		public override void Boot()
 		{
+			base.Boot();
 			LinkedEntities = new();
 			EntityListAlteredSinceLastSort = true;
 		}
@@ -97,7 +100,7 @@
 		/// <param name="instance">The existing <typeparamref name="Entity"/>.</param>
 		/// <param name="logAction">Whether to provide console logs of the process.</param>
 		/// <returns>The linked <typeparamref name="Entity"/>.</returns>
-		public Entity Link<Entity>(Entity instance, bool logAction = false) where Entity : ManagedType
+		public virtual Entity Link<Entity>(Entity instance, bool logAction = false) where Entity : ManagedType
 		{
 			if (instance == null)
 			{
@@ -148,7 +151,7 @@
 		/// </summary>
 		/// <param name="instance">The existing <typeparamref name="ManagedType"/>.</param>
 		/// <param name="logAction">Whether to provide console logs of the process.</param>
-		public void Disconnect(ManagedType instance, bool logAction = false)
+		public virtual void Disconnect(ManagedType instance, bool logAction = false)
 		{
 			if (instance == null)
 			{

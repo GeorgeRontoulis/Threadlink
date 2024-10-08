@@ -3,8 +3,8 @@ namespace Threadlink.Systems.Dextra
 	using Core;
 	using Extensions.Dextra;
 	using System;
-	using System.Collections;
 	using System.Collections.Generic;
+	using System.Reflection;
 	using UnityEngine;
 	using UnityEngine.EventSystems;
 	using UnityEngine.InputSystem;
@@ -12,6 +12,11 @@ namespace Threadlink.Systems.Dextra
 	using Utilities.Events;
 	using Context = UnityEngine.InputSystem.InputAction.CallbackContext;
 	using VoidDelegate = Utilities.Events.ThreadlinkDelegate<Utilities.Events.VoidOutput, Utilities.Events.VoidInput>;
+
+#if ODIN_INSPECTOR
+	using Threadlink.Utilities.Addressables;
+	using Cysharp.Threading.Tasks;
+#endif
 
 	[Flags]
 	public enum UIStackingCallbackSettings
@@ -27,20 +32,6 @@ namespace Threadlink.Systems.Dextra
 	public interface IScriptableStackingDataProcessor<T> where T : IScriptableStackingData
 	{
 		public void Process(T data);
-	}
-
-	public struct ControllerVibrationData
-	{
-		internal CustomYieldInstruction WaitInstruction { get; private set; }
-		internal float LowFrequency { get; set; }
-		internal float HighFrequency { get; set; }
-
-		public ControllerVibrationData(float lowFrequency, float highFrequency, CustomYieldInstruction waitInstruction = null)
-		{
-			WaitInstruction = waitInstruction;
-			LowFrequency = lowFrequency;
-			HighFrequency = highFrequency;
-		}
 	}
 
 	[Serializable]
@@ -60,6 +51,12 @@ namespace Threadlink.Systems.Dextra
 			Handler = null;
 		}
 
+		private static void LogNullInputActionWarning(MethodInfo method)
+		{
+			Scribe.SystemLog(Dextra.Instance.LinkID, Scribe.WarningNotif,
+			"Input Action has not been assigned for ", method.Name, "!");
+		}
+
 		public void Handle(Action action)
 		{
 			if (InputAction != null)
@@ -67,7 +64,7 @@ namespace Threadlink.Systems.Dextra
 				Handler = (Context ctx) => Dextra.PerformContextualAction(action);
 				Subscribe();
 			}
-			else Scribe.LogWarning("Input Action has not been assigned for ", action.Method.Name, "!");
+			else LogNullInputActionWarning(action.Method);
 		}
 
 		public void Handle(Action<T> action)
@@ -77,7 +74,7 @@ namespace Threadlink.Systems.Dextra
 				Handler = (Context ctx) => Dextra.PerformContextualAction(action, ctx.ReadValue<T>());
 				Subscribe();
 			}
-			else Scribe.LogWarning("Input Action has not been assigned for ", action.Method.Name, "!");
+			else LogNullInputActionWarning(action.Method);
 		}
 
 		private void Subscribe() { InputAction.performed += Handler; }
@@ -88,7 +85,7 @@ namespace Threadlink.Systems.Dextra
 	/// <summary>
 	/// System responsible for managing user interfaces, input and interactions (Input, UI, Interactables).
 	/// </summary>
-	public sealed class Dextra : UnitySystem<Dextra, UserInterface>
+	public sealed class Dextra : UnitySystem<Dextra, UserInterface>, IAssetPreloader
 	{
 		public enum InputDevice { MouseKeyboard, XBOXController, DualSense }
 		public enum InputMode { Invalid = -1, UI = 0, Player = 1 }
@@ -133,18 +130,20 @@ namespace Threadlink.Systems.Dextra
 		private static Gamepad CurrentGamepad => Gamepad.current;
 		private static EventSystem EventSystem => Instance.eventSystem;
 
-		private static Coroutine controllerVibration = null;
-
 		[SerializeField] private EventSystem eventSystem = null;
 		[SerializeField] private PlayerInput deviceDetector = null;
 		[SerializeField] private DextraInputModuleExtension customInputModule = null;
 
-		private VoidGenericEvent<RectTransform> onElementSelected = new();
-		private VoidGenericEvent<InputDevice> onInputDeviceChanged = new();
-		private VoidGenericEvent<InputMode> onInputModeChanged = new();
-		private VoidEvent onInterfaceCancelled = new();
+		[Space(10)]
 
-		public override void Discard()
+		[SerializeField] private AddressablePrefab<UserInterface>[] userInterfaceReferences = new AddressablePrefab<UserInterface>[0];
+
+		[NonSerialized] private VoidGenericEvent<RectTransform> onElementSelected = new();
+		[NonSerialized] private VoidGenericEvent<InputDevice> onInputDeviceChanged = new();
+		[NonSerialized] private VoidGenericEvent<InputMode> onInputModeChanged = new();
+		[NonSerialized] private VoidEvent onInterfaceCancelled = new();
+
+		public override VoidOutput Discard(VoidInput _ = default)
 		{
 			deviceDetector.onControlsChanged -= UpdateInputDevice;
 
@@ -154,8 +153,13 @@ namespace Threadlink.Systems.Dextra
 			onInterfaceCancelled?.Discard();
 
 			if (customInputModule != null) customInputModule.Discard();
-			DisconnectAll();
 
+			SeverAll();
+
+			int length = userInterfaceReferences.Length;
+			for (int i = 0; i < length; i++) userInterfaceReferences[i].Unload();
+
+			userInterfaceReferences = null;
 			eventSystem = null;
 			deviceDetector = null;
 			customInputModule = null;
@@ -164,15 +168,23 @@ namespace Threadlink.Systems.Dextra
 			onInputDeviceChanged = null;
 			onElementSelected = null;
 			onInterfaceCancelled = null;
+			return base.Discard(_);
+		}
 
-			base.Discard();
+		public async UniTask PreloadAssetsAsync()
+		{
+			int length = userInterfaceReferences.Length;
+			var tasks = new UniTask[length];
+
+			for (int i = 0; i < length; i++) tasks[i] = userInterfaceReferences[i].LoadAsync();
+
+			await UniTask.WhenAll(tasks);
 		}
 
 		public override void Boot()
 		{
+			base.Boot();
 			StackedInterfaces = new();
-			controllerVibration = null;
-			Instance = this;
 
 			deviceDetector.onControlsChanged += UpdateInputDevice;
 
@@ -181,32 +193,33 @@ namespace Threadlink.Systems.Dextra
 				customInputModule = customInputModule.Clone();
 				customInputModule.Boot();
 			}
-
-			base.Boot();
 		}
 
 		public override void Initialize()
 		{
-			var interfaces = FindObjectsByType<UserInterface>(FindObjectsSortMode.None);
+			var interfaces = new UserInterface[userInterfaceReferences.Length];
 			int length = interfaces.Length;
-
-			for (int i = 0; i < length; i++) interfaces[i].Boot();
 
 			for (int i = 0; i < length; i++)
 			{
-				interfaces[i].Initialize();
-				Link(interfaces[i]);
+				var ui = Weave(new(userInterfaceReferences[i].Result));
+
+				ui.Boot();
+				interfaces[i] = ui;
 			}
+
+			for (int i = 0; i < length; i++) interfaces[i].Initialize();
 
 			if (customInputModule != null) customInputModule.Initialize();
 		}
 
 		#region Interaction Code:
-		public static void Cancel()
+		public static async UniTaskVoid Cancel()
 		{
 			if (TopInterface != null && TopInterface.CanBeCancelled)
 			{
-				var poppedInterface = PopTopInterface();
+				var poppedInterface = await PopTopInterface();
+
 				if (poppedInterface != null)
 				{
 					poppedInterface.OnCancelled();
@@ -290,11 +303,11 @@ namespace Threadlink.Systems.Dextra
 			target.OnStacked();
 		}
 
-		public static UserInterface PopTopInterface()
+		public static async UniTask<UserInterface> PopTopInterface()
 		{
 			if (TopInterface != null && TopInterface.UpdatingAlpha == false)
 			{
-				SelectUIElement(null);
+				await SelectUIElement(null);
 
 				var previous = StackedInterfaces.Pop();
 
@@ -309,37 +322,40 @@ namespace Threadlink.Systems.Dextra
 
 		public static void SyncSelection()
 		{
-			Instance.onElementSelected?.Invoke(EventSystem.currentSelectedGameObject.transform as RectTransform);
+			var selectedObject = EventSystem.currentSelectedGameObject;
+
+			if (selectedObject != null) Instance.onElementSelected?.Invoke(selectedObject.transform as RectTransform);
 		}
 
-		public static void SelectUIElement(GameObject element, bool syncSelection = true)
+		public static async UniTask SelectUIElement(GameObject element, bool syncSelection = true)
 		{
 			static void Select(GameObject selectable) { EventSystem.SetSelectedGameObject(selectable); }
+			static void InvokeSelectionEvent() { Instance.onElementSelected?.Invoke(default); }
+
+			var eventSysGO = EventSystem.gameObject;
+
+			await UniTask.NextFrame();
 
 			if (element != null)
 			{
-				IEnumerator Selection()
-				{
-					static IEnumerator WaitForOneFrame() { yield return Threadlink.WaitForFrameCount(1); }
+				Select(null);
+				eventSysGO.SetActive(false);
+				await UniTask.NextFrame();
+				eventSysGO.SetActive(true);
+				Select(element);
 
-					yield return WaitForOneFrame();
+				await UniTask.NextFrame();
 
-					Select(null);
-
-					yield return WaitForOneFrame();
-
-					Select(element);
-					if (syncSelection) SyncSelection();
-					else Instance.onElementSelected?.Invoke(default);
-				}
-
-				Threadlink.LaunchCoroutine(Selection());
+				if (syncSelection) SyncSelection();
+				else InvokeSelectionEvent();
 			}
 			else
 			{
 				Select(null);
-				Instance.onElementSelected?.Invoke(default);
+				InvokeSelectionEvent();
 			}
+
+			return;
 		}
 		#endregion
 
@@ -364,7 +380,7 @@ namespace Threadlink.Systems.Dextra
 			CurrentInputDevice = newDevice;
 			Instance.onInputDeviceChanged?.Invoke(newDevice);
 
-			ForceStopControllerVibration();
+			//ForceStopControllerVibration();
 		}
 
 		public static void PerformContextualAction(VoidDelegate action) { action?.Invoke(default); }
@@ -372,50 +388,6 @@ namespace Threadlink.Systems.Dextra
 		public static void PerformContextualAction<T>(Action<T> action, T arg) { action(arg); }
 		public static void PerformContextualAction<T>(Action<T[]> action, params T[] args) { action(args); }
 		public static void SetEventSystemActiveState(bool state) { EventSystem.gameObject.SetActive(state); }
-
-		/// <summary>
-		/// Vibrates the currently connected controller using the specified data.
-		/// IMPORTANT: Cancels the current vibration if the controller is already vibrating.
-		/// Does nothing if no controller is found.
-		/// </summary>
-		/// <param name="vibrationData">The data used for the vibration.</param>
-		public static void VibrateController(ControllerVibrationData vibrationData)
-		{
-			if (CurrentInputDevice.Equals(InputDevice.MouseKeyboard)) return;
-
-			var currentGamepad = CurrentGamepad;
-
-			if (currentGamepad != null)
-			{
-				IEnumerator VibrateForSeconds()
-				{
-					currentGamepad?.SetMotorSpeeds(vibrationData.LowFrequency, vibrationData.HighFrequency);
-
-					var yieldInstruction = vibrationData.WaitInstruction;
-
-					if (yieldInstruction != null) yield return yieldInstruction;
-
-					currentGamepad?.ResetHaptics();
-					controllerVibration = null;
-				}
-
-				Threadlink.StopCoroutine(ref controllerVibration);
-				controllerVibration = Threadlink.LaunchCoroutine(VibrateForSeconds(), false);
-			}
-		}
-
-		public static void VibrateController(float lof, float hif)
-		{
-			if (CurrentInputDevice.Equals(InputDevice.MouseKeyboard)) return;
-
-			CurrentGamepad?.SetMotorSpeeds(lof, hif);
-		}
-
-		public static void ForceStopControllerVibration()
-		{
-			Threadlink.StopCoroutine(ref controllerVibration);
-			CurrentGamepad?.ResetHaptics();
-		}
 		#endregion
 	}
 }

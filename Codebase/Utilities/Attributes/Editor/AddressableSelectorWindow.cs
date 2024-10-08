@@ -6,6 +6,7 @@ namespace Threadlink.Utilities.Editor.Attributes
 	using UnityEditor.AddressableAssets;
 	using UnityEngine;
 	using Utilities.Collections;
+	using System.IO;
 
 	internal sealed class AddressableSelectorWindow : EditorWindow
 	{
@@ -63,11 +64,19 @@ namespace Threadlink.Utilities.Editor.Attributes
 
 				if (group != null)
 				{
-					var assetLabels = group.entries.Select(e => e.address).ToArray();
-					int assetIndex = Mathf.Max(0, System.Array.IndexOf(assetLabels, selectedAsset));
-					int newAssetIndex = EditorGUILayout.Popup("Asset Address:", assetIndex, assetLabels);
+					// Display only the asset name, but store the full address internally
+					var assetEntries = group.entries.Select(e => new { e.address, assetName = Path.GetFileNameWithoutExtension(e.address) }).ToArray();
+					var assetLabels = assetEntries.Select(e => e.assetName).ToArray();
 
-					if (newAssetIndex.IsWithinBoundsOf(assetLabels)) selectedAsset = assetLabels[newAssetIndex];
+					// Find the index of the currently selected asset
+					int assetIndex = Mathf.Max(0, System.Array.IndexOf(assetEntries.Select(e => e.address).ToArray(), selectedAsset));
+					int newAssetIndex = EditorGUILayout.Popup("Asset Name:", assetIndex, assetLabels);
+
+					// Store the selected asset's full address, but display only its name
+					if (newAssetIndex.IsWithinBoundsOf(assetEntries))
+					{
+						selectedAsset = assetEntries[newAssetIndex].address; // Use full address internally
+					}
 				}
 
 				GUILayout.Space(15);

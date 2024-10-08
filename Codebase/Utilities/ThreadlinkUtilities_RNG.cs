@@ -42,6 +42,23 @@ namespace Threadlink.Utilities.RNG
 			return new(ColorValue(), ColorValue(), ColorValue(), alpha);
 		}
 
+		public static void RandomPositionInVolume(Transform volumeTransform, Vector3 volumeCenter, Vector3 volumeSize, out Vector3 result)
+		{
+			float x = volumeSize.x * 0.5f;
+			float y = volumeSize.y * 0.5f;
+			float z = volumeSize.z * 0.5f;
+
+			float randomX = FloatFromRange(-x, x);
+			float randomY = FloatFromRange(-y, y);
+			float randomZ = FloatFromRange(-z, z);
+
+			volumeSize.x = randomX;
+			volumeSize.y = randomY;
+			volumeSize.z = randomZ;
+
+			result = volumeTransform.position + volumeCenter + volumeTransform.TransformDirection(volumeSize);
+		}
+
 		public static void Shuffle<T>(this IList<T> list)
 		{
 			int n = list.Count;

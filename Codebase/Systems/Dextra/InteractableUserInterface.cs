@@ -1,5 +1,6 @@
 namespace Threadlink.Systems.Dextra
 {
+	using Cysharp.Threading.Tasks;
 	using Threadlink.Utilities.Events;
 
 	public abstract class InteractableUserInterface<T> : UserInterface where T : DextraButton
@@ -8,7 +9,7 @@ namespace Threadlink.Systems.Dextra
 
 		protected T LastSelectedButton { get; set; }
 
-		public override void Discard()
+		public override VoidOutput Discard(VoidInput _ = default)
 		{
 			var buttons = Buttons;
 
@@ -19,8 +20,7 @@ namespace Threadlink.Systems.Dextra
 			}
 
 			LastSelectedButton = null;
-
-			base.Discard();
+			return base.Discard(_);
 		}
 
 		public override void Boot()
@@ -48,7 +48,7 @@ namespace Threadlink.Systems.Dextra
 
 		protected internal virtual void SelectLastSelectedButton()
 		{
-			Dextra.SelectUIElement(LastSelectedButton.gameObject);
+			Dextra.SelectUIElement(LastSelectedButton.gameObject).Forget();
 		}
 
 		public override void OnStacked()

@@ -14,6 +14,8 @@ namespace Threadlink.Templates.PlayerCharacterController
 		private IPlayerCharacter Character { get; set; }
 		private Grounder Grounder { get; set; }
 
+		[SerializeField] private bool solveWhileMoving = true;
+
 		public override void Initialize(PlayerCharacterStateMachine owner)
 		{
 			Character = owner.Owner;
@@ -26,7 +28,7 @@ namespace Threadlink.Templates.PlayerCharacterController
 		protected override VoidOutput Run(VoidInput _)
 		{
 #if THREADLINK_INTEGRATIONS_FINALIK
-			if (Character.IsGrounded == false || Character.IsMoving) Grounder.weight = 0f;
+			if (Character.IsGrounded == false || (solveWhileMoving == false && Character.IsMoving)) Grounder.weight = 0f;
 			else
 			{
 				float deltaTime = Chronos.DeltaTime;

@@ -9,6 +9,7 @@ namespace Threadlink.Systems.Dextra
 
 #if ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
+	using Cysharp.Threading.Tasks;
 #elif THREADLINK_INSPECTOR
 	using Utilities.Editor.Attributes;
 #endif
@@ -36,7 +37,7 @@ namespace Threadlink.Systems.Dextra
 			base.Reset();
 		}
 
-		public override void Discard()
+		public override VoidOutput Discard(VoidInput _ = default)
 		{
 			button.onClick.RemoveAllListeners();
 			onSelect.Discard();
@@ -44,6 +45,7 @@ namespace Threadlink.Systems.Dextra
 			onSelect = null;
 			onDeselect = null;
 			button = null;
+			return base.Discard(_);
 		}
 
 		public override void Boot() { }
@@ -51,7 +53,7 @@ namespace Threadlink.Systems.Dextra
 
 		public void OnPointerEnter(PointerEventData eventData)
 		{
-			Dextra.SelectUIElement(button.gameObject, SyncSelection);
+			Dextra.SelectUIElement(button.gameObject, SyncSelection).Forget();
 		}
 
 		void ISelectHandler.OnSelect(BaseEventData eventData)

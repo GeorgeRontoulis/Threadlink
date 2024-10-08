@@ -64,11 +64,11 @@ namespace Threadlink.Utilities.Events
 		{
 		}
 
-		public override void Discard()
+		public override VoidOutput Discard(VoidInput _ = default)
 		{
 			int length = events.Length;
 			for (int i = 0; i < length; i++) events[i].Discard();
-			base.Discard();
+			return base.Discard(_);
 		}
 	}
 }

@@ -33,7 +33,7 @@ namespace Threadlink.Templates.PlayerCharacterController
 		[NonSerialized] private VoidEvent onStartSprintInput = new();
 		[NonSerialized] private VoidEvent onStopSprintInput = new();
 
-		public override void Discard()
+		public override VoidOutput Discard(VoidInput _ = default)
 		{
 			Dextra.OnPauseButtonPressed -= StackPauseMenu;
 
@@ -52,7 +52,7 @@ namespace Threadlink.Templates.PlayerCharacterController
 			onStartSprintInput = null;
 			onStopSprintInput = null;
 
-			base.Discard();
+			return base.Discard(_);
 		}
 
 		public override void Initialize(PlayerCharacterStateMachine owner)
@@ -90,7 +90,7 @@ namespace Threadlink.Templates.PlayerCharacterController
 			Dextra.OnPauseButtonPressed += StackPauseMenu;
 			Dextra.OnInputModeChanged.TryAddListener(OnInputModeChanged);
 
-			Dextra.CurrentInputMode = Dextra.InputMode.Player;
+			//Dextra.CurrentInputMode = Dextra.InputMode.Player;
 
 			base.Initialize(owner);
 		}

@@ -40,13 +40,13 @@ namespace Threadlink.Systems.Dextra
 		}
 #endif
 
-		public override void Discard()
+		public override VoidOutput Discard(VoidInput _ = default)
 		{
 			Dextra.OnInputDeviceChanged.Remove(OnDeviceChanged);
 			promptImage = null;
 			promptLabel = null;
 			data = null;
-			base.Discard();
+			return base.Discard(_);
 		}
 
 		public override void Boot() { }

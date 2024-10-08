@@ -17,7 +17,7 @@
 		/// Nullifies all properties and fields of this <typeparamref name="ILinkable"/> and destroys it.
 		/// You can use <typeparamref name="OnBeforeDiscarded"/> to get a callback right before that happens.
 		/// </summary>
-		public void Discard();
+		public VoidOutput Discard(VoidInput _ = default);
 
 		public void Boot();
 		public void Initialize();

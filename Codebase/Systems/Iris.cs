@@ -21,19 +21,20 @@ namespace Threadlink.Systems
 			DiscardUpdateCallbacks();
 		}
 
-		public override void Discard()
+		public override VoidOutput Discard(VoidInput _ = default)
 		{
 			DiscardUpdateCallbacks();
-			base.Discard();
+			return base.Discard(_);
 		}
 
 		public override void Boot()
 		{
+			base.Boot();
 			OnUpdate ??= new();
 			OnFixedUpdate ??= new();
 			OnLateUpdate ??= new();
-			Instance = this;
 		}
+
 		public override void Initialize() { UpdateSelf = true; }
 
 		public static void SubscribeToUpdate(VoidDelegate action) { OnUpdate?.TryAddListener(action); }

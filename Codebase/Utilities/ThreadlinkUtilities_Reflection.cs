@@ -14,50 +14,101 @@ namespace Threadlink.Utilities.Reflection
 
 	public static class Reflection
 	{
-		public static ArrayType[] TryGetArrayOfType<OwnerType, ArrayType>(this OwnerType owner)
+		[Flags]
+		public enum MemberSearchFlags
+		{
+			Properties = 1 << 0,
+			Fields = 1 << 1,
+			Both = Properties | Fields
+		}
+
+		public static bool TryGetArrayOfType<OwnerType, ArrayType>(this OwnerType owner,
+		out ArrayType[] arrayFound, MemberSearchFlags searchFlags = MemberSearchFlags.Fields)
 		{
 			var ownerType = owner.GetType();
-			var properties = ownerType.GetProperties();
+			int length;
 
-			if (properties == null)
+			bool TryGetArrayFromProperties(out ArrayType[] result)
 			{
-				UnityConsole.Notify(DebugNotificationType.Warning, "No Properties found!");
-				return null;
+				var properties = ownerType.GetProperties();
+
+				if (properties == null)
+				{
+					UnityConsole.Notify(DebugNotificationType.Warning, "No Properties found!");
+					result = null;
+					return false;
+				}
+
+				length = properties.Length;
+
+				for (int i = 0; i < length; i++)
+				{
+					var info = properties[i];
+					var propertyTpe = info.PropertyType;
+
+					if (propertyTpe.IsArray && propertyTpe.GetElementType() == typeof(ArrayType))
+					{
+						result = (ArrayType[])info.GetValue(owner);
+						return true;
+					}
+				}
+
+				UnityConsole.Notify("Could not find requested array in Properties. Checking Fields.");
+				result = null;
+				return false;
 			}
 
-			int length = properties.Length;
-
-			for (int i = 0; i < length; i++)
+			bool TryGetArrayFromFields(out ArrayType[] result)
 			{
-				var info = properties[i];
-				var propertyTpe = info.PropertyType;
+				var fields = ownerType.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
-				if (propertyTpe.IsArray && propertyTpe.GetElementType() == typeof(ArrayType)) return (ArrayType[])info.GetValue(owner);
+				if (fields == null)
+				{
+					UnityConsole.Notify(DebugNotificationType.Warning, "No Fields found!");
+					result = null;
+					return false;
+				}
+
+				length = fields.Length;
+
+				for (int i = 0; i < length; i++)
+				{
+					var info = fields[i];
+					var fieldType = info.FieldType;
+
+					if (fieldType.IsArray && fieldType.GetElementType() == typeof(ArrayType))
+					{
+						result = (ArrayType[])info.GetValue(owner);
+						return true;
+					}
+				}
+
+				UnityConsole.Notify(DebugNotificationType.Warning, "Could not find requested array in Fields. Returning NULL.");
+				result = null;
+				return false;
 			}
 
-			UnityConsole.Notify("Could not find requested array in Properties. Checking Fields.");
-
-			var fields = ownerType.GetFields(BindingFlags.Instance | BindingFlags.NonPublic);
-
-			if (properties == null)
+			if (searchFlags.HasFlag(MemberSearchFlags.Both) &&
+			(TryGetArrayFromFields(out var array) || TryGetArrayFromProperties(out array)))
 			{
-				UnityConsole.Notify(DebugNotificationType.Warning, "No Fields found!");
-				return null;
+				arrayFound = array;
+				return true;
 			}
-
-			length = fields.Length;
-
-			for (int i = 0; i < length; i++)
+			else if (searchFlags.HasFlag(MemberSearchFlags.Fields) && TryGetArrayFromFields(out array))
 			{
-				var info = fields[i];
-				var fieldType = info.FieldType;
-
-				if (fieldType.IsArray && fieldType.GetElementType() == typeof(ArrayType)) return (ArrayType[])info.GetValue(owner);
+				arrayFound = array;
+				return true;
 			}
-
-			UnityConsole.Notify(DebugNotificationType.Warning, "Could not find requested array in Fields. Returning NULL.");
-
-			return null;
+			else if (searchFlags.HasFlag(MemberSearchFlags.Properties) && TryGetArrayFromProperties(out array))
+			{
+				arrayFound = array;
+				return true;
+			}
+			else
+			{
+				arrayFound = null;
+				return false;
+			}
 		}
 
 		public static Dictionary<Key, Value> TryGetDictionaryOfType<Key, Value>(this object owner)
@@ -145,6 +196,16 @@ namespace Threadlink.Utilities.Reflection
 		}
 
 #if UNITY_EDITOR && ODIN_INSPECTOR
+		public static IEnumerable<ValueDropdownItem> CreateTypeDropdownFor<T>() where T : UnityEngine.Object
+		{
+			var types = GetAllDerivedTypesOf<T>();
+			var items = new List<ValueDropdownItem>();
+
+			foreach (var type in types) items.Add(new(type, Type.GetType(type)));
+
+			return items;
+		}
+
 		public static IEnumerable<ValueDropdownItem> CreateDropdownFor<T>() where T : UnityEngine.Object
 		{
 			var items = new List<ValueDropdownItem>();

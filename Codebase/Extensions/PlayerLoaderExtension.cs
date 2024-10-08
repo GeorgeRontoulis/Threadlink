@@ -1,6 +1,6 @@
 namespace Threadlink.Extensions.Nexus
 {
-	using System.Collections;
+	using Cysharp.Threading.Tasks;
 	using Threadlink.Core;
 
 	public enum PlayerLoadingAction { None, Load, Unload }
@@ -9,7 +9,7 @@ namespace Threadlink.Extensions.Nexus
 	{
 		public bool PlayerIsLoaded { get; protected set; }
 
-		public abstract IEnumerator LoadingCoroutine();
+		public abstract UniTask LoadPlayerAndDependeciesAsync();
 		public abstract void Unload();
 	}
 }

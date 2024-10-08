@@ -1,15 +1,15 @@
 ﻿namespace Threadlink.Core
 {
+	using Cysharp.Threading.Tasks;
 	using Extensions.Addressables;
 	using System;
-	using System.Collections;
 	using Systems;
 	using Systems.Initium;
 	using UnityEngine;
 	using Utilities.Addressables;
 	using Utilities.Collections;
 	using Utilities.Editor.Attributes;
-	using Utilities.Text;
+	using Utilities.Events;
 
 	public static class ThreadlinkCoreExtensionMethods
 	{
@@ -30,42 +30,45 @@
 	/// </summary>
 	public sealed class Threadlink : UnitySystem<Threadlink, LinkableBehaviour>
 	{
-		private static readonly WaitForEndOfFrame waitForEndOfFrame = new();
-
 		private static ThreadlinkAddressables Addressables => Instance.addressables;
 
 		public override string LinkID => "Threadlink";
 
 		[ReadOnly][SerializeField] private ThreadlinkAddressables addressables = null;
 
-		#region Initialization and Deployment
-		private void Awake()
-		{
-			Instance = this;
-			Boot();
-		}
+#pragma warning disable UNT0006
+#pragma warning disable IDE0051
 
-		private IEnumerator Start()
+		#region Initialization and Deployment
+		private void Awake() { Boot(); }
+
+		private async UniTaskVoid Start()
 		{
 			Initialize();
-			yield return Deploy();
+			await Deploy();
 		}
 
 		public override void Initialize() { }
 
-		private IEnumerator Deploy()
+		private async UniTask Deploy()
 		{
-			var coroutineBatch = new ThreadlinkCoroutineBatch(addressables.LoadCoreSystems());
-
-			while (coroutineBatch.IsDone == false) yield return null;
-
 			var systems = addressables.coreSystems;
-			int length = systems.Length;
+			int systemAddressablesCount = systems.Length;
+			var uniTasks = new UniTask[systemAddressablesCount];
 
-			for (int i = 0; i < length; i++) Weave(new(systems[i].Result));
+			for (int i = 0; i < systemAddressablesCount; i++) uniTasks[i] = systems[i].LoadAsync();
 
-			yield return Initium.Boot(LinkedEntities);
-			yield return Initium.Initialize(LinkedEntities);
+			await UniTask.WhenAll(uniTasks);
+
+			for (int i = 0; i < systemAddressablesCount; i++)
+			{
+				var wovenSystem = Weave(new(systems[i].Result));
+
+				if (wovenSystem is IAssetPreloader) await (wovenSystem as IAssetPreloader).PreloadAssetsAsync();
+			}
+
+			await Initium.Boot(LinkedEntities);
+			await Initium.Initialize(LinkedEntities);
 
 			Scribe.SystemLog(LinkID, Scribe.InfoNotif, "Threadlink successfully deployed. All Systems operational.");
 		}
@@ -75,7 +78,7 @@
 			Instance.Discard();
 		}
 
-		public override void Discard()
+		public override VoidOutput Discard(VoidInput _ = default)
 		{
 			SeverAll();
 
@@ -87,65 +90,27 @@
 #else
             Application.Quit();
 #endif
+			return base.Discard(_);
 		}
 		#endregion
 
-		#region Coroutine Management
-		public static Coroutine LaunchCoroutine(IEnumerator coroutine, bool logLaunch = false)
+		public static async UniTask WaitForFrames(int frameCount)
 		{
-			if (logLaunch)
-				Scribe.SystemLog(Instance.LinkID, Scribe.InfoNotif, "Launching Coroutine '", coroutine.ExtractName(), "'");
-
-			return Instance.StartCoroutine(coroutine);
+			for (int i = 0; i < frameCount; i++) await UniTask.NextFrame();
 		}
 
-		/// <summary>
-		/// Stops the desired coroutine and nullifies the reference to it.
-		/// </summary>
-		/// <param name="coroutine">The coroutine to stop.</param>
-		public static void StopCoroutine(ref Coroutine coroutine, bool logStop = false)
-		{
-			if (coroutine == null) return;
-
-			Instance.StopCoroutine(coroutine);
-
-			if (logStop) Scribe.SystemLog(Instance.LinkID,
-			Scribe.InfoNotif, "Stopped Coroutine ", coroutine.GetType().Name);
-
-			coroutine = null;
-		}
-
-		public static IEnumerator WaitForFrameCount(int count)
-		{
-			if (count <= 0)
-			{
-				Scribe.SystemLog(Instance.LinkID, Scribe.WarningNotif, "Attempted to wait a non-positive number of frames! Call will be skipped!");
-				yield break;
-			}
-
-			int framesWaited = 0;
-
-			while (framesWaited < count)
-			{
-				yield return waitForEndOfFrame;
-
-				framesWaited++;
-			}
-		}
-		#endregion
-
+		#region Addressables Methods
 		private const string SearchNullAddressablesExtensionError =
 		"A request to search the Addressables Extension was made, however no extension has been provided! Please provide an extension before proceeding!";
 
-		#region Addressables Lookup Methods
-		public static void FindAddressablePrefab<AddressableType, PrefabType>(string prefabID, out AddressableType result)
-		where AddressableType : AddressablePrefab<PrefabType> where PrefabType : Component
+		public static void FindAddressablePrefab<PrefabType>(string prefabID, out AddressablePrefab<PrefabType> result)
+		where PrefabType : Component
 		{
 			var extension = Addressables.customExtension;
 
 			if (extension != null)
 			{
-				extension.SearchForAddressablePrefab<AddressableType, PrefabType>(prefabID, out var prefab);
+				extension.SearchForAddressablePrefab<PrefabType>(prefabID, out var prefab);
 				result = prefab;
 				return;
 			}
@@ -156,14 +121,14 @@
 			}
 		}
 
-		public static void FindAddressableAsset<AddressableType, AssetType>(string assetID, out AddressableType result)
-		where AddressableType : AddressableAsset<AssetType> where AssetType : UnityEngine.Object
+		public static void FindAddressableAsset<AssetType>(string assetID, out AddressableAsset<AssetType> result)
+		where AssetType : UnityEngine.Object
 		{
 			var extension = Addressables.customExtension;
 
 			if (extension != null)
 			{
-				extension.SearchForAddressableAsset<AddressableType, AssetType>(assetID, out var asset);
+				extension.SearchForAddressableAsset<AssetType>(assetID, out var asset);
 				result = asset;
 				return;
 			}
@@ -180,13 +145,19 @@
 			result = addressable;
 		}
 
-		public static void GetCustomAddressablesExtension<T>(out T result) where T : ThreadlinkAddressablesExtension
+		public static bool TryGetCustomAddressablesExtension<T>(out T result) where T : ThreadlinkAddressablesExtension
 		{
-			var extension = Addressables.customExtension;
+			var extension = Addressables.customExtension as T;
 
-			if (extension == null) Scribe.SystemLog<NullReferenceException>(Instance.LinkID, "No Custom Addressables Extension specified!");
+			if (extension == null)
+			{
+				Scribe.SystemLog<NullReferenceException>(Instance.LinkID, "No Custom Addressables Extension specified!");
+				result = null;
+				return false;
+			}
 
-			result = extension as T;
+			result = extension;
+			return true;
 		}
 		#endregion
 	}

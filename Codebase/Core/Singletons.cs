@@ -8,6 +8,11 @@ namespace Threadlink.Core
 	public abstract class LinkableBehaviourSingleton<T> : LinkableBehaviour where T : LinkableBehaviourSingleton<T>
 	{
 		public static T Instance { get; protected set; }
+
+		public override void Boot()
+		{
+			Instance = this as T;
+		}
 	}
 
 	/// <summary>
@@ -18,5 +23,10 @@ namespace Threadlink.Core
 	public abstract class LinkableAssetSingleton<T> : LinkableAsset where T : LinkableAssetSingleton<T>
 	{
 		public static T Instance { get; protected set; }
+
+		public override void Boot()
+		{
+			Instance = this as T;
+		}
 	}
 }

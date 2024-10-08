@@ -28,7 +28,7 @@ namespace Threadlink.Core
 		public abstract void Boot();
 		public abstract void Initialize();
 
-		public virtual void Discard()
+		public virtual VoidOutput Discard(VoidInput _ = default)
 		{
 			if (onBeforeDiscarded != null)
 			{
@@ -40,6 +40,7 @@ namespace Threadlink.Core
 
 			selfTransform = null;
 			Destroy(gameObject);
+			return default;
 		}
 	}
 }

@@ -35,10 +35,10 @@ namespace Threadlink.StateMachines
 
 		[SerializeField] protected BaseAbstractParameter[] parameters = new BaseAbstractParameter[0];
 
-		public override void Discard()
+		public override VoidOutput Discard(VoidInput _ = default)
 		{
 			if (IsInstance) parameters = null;
-			base.Discard();
+			return base.Discard(_);
 		}
 
 		public override void Boot() { }
@@ -82,10 +82,17 @@ namespace Threadlink.StateMachines
 #if ODIN_INSPECTOR
 		[Button]
 #else
-		[ContextMenu("Sort Parameters By ID")]
+		[ContextMenu("Sort Parameters")]
 #endif
 #pragma warning disable IDE0051
-		private void SortParametersByID() { parameters.SortByID(this); }
+		private void SortParameters() { parameters.SortByID(this); }
+
+#if ODIN_INSPECTOR
+		[Button]
+#else
+		[ContextMenu("Sort Processors")]
+#endif
+		private void SortProcessors() { processors.SortByID(this); }
 #pragma warning restore IDE0051
 #endif
 
@@ -145,7 +152,7 @@ namespace Threadlink.StateMachines
 			return default;
 		}
 
-		public override void Discard()
+		public override VoidOutput Discard(VoidInput _ = default)
 		{
 			static void DiscardCollection(LinkableAsset[] collection)
 			{
@@ -175,7 +182,7 @@ namespace Threadlink.StateMachines
 				processors = null;
 			}
 
-			base.Discard();
+			return base.Discard(_);
 		}
 
 		public void AttemptTransitionTo(StateType newState)

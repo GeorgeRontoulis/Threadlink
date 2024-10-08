@@ -20,12 +20,12 @@ namespace Threadlink.Systems.Dextra
 
 		[SerializeField] private CanvasGroup canvasGroup = null;
 
-		public override void Discard()
+		public override VoidOutput Discard(VoidInput _ = default)
 		{
 			Iris.UnsubscribeFromUpdate(MoveTowardsTargetAlpha);
 			UpdatingAlpha = false;
 			canvasGroup = null;
-			base.Discard();
+			return base.Discard(_);
 		}
 
 		private void UpdateAlpha()

@@ -26,12 +26,12 @@ namespace Threadlink.Systems.Dextra
 			TryGetComponent(out effectiveRadius);
 		}
 
-		public override void Discard()
+		public override VoidOutput Discard(VoidInput _ = default)
 		{
 			UnsubscribeFromInteractAction();
 			SetSensorActiveState(false);
 			effectiveRadius = null;
-			base.Discard();
+			return base.Discard(_);
 		}
 
 		public abstract VoidOutput Interact(VoidInput _ = default);

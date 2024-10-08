@@ -1,33 +1,23 @@
 ﻿namespace Threadlink.Core
 {
-	using System;
-	using System.Collections;
-	using Systems;
+	using Cysharp.Threading.Tasks;
 	using UnityEngine;
 	using UnityEngine.AddressableAssets;
 	using UnityEngine.SceneManagement;
 	using Utilities.Addressables;
 
+#pragma warning disable UNT0006
+#pragma warning disable IDE0051
+
 	internal sealed class AddressablesInitializer : MonoBehaviour
 	{
 		[SerializeField] private AddressableScene persistentScene = new();
 
-		private IEnumerator Start()
+		private async UniTaskVoid Start()
 		{
-			var handle = Addressables.InitializeAsync(false);
+			await Addressables.InitializeAsync();
 
-			while (handle.IsDone == false) yield return null;
-
-			const string id = "Addressables Initializer";
-
-			if (AddressablesUtilities.Succeeded(handle))
-				Scribe.SystemLog(id, Scribe.InfoNotif, "Successfully initialized Addressables!");
-			else
-				Scribe.SystemLog<OperationCanceledException>(id, "Addressables failed to initialize! Aborting!");
-
-			handle.TryRelease();
-
-			yield return persistentScene.LoadingCoroutine(LoadSceneMode.Single);
+			await persistentScene.LoadAsync(LoadSceneMode.Single);
 		}
 	}
 }

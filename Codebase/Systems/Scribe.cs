@@ -18,7 +18,6 @@ namespace Threadlink.Systems
 		[UnityEngine.SerializeField] private bool pauseOnSystemLog = false;
 #endif
 
-		public override void Boot() { Instance = this; }
 		public override void Initialize() { }
 
 		public static void SystemLog(string systemID, DebugNotificationType logType, params string[] message)
@@ -56,7 +55,7 @@ namespace Threadlink.Systems
 		where T : Exception, new()
 		{
 			//We are not restricting this piece of code to the #THREADLINK_SCRIBE
-			//define symbol to keep the throwing functionality for reusability.
+			//define symbol to maintain reusability.
 			string temp = String.Construct(message);
 			string systemMessage = String.Construct("[", systemID, "] - ", temp);
 
@@ -82,9 +81,9 @@ namespace Threadlink.Systems
 
 		public static void LogError<T>(string exceptionMessage) where T : Exception, new()
 		{
-			//We are not restricting this piece of code to the #THREADLINK_SCRIBE
-			//define symbol to keep the throwing functionality for reusability.
-			throw (T)Activator.CreateInstance(typeof(T), exceptionMessage);
+#if THREADLINK_SCRIBE
+			UnityConsole.Notify(ErrorNotif, (T)Activator.CreateInstance(typeof(T), exceptionMessage));
+#endif
 		}
 	}
 }

@@ -19,7 +19,7 @@ namespace Threadlink.Extensions.Dextra
 		[SerializeField] private VoidDextraAction pauseAction = new();
 		[SerializeField] private VoidDextraAction interactAction = new();
 
-		public override void Discard()
+		public override VoidOutput Discard(VoidInput _ = default)
 		{
 			interactAction?.Discard();
 			pauseAction?.Discard();
@@ -32,12 +32,14 @@ namespace Threadlink.Extensions.Dextra
 			onPausePressed = null;
 			onInteractButtonPressed = null;
 
-			base.Discard();
+			return base.Discard(_);
 		}
 
 		public override void Initialize()
 		{
-			cancelAction?.Handle(Dextra.Cancel);
+			static void Cancel() { Dextra.Cancel().Forget(); }
+
+			cancelAction?.Handle(Cancel);
 			pauseAction?.Handle(PauseGame);
 			interactAction?.Handle(Interact);
 		}

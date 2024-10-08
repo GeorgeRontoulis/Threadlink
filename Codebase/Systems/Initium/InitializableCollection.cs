@@ -1,13 +1,19 @@
 namespace Threadlink.Systems.Initium
 {
+	using Cysharp.Threading.Tasks;
 #if ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
 #endif
 
-	using System.Collections;
 	using System.Linq;
-	using Threadlink.Core;
+	using Core;
 	using UnityEngine;
+	using Utilities.Events;
+
+#pragma warning disable IDE0051
+#pragma warning disable UNT0006
+
+	public interface IRootInitializer { }
 
 	public sealed class InitializableCollection : LinkableBehaviourSingleton<InitializableCollection>
 	{
@@ -28,35 +34,35 @@ namespace Threadlink.Systems.Initium
 		private void FindLinkableObjects()
 		{
 			objects = FindObjectsByType<LinkableBehaviour>(FindObjectsInactive.Include,
-			FindObjectsSortMode.None).Where(o => o.Equals(this) == false).ToArray();
+			FindObjectsSortMode.None).Where(o => o.Equals(this) == false && o is IRootInitializer).ToArray();
 		}
 #endif
 
-		private IEnumerator Start()
+		private async UniTask Start()
 		{
-			if (initializationSequence.Equals(InitializationSequence.Threadlink)) yield break;
+			if (initializationSequence.Equals(InitializationSequence.Threadlink)) return;
 
-			yield return BootObjects();
-			yield return InitializeObjects();
+			await BootObjects();
+			await InitializeObjects();
 		}
 
 		public override void Boot() { Instance = this; }
 		public override void Initialize() { }
 
-		internal IEnumerator BootObjects()
+		internal async UniTask BootObjects()
 		{
-			yield return Initium.Boot(objects);
+			await Initium.Boot(objects);
 		}
 
-		internal IEnumerator InitializeObjects()
+		internal async UniTask InitializeObjects()
 		{
-			yield return Initium.Initialize(objects);
+			await Initium.Initialize(objects);
 		}
 
-		public override void Discard()
+		public override VoidOutput Discard(VoidInput _ = default)
 		{
 			objects = null;
-			base.Discard();
+			return base.Discard(_);
 		}
 	}
 }

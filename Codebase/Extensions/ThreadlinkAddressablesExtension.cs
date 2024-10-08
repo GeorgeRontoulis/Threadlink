@@ -6,10 +6,10 @@ namespace Threadlink.Extensions.Addressables
 
 	public abstract class ThreadlinkAddressablesExtension : LinkableAsset
 	{
-		public abstract void SearchForAddressablePrefab<AddressableType, PrefabType>(string prefabID, out AddressableType result)
-		where AddressableType : AddressablePrefab<PrefabType> where PrefabType : Component;
+		public abstract void SearchForAddressablePrefab<PrefabType>(string prefabID, out AddressablePrefab<PrefabType> result)
+		where PrefabType : Component;
 
-		public abstract void SearchForAddressableAsset<AddressableType, AssetType>(string assetID, out AddressableType result)
-		where AddressableType : AddressableAsset<AssetType> where AssetType : Object;
+		public abstract void SearchForAddressableAsset<AssetType>(string assetID, out AddressableAsset<AssetType> result)
+		where AssetType : Object;
 	}
 }

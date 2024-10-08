@@ -3,7 +3,8 @@
     "rootNamespace": "Threadlink.Templates.CharacterController",
     "references": [
         "GUID:55c8270eaa5b5bb47bd94046e1b5bd19",
-        "GUID:c85d73c35b90e2348997c7b7316e7f3d"
+        "GUID:c85d73c35b90e2348997c7b7316e7f3d",
+        "GUID:d91d5ec20cf4bd541bb898f67497ca6d"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -42,10 +42,10 @@ namespace Threadlink.StateMachines
 
 		protected abstract VoidOutput Run(VoidInput _);
 
-		public override void Discard()
+		public override VoidOutput Discard(VoidInput _ = default)
 		{
 			SetRunningState(false);
-			base.Discard();
+			return base.Discard(_);
 		}
 
 		public override void Boot() { }

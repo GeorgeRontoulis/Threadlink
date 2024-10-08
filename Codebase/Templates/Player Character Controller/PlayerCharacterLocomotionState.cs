@@ -10,6 +10,11 @@ namespace Threadlink.Templates.PlayerCharacterController
 		private Transform PlayerTransform { get; set; }
 		private Transform CameraTransform { get; set; }
 		private CharacterController Controller { get; set; }
+		private Animator Animator { get; set; }
+
+		private Vector3 Scalar { get; set; }
+		private Vector3 UpVector { get; set; }
+		private Vector3 ZeroVector { get; set; }
 
 		[SerializeField] private ParameterPointer<Vector2> movementInput = new();
 		[SerializeField] private ParameterPointer<float> turnSpeed = new();
@@ -17,11 +22,15 @@ namespace Threadlink.Templates.PlayerCharacterController
 
 		public override void Initialize(PlayerCharacterStateMachine owner)
 		{
-			var player = owner.Owner;
+			var character = owner.Owner;
 
-			PlayerTransform = player.Transform;
+			Animator = character.Animator;
+			PlayerTransform = character.Transform;
 			CameraTransform = Camera.main.transform;
-			Controller = player.Controller;
+			Controller = character.Controller;
+			Scalar = new(1, 0, 1);
+			UpVector = Vector3.up;
+			ZeroVector = Vector3.zero;
 
 			movementInput.PointToInternalReferenceOf(owner);
 			turnSpeed.PointToInternalReferenceOf(owner);
@@ -53,12 +62,9 @@ namespace Threadlink.Templates.PlayerCharacterController
 			}
 
 #elif THREADLINK_TEMPLATES_CONTROLLER_3D
-			float x = movementInput.CurrentValue.x;
-			float z = movementInput.CurrentValue.y;
 			float deltaTime = Chronos.DeltaTime;
-
-			if (Mathf.Abs(x) > Mathf.Epsilon || Mathf.Abs(z) > Mathf.Epsilon)
-				TurnToMovementDirection(Move3D(deltaTime), deltaTime);
+			var isPlanted = Animator.GetCurrentAnimatorStateInfo(0).IsTag("Plant");
+			TurnToMovementDirection(Move3D(deltaTime, isPlanted), deltaTime, isPlanted);
 #endif
 		}
 
@@ -80,28 +86,39 @@ namespace Threadlink.Templates.PlayerCharacterController
 			return moveDirection;
 		}
 #elif THREADLINK_TEMPLATES_CONTROLLER_3D
-		private Vector3 Move3D(float deltaTime)
+		private Vector3 Move3D(float deltaTime, bool isPlanted)
 		{
-			float x = movementInput.CurrentValue.x;
-			float z = movementInput.CurrentValue.y;
-			Vector3 scalar = new(1, 0, 1);
+			var input = movementInput.CurrentValue;
+			float x = input.x;
+			float z = input.y;
+			float animationVelocity = xzVelocity.CurrentValue;
 
-			var cameraRight = Vector3.Scale(CameraTransform.right, scalar);
-			var cameraForward = Vector3.Scale(CameraTransform.forward, scalar);
+			var cameraRelativeInputDirection = Vector3.Scale(x * CameraTransform.right +
+			z * CameraTransform.forward, Scalar).normalized;
 
-			var moveDirection = Vector3.Scale(x * cameraRight + z * cameraForward, scalar).normalized;
+			Vector3 desiredDirection;
 
-			Controller.Move(deltaTime * xzVelocity.CurrentValue * moveDirection);
+			if (Mathf.Approximately(Mathf.Clamp01(input.magnitude), 0f) || isPlanted)
+			{
+				if (animationVelocity > 0f)
+					desiredDirection = animationVelocity * PlayerTransform.forward;
+				else
+					desiredDirection = ZeroVector;
+			}
+			else desiredDirection = animationVelocity * cameraRelativeInputDirection;
 
-			return moveDirection;
+			Controller.Move(deltaTime * desiredDirection);
+
+			return desiredDirection;
 		}
 #endif
 
-		private void TurnToMovementDirection(Vector3 direction, float deltaTime)
+		private void TurnToMovementDirection(Vector3 direction, float deltaTime, bool isPlanted)
 		{
-			if (direction.Equals(Vector3.zero)) return;
+			if (isPlanted || xzVelocity.CurrentValue < Mathf.Epsilon
+			|| Mathf.Approximately(Vector3.Angle(direction.normalized, UpVector), 0f)) return;
 
-			var targetRotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
+			var targetRotation = Quaternion.LookRotation(direction.normalized, UpVector);
 			var turnSpeed = deltaTime * this.turnSpeed.CurrentValue;
 			PlayerTransform.rotation = Quaternion.SlerpUnclamped(PlayerTransform.rotation, targetRotation, turnSpeed);
 		}

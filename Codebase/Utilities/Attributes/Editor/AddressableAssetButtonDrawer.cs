@@ -1,12 +1,9 @@
 namespace Threadlink.Utilities.Editor.Attributes
 {
 #if UNITY_EDITOR
-	using UnityEditor;
-#endif
-
 	using UnityEngine;
+	using UnityEditor;
 
-#if UNITY_EDITOR
 	[CustomPropertyDrawer(typeof(AddressableAssetButtonAttribute))]
 	internal sealed class AddressableAssetButtonDrawer : PropertyDrawer
 	{

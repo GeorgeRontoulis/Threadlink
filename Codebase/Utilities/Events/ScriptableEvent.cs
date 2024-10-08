@@ -34,6 +34,7 @@ namespace Threadlink.Utilities.Events
 #else
 		[ContextMenu("Print Status")]
 #endif
+#pragma warning disable IDE0051
 		private void PrintStatus()
 		{
 			for (int i = subscribers.Count - 1; i >= 0; i--)
@@ -43,6 +44,7 @@ namespace Threadlink.Utilities.Events
 				UnityConsole.Notify("-------------------------------------------------------");
 			}
 		}
+#pragma warning restore IDE0051
 #endif
 	}
 }

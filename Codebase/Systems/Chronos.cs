@@ -58,6 +58,7 @@ namespace Threadlink.Systems
 
 		public static double Framerate => 1d / (double)DeltaTime;
 
+		public static float CurrentFrameTimeSinceStart { get; set; }
 		public static float TotalPlaytime { get; set; }
 		public static float DeltaTime { get; private set; }
 		public static float SmoothDeltaTime { get; private set; }
@@ -72,7 +73,7 @@ namespace Threadlink.Systems
 		private VoidEvent onGameResumed = new();
 		private VoidEvent onGamePaused = new();
 
-		public override void Discard()
+		public override VoidOutput Discard(VoidInput _ = default)
 		{
 			onGamePaused.Discard();
 			onGameResumed.Discard();
@@ -81,12 +82,12 @@ namespace Threadlink.Systems
 			onGamePaused = null;
 			onGameResumed = null;
 			onCountPlaytime = null;
-			base.Discard();
+			return base.Discard(_);
 		}
 
 		public override void Boot()
 		{
-			Instance = this;
+			base.Boot();
 			TotalPlaytime = 0;
 		}
 
@@ -98,6 +99,7 @@ namespace Threadlink.Systems
 
 		private VoidOutput UpdateStandardTime(VoidInput _)
 		{
+			CurrentFrameTimeSinceStart = Time.time;
 			DeltaTime = Time.deltaTime;
 			SmoothDeltaTime = Time.smoothDeltaTime;
 			UnscaledDeltaTime = Time.unscaledDeltaTime;
