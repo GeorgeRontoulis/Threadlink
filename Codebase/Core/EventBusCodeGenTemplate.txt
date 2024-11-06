@@ -1,0 +1,10 @@
+namespace Threadlink.Core
+{
+	using Utilities.Events;
+	{Usings}
+
+	public partial class ThreadlinkEventBus
+	{
+		{EventCodeGen}
+	}
+}

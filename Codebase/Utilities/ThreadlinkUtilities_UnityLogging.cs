@@ -8,25 +8,25 @@ namespace Threadlink.Utilities.UnityLogging
 	{
 		private static string ToSingleString(params object[] objects)
 		{
-			return Text.String.Construct(objects);
+			return Text.TLZString.Construct(objects);
 		}
 
-		public static void Notify(params object[] objects)
+		public static void Notify(Object context = null, params object[] objects)
 		{
-			Debug.Log(ToSingleString(objects));
+			Debug.Log(ToSingleString(objects), context);
 		}
 
-		public static void Notify(DebugNotificationType notificationType, params object[] objects)
+		public static void Notify(DebugNotificationType notificationType = DebugNotificationType.Info, Object context = null, params object[] objects)
 		{
 			string notification = ToSingleString(objects);
 
 			switch (notificationType)
 			{
-				default: Debug.Log(notification); break;
+				default: Debug.Log(notification, context); break;
 
-				case DebugNotificationType.Warning: Debug.LogWarning(notification); break;
+				case DebugNotificationType.Warning: Debug.LogWarning(notification, context); break;
 
-				case DebugNotificationType.Error: Debug.LogError(notification); break;
+				case DebugNotificationType.Error: Debug.LogError(notification, context); break;
 			}
 		}
 	}

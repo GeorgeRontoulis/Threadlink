@@ -15,14 +15,14 @@ namespace Threadlink.Utilities.Events
 			return source.GetSubscribers().Length;
 		}
 
-		public static bool Contains(this Delegate source, Delegate target)
+		public static bool Contains<O, I>(this ThreadlinkDelegate<O, I> source, ThreadlinkDelegate<O, I> target)
 		{
 			if (source == null) return false;
 
 			return source.GetSubscribers().Contains(target);
 		}
 
-		public static bool Evaluate(this GenericEvent<bool> source)
+		public static bool Evaluate(this GenericOutputEvent<bool> source)
 		{
 			if (source == null) return false;
 
@@ -30,7 +30,7 @@ namespace Threadlink.Utilities.Events
 			int length = subscribers.Length;
 
 			for (int i = 0; i < length; i++)
-				if ((subscribers[i] as ThreadlinkDelegate<bool, VoidInput>).Invoke(default) == false) return false;
+				if ((subscribers[i] as ThreadlinkDelegate<bool, Empty>).Invoke(default) == false) return false;
 
 			return true;
 		}

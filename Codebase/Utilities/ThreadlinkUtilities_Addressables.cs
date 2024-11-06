@@ -1,34 +1,24 @@
 namespace Threadlink.Utilities.Addressables
 {
+	using Collections;
+	using Cysharp.Threading.Tasks;
+	using MassTransit;
 	using System;
+	using Systems;
 	using UnityEngine;
 	using UnityEngine.AddressableAssets;
 	using UnityEngine.ResourceManagement.AsyncOperations;
 	using UnityEngine.ResourceManagement.ResourceProviders;
 	using UnityEngine.SceneManagement;
-	using Collections;
+	using UnityLogging;
+
 #if UNITY_EDITOR
 	using Editor.Attributes;
 #endif
-	using UnityLogging;
-	using Cysharp.Threading.Tasks;
 
 	public interface IAssetPreloader
 	{
 		public UniTask PreloadAssetsAsync();
-	}
-
-	public abstract class Addressable : IIdentifiable
-	{
-		public abstract string LinkID { get; }
-		public abstract bool Loaded { get; }
-
-		public abstract void Unload();
-	}
-
-	public abstract class Addressable<T> : Addressable
-	{
-		public abstract T Result { get; }
 	}
 
 	public static class AddressablesUtilities
@@ -50,6 +40,30 @@ namespace Threadlink.Utilities.Addressables
 		}
 	}
 
+	public abstract class Addressable : IIdentifiable
+	{
+		public virtual string LinkID => assetAddress;
+		public NewId InstanceID
+		{
+			get => NewId.Empty;
+			set => _ = NewId.Empty;
+		}
+
+		public abstract bool Loaded { get; }
+
+#if UNITY_EDITOR
+		[AddressableAssetButton]
+#endif
+		public string assetAddress = string.Empty;
+
+		public abstract void Unload();
+	}
+
+	public abstract class Addressable<T> : Addressable
+	{
+		public abstract T Result { get; }
+	}
+
 	[Serializable]
 	public sealed class AddressablePointer
 	{
@@ -64,24 +78,22 @@ namespace Threadlink.Utilities.Addressables
 	{
 		public override bool Loaded => Result != null;
 		public override T Result => Handle.IsValid() ? Handle.Result : null;
-		public override string LinkID => addressableInfo.assetAddress;
 
 		private AsyncOperationHandle<T> Handle { get; set; }
-
-		[SerializeField] AddressablePointer addressableInfo = new();
 
 		public override void Unload() { Handle.TryRelease(); }
 
 		public async UniTask LoadAsync()
 		{
-			Handle = Addressables.LoadAssetAsync<T>(addressableInfo.assetAddress);
+			Handle = Addressables.LoadAssetAsync<T>(assetAddress);
 
 			await Handle.ToUniTask();
 
 			if (Handle.Succeeded() == false)
 			{
-				UnityConsole.Notify(DebugNotificationType.Error,
-				"Failed to load asset from address: ", addressableInfo.assetAddress);
+				UnityConsole.Notify(DebugNotificationType.Error, context: null,
+				"Failed to load asset from address: ", assetAddress);
+				this.LogException<AddressableLoadingFailedException>();
 			}
 		}
 	}
@@ -104,19 +116,33 @@ namespace Threadlink.Utilities.Addressables
 
 		public GameObject ResultAsGameObject => Handle.IsValid() == false || Handle.Result == null ? null : Handle.Result;
 
-		public override string LinkID => addressableInfo.assetAddress;
-
 		private AsyncOperationHandle<GameObject> Handle { get; set; }
 
-		[SerializeField] AddressablePointer addressableInfo = new();
-
 		public override void Unload() { Handle.TryRelease(); }
+
+		public void LoadSynchronously()
+		{
+			if (Loaded) return;
+
+			Handle = Addressables.LoadAssetAsync<GameObject>(assetAddress);
+
+			Handle.WaitForCompletion();
+
+			if (Handle.Succeeded() == false)
+			{
+				Unload();
+
+				UnityConsole.Notify(DebugNotificationType.Error, context: null,
+				"Failed to load prefab from address: ", assetAddress);
+				this.LogException<AddressableLoadingFailedException>();
+			}
+		}
 
 		public async UniTask LoadAsync()
 		{
 			if (Loaded) return;
 
-			Handle = Addressables.LoadAssetAsync<GameObject>(addressableInfo.assetAddress);
+			Handle = Addressables.LoadAssetAsync<GameObject>(assetAddress);
 
 			await Handle.ToUniTask();
 
@@ -124,8 +150,9 @@ namespace Threadlink.Utilities.Addressables
 			{
 				Unload();
 
-				UnityConsole.Notify(DebugNotificationType.Error,
-				"Failed to load prefab from address: ", addressableInfo.assetAddress);
+				UnityConsole.Notify(DebugNotificationType.Error, context: null,
+				"Failed to load prefab from address: ", assetAddress);
+				this.LogException<AddressableLoadingFailedException>();
 			}
 		}
 	}
@@ -134,12 +161,9 @@ namespace Threadlink.Utilities.Addressables
 	public sealed class AddressableScene : Addressable<SceneInstance>
 	{
 		public override bool Loaded => Handle.IsValid() && Handle.Result.Scene != null;
-		public override string LinkID => addressableReference.assetAddress;
 		public override SceneInstance Result => Handle.IsValid() ? Handle.Result : default;
 
 		private AsyncOperationHandle<SceneInstance> Handle { get; set; }
-
-		[SerializeField] private AddressablePointer addressableReference = new();
 
 		public override void Unload() { Handle.TryRelease(); }
 
@@ -147,7 +171,7 @@ namespace Threadlink.Utilities.Addressables
 		{
 			if (Loaded) return;
 
-			Handle = Addressables.LoadSceneAsync(addressableReference.assetAddress, loadSceneMode, false);
+			Handle = Addressables.LoadSceneAsync(assetAddress, loadSceneMode, false);
 
 			await Handle.ToUniTask();
 
@@ -155,7 +179,9 @@ namespace Threadlink.Utilities.Addressables
 			{
 				Unload();
 
-				UnityConsole.Notify(DebugNotificationType.Error, "Failed to load scene from address: ''", addressableReference.assetAddress, "''");
+				UnityConsole.Notify(DebugNotificationType.Error, context: null,
+				"Failed to load scene from address: ", assetAddress);
+				this.LogException<AddressableLoadingFailedException>();
 			}
 			else
 			{
@@ -173,8 +199,9 @@ namespace Threadlink.Utilities.Addressables
 
 			if (operation.Succeeded() == false)
 			{
-				UnityConsole.Notify(DebugNotificationType.Error,
-				"Failed to unload scene from address: ", addressableReference.assetAddress);
+				UnityConsole.Notify(DebugNotificationType.Error, context: null,
+				"Failed to unload scene from address: ", assetAddress);
+				this.LogException<AddressableLoadingFailedException>();
 			}
 			else Unload();
 		}

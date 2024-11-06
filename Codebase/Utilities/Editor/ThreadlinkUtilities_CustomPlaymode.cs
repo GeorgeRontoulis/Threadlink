@@ -14,7 +14,7 @@ internal static class ThreadlinkUtilities_CustomPlaymode
 		}
 
 		EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo();
-		EditorSceneManager.OpenScene("Assets/Threadlink/Required Scenes/InitializationScene.unity");
+		EditorSceneManager.OpenScene("Assets/Threadlink/Required Scenes/ThreadlinkScene.unity");
 		EditorApplication.isPlaying = true;
 	}
 }

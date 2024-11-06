@@ -13,7 +13,7 @@ namespace Threadlink.Systems.Dextra
 	using Utilities.Editor;
 #endif
 
-	public sealed class DextraInputPrompt : LinkableBehaviour
+	public sealed class DextraInputPrompt : LinkableBehaviour, IInitializable
 	{
 		public string PromptText { set => promptLabel.text = value; }
 
@@ -29,7 +29,6 @@ namespace Threadlink.Systems.Dextra
 		[SerializeField] private Text promptLabel = null;
 #endif
 
-
 #if UNITY_EDITOR
 		[SerializeField] private Dextra.InputDevice previewDevice = 0;
 
@@ -40,25 +39,24 @@ namespace Threadlink.Systems.Dextra
 		}
 #endif
 
-		public override VoidOutput Discard(VoidInput _ = default)
+		public override Empty Discard(Empty _ = default)
 		{
-			Dextra.OnInputDeviceChanged.Remove(OnDeviceChanged);
+			Threadlink.EventBus.OnDextraDeviceChanged -= OnDeviceChanged;
 			promptImage = null;
 			promptLabel = null;
 			data = null;
 			return base.Discard(_);
 		}
 
-		public override void Boot() { }
-		public override void Initialize()
+		public void Initialize()
 		{
-			OnDeviceChanged();
-			Dextra.OnInputDeviceChanged.TryAddListener(OnDeviceChanged);
+			OnDeviceChanged(Dextra.CurrentInputDevice);
+			Threadlink.EventBus.OnDextraDeviceChanged += OnDeviceChanged;
 		}
 
-		public VoidOutput OnDeviceChanged(Dextra.InputDevice currentInputDevice = 0)
+		public Empty OnDeviceChanged(Dextra.InputDevice currentInputDevice)
 		{
-			UpdateGraphics(Dextra.CurrentInputDevice);
+			UpdateGraphics(currentInputDevice);
 			return default;
 		}
 

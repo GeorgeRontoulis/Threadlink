@@ -1,98 +1,29 @@
 namespace Threadlink.Systems.Dextra
 {
 	using Core;
+	using Core.ExtensionMethods;
+	using Cysharp.Threading.Tasks;
 	using Extensions.Dextra;
 	using System;
-	using System.Collections.Generic;
-	using System.Reflection;
 	using UnityEngine;
 	using UnityEngine.EventSystems;
 	using UnityEngine.InputSystem;
 	using UnityEngine.InputSystem.DualShock;
+	using UnityEngine.InputSystem.UI;
+	using Utilities.Addressables;
 	using Utilities.Events;
-	using Context = UnityEngine.InputSystem.InputAction.CallbackContext;
-	using VoidDelegate = Utilities.Events.ThreadlinkDelegate<Utilities.Events.VoidOutput, Utilities.Events.VoidInput>;
-
-#if ODIN_INSPECTOR
-	using Threadlink.Utilities.Addressables;
-	using Cysharp.Threading.Tasks;
-#endif
-
-	[Flags]
-	public enum UIStackingCallbackSettings
-	{
-		Default = HideGraphicsOnCover | DisableInteractabilityOnCover,
-		HideGraphicsOnCover = 1 << 0,
-		DisableInteractabilityOnCover = 1 << 1,
-		EnableInteractabilityOnStack = 1 << 2,
-		CanBeCancelled = 1 << 3,
-	}
-
-	public interface IScriptableStackingData { }
-	public interface IScriptableStackingDataProcessor<T> where T : IScriptableStackingData
-	{
-		public void Process(T data);
-	}
-
-	[Serializable]
-	public class DextraAction<T> where T : struct
-	{
-		public bool HeldDownThisFrame => InputAction != null && InputAction.IsPressed();
-
-		private Action<Context> Handler { get; set; }
-
-		private InputAction InputAction => reference == null ? null : reference.action;
-
-		[SerializeField] private InputActionReference reference = null;
-
-		public void Discard()
-		{
-			if (InputAction != null) InputAction.performed -= Handler;
-			Handler = null;
-		}
-
-		private static void LogNullInputActionWarning(MethodInfo method)
-		{
-			Scribe.SystemLog(Dextra.Instance.LinkID, Scribe.WarningNotif,
-			"Input Action has not been assigned for ", method.Name, "!");
-		}
-
-		public void Handle(Action action)
-		{
-			if (InputAction != null)
-			{
-				Handler = (Context ctx) => Dextra.PerformContextualAction(action);
-				Subscribe();
-			}
-			else LogNullInputActionWarning(action.Method);
-		}
-
-		public void Handle(Action<T> action)
-		{
-			if (InputAction != null)
-			{
-				Handler = (Context ctx) => Dextra.PerformContextualAction(action, ctx.ReadValue<T>());
-				Subscribe();
-			}
-			else LogNullInputActionWarning(action.Method);
-		}
-
-		private void Subscribe() { InputAction.performed += Handler; }
-	}
-
-	[Serializable] public sealed class VoidDextraAction : DextraAction<VoidOutput> { }
+	using VoidDelegate = Utilities.Events.ThreadlinkDelegate<Utilities.Events.Empty, Utilities.Events.Empty>;
 
 	/// <summary>
-	/// System responsible for managing user interfaces, input and interactions (Input, UI, Interactables).
+	/// System responsible for managing user interfaces, input and interactions.
 	/// </summary>
-	public sealed class Dextra : UnitySystem<Dextra, UserInterface>, IAssetPreloader
+	public sealed class Dextra : UnityWeaver<Dextra, UserInterface>, IInitializable, IAssetPreloader
 	{
 		public enum InputDevice { MouseKeyboard, XBOXController, DualSense }
-		public enum InputMode { Invalid = -1, UI = 0, Player = 1 }
+		public enum InputMode { Unresponsive = -1, UI = 0, Player = 1 }
 
-		public static VoidGenericEvent<RectTransform> OnElementSelected => Instance.onElementSelected;
-		public static VoidGenericEvent<InputDevice> OnInputDeviceChanged => Instance.onInputDeviceChanged;
-		public static VoidGenericEvent<InputMode> OnInputModeChanged => Instance.onInputModeChanged;
+		private static ThreadlinkEventBus EventBus => Threadlink.EventBus;
+
 		public static InputMode CurrentInputMode
 		{
 			set
@@ -100,270 +31,178 @@ namespace Threadlink.Systems.Dextra
 				var module = CustomInputModule;
 
 				if (module != null) module.InputMode = value;
-				Instance.onInputModeChanged?.Invoke(value);
+				EventBus.InvokeOnDextraInputModeChangedEvent(value);
 			}
 		}
 
-		public static event VoidDelegate OnInteractButtonPressed
-		{
-			add { if (CustomInputModule != null) CustomInputModule.OnInteractButtonPressed?.TryAddListener(value); }
-			remove { if (CustomInputModule != null) CustomInputModule.OnInteractButtonPressed?.Remove(value); }
-		}
+		public static InputDevice CurrentInputDevice { get; private set; }
 
-		public static event VoidDelegate OnPauseButtonPressed
-		{
-			add { if (CustomInputModule != null) CustomInputModule.OnPauseButtonPressed?.TryAddListener(value); }
-			remove { if (CustomInputModule != null) CustomInputModule.OnPauseButtonPressed?.Remove(value); }
-		}
-
-		public static event VoidDelegate OnInterfaceCancelled
-		{
-			add { Instance.onInterfaceCancelled.TryAddListener(value); }
-			remove { Instance.onInterfaceCancelled.Remove(value); }
-		}
-
-		internal static UserInterface TopInterface => StackedInterfaces.Count <= 0 ? null : StackedInterfaces.Peek();
-		internal static InputDevice CurrentInputDevice { get; private set; }
-
-		private static Stack<UserInterface> StackedInterfaces { get; set; }
 		private static DextraInputModuleExtension CustomInputModule => Instance.customInputModule;
 		private static Gamepad CurrentGamepad => Gamepad.current;
 		private static EventSystem EventSystem => Instance.eventSystem;
 
+		[Header("Input:")]
 		[SerializeField] private EventSystem eventSystem = null;
+		[SerializeField] private InputSystemUIInputModule uiModule = null;
 		[SerializeField] private PlayerInput deviceDetector = null;
 		[SerializeField] private DextraInputModuleExtension customInputModule = null;
 
-		[Space(10)]
+		[Header("UI:")]
+		[SerializeField] private UIStateMachine uiStateMachine = null;
 
-		[SerializeField] private AddressablePrefab<UserInterface>[] userInterfaceReferences = new AddressablePrefab<UserInterface>[0];
-
-		[NonSerialized] private VoidGenericEvent<RectTransform> onElementSelected = new();
-		[NonSerialized] private VoidGenericEvent<InputDevice> onInputDeviceChanged = new();
-		[NonSerialized] private VoidGenericEvent<InputMode> onInputModeChanged = new();
-		[NonSerialized] private VoidEvent onInterfaceCancelled = new();
-
-		public override VoidOutput Discard(VoidInput _ = default)
+		public override Empty Discard(Empty _ = default)
 		{
-			deviceDetector.onControlsChanged -= UpdateInputDevice;
+			if (uiStateMachine != null) uiStateMachine.Discard();
 
-			onInputModeChanged?.Discard();
-			onInputDeviceChanged?.Discard();
-			onElementSelected?.Discard();
-			onInterfaceCancelled?.Discard();
+			deviceDetector.onControlsChanged -= UpdateInputDevice;
 
 			if (customInputModule != null) customInputModule.Discard();
 
 			SeverAll();
 
-			int length = userInterfaceReferences.Length;
-			for (int i = 0; i < length; i++) userInterfaceReferences[i].Unload();
-
-			userInterfaceReferences = null;
+			uiStateMachine = null;
 			eventSystem = null;
 			deviceDetector = null;
 			customInputModule = null;
+
 			Instance = null;
-			onInputModeChanged = null;
-			onInputDeviceChanged = null;
-			onElementSelected = null;
-			onInterfaceCancelled = null;
+
 			return base.Discard(_);
-		}
-
-		public async UniTask PreloadAssetsAsync()
-		{
-			int length = userInterfaceReferences.Length;
-			var tasks = new UniTask[length];
-
-			for (int i = 0; i < length; i++) tasks[i] = userInterfaceReferences[i].LoadAsync();
-
-			await UniTask.WhenAll(tasks);
 		}
 
 		public override void Boot()
 		{
 			base.Boot();
-			StackedInterfaces = new();
+
+			if (uiStateMachine != null)
+			{
+				uiStateMachine = uiStateMachine.Clone();
+				uiStateMachine.Boot();
+			}
 
 			deviceDetector.onControlsChanged += UpdateInputDevice;
 
 			if (customInputModule != null)
 			{
 				customInputModule = customInputModule.Clone();
-				customInputModule.Boot();
+				Initium.Initium.Boot(customInputModule);
 			}
 		}
 
-		public override void Initialize()
+		public void Initialize()
 		{
-			var interfaces = new UserInterface[userInterfaceReferences.Length];
-			int length = interfaces.Length;
-
-			for (int i = 0; i < length; i++)
-			{
-				var ui = Weave(new(userInterfaceReferences[i].Result));
-
-				ui.Boot();
-				interfaces[i] = ui;
-			}
-
-			for (int i = 0; i < length; i++) interfaces[i].Initialize();
+			if (uiStateMachine != null) uiStateMachine.Initialize();
 
 			if (customInputModule != null) customInputModule.Initialize();
 		}
 
-		#region Interaction Code:
-		public static async UniTaskVoid Cancel()
+		public async UniTask PreloadAssetsAsync()
 		{
-			if (TopInterface != null && TopInterface.CanBeCancelled)
-			{
-				var poppedInterface = await PopTopInterface();
+			var sm = Instance.uiStateMachine;
 
-				if (poppedInterface != null)
-				{
-					poppedInterface.OnCancelled();
-					Instance.onInterfaceCancelled?.Invoke();
-				}
-			}
+			if (sm != null) await sm.PreloadAssetsAsync();
 		}
 
-		public static T GetCustomInputModule<T>() where T : DextraInputModuleExtension
+		#region Interaction Code:
+		public static void Cancel()
 		{
-			return CustomInputModule == null ? null : CustomInputModule as T;
+			var sm = Instance.uiStateMachine;
+
+			if (sm != null && sm.StackedInterfacesCount > 1) sm.Cancel();
 		}
 		#endregion
 
 		#region UI Code:
-
-		private static void LogFailedInterfaceSearch()
+		public static bool IsTopInterface(UserInterface userInterface)
 		{
-			Scribe.SystemLog<ArgumentException>(Instance.LinkID,
-			"Could not find the requested managed interface! This should never happen!");
+			var sm = Instance.uiStateMachine;
+
+			return sm != null && sm.IsTopInterface(userInterface);
 		}
 
-		private static void LogInterfaceAlreadyAtTopWarning()
+		public static void Stack(string userInterfaceID)
 		{
-			Scribe.SystemLog(Instance.LinkID, Scribe.WarningNotif, "The requested interface to stack is already at the top!");
+			var sm = Instance.uiStateMachine;
+
+			if (sm != null) sm.Stack(userInterfaceID);
 		}
 
-		public static void StackInterface(string interfaceID)
+		public static void Stack<T>(string userInterfaceID, T data)
 		{
-			Instance.FindManagedEntity(interfaceID, out var target);
+			var sm = Instance.uiStateMachine;
 
-			if (target == null) LogFailedInterfaceSearch();
-			else StackInterface(target);
+			if (sm != null) sm.Stack(userInterfaceID, data);
 		}
 
-		public static void StackInterface<T>(string interfaceID, T stackingData)
-		where T : IScriptableStackingData
+		public static void Stack(UserInterface userInterface)
 		{
-			Instance.FindManagedEntity(interfaceID, out var target);
+			var sm = Instance.uiStateMachine;
 
-			if (target == null) LogFailedInterfaceSearch();
-			else StackInterface(target, stackingData);
+			if (sm != null) sm.Stack(userInterface);
 		}
 
-		public static void StackInterface(UserInterface target)
+		public static void Stack<T>(UserInterface userInterface, T data)
 		{
-			if (target.Equals(TopInterface))
-			{
-				LogInterfaceAlreadyAtTopWarning();
-				return;
-			}
+			var sm = Instance.uiStateMachine;
 
-			if (TopInterface != null) TopInterface.OnCovered();
-
-			StackedInterfaces.Push(target);
-			target.OnStacked();
-		}
-
-		public static void StackInterface<T>(UserInterface target, T stackingData)
-		where T : IScriptableStackingData
-		{
-			if (target.Equals(TopInterface))
-			{
-				LogInterfaceAlreadyAtTopWarning();
-				return;
-			}
-
-			if (TopInterface != null) TopInterface.OnCovered();
-
-			StackedInterfaces.Push(target);
-
-			try
-			{
-				(target as IScriptableStackingDataProcessor<T>).Process(stackingData);
-			}
-			catch (Exception exception)
-			{
-				Scribe.LogError<InvalidOperationException>(exception.Message);
-			}
-
-			target.OnStacked();
-		}
-
-		public static async UniTask<UserInterface> PopTopInterface()
-		{
-			if (TopInterface != null && TopInterface.UpdatingAlpha == false)
-			{
-				await SelectUIElement(null);
-
-				var previous = StackedInterfaces.Pop();
-
-				previous.OnPopped();
-
-				if (TopInterface != null) TopInterface.OnResurfaced();
-
-				return previous;
-			}
-			else return null;
+			if (sm != null) sm.Stack(userInterface, data);
 		}
 
 		public static void SyncSelection()
 		{
 			var selectedObject = EventSystem.currentSelectedGameObject;
 
-			if (selectedObject != null) Instance.onElementSelected?.Invoke(selectedObject.transform as RectTransform);
+			if (selectedObject != null) EventBus.InvokeOnDextraSelectedEvent(selectedObject.transform as RectTransform);
 		}
+
+		public static void ClearEventSystemSelection()
+		{
+			EventSystem.SetSelectedGameObject(null);
+			InvokeEmptySelectionEvent();
+		}
+
+		public static void InvokeEmptySelectionEvent() { EventBus.InvokeOnDextraSelectedEvent(); }
 
 		public static async UniTask SelectUIElement(GameObject element, bool syncSelection = true)
 		{
-			static void Select(GameObject selectable) { EventSystem.SetSelectedGameObject(selectable); }
-			static void InvokeSelectionEvent() { Instance.onElementSelected?.Invoke(default); }
-
-			var eventSysGO = EventSystem.gameObject;
+			if (element == null)
+			{
+				ClearEventSystemSelection();
+				return;
+			}
+			else if (element.Equals(EventSystem.currentSelectedGameObject)) return;
 
 			await UniTask.NextFrame();
 
-			if (element != null)
+			ClearEventSystemSelection();
+			SetEventSystemActiveState(false);
+
+			await UniTask.NextFrame();
+
+			SetEventSystemActiveState(true);
+			EventSystem.SetSelectedGameObject(element);
+
+			await UniTask.NextFrame();
+
+			var sm = Instance.uiStateMachine;
+
+			if (syncSelection && sm != null && sm.StackedInterfacesCount > 1 && sm.TopInterface is IInteractableInterface)
 			{
-				Select(null);
-				eventSysGO.SetActive(false);
-				await UniTask.NextFrame();
-				eventSysGO.SetActive(true);
-				Select(element);
-
-				await UniTask.NextFrame();
-
-				if (syncSelection) SyncSelection();
-				else InvokeSelectionEvent();
+				SyncSelection();
 			}
-			else
-			{
-				Select(null);
-				InvokeSelectionEvent();
-			}
-
-			return;
+			else InvokeEmptySelectionEvent();
 		}
 		#endregion
 
 		#region Input Code:
+		public static T GetCustomInputModule<T>() where T : DextraInputModuleExtension
+		{
+			return CustomInputModule == null ? null : CustomInputModule as T;
+		}
 
 		private static void UpdateInputDevice(PlayerInput input)
 		{
-			InputDevice newDevice = 0;
+			InputDevice newDevice = CurrentInputDevice;
 			string currentControlScheme = input.currentControlScheme;
 
 			if (string.IsNullOrEmpty(currentControlScheme)) return;
@@ -377,8 +216,11 @@ namespace Threadlink.Systems.Dextra
 					newDevice = InputDevice.XBOXController;
 			}
 
-			CurrentInputDevice = newDevice;
-			Instance.onInputDeviceChanged?.Invoke(newDevice);
+			if (newDevice.Equals(CurrentInputDevice) == false)
+			{
+				CurrentInputDevice = newDevice;
+				EventBus.InvokeOnDextraDeviceChangedEvent(newDevice);
+			}
 
 			//ForceStopControllerVibration();
 		}
@@ -387,7 +229,16 @@ namespace Threadlink.Systems.Dextra
 		public static void PerformContextualAction(Action action) { action(); }
 		public static void PerformContextualAction<T>(Action<T> action, T arg) { action(arg); }
 		public static void PerformContextualAction<T>(Action<T[]> action, params T[] args) { action(args); }
-		public static void SetEventSystemActiveState(bool state) { EventSystem.gameObject.SetActive(state); }
+		public static void PerformContextualAction<T>(ThreadlinkDelegate<Empty, T> action, T arg) { action(arg); }
+		public static void PerformContextualAction<T>(ThreadlinkDelegate<Empty, T[]> action, params T[] args) { action(args); }
+
+		public static void SetEventSystemActiveState(bool state)
+		{
+			var sys = EventSystem;
+
+			sys.sendNavigationEvents = state;
+			sys.enabled = Instance.uiModule.enabled = state;
+		}
 		#endregion
 	}
 }

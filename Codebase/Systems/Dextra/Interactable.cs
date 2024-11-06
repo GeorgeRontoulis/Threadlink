@@ -14,7 +14,7 @@ namespace Threadlink.Systems.Dextra
 #if UNITY_EDITOR && (THREADLINK_INSPECTOR || ODIN_INSPECTOR)
 		[ReadOnly]
 #endif
-		[SerializeField] private Collider effectiveRadius = null;
+		[SerializeField] protected Collider effectiveRadius = null;
 
 		[Space(10)]
 
@@ -26,7 +26,7 @@ namespace Threadlink.Systems.Dextra
 			TryGetComponent(out effectiveRadius);
 		}
 
-		public override VoidOutput Discard(VoidInput _ = default)
+		public override Empty Discard(Empty _ = default)
 		{
 			UnsubscribeFromInteractAction();
 			SetSensorActiveState(false);
@@ -34,12 +34,12 @@ namespace Threadlink.Systems.Dextra
 			return base.Discard(_);
 		}
 
-		public abstract VoidOutput Interact(VoidInput _ = default);
+		public abstract Empty Interact(Empty _ = default);
 
 		public virtual void OnDetected()
 		{
 			if (interactOnContact) Interact();
-			else Dextra.OnInteractButtonPressed += Interact;
+			else Threadlink.EventBus.OnDextraInteractPressed += Interact;
 		}
 
 		public virtual void OnSkipped()
@@ -48,6 +48,6 @@ namespace Threadlink.Systems.Dextra
 		}
 
 		public virtual void SetSensorActiveState(bool state) { effectiveRadius.enabled = state; }
-		protected void UnsubscribeFromInteractAction() { Dextra.OnInteractButtonPressed -= Interact; }
+		protected void UnsubscribeFromInteractAction() { Threadlink.EventBus.OnDextraInteractPressed -= Interact; }
 	}
 }

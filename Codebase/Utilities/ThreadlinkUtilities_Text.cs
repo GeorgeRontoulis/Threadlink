@@ -1,34 +1,100 @@
 namespace Threadlink.Utilities.Text
 {
+	using Cysharp.Text;
+	using System;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.IO;
-	using System.Text;
 	using System.Text.RegularExpressions;
 	using UnityEngine;
 
-	public static class String
+	public static class TLZString
 	{
-		public static readonly StringBuilder StaticStringBuilder = new();
-		public static readonly char Whitespace = (char)32;
+		public const char Whitespace = (char)32;
 
-		private static readonly string SPLIT_RE = @";(?=(?:[^""]*""[^""]*"")*(?![^""]*""))";
-		private static readonly string LINE_SPLIT_RE = @"\r\n|\n\r|\n|\r";
+		private const string SPLIT_RE = @";(?=(?:[^""]*""[^""]*"")*(?![^""]*""))";
+		private const string LINE_SPLIT_RE = @"\r\n|\n\r|\n|\r";
 		private static readonly char[] TRIM_CHARS = { '\"' };
+
+		public static Utf8ValueStringBuilder ToNonAlloc(this string input, bool nested = true)
+		{
+			using var utf8sb = ZString.CreateUtf8StringBuilder(nested);
+			utf8sb.Append(input);
+			return utf8sb;
+		}
 
 		public static string Construct(params object[] strings)
 		{
-			if (StaticStringBuilder.Length > 0) StaticStringBuilder.Clear();
+			using var utf8sb = ZString.CreateUtf8StringBuilder(true);
 
 			int length = strings.Length;
 
-			for (int i = 0; i < length; i++) StaticStringBuilder.Append(strings[i]);
+			for (int i = 0; i < length; i++) utf8sb.Append(strings[i]);
 
-			string constructedString = StaticStringBuilder.ToString();
+			return utf8sb.ToString();
+		}
 
-			StaticStringBuilder.Clear();
+		public static Utf8ValueStringBuilder ConstructNonAlloc(params object[] strings)
+		{
+			using var utf8sb = ZString.CreateUtf8StringBuilder();
 
-			return constructedString;
+			int length = strings.Length;
+
+			for (int i = 0; i < length; i++) utf8sb.Append(strings[i]);
+
+			return utf8sb;
+		}
+
+		public static string FirstToUpper(this string input)
+		{
+			if (string.IsNullOrEmpty(input)) return input;
+
+			return Construct(char.ToUpper(input[0]), input.Substring(1));
+		}
+
+		public static string FirstToLower(this string input)
+		{
+			if (string.IsNullOrEmpty(input)) return input;
+
+			return Construct(char.ToLower(input[0]), input.Substring(1));
+		}
+
+		public static string LastToUpper(this string input)
+		{
+			if (string.IsNullOrEmpty(input)) return input;
+
+			return Construct(input[..^1], char.ToUpper(input[^1]));
+		}
+
+		public static string[] ExtractCommaSeparatedContentInAngleBrackets(this string input)
+		{
+			Match match = Regex.Match(input, @"<([^>]+)>");
+			if (match.Success)
+			{
+				return match.Groups[1].Value.Split(',');
+			}
+			return Array.Empty<string>();
+		}
+
+		public static string ExtractContentInAngleBrackets(this string input)
+		{
+			var match = Regex.Match(input, @"<([^>]+)>");
+			return match.Success ? match.Groups[1].Value : string.Empty;
+		}
+
+		public static string RemoveFirstLast(string input)
+		{
+			if (string.IsNullOrEmpty(input) == false && input.Length > 2)
+				return input.Remove(input.Length - 1).Remove(0, 1);
+			else
+				return string.Empty;
+		}
+
+		public static string FirstLastToUpper(string input)
+		{
+			if (string.IsNullOrEmpty(input) || input.Length == 1) return input.ToUpper();
+
+			return Construct(char.ToUpper(input[0]), RemoveFirstLast(input), char.ToUpper(input[^1]));
 		}
 
 		internal static List<Dictionary<string, object>> ReadAsCSV(this TextAsset textFile)
@@ -91,20 +157,16 @@ namespace Threadlink.Utilities.Text
 			return target.GetType().Name.Split('>')[0].TrimStart('<');
 		}
 
-		public static void SeparateUpperCaseAndCommas(string input, out string output)
+		public static Utf8ValueStringBuilder SeparateUpperCaseAndCommas(string input, bool convertToUpperCase = false)
 		{
-			if (string.IsNullOrEmpty(input))
-			{
-				output = input;
-				return;
-			}
+			if (string.IsNullOrEmpty(input)) return default;
 
-			StaticStringBuilder.Clear();
-			StaticStringBuilder.Append(input[0]);
+			using var utf8sb = ZString.CreateUtf8StringBuilder();
+			utf8sb.Append(input[0]);
 
 			char whitespace = Whitespace;
-			char comma = ',';
-			char dash = '-';
+			const char comma = ',';
+			const char dash = '-';
 			int length = input.Length;
 
 			for (int i = 1; i < length; i++)
@@ -113,16 +175,15 @@ namespace Threadlink.Utilities.Text
 				char previous = input[i - 1];
 
 				if (char.IsUpper(current) && char.IsWhiteSpace(previous) == false && previous != dash)
-					StaticStringBuilder.Append(whitespace);
+					utf8sb.Append(whitespace);
 
-				StaticStringBuilder.Append(current);
+				utf8sb.Append(convertToUpperCase ? char.ToUpper(current) : current);
 
 				if (current == comma && (i + 1 < input.Length && char.IsUpper(input[i + 1]) == false))
-					StaticStringBuilder.Append(whitespace);
+					utf8sb.Append(whitespace);
 			}
 
-			output = StaticStringBuilder.ToString();
-			StaticStringBuilder.Clear();
+			return utf8sb;
 		}
 	}
 }

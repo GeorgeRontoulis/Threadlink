@@ -54,22 +54,24 @@ namespace Threadlink.Templates.PlayerCharacterController
 			base.Initialize(owner);
 		}
 
-		protected override VoidOutput Run(VoidInput _)
+		protected override Empty Run(Empty _)
 		{
 			var animator = Character.Animator;
 			float deltaTime = Chronos.DeltaTime;
 			float momentum = 0;
+			var flags = Character.CurrentStateFlags;
 
 #if THREADLINK_TEMPLATES_CONTROLLER_3D
 			float clampedInputMagnitude = Mathf.Clamp01(movementInput.CurrentValue.magnitude);
 
-			if (Character.IsSprinting && clampedInputMagnitude > Mathf.Epsilon) momentum = sprintMomentum;
+			if (flags.HasFlag(IPlayerCharacter.StateFlags.IsSprinting) && clampedInputMagnitude > Mathf.Epsilon)
+				momentum = sprintMomentum;
 			else if (clampedInputMagnitude > Mathf.Epsilon && clampedInputMagnitude <= walkMomentum) momentum = walkMomentum;
 			else if (clampedInputMagnitude > walkMomentum && clampedInputMagnitude < sprintMomentum) momentum = jogMomentum;
 			else momentum = idleMomentum;
 #elif THREADLINK_TEMPLATES_CONTROLLER_2D
 			float absoluteX = Mathf.Abs(movementInput.CurrentValue.x);
-			if (Character.IsSprinting) momentum = sprintMomentum;
+			if (flags.HasFlag(IPlayerCharacter.StateFlags.IsSprinting)) momentum = sprintMomentum;
 			else if (absoluteX > Mathf.Epsilon && absoluteX <= walkMomentum) momentum = walkMomentum;
 			else if (absoluteX > walkMomentum && absoluteX < sprintMomentum) momentum = jogMomentum;
 			else momentum = idleMomentum;
@@ -92,8 +94,8 @@ namespace Threadlink.Templates.PlayerCharacterController
 			}
 			else yVelocity.CurrentValue = tempYVelocity;
 
-			animator.SetBool(groundedHash.Value, Character.IsGrounded);
-			animator.SetFloat(idleFidgetHash.Value, Character.IsStandingOnEdge ? 2 : 0, 0.2f, deltaTime);
+			animator.SetBool(groundedHash.Value, flags.HasFlag(IPlayerCharacter.StateFlags.IsGrounded));
+			animator.SetFloat(idleFidgetHash.Value, flags.HasFlag(IPlayerCharacter.StateFlags.IsStandingOverEdge) ? 2 : 0, 0.2f, deltaTime);
 
 			return default;
 		}

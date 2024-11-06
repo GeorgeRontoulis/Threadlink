@@ -8,7 +8,7 @@ namespace Threadlink.Systems
 	/// <summary>
 	/// System responsible for Time Management during Threadlink's runtime.
 	/// </summary>
-	public sealed class Chronos : LinkableBehaviourSingleton<Chronos>
+	public sealed class Chronos : ThreadlinkSystem<Chronos>
 	{
 		/// <summary>
 		/// Gets or sets the current Timescale.
@@ -22,7 +22,7 @@ namespace Threadlink.Systems
 			{
 				bool Approx(float compare) { return Mathf.Approximately(value, compare); }
 
-				if (Approx(0f) || Approx(1f)) Time.timeScale = value; else LogInvalidTimescaleWarning();
+				if (Approx(0f) || Approx(1f)) Time.timeScale = value; else Throw();
 			}
 		}
 
@@ -45,71 +45,66 @@ namespace Threadlink.Systems
 				if (Approx(0f))
 				{
 					UpdateTimescale();
-					OnGamePaused.Invoke();
+					Threadlink.EventBus.InvokeOnChronosPausedEvent();
 				}
 				else if (Approx(1f))
 				{
 					UpdateTimescale();
-					OnGameResumed.Invoke();
+					Threadlink.EventBus.InvokeOnChronosResumedEvent();
 				}
-				else LogInvalidTimescaleWarning();
+				else Throw();
 			}
 		}
 
-		public static double Framerate => 1d / (double)DeltaTime;
+		public static double CurrentFramerate => 1d / (double)DeltaTime;
 
-		public static float CurrentFrameTimeSinceStart { get; set; }
-		public static float TotalPlaytime { get; set; }
+		public static float CurrentFrameTimeSinceStart { get; private set; }
+		public static float TotalPlaytime { get; private set; }
 		public static float DeltaTime { get; private set; }
 		public static float SmoothDeltaTime { get; private set; }
 		public static float FixedDeltaTime { get; private set; }
 		public static float UnscaledDeltaTime { get; private set; }
 
-		public static VoidEvent OnGamePaused => Instance.onGamePaused;
-		public static VoidEvent OnGameResumed => Instance.onGameResumed;
-		public static VoidEvent OnCountPlaytime => Instance.onCountPlaytime;
+		private enum TotalPlaytimeCountingMode { Scaled, Unscaled }
+		[SerializeField] private TotalPlaytimeCountingMode totalPlaytimeCountingMode = 0;
 
-		private VoidEvent onCountPlaytime = new();
-		private VoidEvent onGameResumed = new();
-		private VoidEvent onGamePaused = new();
+		[NonSerialized] private Action countPlaytime = null;
 
-		public override VoidOutput Discard(VoidInput _ = default)
+		public override Empty Discard(Empty _ = default)
 		{
-			onGamePaused.Discard();
-			onGameResumed.Discard();
-			onCountPlaytime.Discard();
+			Iris.OnUpdate -= UpdateStandardTime;
+			Iris.OnFixedUpdate -= UpdatePhysicsTime;
 
-			onGamePaused = null;
-			onGameResumed = null;
-			onCountPlaytime = null;
+			countPlaytime = null;
+
 			return base.Discard(_);
 		}
 
 		public override void Boot()
 		{
 			base.Boot();
+			Iris.OnUpdate += UpdateStandardTime;
+			Iris.OnFixedUpdate += UpdatePhysicsTime;
 			TotalPlaytime = 0;
 		}
 
-		public override void Initialize()
-		{
-			Iris.SubscribeToUpdate(UpdateStandardTime);
-			Iris.SubscribeToFixedUpdate(UpdatePhysicsTime);
-		}
-
-		private VoidOutput UpdateStandardTime(VoidInput _)
+		private Empty UpdateStandardTime(Empty _)
 		{
 			CurrentFrameTimeSinceStart = Time.time;
 			DeltaTime = Time.deltaTime;
 			SmoothDeltaTime = Time.smoothDeltaTime;
 			UnscaledDeltaTime = Time.unscaledDeltaTime;
 
-			onCountPlaytime.Invoke();
+			if (countPlaytime != null)
+			{
+				countPlaytime.Invoke();
+				Threadlink.EventBus.InvokeOnChronosPlaytimeCountEvent(TotalPlaytime);
+			}
 
 			return default;
 		}
 
-		private VoidOutput UpdatePhysicsTime(VoidInput _)
+		private Empty UpdatePhysicsTime(Empty _)
 		{
 			FixedDeltaTime = Time.fixedDeltaTime;
 			return default;
@@ -117,8 +112,12 @@ namespace Threadlink.Systems
 
 		public static void SetPlaytimeCountingState(bool state)
 		{
-			if (state) OnCountPlaytime.TryAddListener(IncrementTotalPlaytime);
-			else OnCountPlaytime.Remove(IncrementTotalPlaytime);
+			if (state)
+			{
+				Instance.countPlaytime = Instance.totalPlaytimeCountingMode.Equals(TotalPlaytimeCountingMode.Scaled) ?
+				IncrementTotalPlaytimeScaled : IncrementTotalPlaytimeUnscaled;
+			}
+			else Instance.countPlaytime = null;
 		}
 
 		internal static void ResetPlaytime()
@@ -127,16 +126,8 @@ namespace Threadlink.Systems
 			TotalPlaytime = 0;
 		}
 
-		private static void LogInvalidTimescaleWarning()
-		{
-			Scribe.SystemLog<ArgumentException>(Instance.LinkID,
-			"Invalid Timescale requested! Valid values are 0 and 1. Check your Timescale assignments!");
-		}
-
-		private static VoidOutput IncrementTotalPlaytime(VoidInput _)
-		{
-			TotalPlaytime += UnscaledDeltaTime;
-			return default;
-		}
+		private static void Throw() => Instance.SystemLog<InvalidTimescaleException>();
+		private static void IncrementTotalPlaytimeScaled() => TotalPlaytime += DeltaTime;
+		private static void IncrementTotalPlaytimeUnscaled() => TotalPlaytime += UnscaledDeltaTime;
 	}
 }

@@ -2,7 +2,7 @@ namespace Threadlink.Systems.Aura
 {
 	using Core;
 	using Cysharp.Threading.Tasks;
-	using Systems.Nexus;
+	using MassTransit;
 	using UnityEngine;
 	using Utilities.Events;
 
@@ -10,7 +10,7 @@ namespace Threadlink.Systems.Aura
 	/// System responsible for Audio Mixing during Threadlink's runtime.
 	/// Provides Spatial Mixing for BGM and Atmos, audio transitions, fades etc.
 	/// </summary>
-	public sealed class Aura : UnitySystem<Aura, AuraSpatialEntity>
+	public sealed class Aura : Linker<Aura, AuraSpatialEntity>
 	{
 		public enum UISFX { Cancel = -1, Nagivate, Confirm }
 
@@ -37,8 +37,39 @@ namespace Threadlink.Systems.Aura
 		[SerializeField] private AudioClip confirm = null;
 		[SerializeField] private AudioClip cancel = null;
 
+		public override Empty Discard(Empty _ = default)
+		{
+			AudioListenerTransform.SetParent(selfTransform);
+
+			AudioListener = null;
+			musicAudiosource = null;
+			atmosAudiosource = null;
+			sfxAudiosource = null;
+			navigate = null;
+			confirm = null;
+			cancel = null;
+
+			return base.Discard(_);
+		}
+
 		public override void Boot()
 		{
+			Empty LinkAllAuraZonesInScene(Empty _)
+			{
+				var entities = FindObjectsByType<AuraSpatialEntity>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+				int length = entities.Length;
+
+				for (int i = 0; i < length; i++) TryLink(entities[i]);
+
+				return default;
+			}
+
+			Empty DisconnectAllZones(Empty _)
+			{
+				DisconnectAll();
+				return default;
+			}
+
 			base.Boot();
 
 			AudioListener = GetComponentInChildren<AudioListener>();
@@ -46,60 +77,47 @@ namespace Threadlink.Systems.Aura
 
 			AudioListenerTransform.SetParent(selfTransform);
 
-			VoidOutput LinkAllAuraZonesInScene(VoidInput _)
-			{
-				var entities = FindObjectsByType<AuraSpatialEntity>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-				int length = entities.Length;
+			var eventBus = Threadlink.EventBus;
 
-				for (int i = 0; i < length; i++) Link(entities[i]);
+			eventBus.OnNexusBeforeActiveSceneUnload += DisconnectAllZones;
+			eventBus.OnNexusLoadingProcessFinished += LinkAllAuraZonesInScene;
 
-				return default;
-			}
-
-			VoidOutput DisconnectAllZones(VoidInput _)
-			{
-				DisconnectAll();
-				return default;
-			}
-
-			Nexus.OnBeforeSceneUnload.TryAddListener(DisconnectAllZones);
-			Nexus.OnSceneFinishedLoading.TryAddListener(LinkAllAuraZonesInScene);
-		}
-
-		public override void Initialize()
-		{
 			ResetAudioListenerLocalPosition();
 		}
 
-		public override Entity Link<Entity>(Entity instance, bool logAction = false)
+		public override bool TryLink(AuraSpatialEntity entity)
 		{
-			var linkedEntity = base.Link(instance, logAction);
+			bool linked = base.TryLink(entity);
 
-			if (LinkedEntities.Count > 0) Iris.SubscribeToUpdate(CalculateSpatialInfluence);
+			if (linked && Registry.Count > 0) Iris.OnUpdate += CalculateSpatialInfluence;
 
-			return linkedEntity;
+			return linked;
 		}
 
-		public override void Disconnect(AuraSpatialEntity instance, bool logAction = false)
+		public override bool TryDisconnect(NewId entityID, out AuraSpatialEntity disconnectedEntity)
 		{
-			if (LinkedEntities.Count - 1 <= 0) Iris.UnsubscribeFromUpdate(CalculateSpatialInfluence);
+			bool disconnected = base.TryDisconnect(entityID, out disconnectedEntity);
 
-			base.Disconnect(instance, logAction);
+			if (disconnected && Registry.Count - 1 <= 0) Iris.OnUpdate -= CalculateSpatialInfluence;
+
+			return disconnected;
 		}
 
-		public override void DisconnectAll()
+		public override void DisconnectAll(bool trimRegistry = false)
 		{
-			Iris.UnsubscribeFromUpdate(CalculateSpatialInfluence);
-			base.DisconnectAll();
+			Iris.OnUpdate -= CalculateSpatialInfluence;
+			base.DisconnectAll(trimRegistry);
 		}
 
-		private VoidOutput CalculateSpatialInfluence(VoidInput _)
+		private Empty CalculateSpatialInfluence(Empty _)
 		{
 			var listenerPos = AudioListenerTransform.position;
 			float totalInfluence = 0f;
 
-			for (int i = LinkedEntities.Count - 1; i >= 0; i--)
-				totalInfluence += LinkedEntities[i].GetSpatialInfluence(listenerPos);
+			foreach (var entity in Registry.Values)
+			{
+				totalInfluence += entity.GetSpatialInfluence(listenerPos);
+			}
 
 			MoveTowardsVolume(musicAudiosource, Mathf.Clamp01(CurrentMaxMusicVolume - totalInfluence));
 			MoveTowardsVolume(atmosAudiosource, Mathf.Clamp01(CurrentMaxAtmosVolume - totalInfluence));
@@ -109,14 +127,14 @@ namespace Threadlink.Systems.Aura
 
 		public static void AttachAudioListenerTo(LinkableBehaviour owner, Transform parent)
 		{
-			VoidOutput ReattachListenerToAura(VoidInput _ = default)
+			Empty ReattachListenerToAura(Empty _ = default)
 			{
 				AudioListenerTransform.SetParent(Instance.selfTransform);
-				owner.OnBeforeDiscarded.Remove(ReattachListenerToAura);
+				owner.OnDiscard -= ReattachListenerToAura;
 				return default;
 			}
 
-			owner.OnBeforeDiscarded.TryAddListener(ReattachListenerToAura);
+			owner.OnDiscard += ReattachListenerToAura;
 			AudioListenerTransform.SetParent(parent);
 			ResetAudioListenerLocalPosition();
 		}
@@ -129,7 +147,7 @@ namespace Threadlink.Systems.Aura
 			Instance.CurrentMaxAtmosVolume = volumes.y;
 		}
 
-		public static async UniTask AsyncFadeAudioListenerVolumeTo(float targetVolume)
+		public static async UniTask FadeAudioListenerVolumeAsync(float targetVolume)
 		{
 			targetVolume = Mathf.Clamp01(targetVolume);
 
@@ -167,13 +185,13 @@ namespace Threadlink.Systems.Aura
 			var musicSource = Instance.musicAudiosource;
 			var atmosSource = Instance.atmosAudiosource;
 
-			await UniTask.WhenAll(AsyncFadeAudiosourceVolumeTo(musicSource, 0f),
-			AsyncFadeAudiosourceVolumeTo(atmosSource, 0f));
+			await UniTask.WhenAll(FadeAudiosourceVolumeAsync(musicSource, 0f),
+			FadeAudiosourceVolumeAsync(atmosSource, 0f));
 
 			musicSource.Stop();
 			atmosSource.Stop();
 
-			await UniTask.NextFrame();
+			await Threadlink.WaitForFrames(1);
 
 			musicSource.clip = musicClip;
 			atmosSource.clip = atmosClip;
@@ -181,16 +199,16 @@ namespace Threadlink.Systems.Aura
 			if (musicSource.clip != null) musicSource.Play();
 			if (atmosSource.clip != null) atmosSource.Play();
 
-			await UniTask.NextFrame();
+			await Threadlink.WaitForFrames(1);
 
 			volumes.x = Mathf.Clamp(volumes.x, 0f, Instance.CurrentMaxMusicVolume);
 			volumes.y = Mathf.Clamp(volumes.y, 0f, Instance.CurrentMaxAtmosVolume);
 
-			await UniTask.WhenAll(AsyncFadeAudiosourceVolumeTo(musicSource, volumes.x),
-			AsyncFadeAudiosourceVolumeTo(atmosSource, volumes.y));
+			await UniTask.WhenAll(FadeAudiosourceVolumeAsync(musicSource, volumes.x),
+			FadeAudiosourceVolumeAsync(atmosSource, volumes.y));
 		}
 
-		private static async UniTask AsyncFadeAudiosourceVolumeTo(AudioSource source, float targetVolume)
+		private static async UniTask FadeAudiosourceVolumeAsync(AudioSource source, float targetVolume)
 		{
 			targetVolume = Mathf.Clamp01(targetVolume);
 

@@ -1,12 +1,12 @@
 namespace Threadlink.Utilities.Editor
 {
 #if UNITY_EDITOR
+	using Attributes;
 	using System;
 	using System.IO;
-	using Threadlink.Utilities.Editor.Attributes;
 	using UnityEditor;
 	using UnityEngine;
-	using String = Text.String;
+	using TLZString = Text.TLZString;
 
 	internal sealed class ScriptableObjectCreationWizard : ScriptableWizard
 	{
@@ -37,7 +37,7 @@ namespace Threadlink.Utilities.Editor
 			string templateContents = template.text;
 
 			var generatedUsings = new string[necessaryUsings.Length];
-			for (int i = 0; i < generatedUsings.Length; i++) generatedUsings[i] = String.Construct("using ", necessaryUsings[i], ";");
+			for (int i = 0; i < generatedUsings.Length; i++) generatedUsings[i] = TLZString.Construct("using ", necessaryUsings[i], ";");
 
 			//Modify the template copy:
 			templateContents = templateContents.Replace("<Namespace>", namespaceName);
@@ -49,7 +49,7 @@ namespace Threadlink.Utilities.Editor
 			templateContents = templateContents.Replace("<Implementation>", implementationTemplate == null ? string.Empty : implementationTemplate.text);
 
 			//Save to a new script in the specified path.
-			string path = String.Construct(scriptPath, "/", className, ".cs");
+			string path = TLZString.Construct(scriptPath, "/", className, ".cs");
 			var writer = new StreamWriter(path);
 
 			writer.Write(templateContents);

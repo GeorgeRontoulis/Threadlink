@@ -2,25 +2,41 @@
 {
 	using Cysharp.Threading.Tasks;
 	using Extensions.Addressables;
+	using MassTransit;
 	using System;
+	using System.Collections.Generic;
 	using Systems;
 	using Systems.Initium;
 	using UnityEngine;
 	using Utilities.Addressables;
 	using Utilities.Collections;
-	using Utilities.Editor.Attributes;
 	using Utilities.Events;
+	using UnityEngine.AddressableAssets;
 
-	public static class ThreadlinkCoreExtensionMethods
+#if THREADLINK_INSPECTOR
+using Utilities.Editor.Attributes;
+#elif ODIN_INSPECTOR
+	using Sirenix.OdinInspector;
+#endif
+
+	internal static class ThreadlinkDeployment
 	{
-		public static T Clone<T>(this T original) where T : LinkableAsset
+		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+		private static async UniTaskVoid DeployCore()
 		{
-			var copy = UnityEngine.Object.Instantiate(original);
+			await Addressables.InitializeAsync();
 
-			copy.name = original.name;
-			copy.IsInstance = true;
+			var handle = Addressables.LoadAssetAsync<GameObject>("Assets/Threadlink/Prefabs/Threadlink.prefab");
 
-			return copy;
+			await handle.ToUniTask();
+
+			var threadlinkInstance = UnityEngine.Object.Instantiate(handle.Result).GetComponent<Threadlink>();
+			threadlinkInstance.name = typeof(Threadlink).Name;
+
+			if (threadlinkInstance.gameObject.scene.name.Equals("ThreadlinkScene") == false)
+				threadlinkInstance.LogException<InvalidDeploymentException>();
+
+			threadlinkInstance.Deploy().Forget();
 		}
 	}
 
@@ -28,62 +44,32 @@
 	/// The Core Game System. Controls all aspects of the runtime
 	/// and manages sub-systems and entities at the lowest level.
 	/// </summary>
-	public sealed class Threadlink : UnitySystem<Threadlink, LinkableBehaviour>
+	public sealed class Threadlink : UnityWeaver<Threadlink, ThreadlinkSystem>
 	{
+		public static ThreadlinkEventBus EventBus => Instance.eventBus;
+
 		private static ThreadlinkAddressables Addressables => Instance.addressables;
 
-		public override string LinkID => "Threadlink";
+#if ODIN_INSPECTOR
+		[ShowInInspector]
+#endif
+		[ReadOnly] private static readonly Dictionary<string, NewId> ConstantIDsBuffer = new();
 
-		[ReadOnly][SerializeField] private ThreadlinkAddressables addressables = null;
+		[ReadOnly, SerializeField] private ThreadlinkAddressables addressables = null;
+		[ReadOnly, SerializeField] private ThreadlinkEventBus eventBus = null;
 
-#pragma warning disable UNT0006
-#pragma warning disable IDE0051
-
-		#region Initialization and Deployment
-		private void Awake() { Boot(); }
-
-		private async UniTaskVoid Start()
+		public override Empty Discard(Empty _ = default)
 		{
-			Initialize();
-			await Deploy();
-		}
-
-		public override void Initialize() { }
-
-		private async UniTask Deploy()
-		{
-			var systems = addressables.coreSystems;
-			int systemAddressablesCount = systems.Length;
-			var uniTasks = new UniTask[systemAddressablesCount];
-
-			for (int i = 0; i < systemAddressablesCount; i++) uniTasks[i] = systems[i].LoadAsync();
-
-			await UniTask.WhenAll(uniTasks);
-
-			for (int i = 0; i < systemAddressablesCount; i++)
-			{
-				var wovenSystem = Weave(new(systems[i].Result));
-
-				if (wovenSystem is IAssetPreloader) await (wovenSystem as IAssetPreloader).PreloadAssetsAsync();
-			}
-
-			await Initium.Boot(LinkedEntities);
-			await Initium.Initialize(LinkedEntities);
-
-			Scribe.SystemLog(LinkID, Scribe.InfoNotif, "Threadlink successfully deployed. All Systems operational.");
-		}
-
-		public static void ShutDown()
-		{
-			Instance.Discard();
-		}
-
-		public override VoidOutput Discard(VoidInput _ = default)
-		{
+			Scribe.ResetExceptionPool();
 			SeverAll();
 
+			Destroy(eventBus);
+			eventBus = null;
 			addressables = null;
 			Instance = null;
+
+			ConstantIDsBuffer.Clear();
+			ConstantIDsBuffer.TrimExcess();
 
 #if UNITY_EDITOR
 			UnityEditor.EditorApplication.ExitPlaymode();
@@ -92,7 +78,60 @@
 #endif
 			return base.Discard(_);
 		}
+
+		#region Initialization and Deployment
+		internal async UniTaskVoid Deploy()
+		{
+			eventBus = Instantiate(eventBus);
+			ConstantIDsBuffer.Clear();
+			Boot();
+
+			var systems = addressables.coreSystems;
+			int systemAddressablesCount = systems.Length;
+
+			var uniTasks = new UniTask[systemAddressablesCount];
+
+			for (int i = 0; i < systemAddressablesCount; i++) uniTasks[i] = systems[i].LoadAsync();
+
+			await UniTask.WhenAll(uniTasks);
+
+			for (int i = 0; i < systemAddressablesCount; i++)
+			{
+				var wovenSystem = Weave(systems[i].Result);
+
+				await Initium.BootAsync(wovenSystem);
+
+				if ((wovenSystem as IAssetPreloader) != null) await (wovenSystem as IAssetPreloader).PreloadAssetsAsync();
+			}
+
+			foreach (var subSystem in Registry.Values) await Initium.InitializeAsync(subSystem);
+
+			this.SystemLog(Scribe.InfoNotif, "Core successfully deployed. All Sub-Systems operational.");
+		}
+
+		public override ThreadlinkSystem Weave(ThreadlinkSystem original)
+		{
+			var system = base.Weave(original);
+			system.SelfTransform.SetParent(selfTransform);
+
+			return system;
+		}
 		#endregion
+
+		public static bool TryGetConstantSingletonID(string singletonName, out NewId result)
+		{
+			return ConstantIDsBuffer.TryGetValue(singletonName, out result);
+		}
+
+		public static bool TryRegisterConstantSingletonID(string singletonName, NewId result)
+		{
+			return ConstantIDsBuffer.TryAdd(singletonName, result);
+		}
+
+		public static void RegisterConstantSingletonID(string singletonName, NewId result)
+		{
+			ConstantIDsBuffer.Add(singletonName, result);
+		}
 
 		public static async UniTask WaitForFrames(int frameCount)
 		{
@@ -100,64 +139,40 @@
 		}
 
 		#region Addressables Methods
-		private const string SearchNullAddressablesExtensionError =
-		"A request to search the Addressables Extension was made, however no extension has been provided! Please provide an extension before proceeding!";
-
-		public static void FindAddressablePrefab<PrefabType>(string prefabID, out AddressablePrefab<PrefabType> result)
+		public static bool TryGetAddressablePrefab<PrefabType>(string prefabID, out AddressablePrefab<PrefabType> result)
 		where PrefabType : Component
 		{
 			var extension = Addressables.customExtension;
 
-			if (extension != null)
-			{
-				extension.SearchForAddressablePrefab<PrefabType>(prefabID, out var prefab);
-				result = prefab;
-				return;
-			}
-			else
-			{
-				Scribe.SystemLog<NullReferenceException>(Instance.LinkID, SearchNullAddressablesExtensionError);
-				result = null;
-			}
+			if (extension == null) Instance.SystemLog<SearchedNullAddressablesExtensionException>();
+
+			return extension.TryGetAddressablePrefab(prefabID, out result);
 		}
 
-		public static void FindAddressableAsset<AssetType>(string assetID, out AddressableAsset<AssetType> result)
+		public static bool TryGetAddressableAsset<AssetType>(string assetID, out AddressableAsset<AssetType> result)
 		where AssetType : UnityEngine.Object
 		{
 			var extension = Addressables.customExtension;
 
-			if (extension != null)
-			{
-				extension.SearchForAddressableAsset<AssetType>(assetID, out var asset);
-				result = asset;
-				return;
-			}
-			else
-			{
-				Scribe.SystemLog<NullReferenceException>(Instance.LinkID, SearchNullAddressablesExtensionError);
-				result = null;
-			}
+			if (extension == null) Instance.SystemLog<SearchedNullAddressablesExtensionException>();
+
+			return extension.TryGetAddressableAsset(assetID, out result);
 		}
 
-		public static void FindAddressableScene(string address, out AddressableScene result)
+		public static bool TryGetAddressableScene(string address, out AddressableScene result)
 		{
-			Addressables.scenes.BinarySearch(address, out var addressable);
-			result = addressable;
+			return Addressables.scenes.BinarySearch(address, out result) >= 0 && result != null;
 		}
 
 		public static bool TryGetCustomAddressablesExtension<T>(out T result) where T : ThreadlinkAddressablesExtension
 		{
-			var extension = Addressables.customExtension as T;
+			result = Addressables.customExtension as T;
 
-			if (extension == null)
-			{
-				Scribe.SystemLog<NullReferenceException>(Instance.LinkID, "No Custom Addressables Extension specified!");
-				result = null;
-				return false;
-			}
+			bool resultIsValid = result != null;
 
-			result = extension;
-			return true;
+			if (resultIsValid == false) Instance.SystemLog<AddressablesExtensionNotFoundException>();
+
+			return resultIsValid;
 		}
 		#endregion
 	}

@@ -23,11 +23,16 @@ namespace Threadlink.Templates.PlayerCharacterController
 			base.Initialize(owner);
 		}
 
-		protected override VoidOutput Run(VoidInput _)
+		protected override Empty Run(Empty _)
 		{
-			var checkOrigin = Character.Transform.position + Offset;
-			Character.IsGrounded = Physics.OverlapSphereNonAlloc(checkOrigin,
-			groundCheckRadious, DetectedColliders, groundMask, interaction) > 0;
+			var checkOrigin = Character.SelfTransform.position + Offset;
+
+			Character.CurrentStateFlags = Physics.OverlapSphereNonAlloc(checkOrigin,
+			groundCheckRadious, DetectedColliders, groundMask, interaction) > 0
+			?
+			Character.CurrentStateFlags | IPlayerCharacter.StateFlags.IsGrounded
+			:
+			Character.CurrentStateFlags & ~IPlayerCharacter.StateFlags.IsGrounded;
 
 			return default;
 		}

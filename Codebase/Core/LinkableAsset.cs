@@ -1,33 +1,53 @@
 namespace Threadlink.Core
 {
+	using MassTransit;
 	using System;
 	using Systems;
 	using UnityEngine;
 	using Utilities.Events;
 
+	namespace ExtensionMethods
+	{
+		public static class LinkableAssetExtensionMethods
+		{
+			public static T Clone<T>(this T original) where T : LinkableAsset
+			{
+				var copy = UnityEngine.Object.Instantiate(original);
+
+				copy.name = original.name;
+				copy.IsInstance = true;
+
+				return copy;
+			}
+		}
+	}
+
 	/// <summary>
 	/// Base class for all Threadlink-Compatible assets.
 	/// </summary>
-	public abstract class LinkableAsset : ScriptableObject, ILinkable
+	public abstract class LinkableAsset : ScriptableObject, IDiscardable
 	{
 		public virtual string LinkID => name;
+		public virtual NewId InstanceID { get; set; }
+
+		public event ThreadlinkDelegate<Empty, Empty> OnDiscard
+		{
+			add => onDiscard.OnInvoke += value;
+			remove => onDiscard.OnInvoke -= value;
+		}
+
 		public bool IsInstance { get; internal set; }
 
-		public VoidEvent OnBeforeDiscarded => onBeforeDiscarded;
+		[NonSerialized] private VoidEvent onDiscard = new();
 
-		[NonSerialized] private VoidEvent onBeforeDiscarded = new();
-
-		public abstract void Boot();
-		public abstract void Initialize();
-
-		public virtual VoidOutput Discard(VoidInput _ = default)
+		public virtual Empty Discard(Empty _ = default)
 		{
-			if (onBeforeDiscarded != null)
+			if (onDiscard != null)
 			{
-				onBeforeDiscarded.Invoke();
-				onBeforeDiscarded.Discard();
+				onDiscard.Invoke();
+				onDiscard.Discard();
 
-				if (IsInstance) onBeforeDiscarded = null;
+				if (IsInstance) onDiscard = null;
 			}
 
 			if (IsInstance) Destroy(this);
@@ -37,7 +57,7 @@ namespace Threadlink.Core
 		public static T Create<T>(string assetName) where T : LinkableAsset
 		{
 			if (string.IsNullOrEmpty(assetName))
-				Scribe.LogError<ArgumentException>("Linkable Asset name cannot be null or empty!");
+				Threadlink.Instance.SystemLog<InvalidLinkableAssetNameException>();
 
 			var output = CreateInstance<T>();
 

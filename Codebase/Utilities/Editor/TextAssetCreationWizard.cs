@@ -25,7 +25,7 @@ namespace Threadlink.Utilities.Editor
 			if (filePath == null) return;
 
 			//Create text asset in the specified path.
-			string path = String.Construct(filePath, "/", assetName, ".txt");
+			string path = TLZString.Construct(filePath, "/", assetName, ".txt");
 			var writer = new StreamWriter(path);
 
 			writer.Write(string.Empty);

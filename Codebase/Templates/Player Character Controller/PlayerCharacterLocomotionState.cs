@@ -25,7 +25,7 @@ namespace Threadlink.Templates.PlayerCharacterController
 			var character = owner.Owner;
 
 			Animator = character.Animator;
-			PlayerTransform = character.Transform;
+			PlayerTransform = character.SelfTransform;
 			CameraTransform = Camera.main.transform;
 			Controller = character.Controller;
 			Scalar = new(1, 0, 1);

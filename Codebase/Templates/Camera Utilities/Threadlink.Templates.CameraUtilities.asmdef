@@ -1,0 +1,17 @@
+{
+    "name": "Threadlink.Templates.CameraUtilities",
+    "rootNamespace": "",
+    "references": [
+        "GUID:55c8270eaa5b5bb47bd94046e1b5bd19",
+        "GUID:7eab34bd1f23d374bb9e2a642d3327db"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

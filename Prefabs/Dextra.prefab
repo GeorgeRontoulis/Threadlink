@@ -80,6 +80,7 @@ MonoBehaviour:
   m_DeselectOnBackgroundClick: 0
   m_PointerBehavior: 0
   m_CursorLockBehavior: 0
+  m_ScrollDeltaPerTick: 6
 --- !u!114 &8810402675517737953
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -124,5 +125,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   selfTransform: {fileID: 7825023193038920954}
   eventSystem: {fileID: -3723733279200821361}
+  uiModule: {fileID: -4789208448503080142}
   deviceDetector: {fileID: 8810402675517737953}
   customInputModule: {fileID: 11400000, guid: 78875ad74a99bad42b58e88558916521, type: 2}
+  uiStateMachine: {fileID: 11400000, guid: 95a2acd0ba7e1fb4ea1f97ce761b56c5, type: 2}

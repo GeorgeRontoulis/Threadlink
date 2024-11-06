@@ -1,50 +1,26 @@
 namespace Threadlink.Utilities.Events
 {
-#if ODIN_INSPECTOR
-	using Sirenix.OdinInspector;
-#endif
-
 	using System;
-	using System.Collections.Generic;
 	using UnityEngine;
-	using Utilities.Collections;
-	using Utilities.UnityLogging;
-	using Pair = ScriptableEventListener.EventReactionPair;
 
-	[CreateAssetMenu(menuName = "Threadlink/Event Utilities/Scriptable Event")]
-	public sealed class ScriptableEvent : ScriptableObject, IIdentifiable
+	/// <summary>
+	/// Zero-parameter event object meant for use inside the Editor
+	/// in conjuction with Unity Events (see <see cref="ScriptableEventListener"/>), 
+	/// mainly for rapid prototyping. Use in moderation, since multiple event 
+	/// assets of this type get increasingly hard to keep track of as your project grows.
+	/// </summary>
+	[CreateAssetMenu(menuName = "Threadlink/Scriptable Events/Unity-Events-Compatible Event")]
+	public sealed class ScriptableEvent : ScriptableObject
 	{
-		public string LinkID => name;
+		private Action Action { get; set; }
 
-		[NonSerialized] private readonly List<Pair> subscribers = new();
-
-		internal void Register(Pair pair) { subscribers.Add(pair); }
-		internal void Unregister(Pair pair) { subscribers.Remove(pair); }
-		public void Raise() { for (int i = subscribers.Count - 1; i >= 0; i--) subscribers[i].InvokeReaction(); }
-
-		public void UnregisterAll()
+		private void OnEnable()
 		{
-			subscribers.Clear();
-			subscribers.TrimExcess();
+			Action = null;
 		}
 
-#if UNITY_EDITOR
-#if ODIN_INSPECTOR
-		[Button]
-#else
-		[ContextMenu("Print Status")]
-#endif
-#pragma warning disable IDE0051
-		private void PrintStatus()
-		{
-			for (int i = subscribers.Count - 1; i >= 0; i--)
-			{
-				UnityConsole.Notify("Subscriber ", i, "has the following methods registered:");
-				subscribers[i].PrintMethodNames();
-				UnityConsole.Notify("-------------------------------------------------------");
-			}
-		}
-#pragma warning restore IDE0051
-#endif
+		public void AddListener(Action action) { Action += action; }
+		public void RemoveListener(Action action) { Action -= action; }
+		public void Invoke() { Action?.Invoke(); }
 	}
 }

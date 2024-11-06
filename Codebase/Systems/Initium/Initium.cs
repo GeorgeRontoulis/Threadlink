@@ -5,122 +5,102 @@ namespace Threadlink.Systems.Initium
 	using System.Collections.Generic;
 	using UnityEngine;
 
-	public sealed class Initium : LinkableBehaviourSingleton<Initium>
+	public interface IInitiumDiscoverable { }
+	public interface IBootDiscoverable : IInitiumDiscoverable, IBootable { }
+	public interface IInitializationDiscoverable : IInitiumDiscoverable, IInitializable { }
+
+	public static class Initium
 	{
-		public override void Initialize() { }
+		private static async UniTask OneFrame() { await Threadlink.WaitForFrames(1); }
 
-		internal static bool GetSceneInitCollection(string sceneName, out InitializableCollection result)
+		internal static bool TryGetInitializableCollection(out InitializableCollection result)
 		{
-			var candiates = FindObjectsByType<InitializableCollection>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+			var collection = Object.FindAnyObjectByType<InitializableCollection>(FindObjectsInactive.Exclude);
 
-			if (candiates == null)
+			result = collection;
+			return collection != null;
+		}
+
+		public static async UniTask BootAndInitCollectionAsync(InitializableCollection collection)
+		{
+			collection.Boot();
+
+			await collection.BootObjects();
+			await collection.InitializeObjects();
+		}
+
+		public static async UniTask BootAndInitAsync(ILinkable entity)
+		{
+			await BootAsync(entity);
+			await InitializeAsync(entity);
+		}
+
+		public static async UniTask BootAsync(ILinkable entity)
+		{
+			if (entity is IBootable bootableEntity)
 			{
-				result = null;
-				return false;
+				bootableEntity.Boot();
+				await OneFrame();
 			}
+		}
 
-			int length = candiates.Length;
+		public static async UniTask InitializeAsync(ILinkable entity)
+		{
+			if (entity is IInitializable initializableEntity)
+			{
+				initializableEntity.Initialize();
+				await OneFrame();
+			}
+		}
+
+		public static void BootAndInit(ILinkable entity)
+		{
+			Boot(entity);
+			Initialize(entity);
+		}
+
+		public static async UniTask BootAndInit<T>(IReadOnlyList<T> entities)
+		{
+			await Boot(entities);
+			await Initialize(entities);
+		}
+
+		public static async UniTask Boot<T>(IReadOnlyList<T> entities)
+		{
+			int length = entities.Count;
 
 			for (int i = 0; i < length; i++)
 			{
-				var candidate = candiates[i];
-
-				if (candidate.gameObject.scene.name.Equals(sceneName))
+				if (entities[i] is IBootable entity)
 				{
-					result = candidate;
-					return true;
+					entity.Boot();
+					await OneFrame();
 				}
 			}
-
-			result = null;
-			return false;
 		}
 
-		private static async UniTask WaitForOneFrame()
+		public static async UniTask Initialize<T>(IReadOnlyList<T> entities)
 		{
-			await Threadlink.WaitForFrames(1);
+			int length = entities.Count;
+
+			for (int i = 0; i < length; i++)
+			{
+				if (entities[i] is IInitializable entity)
+				{
+					entity.Initialize();
+					await OneFrame();
+				}
+			}
 		}
 
-		#region Bootup And Initialization:
-		public static async UniTask BootAndInitCollection(InitializableCollection target)
+		public static void Boot(ILinkable entity)
 		{
-			await target.BootObjects();
-			await target.InitializeObjects();
+			if (entity is IBootable bootable) bootable.Boot();
 		}
 
-		public static async UniTask BootAndInit<T>(T target) where T : ILinkable
+		public static void Initialize(ILinkable entity)
 		{
-			await Boot(target);
-			await Initialize(target);
+			if (entity is IInitializable initializable) initializable.Initialize();
 		}
-
-		public static async UniTask BootAndInit<T>(params T[] targets) where T : ILinkable
-		{
-			await Boot(targets);
-			await Initialize(targets);
-		}
-
-		public static async UniTask BootAndInit<T>(List<T> targets) where T : ILinkable
-		{
-			await Boot(targets);
-			await Initialize(targets);
-		}
-		#endregion
-
-		#region Bootup Only:
-		public static async UniTask Boot<T>(T target) where T : ILinkable
-		{
-			target.Boot();
-			await WaitForOneFrame();
-		}
-
-		public static async UniTask Boot<T>(params T[] targets) where T : ILinkable
-		{
-			int length = targets.Length;
-			var tasks = new UniTask[length];
-
-			for (int i = 0; i < length; i++) tasks[i] = Boot(targets[i]);
-
-			await UniTask.WhenAll(tasks);
-		}
-
-		public static async UniTask Boot<T>(List<T> targets) where T : ILinkable
-		{
-			int length = targets.Count;
-			var tasks = new UniTask[length];
-
-			for (int i = 0; i < length; i++) tasks[i] = Boot(targets[i]);
-
-			await UniTask.WhenAll(tasks);
-		}
-		#endregion
-
-		#region InitializationOnly:
-		public static async UniTask Initialize<T>(T target) where T : ILinkable
-		{
-			target.Initialize();
-			await WaitForOneFrame();
-		}
-
-		public static async UniTask Initialize<T>(params T[] targets) where T : ILinkable
-		{
-			int length = targets.Length;
-			var tasks = new UniTask[length];
-
-			for (int i = 0; i < length; i++) tasks[i] = Initialize(targets[i]);
-
-			await UniTask.WhenAll(tasks);
-		}
-
-		public static async UniTask Initialize<T>(List<T> targets) where T : ILinkable
-		{
-			int length = targets.Count;
-			var tasks = new UniTask[length];
-
-			for (int i = 0; i < length; i++) tasks[i] = Initialize(targets[i]);
-
-			await UniTask.WhenAll(tasks);
-		}
-		#endregion
 	}
 }

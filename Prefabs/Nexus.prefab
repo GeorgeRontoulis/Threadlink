@@ -47,4 +47,3 @@ MonoBehaviour:
   selfTransform: {fileID: 6395504302552424439}
   startingSceneEntry: {fileID: 0}
   startingEntranceIndex: -1
-  customPlayerLoader: {fileID: 0}

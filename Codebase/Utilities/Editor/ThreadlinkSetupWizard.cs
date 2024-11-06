@@ -48,7 +48,8 @@ namespace Threadlink.Utilities.Editor
 				for (int i = 0; i < length; i++)
 					EnsureAssetIsAddressable(ThreadlinkGroup, AssetDatabase.GetAssetPath(assets[i]));
 			}
-			else UnityConsole.Notify(DebugNotificationType.Error, "No ''Addressable Asset Settings'' asset found! Make sure one is present in your project!");
+			else UnityConsole.Notify(DebugNotificationType.Error, this,
+			"No ''Addressable Asset Settings'' asset found! Make sure one is present in your project!");
 
 			if (desiredScriptingSymbols != null && desiredScriptingSymbols.Length > 0)
 			{
@@ -70,7 +71,8 @@ namespace Threadlink.Utilities.Editor
 
 				if (shouldUpdateSymbols) PlayerSettings.SetScriptingDefineSymbols(buildTarget, desiredScriptingSymbols);
 			}
-			else UnityConsole.Notify(DebugNotificationType.Warning, "No Scripting Define Symbols provided! Project Symbols will remain unaffected!");
+			else UnityConsole.Notify(DebugNotificationType.Warning, this,
+			"No Scripting Define Symbols provided! Project Symbols will remain unaffected!");
 
 			AssetDatabase.Refresh();
 			AssetDatabase.SaveAssets();
@@ -130,7 +132,7 @@ namespace Threadlink.Utilities.Editor
 		{
 			if (string.IsNullOrEmpty(AssetDatabase.AssetPathToGUID(assetPath)))
 			{
-				UnityConsole.Notify(DebugNotificationType.Error, $"Asset does not exist: {assetPath}");
+				UnityConsole.Notify(DebugNotificationType.Error, this, $"Asset does not exist: {assetPath}");
 				return;
 			}
 

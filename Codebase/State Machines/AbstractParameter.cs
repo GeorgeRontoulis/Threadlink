@@ -1,16 +1,15 @@
 namespace Threadlink.StateMachines
 {
+	using Core;
 	using System;
 	using System.Collections.Generic;
-	using Utilities.Reflection;
 	using UnityEngine;
 	using Utilities.Collections;
+	using Utilities.Reflection;
 
 #if ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
 #endif
-
-	using Threadlink.Core;
 
 	[Serializable]
 	public sealed class ParameterPointer<T> : IStateMachinePointer
@@ -28,28 +27,26 @@ namespace Threadlink.StateMachines
 		private AbstractParameter<T> Reference { get; set; }
 
 #if UNITY_EDITOR && ODIN_INSPECTOR
+#pragma warning disable IDE0051
 		private IEnumerable<ValueDropdownItem> AvailableMatches => Reflection.CreateNameDropdownFor<AbstractParameter<T>>();
 
 		[ValueDropdown("AvailableMatches")]
 #endif
 		[SerializeField] private string parameterID = string.Empty;
 
-		public void PointToInternalReferenceOf(BaseAbstractStateMachine owner)
+		public void PointToInternalReferenceOf(AbstractStateMachine owner)
 		{
 			owner.GetParameter<T>(parameterID, out var reference);
 			Reference = reference;
 		}
 	}
 
-	public abstract class BaseAbstractParameter : LinkableAsset, IIdentifiable
+	public abstract class AbstractParameter : LinkableAsset, IIdentifiable
 	{
-		public override void Boot() { }
-		public override void Initialize() { }
-
 		public abstract void ResetToDefaultValue();
 	}
 
-	public abstract class AbstractParameter<T> : BaseAbstractParameter
+	public abstract class AbstractParameter<T> : AbstractParameter
 	{
 #if ODIN_INSPECTOR
 		[ReadOnly]

@@ -1,16 +1,17 @@
 namespace Threadlink.Systems.Aura
 {
 	using Core;
+	using UnityEngine;
+	using Utilities.Events;
+
 #if ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
 #endif
 #if UNITY_EDITOR
-	using Threadlink.Utilities.Editor;
-	using Threadlink.Utilities.Events;
+	using Utilities.Editor;
 #endif
-	using UnityEngine;
 
-	public abstract class AuraSpatialEntity : LinkableBehaviour
+	public abstract class AuraSpatialEntity : LinkableBehaviour, IBootable
 	{
 		protected abstract Vector3 SourcePosition { get; }
 
@@ -34,13 +35,9 @@ namespace Threadlink.Systems.Aura
 		}
 #endif
 
-		public override void Boot()
+		public virtual void Boot()
 		{
 			Radius = source.maxDistance * radiusCoefficient;
-		}
-
-		public override void Initialize()
-		{
 		}
 
 		protected override void Reset()
@@ -56,7 +53,7 @@ namespace Threadlink.Systems.Aura
 			}
 		}
 
-		public override VoidOutput Discard(VoidInput _ = default)
+		public override Empty Discard(Empty _ = default)
 		{
 			if (source.isPlaying) source.Stop();
 			source.clip = null;

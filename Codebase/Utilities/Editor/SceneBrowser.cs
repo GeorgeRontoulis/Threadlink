@@ -51,7 +51,8 @@ namespace Threadlink.Utilities.Editor
 		{
 			if (EditorApplication.isPlaying)
 			{
-				UnityLogging.UnityConsole.Notify(UnityLogging.DebugNotificationType.Warning, "Cannot open scene while in Play mode.");
+				UnityLogging.UnityConsole.Notify(UnityLogging.DebugNotificationType.Warning,
+				this, "Cannot open scene while in Play mode.");
 				return;
 			}
 

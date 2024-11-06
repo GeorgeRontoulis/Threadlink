@@ -1,23 +1,23 @@
 namespace Threadlink.StateMachines
 {
+	using Core;
+	using Core.ExtensionMethods;
+	using System;
+	using Systems;
+	using UnityEngine;
+	using Utilities.Collections;
+	using Utilities.Events;
+
 #if ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
 #endif
 
-	using System;
-	using Core;
-	using Systems;
-	using Utilities.Events;
-	using UnityEngine;
-	using Utilities.Collections;
-	using System.IO;
-
 	public interface IStateMachinePointer
 	{
-		public void PointToInternalReferenceOf(BaseAbstractStateMachine owner);
+		public void PointToInternalReferenceOf(AbstractStateMachine owner);
 	}
 
-	public abstract class BaseAbstractStateMachine : LinkableAsset
+	public abstract class AbstractStateMachine : LinkableAsset
 	{
 		[Flags]
 		protected enum RuntimeInstantiation
@@ -33,34 +33,31 @@ namespace Threadlink.StateMachines
 
 		[Space(15)]
 
-		[SerializeField] protected BaseAbstractParameter[] parameters = new BaseAbstractParameter[0];
+		[SerializeField] protected AbstractParameter[] parameters = new AbstractParameter[0];
 
-		public override VoidOutput Discard(VoidInput _ = default)
+		public override Empty Discard(Empty _ = default)
 		{
 			if (IsInstance) parameters = null;
 			return base.Discard(_);
 		}
 
-		public override void Boot() { }
-		public override void Initialize() { }
-
-		protected abstract void InitializeStatesAndProcessors();
+		protected abstract void InitializeProcessorsAndStates();
 
 		public void GetParameter<T>(string id, out AbstractParameter<T> result)
 		{
 			parameters.BinarySearch(id, out var paramFound);
 
-			if (paramFound == null) Scribe.LogError<FileNotFoundException>("The requested parameter could not be found! Check your request!");
+			if (paramFound == null) this.LogException<ParameterNotFoundException>();
 
 			result = paramFound as AbstractParameter<T>;
 		}
 
-		public abstract void GetProcessor<T>(string id, out AbstractProcessor<T> result) where T : BaseAbstractStateMachine;
+		public abstract void GetProcessor<T>(string id, out AbstractProcessor<T> result) where T : AbstractStateMachine;
 	}
 
-	public abstract class AbstractStateMachine<OwnerType, StateType, ProcessorType> : BaseAbstractStateMachine
-	where StateType : BaseAbstractState
-	where ProcessorType : BaseAbstractProcessor
+	public abstract class AbstractStateMachine<OwnerType, StateType, ProcessorType> : AbstractStateMachine
+	where StateType : AbstractState
+	where ProcessorType : AbstractProcessor
 	{
 		public bool IsInDefaultState => CurrentState.Equals(states[0]);
 
@@ -96,17 +93,16 @@ namespace Threadlink.StateMachines
 #pragma warning restore IDE0051
 #endif
 
-
 		public override void GetProcessor<T>(string id, out AbstractProcessor<T> result)
 		{
 			processors.BinarySearch(id, out var processorFound);
 
-			if (processorFound == null) Scribe.LogError<FileNotFoundException>("The requested processor could not be found! Check your request!");
+			if (processorFound == null) this.LogException<ProcessorNotFoundException>();
 
 			result = processorFound as AbstractProcessor<T>;
 		}
 
-		public virtual void Initialize(OwnerType owner)
+		public virtual void Boot(OwnerType owner)
 		{
 			Owner = owner;
 
@@ -115,17 +111,13 @@ namespace Threadlink.StateMachines
 			int length = parameters.Length;
 			for (int i = 0; i < length; i++) parameters[i].ResetToDefaultValue();
 
-			InitializeStatesAndProcessors();
+			InitializeProcessorsAndStates();
 
-			if (states.Length > 0)
+			if (states.Length > 0 && states[0] != null)
 			{
 				CurrentState = states[0];
-
-				if (CurrentState != null)
-				{
-					CurrentState.OnEnter();
-					Iris.SubscribeToUpdate(UpdateCurrentState);
-				}
+				CurrentState.OnEnter();
+				Iris.OnUpdate += UpdateCurrentState;
 			}
 		}
 
@@ -146,13 +138,13 @@ namespace Threadlink.StateMachines
 			if (ShouldInstantiate(RuntimeInstantiation.Processors)) CloneCollection(processors);
 		}
 
-		private VoidOutput UpdateCurrentState(VoidInput _)
+		private Empty UpdateCurrentState(Empty _)
 		{
 			CurrentState.OnUpdate();
 			return default;
 		}
 
-		public override VoidOutput Discard(VoidInput _ = default)
+		public override Empty Discard(Empty _ = default)
 		{
 			static void DiscardCollection(LinkableAsset[] collection)
 			{
@@ -162,7 +154,7 @@ namespace Threadlink.StateMachines
 
 			bool Instantiated(Enum flag) { return runtimeInstantiation.HasFlag(flag); }
 
-			Iris.UnsubscribeFromUpdate(UpdateCurrentState);
+			Iris.OnUpdate -= UpdateCurrentState;
 
 			int length = processors.Length;
 			for (int i = 0; i < length; i++) processors[i].Discard();
@@ -204,10 +196,7 @@ namespace Threadlink.StateMachines
 			{
 				(newState as IScriptableState<DataType>).ProcessData(data);
 			}
-			catch (Exception exception)
-			{
-				Scribe.LogError<InvalidOperationException>(exception.Message);
-			}
+			catch { this.LogException<InvalidScriptableStateCastException>(); }
 
 			CurrentState.OnExit();
 			newState.OnEnter();

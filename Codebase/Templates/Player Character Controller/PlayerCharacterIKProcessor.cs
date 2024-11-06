@@ -25,10 +25,13 @@ namespace Threadlink.Templates.PlayerCharacterController
 		}
 #endif
 
-		protected override VoidOutput Run(VoidInput _)
+		protected override Empty Run(Empty _)
 		{
 #if THREADLINK_INTEGRATIONS_FINALIK
-			if (Character.IsGrounded == false || (solveWhileMoving == false && Character.IsMoving)) Grounder.weight = 0f;
+			var flags = Character.CurrentStateFlags;
+
+			if (flags.HasFlag(IPlayerCharacter.StateFlags.IsGrounded) == false
+			|| (solveWhileMoving == false && flags.HasFlag(IPlayerCharacter.StateFlags.IsMoving))) Grounder.weight = 0f;
 			else
 			{
 				float deltaTime = Chronos.DeltaTime;

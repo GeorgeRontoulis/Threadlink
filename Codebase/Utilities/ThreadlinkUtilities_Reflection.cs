@@ -1,10 +1,10 @@
 namespace Threadlink.Utilities.Reflection
 {
+	using Collections;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Reflection;
-	using Threadlink.Utilities.UnityLogging;
 	using UnityEditor;
 	using UnityEngine;
 
@@ -34,7 +34,6 @@ namespace Threadlink.Utilities.Reflection
 
 				if (properties == null)
 				{
-					UnityConsole.Notify(DebugNotificationType.Warning, "No Properties found!");
 					result = null;
 					return false;
 				}
@@ -53,7 +52,6 @@ namespace Threadlink.Utilities.Reflection
 					}
 				}
 
-				UnityConsole.Notify("Could not find requested array in Properties. Checking Fields.");
 				result = null;
 				return false;
 			}
@@ -64,7 +62,6 @@ namespace Threadlink.Utilities.Reflection
 
 				if (fields == null)
 				{
-					UnityConsole.Notify(DebugNotificationType.Warning, "No Fields found!");
 					result = null;
 					return false;
 				}
@@ -83,7 +80,6 @@ namespace Threadlink.Utilities.Reflection
 					}
 				}
 
-				UnityConsole.Notify(DebugNotificationType.Warning, "Could not find requested array in Fields. Returning NULL.");
 				result = null;
 				return false;
 			}
@@ -111,29 +107,29 @@ namespace Threadlink.Utilities.Reflection
 			}
 		}
 
-		public static Dictionary<Key, Value> TryGetDictionaryOfType<Key, Value>(this object owner)
+		public static SerializedDictionary<TKey, TValue> TryGetSerializedDictionaryOfType<TKey, TValue>(this object owner)
 		{
 			var ownerType = owner.GetType();
-			var properties = ownerType.GetProperties();
+			var fields = ownerType.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
 
-			if (properties == null)
+			if (fields == null) return null;
+
+			foreach (var field in fields)
 			{
-				UnityConsole.Notify(DebugNotificationType.Warning, "No Properties found!");
-				return null;
+				var fieldType = field.FieldType;
+
+				// Check if the field is of the correct generic type
+				if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(SerializedDictionary<,>))
+				{
+					// Check if the field's generic arguments match TKey and TValue
+					var genericArgs = fieldType.GetGenericArguments();
+
+					if (genericArgs[0] == typeof(TKey) && genericArgs[1] == typeof(TValue))
+					{
+						return (SerializedDictionary<TKey, TValue>)field.GetValue(owner);
+					}
+				}
 			}
-
-			int length = properties.Length;
-
-			for (int i = 0; i < length; i++)
-			{
-				var info = properties[i];
-				var propertyTpe = info.PropertyType;
-
-				if (propertyTpe.IsGenericType && propertyTpe.GetGenericTypeDefinition().Equals(typeof(Dictionary<Key, Value>)))
-					return (Dictionary<Key, Value>)info.GetValue(owner);
-			}
-
-			UnityConsole.Notify(DebugNotificationType.Warning, "Could not find requested Dictionary in Properties. Returning NULL.");
 
 			return null;
 		}
@@ -193,6 +189,17 @@ namespace Threadlink.Utilities.Reflection
 			}
 
 			return componentTypes;
+		}
+
+		public static string GetGenericTypeName(Type type)
+		{
+			if (!type.IsGenericType) return type.Name;
+
+			string baseName = type.Name[..type.Name.IndexOf('`')]; // Removes the backtick and arity
+			var genericArguments = type.GetGenericArguments();
+			string genericArgs = string.Join(", ", genericArguments.Select(t => t.Name));
+
+			return $"{baseName}<{genericArgs}>";
 		}
 
 #if UNITY_EDITOR && ODIN_INSPECTOR

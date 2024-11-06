@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca2806a5fece3df4cb2a43334b613a77, type: 3}
+  m_Name: Threadlink Editor Addressables Container
+  m_EditorClassIdentifier: 
+  adressableAssets:
+  - {fileID: 5695203055909816368, guid: cd94fb137fa39024db15c2c403b017b8, type: 3}
+  - {fileID: 237814870907634636, guid: 1f8b4bf9e38597f4790b27627540a23a, type: 3}
+  - {fileID: 4590498493719747628, guid: 92f07acef08315c458283758a14df27d, type: 3}
+  - {fileID: 7949589783255200089, guid: dd8d0a6a40ac09f4bbb2b9dfef37d191, type: 3}
+  - {fileID: 835321522964024549, guid: bad731bf43d098041ad33c113ece07eb, type: 3}
+  - {fileID: -944628639613478452, guid: ec990fd73e3eddf4a832bdda31fa4d67, type: 3}
+  - {fileID: -944628639613478452, guid: b4d3e0ce0bbbf364791a60de790e78d7, type: 3}

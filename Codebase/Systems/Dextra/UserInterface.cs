@@ -1,46 +1,45 @@
 namespace Threadlink.Systems.Dextra
 {
-	using Threadlink.Core;
-	using Threadlink.Systems;
-	using Threadlink.Utilities.Events;
+	using Core;
+	using Utilities.Events;
 	using UnityEngine;
 
 	public abstract class UserInterface : LinkableBehaviour
 	{
-		public bool IsOnTop => Equals(Dextra.TopInterface);
+		public bool IsOnTop => Dextra.IsTopInterface(this);
 		public bool IsVisible => Mathf.Approximately(canvasGroup.alpha, 1f);
-		public bool CanBeCancelled => callbackSettings.HasFlag(UIStackingCallbackSettings.CanBeCancelled);
+		public bool IsHidden => Mathf.Approximately(canvasGroup.alpha, 0f);
 		public bool UpdatingAlpha { get; private set; }
-
 		private float TargetAlpha { get; set; }
 
-		[SerializeField] private UIStackingCallbackSettings callbackSettings = UIStackingCallbackSettings.Default;
+		[SerializeField] private StackingFeatures stackingFeatures = StackingFeatures.Default;
 
 		[Space(10)]
 
 		[SerializeField] private CanvasGroup canvasGroup = null;
 
-		public override VoidOutput Discard(VoidInput _ = default)
+		public override Empty Discard(Empty _ = default)
 		{
-			Iris.UnsubscribeFromUpdate(MoveTowardsTargetAlpha);
-			UpdatingAlpha = false;
+			Iris.OnUpdate -= MoveTowardsTargetAlpha;
 			canvasGroup = null;
 			return base.Discard(_);
 		}
 
-		private void UpdateAlpha()
+		private void UpdateAlpha(float newAlpha)
 		{
+			TargetAlpha = newAlpha;
 			UpdatingAlpha = true;
-			Iris.SubscribeToUpdate(MoveTowardsTargetAlpha);
+			Iris.OnUpdate += MoveTowardsTargetAlpha;
 		}
 
-		private VoidOutput MoveTowardsTargetAlpha(VoidInput _)
+		private Empty MoveTowardsTargetAlpha(Empty _ = default)
 		{
 			canvasGroup.alpha = Mathf.MoveTowards(canvasGroup.alpha, TargetAlpha, 4 * Chronos.UnscaledDeltaTime);
 
 			if (Mathf.Approximately(canvasGroup.alpha, TargetAlpha))
 			{
-				Iris.UnsubscribeFromUpdate(MoveTowardsTargetAlpha);
+				Iris.OnUpdate -= MoveTowardsTargetAlpha;
+				canvasGroup.alpha = TargetAlpha;
 				UpdatingAlpha = false;
 			}
 
@@ -53,35 +52,34 @@ namespace Threadlink.Systems.Dextra
 			canvasGroup.blocksRaycasts = state;
 		}
 
-		protected void Display()
-		{
-			TargetAlpha = 1f;
-			if (UpdatingAlpha == false) UpdateAlpha();
-		}
+		protected void Display() { UpdateAlpha(1f); }
+		protected void Hide() { UpdateAlpha(0f); }
 
-		protected void Hide()
+		protected void ForceAlphaTo(float alpha)
 		{
-			TargetAlpha = 0f;
-			if (UpdatingAlpha == false) UpdateAlpha();
+			UpdatingAlpha = true;
+			TargetAlpha = alpha;
+			canvasGroup.alpha = alpha;
+			UpdatingAlpha = false;
 		}
 
 		public virtual void OnStacked()
 		{
 			Display();
-			if (callbackSettings.HasFlag(UIStackingCallbackSettings.EnableInteractabilityOnStack)) SetInteractableState(true);
+			if (stackingFeatures.HasFlag(StackingFeatures.IsInteractableWhenOnTop)) SetInteractableState(true);
 		}
 
 		public virtual void OnCovered()
 		{
-			if (callbackSettings.HasFlag(UIStackingCallbackSettings.HideGraphicsOnCover)) Hide();
+			if (stackingFeatures.HasFlag(StackingFeatures.HideOnCover)) Hide();
 
-			if (callbackSettings.HasFlag(UIStackingCallbackSettings.DisableInteractabilityOnCover)) SetInteractableState(false);
+			if (stackingFeatures.HasFlag(StackingFeatures.IsUninteractableWhenCovered)) SetInteractableState(false);
 		}
 
 		public virtual void OnResurfaced()
 		{
 			Display();
-			if (callbackSettings.HasFlag(UIStackingCallbackSettings.EnableInteractabilityOnStack)) SetInteractableState(true);
+			if (stackingFeatures.HasFlag(StackingFeatures.IsInteractableWhenOnTop)) SetInteractableState(true);
 		}
 
 		public virtual void OnPopped()
@@ -89,7 +87,13 @@ namespace Threadlink.Systems.Dextra
 			Hide();
 			SetInteractableState(false);
 		}
+	}
 
-		public abstract void OnCancelled();
+	public abstract class UserInterface<S> : UserInterface, IThreadlinkSingleton<S>
+	where S : UserInterface<S>
+	{
+		public static S Instance { get; private set; }
+
+		public virtual void Boot() { Instance = this as S; }
 	}
 }

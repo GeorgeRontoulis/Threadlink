@@ -2,9 +2,9 @@ namespace Threadlink.Utilities.Serialization
 {
 	using FullSerializer;
 	using System.IO;
+	using Text;
 	using UnityEngine;
-	using Utilities.UnityLogging;
-	using String = Text.String;
+	using UnityLogging;
 
 	public interface IRetrievable
 	{
@@ -21,7 +21,7 @@ namespace Threadlink.Utilities.Serialization
 		{
 			private static string ConstructPath(string folderName)
 			{
-				return String.Construct(Application.persistentDataPath, "/", folderName);
+				return TLZString.Construct(Application.persistentDataPath, "/", folderName);
 			}
 
 			/// <summary>
@@ -68,7 +68,7 @@ namespace Threadlink.Utilities.Serialization
 
 			string folderDirectory = PersistentDirectoryManager.GetPersistentFolderPath(folderName);
 
-			return String.Construct(folderDirectory, "/", fileName, saveFileExtension);
+			return TLZString.Construct(folderDirectory, "/", fileName, saveFileExtension);
 		}
 
 		public static void SaveRetrievableData<T>(T retrievableData, string folderName, string fileName) where T : IRetrievable
@@ -112,7 +112,9 @@ namespace Threadlink.Utilities.Serialization
 
 		private static T GetInvalidData<T>() where T : IRetrievable, new()
 		{
-			UnityConsole.Notify(DebugNotificationType.Warning, typeof(T).Name, " could not be loaded. File not found.");
+			UnityConsole.Notify(DebugNotificationType.Warning, context: null,
+			typeof(T).Name, " could not be loaded. File not found.");
+
 			var data = new T { IsValid = false };
 			return data;
 		}

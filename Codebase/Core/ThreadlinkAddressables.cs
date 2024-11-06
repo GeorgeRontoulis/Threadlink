@@ -1,14 +1,13 @@
 namespace Threadlink.Core
 {
-#if ODIN_INSPECTOR
-	using Sirenix.OdinInspector;
-#endif
-
 	using Extensions.Addressables;
-	using System.Collections;
 	using UnityEngine;
 	using Utilities.Addressables;
 	using Utilities.Collections;
+
+#if ODIN_INSPECTOR
+	using Sirenix.OdinInspector;
+#endif
 
 	[CreateAssetMenu(menuName = "Threadlink/Addressables")]
 	public sealed class ThreadlinkAddressables : ScriptableObject
@@ -17,7 +16,9 @@ namespace Threadlink.Core
 
 		[Space(10)]
 
-		[SerializeField] internal AddressablePrefab<LinkableBehaviour>[] coreSystems = new AddressablePrefab<LinkableBehaviour>[0];
+		[SerializeField] internal AddressablePrefab<ThreadlinkSystem>[] coreSystems = new AddressablePrefab<ThreadlinkSystem>[0];
+
+		[Space(10)]
 
 		[SerializeField] internal ThreadlinkAddressablesExtension customExtension = null;
 
@@ -29,7 +30,6 @@ namespace Threadlink.Core
 #endif
 #pragma warning disable IDE0051
 		private void SortScenesByID() { scenes.SortByID(this); }
-#pragma warning restore IDE0051
 #endif
 	}
 }

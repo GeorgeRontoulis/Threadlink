@@ -1,44 +1,51 @@
 namespace Threadlink.Systems.Initium
 {
+	using Core;
 	using Cysharp.Threading.Tasks;
+	using System.Linq;
+	using UnityEngine;
+	using Utilities.Events;
+
 #if ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
 #endif
 
-	using System.Linq;
-	using Core;
-	using UnityEngine;
-	using Utilities.Events;
-
-#pragma warning disable IDE0051
-#pragma warning disable UNT0006
-
-	public interface IRootInitializer { }
-
-	public sealed class InitializableCollection : LinkableBehaviourSingleton<InitializableCollection>
+	public sealed class InitializableCollection : LinkableBehaviour, IThreadlinkSingleton<InitializableCollection>
 	{
+		public static InitializableCollection Instance { get; private set; }
+
 		private enum InitializationSequence { Threadlink, Unity }
 
 		[SerializeField] private InitializationSequence initializationSequence = 0;
 
 		[Space(10)]
 
-		[SerializeField] private LinkableBehaviour[] objects = new LinkableBehaviour[0];
+		[SerializeField] private LinkableBehaviour[] entities = new LinkableBehaviour[0];
 
 #if UNITY_EDITOR
+#pragma warning disable IDE0051
 #if ODIN_INSPECTOR
 		[Button]
 #else
 		[ContextMenu("Find Linkable Objects")]
 #endif
-		private void FindLinkableObjects()
+		private void FindLinkableEntities()
 		{
-			objects = FindObjectsByType<LinkableBehaviour>(FindObjectsInactive.Include,
-			FindObjectsSortMode.None).Where(o => o.Equals(this) == false && o is IRootInitializer).ToArray();
+			entities = FindObjectsByType<LinkableBehaviour>(FindObjectsInactive.Include,
+			FindObjectsSortMode.None).Where(o => o is IInitiumDiscoverable).ToArray();
 		}
 #endif
 
-		private async UniTask Start()
+		public override Empty Discard(Empty _ = default)
+		{
+			if (entities != null) NullifyEntitiesArray();
+			return base.Discard(_);
+		}
+
+		public void Boot() { Instance = this; }
+
+#pragma warning disable UNT0006
+		private async UniTaskVoid Start()
 		{
 			if (initializationSequence.Equals(InitializationSequence.Threadlink)) return;
 
@@ -46,23 +53,21 @@ namespace Threadlink.Systems.Initium
 			await InitializeObjects();
 		}
 
-		public override void Boot() { Instance = this; }
-		public override void Initialize() { }
-
-		internal async UniTask BootObjects()
-		{
-			await Initium.Boot(objects);
-		}
-
+		internal async UniTask BootObjects() { await Initium.Boot(entities); }
 		internal async UniTask InitializeObjects()
 		{
-			await Initium.Initialize(objects);
+			await Initium.Initialize(entities);
+
+			NullifyEntitiesArray();
 		}
 
-		public override VoidOutput Discard(VoidInput _ = default)
+		private void NullifyEntitiesArray()
 		{
-			objects = null;
-			return base.Discard(_);
+			int length = entities.Length;
+
+			for (int i = 0; i < length; i++) entities[i] = null;
+
+			entities = null;
 		}
 	}
 }

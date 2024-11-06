@@ -25,7 +25,7 @@ namespace Threadlink.Templates.PlayerCharacterController
 			base.Initialize(owner);
 		}
 
-		protected override VoidOutput Run(VoidInput _)
+		protected override Empty Run(Empty _)
 		{
 			float yVelocity = this.yVelocity.CurrentValue;
 			var verticalVelocity = yVelocity * Vector3.up;

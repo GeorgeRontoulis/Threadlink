@@ -45,4 +45,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   selfTransform: {fileID: 7755830681137563725}
-  objects: []
+  initializationSequence: 0
+  entities: []

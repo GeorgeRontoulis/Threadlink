@@ -1,88 +1,92 @@
 namespace Threadlink.Systems
 {
 	using Core;
+	using Cysharp.Text;
 	using System;
+	using System.Collections.Generic;
+	using Utilities.Collections;
 	using Utilities.UnityLogging;
-	using String = Utilities.Text.String;
 
 	/// <summary>
 	/// System responsible for logging all Threadlink-specific operations.
 	/// </summary>
-	public sealed class Scribe : LinkableBehaviourSingleton<Scribe>
+	public static class Scribe
 	{
+		private static readonly Dictionary<Type, Exception> ExceptionPool = new(1);
+
 		public const DebugNotificationType InfoNotif = DebugNotificationType.Info;
 		public const DebugNotificationType WarningNotif = DebugNotificationType.Warning;
 		public const DebugNotificationType ErrorNotif = DebugNotificationType.Error;
 
-#if UNITY_EDITOR && THREADLINK_SCRIBE
-		[UnityEngine.SerializeField] private bool pauseOnSystemLog = false;
-#endif
+		public static void ResetExceptionPool()
+		{
+			ExceptionPool.Clear();
+			ExceptionPool.TrimExcess();
+		}
 
-		public override void Initialize() { }
+		private static string ConstructSystemMessage(string systemID, params object[] message)
+		{
+			using var sb = ZString.CreateUtf8StringBuilder(true);
 
-		public static void SystemLog(string systemID, DebugNotificationType logType, params string[] message)
+			sb.Append("[");
+			sb.Append(systemID);
+			sb.Append("] - ");
+
+			int length = message.Length;
+			for (int i = 0; i < length; i++) sb.Append(message[i]);
+
+			return sb.ToString();
+		}
+
+		public static void LogInfo(this UnityEngine.Object source, params string[] message)
 		{
 #if THREADLINK_SCRIBE
-			string temp = String.Construct(message);
-			string systemMessage = String.Construct("[", systemID, "] - ", temp);
+			UnityConsole.Notify(source, message);
+#endif
+		}
 
-			switch (logType)
+		public static void LogWarning(this UnityEngine.Object source, params string[] message)
+		{
+#if THREADLINK_SCRIBE
+			UnityConsole.Notify(WarningNotif, source, message);
+#endif
+		}
+
+		public static void SystemLog(this ThreadlinkSystem source, DebugNotificationType type = InfoNotif, params string[] message)
+		{
+#if THREADLINK_SCRIBE
+			if (type.Equals(ErrorNotif)) type = WarningNotif;
+			UnityConsole.Notify(type, source, ConstructSystemMessage(source.LinkID, message));
+#endif
+		}
+
+		public static T SystemLog<T>(this ThreadlinkSystem source, bool throwException = true) where T : Exception, new()
+		{
+			return LogException<T>(source, throwException);
+		}
+
+		public static T LogException<T>(this IIdentifiable source, bool throwException = true) where T : Exception, new()
+		{
+			if (ExceptionPool.TryGetValue(typeof(T), out Exception exception) == false)
 			{
-				case InfoNotif:
-				LogInfo(systemMessage);
-				break;
-				case WarningNotif:
-				LogWarning(systemMessage);
-				break;
-				case ErrorNotif:
-				LogError<ApplicationException>(systemMessage);
-				break;
+				exception = new T();
+				ExceptionPool.Add(typeof(T), exception);
 			}
 
-#if UNITY_EDITOR
-			if (Instance != null && Instance.pauseOnSystemLog) UnityEditor.EditorApplication.isPaused = true;
-#endif
-#endif
-		}
+			var ctx = source is UnityEngine.Object ? source as UnityEngine.Object : null;
 
-		/// <summary>
-		/// Exception overload of the <see cref="SystemLog(string, DebugNotificationType, string[])"/> method. Throws the exception when called.
-		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		/// <param name="systemID"></param>
-		/// <param name="message"></param>
-		public static void SystemLog<T>(string systemID, params string[] message)
-		where T : Exception, new()
-		{
-			//We are not restricting this piece of code to the #THREADLINK_SCRIBE
-			//define symbol to maintain reusability.
-			string temp = String.Construct(message);
-			string systemMessage = String.Construct("[", systemID, "] - ", temp);
-
-			LogError<T>(systemMessage);
-#if UNITY_EDITOR
-			if (Instance != null && Instance.pauseOnSystemLog) UnityEditor.EditorApplication.isPaused = true;
-#endif
-		}
-
-		public static void LogInfo(params string[] message)
-		{
+			if (throwException)
+			{
+				LogWarning(ctx, ConstructSystemMessage(typeof(Threadlink).Name, "Error Detected! Exception thrown below!"));
+				throw exception;
+			}
 #if THREADLINK_SCRIBE
-			UnityConsole.Notify(message);
-#endif
-		}
-
-		public static void LogWarning(params string[] message)
-		{
-#if THREADLINK_SCRIBE
-			UnityConsole.Notify(WarningNotif, message);
-#endif
-		}
-
-		public static void LogError<T>(string exceptionMessage) where T : Exception, new()
-		{
-#if THREADLINK_SCRIBE
-			UnityConsole.Notify(ErrorNotif, (T)Activator.CreateInstance(typeof(T), exceptionMessage));
+			else
+			{
+				string message = source is IThreadlinkSystem ? ConstructSystemMessage(source.LinkID, exception.Message) : exception.Message;
+				UnityConsole.Notify(ErrorNotif, ctx, message);
+				return exception as T;
+			}
 #endif
 		}
 	}

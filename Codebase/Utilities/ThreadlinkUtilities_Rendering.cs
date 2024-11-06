@@ -5,11 +5,31 @@ namespace Threadlink.Utilities.Rendering
 #endif
 	using System;
 	using UnityEngine;
-	using String = Text.String;
+	using Utilities.Text;
 
 	[Serializable]
 	public sealed class GraphicsCache
 	{
+		public int CachedMaterialsCount => CachedMaterials.Length;
+
+		public Material this[int index] => CachedMaterials[index];
+
+		public Material this[string name]
+		{
+			get
+			{
+				string instanceName = TLZString.Construct(name, " (Instance)");
+
+				int length = CachedMaterials.Length;
+				for (int i = 0; i < length; i++)
+				{
+					if (CachedMaterials[i].name.Equals(instanceName)) return CachedMaterials[i];
+				}
+
+				return null;
+			}
+		}
+
 		public Material[] SharedMaterials => renderer.sharedMaterials;
 		public Renderer Renderer => renderer;
 		public bool IsValid => renderer != null && CachedMaterials != null && CachedMaterials.Length > 0;
@@ -18,7 +38,7 @@ namespace Threadlink.Utilities.Rendering
 		[ShowInInspector]
 		[ReadOnly]
 #endif
-		public Material[] CachedMaterials { get; set; }
+		private Material[] CachedMaterials { get; set; }
 
 		[SerializeField] private Renderer renderer = null;
 
@@ -31,8 +51,10 @@ namespace Threadlink.Utilities.Rendering
 
 			for (int i = 0; i < length; i++)
 			{
-				UnityEngine.Object.Destroy(CachedMaterials[i]);
-				CachedMaterials[i] = null;
+				ref var material = ref CachedMaterials[i];
+
+				UnityEngine.Object.Destroy(material);
+				material = null;
 			}
 
 			CachedMaterials = null;
@@ -40,21 +62,6 @@ namespace Threadlink.Utilities.Rendering
 		}
 
 		public void SetRenderingState(bool state) { renderer.enabled = state; }
-
-		public Material FindCachedMaterial(int index) { return CachedMaterials[index]; }
-
-		public Material FindCachedMaterial(string name)
-		{
-			string instanceName = String.Construct(name, " (Instance)");
-
-			int length = CachedMaterials.Length;
-			for (int i = 0; i < length; i++)
-			{
-				if (CachedMaterials[i].name.Equals(instanceName)) return CachedMaterials[i];
-			}
-
-			return null;
-		}
 	}
 
 	public static class Rendering

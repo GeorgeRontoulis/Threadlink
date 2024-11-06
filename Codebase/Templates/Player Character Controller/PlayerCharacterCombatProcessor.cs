@@ -179,7 +179,7 @@ namespace Threadlink.Templates.PlayerCharacterController
 			base.Initialize(owner);
 		}
 
-		protected override VoidOutput Run(VoidInput _)
+		protected override Empty Run(Empty _)
 		{
 			return default;
 		}

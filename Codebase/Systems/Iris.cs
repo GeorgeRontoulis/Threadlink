@@ -1,62 +1,36 @@
 namespace Threadlink.Systems
 {
 	using Core;
-	using Utilities.Events;
-	using VoidDelegate = Utilities.Events.ThreadlinkDelegate<Utilities.Events.VoidOutput, Utilities.Events.VoidInput>;
+	using IrisDelegate = Utilities.Events.ThreadlinkDelegate<Utilities.Events.Empty, Utilities.Events.Empty>;
 
 	/// <summary>
-	/// System responsible for broadcasting Update notifications 
-	/// on all subscribed Threadlink-Compatible listeners.
+	/// System responsible for broadcasting Update notifications
+	/// to all subscribed Threadlink-Compatible listeners.
 	/// </summary>
-	public sealed class Iris : LinkableBehaviourSingleton<Iris>
+	public sealed class Iris : ThreadlinkSystem<Iris>
 	{
-		private static VoidEvent OnUpdate { get; set; }
-		private static VoidEvent OnFixedUpdate { get; set; }
-		private static VoidEvent OnLateUpdate { get; set; }
+		private static ThreadlinkEventBus EventBus => Threadlink.EventBus;
 
-		public static bool UpdateSelf { get; set; }
-
-		private void OnDestroy()
+		public static event IrisDelegate OnUpdate
 		{
-			DiscardUpdateCallbacks();
+			add => EventBus.OnIrisUpdate += value;
+			remove => EventBus.OnIrisUpdate -= value;
 		}
 
-		public override VoidOutput Discard(VoidInput _ = default)
+		public static event IrisDelegate OnFixedUpdate
 		{
-			DiscardUpdateCallbacks();
-			return base.Discard(_);
+			add => EventBus.OnIrisFixedUpdate += value;
+			remove => EventBus.OnIrisFixedUpdate -= value;
 		}
 
-		public override void Boot()
+		public static event IrisDelegate OnLateUpdate
 		{
-			base.Boot();
-			OnUpdate ??= new();
-			OnFixedUpdate ??= new();
-			OnLateUpdate ??= new();
+			add => EventBus.OnIrisLateUpdate += value;
+			remove => EventBus.OnIrisLateUpdate -= value;
 		}
 
-		public override void Initialize() { UpdateSelf = true; }
-
-		public static void SubscribeToUpdate(VoidDelegate action) { OnUpdate?.TryAddListener(action); }
-		public static void UnsubscribeFromUpdate(VoidDelegate action) { OnUpdate?.Remove(action); }
-		public static void SubscribeToFixedUpdate(VoidDelegate action) { OnFixedUpdate?.TryAddListener(action); }
-		public static void UnsubscribeFromFixedUpdate(VoidDelegate action) { OnFixedUpdate?.Remove(action); }
-		public static void SubscribeToLateUpdate(VoidDelegate action) { OnLateUpdate?.TryAddListener(action); }
-		public static void UnsubscribeFromLateUpdate(VoidDelegate action) { OnLateUpdate?.Remove(action); }
-
-		private void Update() { if (UpdateSelf) OnUpdate?.Invoke(); }
-		private void FixedUpdate() { if (UpdateSelf) OnFixedUpdate?.Invoke(); }
-		private void LateUpdate() { if (UpdateSelf) OnLateUpdate?.Invoke(); }
-
-		private void DiscardUpdateCallbacks()
-		{
-			OnUpdate?.Discard();
-			OnFixedUpdate?.Discard();
-			OnLateUpdate?.Discard();
-
-			OnUpdate = null;
-			OnFixedUpdate = null;
-			OnLateUpdate = null;
-		}
+		private void Update() { EventBus.InvokeOnIrisUpdateEvent(); }
+		private void FixedUpdate() { EventBus.InvokeOnIrisFixedUpdateEvent(); }
+		private void LateUpdate() { EventBus.InvokeOnIrisLateUpdateEvent(); }
 	}
 }

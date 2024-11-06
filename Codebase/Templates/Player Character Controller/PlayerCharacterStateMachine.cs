@@ -7,7 +7,7 @@ namespace Threadlink.Templates.PlayerCharacterController
 	public class PlayerCharacterStateMachine :
 	AbstractStateMachine<IPlayerCharacter, PlayerCharacterState, PlayerCharacterProcessor>
 	{
-		protected override void InitializeStatesAndProcessors()
+		protected override void InitializeProcessorsAndStates()
 		{
 			int length = processors.Length;
 

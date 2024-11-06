@@ -45,3 +45,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   selfTransform: {fileID: 5472749801474349419}
+  onUpdatePointer:
+    eventIndex: 0
+    cachedEvent: {fileID: 11400000, guid: 8d907526a08d0e94e834a1b8ac953ed0, type: 2}
+  onFixedUpdatePointer:
+    eventIndex: 1
+    cachedEvent: {fileID: 11400000, guid: 4f235c80655dc2241b502a98f818a98b, type: 2}
+  onLateUpdatePointer:
+    eventIndex: 2
+    cachedEvent: {fileID: 11400000, guid: 28bb86d10eaba504f985ad279ab44b4a, type: 2}

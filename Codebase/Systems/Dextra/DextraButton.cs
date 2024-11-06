@@ -1,15 +1,16 @@
 namespace Threadlink.Systems.Dextra
 {
-	using Threadlink.Core;
-	using Threadlink.Utilities.Events;
+	using Core;
+	using Utilities.Events;
 	using UnityEngine;
 	using UnityEngine.Events;
 	using UnityEngine.EventSystems;
 	using UnityEngine.UI;
+	using Cysharp.Threading.Tasks;
+	using System;
 
 #if ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
-	using Cysharp.Threading.Tasks;
 #elif THREADLINK_INSPECTOR
 	using Utilities.Editor.Attributes;
 #endif
@@ -18,8 +19,8 @@ namespace Threadlink.Systems.Dextra
 	public class DextraButton : LinkableBehaviour, ISelectHandler, IDeselectHandler, IPointerEnterHandler
 	{
 		public UnityEvent OnClick => button.onClick;
-		public VoidGenericEvent<DextraButton> OnSelect => onSelect;
-		public VoidGenericEvent<DextraButton> OnDeselect => onDeselect;
+		public GenericInputEvent<DextraButton> OnSelect => onSelect;
+		public GenericInputEvent<DextraButton> OnDeselect => onDeselect;
 
 		protected virtual bool SyncSelection => true;
 
@@ -28,8 +29,8 @@ namespace Threadlink.Systems.Dextra
 #endif
 		[SerializeField] protected Button button = null;
 
-		[SerializeField] protected VoidGenericEvent<DextraButton> onSelect = new();
-		[SerializeField] protected VoidGenericEvent<DextraButton> onDeselect = new();
+		[NonSerialized] protected GenericInputEvent<DextraButton> onSelect = new();
+		[NonSerialized] protected GenericInputEvent<DextraButton> onDeselect = new();
 
 		protected override void Reset()
 		{
@@ -37,7 +38,7 @@ namespace Threadlink.Systems.Dextra
 			base.Reset();
 		}
 
-		public override VoidOutput Discard(VoidInput _ = default)
+		public override Empty Discard(Empty _ = default)
 		{
 			button.onClick.RemoveAllListeners();
 			onSelect.Discard();
@@ -47,9 +48,6 @@ namespace Threadlink.Systems.Dextra
 			button = null;
 			return base.Discard(_);
 		}
-
-		public override void Boot() { }
-		public override void Initialize() { }
 
 		public void OnPointerEnter(PointerEventData eventData)
 		{

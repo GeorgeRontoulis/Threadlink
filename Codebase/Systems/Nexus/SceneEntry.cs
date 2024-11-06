@@ -3,7 +3,6 @@ namespace Threadlink.Systems.Nexus
 	using Aura;
 	using Core;
 	using Cysharp.Threading.Tasks;
-	using Extensions.Nexus;
 	using UnityEngine;
 	using UnityEngine.SceneManagement;
 	using Utilities.Addressables;
@@ -14,7 +13,7 @@ namespace Threadlink.Systems.Nexus
 		{
 			get
 			{
-				Threadlink.FindAddressableScene(sceneInfo.assetAddress, out var scene);
+				Threadlink.TryGetAddressableScene(sceneInfo.assetAddress, out var scene);
 				return scene;
 			}
 		}
@@ -24,17 +23,17 @@ namespace Threadlink.Systems.Nexus
 		[Space(10)]
 
 		[SerializeField] internal LoadSceneMode loadingMode = LoadSceneMode.Additive;
-		[SerializeField] internal PlayerLoadingAction playerLoadingAction = PlayerLoadingAction.Load;
+		[SerializeField] internal Nexus.PlayerLoadingAction playerLoadingAction = Nexus.PlayerLoadingAction.Load;
 
 		[Space(10)]
 
-		[SerializeField] internal AddressablePointer musicClipInfo = new();
-		[SerializeField] internal AddressablePointer atmosClipInfo = new();
+		[SerializeField] private AddressablePointer musicClipInfo = new();
+		[SerializeField] private AddressablePointer atmosClipInfo = new();
 
 		[Space(5)]
 
-		[SerializeField] internal float musicVolume = 1;
-		[SerializeField] internal float atmosVolume = 1;
+		[SerializeField] private float musicVolume = 1;
+		[SerializeField] private float atmosVolume = 1;
 
 		[Space(10)]
 
@@ -51,8 +50,8 @@ namespace Threadlink.Systems.Nexus
 				await Aura.TransitionToAudioScenarioAsync(music, atmos, volumes);
 			}
 
-			Threadlink.FindAddressableAsset<AudioClip>(musicClipInfo.assetAddress, out var musicClipAddressable);
-			Threadlink.FindAddressableAsset<AudioClip>(atmosClipInfo.assetAddress, out var atmosClipAddressable);
+			Threadlink.TryGetAddressableAsset<AudioClip>(musicClipInfo.assetAddress, out var musicClipAddressable);
+			Threadlink.TryGetAddressableAsset<AudioClip>(atmosClipInfo.assetAddress, out var atmosClipAddressable);
 
 			bool foundMusic = musicClipAddressable != null;
 			bool foundAtmos = atmosClipAddressable != null;

@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae11cb9fdf8dd62439aec945892c2ce8, type: 3}
+  m_Name: Threadlink Event Bus
+  m_EditorClassIdentifier: 
+  eventsRegistry:
+    m_Keys:
+    - onIrisUpdate
+    - onIrisFixedUpdate
+    - onIrisLateUpdate
+    - onChronosPaused
+    - onChronosResumed
+    - onChronosPlaytimeCount
+    - onDextraSelected
+    - onDextraDeviceChanged
+    - onDextraInputModeChanged
+    - onDextraInteractPressed
+    - onDextraPausePressed
+    - onDextraInterfaceCancelled
+    - onNexusBeforeActiveSceneUnload
+    - onNexusActiveSceneFinishedUnloading
+    - onNexusLoadingProcessFinished
+    - onNexusPlayerUnload
+    - onNexusNewSceneFinishedLoading
+    - onNexusActiveSceneRequested
+    - onNexusPlayerLoadStateCheck
+    - onNexusPlayerPlaced
+    - onNexusPlayerLoadAsync
+    - onNexusDisplayFaderAsync
+    - onNexusDisplayLoadingScreenAsync
+    - onNexusHideFaderAsync
+    - onNexusHideLoadingScreenAsync
+    m_Values:
+    - ThreadlinkEvent<Empty, Empty>
+    - ThreadlinkEvent<Empty, Empty>
+    - ThreadlinkEvent<Empty, Empty>
+    - ThreadlinkEvent<Empty, Empty>
+    - ThreadlinkEvent<Empty, Empty>
+    - ThreadlinkEvent<Empty, float>
+    - ThreadlinkEvent<Empty, RectTransform>
+    - ThreadlinkEvent<Empty, Dextra.InputDevice>
+    - ThreadlinkEvent<Empty, Dextra.InputMode>
+    - ThreadlinkEvent<Empty, Empty>
+    - ThreadlinkEvent<Empty, Empty>
+    - ThreadlinkEvent<Empty, Empty>
+    - ThreadlinkEvent<Empty, Empty>
+    - ThreadlinkEvent<Empty, Empty>
+    - ThreadlinkEvent<Empty, Empty>
+    - ThreadlinkEvent<Empty, Empty>
+    - ThreadlinkEvent<Empty, SceneEntry>
+    - ThreadlinkEvent<SceneEntry, Empty>
+    - ThreadlinkEvent<bool, Empty>
+    - ThreadlinkEvent<Empty, Vector3>
+    - ThreadlinkEvent<UniTask, Empty>
+    - ThreadlinkEvent<UniTask, Empty>
+    - ThreadlinkEvent<UniTask, Empty>
+    - ThreadlinkEvent<UniTask, Empty>
+    - ThreadlinkEvent<UniTask, Empty>
+  necessaryUsings:
+  - using Cysharp.Threading.Tasks;
+  - using Systems.Dextra;
+  - using Systems.Nexus;
+  - using UnityEngine;
+  codeGenTemplate: {fileID: 4900000, guid: 3039be5d80260694681350d1bbf432fb, type: 3}

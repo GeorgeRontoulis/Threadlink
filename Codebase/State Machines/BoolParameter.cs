@@ -1,6 +1,3 @@
-//Project: Aeon's Legacy: Ascension
-//Lead Programmer: George Rontoulis
-
 namespace Threadlink.StateMachines
 {
 	using UnityEngine;

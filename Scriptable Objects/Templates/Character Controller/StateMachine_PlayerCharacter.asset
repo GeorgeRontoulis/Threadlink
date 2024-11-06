@@ -14,7 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   runtimeInstantiation: 7
   parameters:
+  - {fileID: 11400000, guid: 204ce1456196d3d42bb31c5248152b59, type: 2}
   - {fileID: 11400000, guid: dce51eb66f8480548bf0e95a264c1384, type: 2}
+  - {fileID: 11400000, guid: e107c1e5d290f094f8ae94f11a3af9b4, type: 2}
   - {fileID: 11400000, guid: c21d5b256d933e8449b195ebfca5b14f, type: 2}
   - {fileID: 11400000, guid: 26d46e7d68487954f9fb7b3e9e74c7b8, type: 2}
   - {fileID: 11400000, guid: e6cd390def5ca044f935fbf5a05dec06, type: 2}
@@ -22,7 +24,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 323ec748604f8604a8161ceafe143dbf, type: 2}
   processors:
   - {fileID: 11400000, guid: 54b190ef6e4620042bcff92e8850d15c, type: 2}
-  - {fileID: 11400000, guid: 031906e708f3f13489d97bb354602e78, type: 2}
+  - {fileID: 11400000, guid: aad58ee98460c1d43a78894767110a18, type: 2}
   - {fileID: 11400000, guid: 6361e920b26195940b5548a20d063792, type: 2}
   - {fileID: 11400000, guid: 4bb09adf131453e408e2b0d0d6503e0f, type: 2}
   - {fileID: 11400000, guid: 0fb0c23b77aaead4a9b8879a2fec776a, type: 2}

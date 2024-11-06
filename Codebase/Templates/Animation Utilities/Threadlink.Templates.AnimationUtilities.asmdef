@@ -1,0 +1,16 @@
+{
+    "name": "Threadlink.Templates.AnimationUtilities",
+    "rootNamespace": "",
+    "references": [
+        "GUID:55c8270eaa5b5bb47bd94046e1b5bd19"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

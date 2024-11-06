@@ -1,5 +1,7 @@
 namespace Threadlink.Templates.PlayerCharacterController
 {
+	using Core;
+	using Extensions.Dextra;
 	using StateMachines;
 	using System;
 	using Systems.Dextra;
@@ -9,6 +11,8 @@ namespace Threadlink.Templates.PlayerCharacterController
 	[CreateAssetMenu(menuName = "Threadlink/Templates/Character Controller/Processors/Input")]
 	public sealed class PlayerCharacterInputProcessor : PlayerCharacterProcessor
 	{
+		private static ThreadlinkEventBus EventBus => Threadlink.EventBus;
+
 		public VoidEvent OnJumpInput => onJumpInput;
 		public VoidEvent OnAttackInput => onAttackInput;
 		public VoidEvent OnStartSprintInput => onStartSprintInput;
@@ -33,19 +37,20 @@ namespace Threadlink.Templates.PlayerCharacterController
 		[NonSerialized] private VoidEvent onStartSprintInput = new();
 		[NonSerialized] private VoidEvent onStopSprintInput = new();
 
-		public override VoidOutput Discard(VoidInput _ = default)
+		public override Empty Discard(Empty _ = default)
 		{
-			Dextra.OnPauseButtonPressed -= StackPauseMenu;
+			EventBus.OnDextraPausePressed -= StackPauseMenu;
+			EventBus.OnDextraInputModeChanged -= OnInputModeChanged;
 
 			moveAction.Discard();
 			startSprintAction.Discard();
 			stopSprintAction.Discard();
 			jumpAction.Discard();
 
-			onJumpInput?.Discard();
-			onAttackInput?.Discard();
-			onStartSprintInput?.Discard();
-			onStopSprintInput?.Discard();
+			onJumpInput.Discard();
+			onAttackInput.Discard();
+			onStartSprintInput.Discard();
+			onStopSprintInput.Discard();
 
 			onJumpInput = null;
 			onAttackInput = null;
@@ -57,58 +62,70 @@ namespace Threadlink.Templates.PlayerCharacterController
 
 		public override void Initialize(PlayerCharacterStateMachine owner)
 		{
-			void TrackMovementInput(Vector2 input) { movementInput.CurrentValue = input; }
+			const IPlayerCharacter.StateFlags movingFlag = IPlayerCharacter.StateFlags.IsMoving;
+			const IPlayerCharacter.StateFlags sprintingFlag = IPlayerCharacter.StateFlags.IsSprinting;
+
+			void TrackMovementInput(Vector2 input)
+			{
+				movementInput.CurrentValue = input;
+
+				if (input.magnitude > Mathf.Epsilon)
+					Character.CurrentStateFlags |= movingFlag;
+				else
+					Character.CurrentStateFlags &= ~movingFlag;
+			}
 
 			void StartSprinting()
 			{
 				if (movementInput.CurrentValue.magnitude > Mathf.Epsilon)
 				{
-					Character.IsSprinting = true;
-					onStartSprintInput?.Invoke();
+					Character.CurrentStateFlags |= sprintingFlag;
+					onStartSprintInput.Invoke();
 				}
 			}
 
 			void StopSprinting()
 			{
-				Character.IsSprinting = false;
-				onStopSprintInput?.Invoke();
+				Character.CurrentStateFlags &= ~sprintingFlag;
+				onStopSprintInput.Invoke();
 			}
 
-			void Jump() { onJumpInput?.Invoke(); }
-			void Attack() { onAttackInput?.Invoke(); }
+			void Jump() { onJumpInput.Invoke(); }
+			void Attack() { onAttackInput.Invoke(); }
 
 			Character = owner.Owner;
 
 			movementInput.PointToInternalReferenceOf(owner);
 
-			moveAction?.Handle(TrackMovementInput);
-			startSprintAction?.Handle(StartSprinting);
-			stopSprintAction?.Handle(StopSprinting);
-			jumpAction?.Handle(Jump);
-			attackAction?.Handle(Attack);
+			moveAction.Handle(TrackMovementInput);
+			startSprintAction.Handle(StartSprinting);
+			stopSprintAction.Handle(StopSprinting);
+			jumpAction.Handle(Jump);
+			attackAction.Handle(Attack);
 
-			Dextra.OnPauseButtonPressed += StackPauseMenu;
-			Dextra.OnInputModeChanged.TryAddListener(OnInputModeChanged);
+			EventBus.OnDextraPausePressed += StackPauseMenu;
+			EventBus.OnDextraInputModeChanged += OnInputModeChanged;
 
+			//Scribe.LogInfo(this, "Input Processor initialized!");
 			//Dextra.CurrentInputMode = Dextra.InputMode.Player;
 
 			base.Initialize(owner);
 		}
 
-		private VoidOutput OnInputModeChanged(Dextra.InputMode input)
+		private Empty OnInputModeChanged(Dextra.InputMode input)
 		{
 			movementInput.CurrentValue = Vector2.zero;
-			Character.IsSprinting = false;
+			Character.CurrentStateFlags &= ~IPlayerCharacter.StateFlags.IsSprinting;
 			return default;
 		}
 
-		private VoidOutput StackPauseMenu(VoidInput _)
+		private Empty StackPauseMenu(Empty _)
 		{
-			Dextra.StackInterface("OverlayUI_PauseMenu");
+			Dextra.Stack("OverlayUI_PauseMenu");
 			return default;
 		}
 
-		protected override VoidOutput Run(VoidInput _)
+		protected override Empty Run(Empty _)
 		{
 			//if (movementInput.CurrentValue.magnitude <= Mathf.Epsilon) Character.IsSprinting = false;
 

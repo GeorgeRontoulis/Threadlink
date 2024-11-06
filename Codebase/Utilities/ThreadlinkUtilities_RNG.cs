@@ -7,7 +7,7 @@ namespace Threadlink.Utilities.RNG
 
 	public interface IRNGWeighted
 	{
-		public bool WeightedRandomEvaluation { get; }
+		public bool RandomWeightEvaluation { get; }
 	}
 
 	public static class RNG
@@ -170,7 +170,7 @@ namespace Threadlink.Utilities.RNG
 
 			if (triIndex == -1)
 			{
-				UnityConsole.Notify(DebugNotificationType.Error, "triIndex should never be -1");
+				UnityConsole.Notify(DebugNotificationType.Error, context: null, "triIndex should never be -1");
 				return Vector3.zero;
 			}
 

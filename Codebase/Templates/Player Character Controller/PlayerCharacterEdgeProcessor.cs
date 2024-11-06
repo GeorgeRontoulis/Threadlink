@@ -22,7 +22,7 @@ namespace Threadlink.Templates.PlayerCharacterController
 		public override void Initialize(PlayerCharacterStateMachine owner)
 		{
 			Character = owner.Owner;
-			CharacterTransform = Character.Transform;
+			CharacterTransform = Character.SelfTransform;
 			Scalar = new(1, 0, 1);
 			Edges = new Collider[1];
 			Grounds = new RaycastHit[1];
@@ -30,14 +30,17 @@ namespace Threadlink.Templates.PlayerCharacterController
 			base.Initialize(owner);
 		}
 
-		protected override VoidOutput Run(VoidInput _)
+		protected override Empty Run(Empty _)
 		{
 			var checkOrigin = CharacterTransform.position + (edgeCheckOffset * Vector3.Scale(CharacterTransform.forward, Scalar));
 
 			bool isHigh = Physics.RaycastNonAlloc(checkOrigin, -Vector3.up, Grounds, edgeHeightThreshold, groundMask, interaction) <= 0;
 			bool isEdge = Physics.OverlapSphereNonAlloc(checkOrigin, edgeCheckRadious, Edges, groundMask, interaction) <= 0;
 
-			Character.IsStandingOnEdge = isEdge && isHigh;
+			Character.CurrentStateFlags = isEdge && isHigh ?
+			Character.CurrentStateFlags | IPlayerCharacter.StateFlags.IsStandingOverEdge
+			:
+			Character.CurrentStateFlags & ~IPlayerCharacter.StateFlags.IsStandingOverEdge;
 
 			return default;
 		}

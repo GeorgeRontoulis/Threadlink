@@ -9,7 +9,7 @@ namespace Threadlink.Utilities.Editor
 	public sealed class DynamicEditorAssetPath : ScriptableObject
 	{
 		public string ProjectRelativePath => AssetDatabase.GetAssetPath(assetReference);
-		public string AbsolutePath => String.Construct(Application.dataPath.Replace("Assets", string.Empty), ProjectRelativePath);
+		public string AbsolutePath => TLZString.Construct(Application.dataPath.Replace("Assets", string.Empty), ProjectRelativePath);
 
 		[SerializeField] private Object assetReference = null;
 	}

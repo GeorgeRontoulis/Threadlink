@@ -1,13 +1,16 @@
 namespace Threadlink.Utilities.Geometry
 {
+	using Collections;
+	using Core;
 	using System;
 	using System.Collections.Generic;
-	using Threadlink.Core;
-	using Threadlink.Utilities.Collections;
 	using UnityEngine;
 
 	public static class Geometry
 	{
+		public static readonly Vector3 One = Vector3.one;
+		public static readonly Vector3 Zero = Vector3.zero;
+
 		public struct DistanceData<T>
 		{
 			public T ClosestEntity { get; private set; }
@@ -47,21 +50,6 @@ namespace Threadlink.Utilities.Geometry
 			}
 
 			return new(cumulativeSizes, total);
-		}
-
-		public static ValueTuple<Vector2, Vector2> WorldToCanvasPoint(this RectTransform canvasRect, Vector3 worldPoint)
-		{
-			var viewportPos = Camera.main.WorldToViewportPoint(worldPoint, Camera.MonoOrStereoscopicEye.Mono);
-
-			float deltaX = canvasRect.sizeDelta.x;
-			float deltaY = canvasRect.sizeDelta.y;
-
-			float x = (viewportPos.x * deltaX) - (deltaX * 0.5f);
-			float y = (viewportPos.y * deltaY) - (deltaY * 0.5f);
-
-			var canvasPos = new Vector2(x, y);
-
-			return new(viewportPos, canvasPos);
 		}
 
 		public static bool ConeCheck(Vector3 center, Vector3 pointA, Vector3 pointB, Vector3 direction)

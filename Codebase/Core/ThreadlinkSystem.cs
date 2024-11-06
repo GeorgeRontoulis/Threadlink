@@ -1,225 +1,216 @@
 ﻿namespace Threadlink.Core
 {
-	using Cysharp.Threading.Tasks;
-	using System;
+	using MassTransit;
+	using Sirenix.OdinInspector;
 	using System.Collections.Generic;
 	using Systems;
-	using Utilities.Collections;
 	using Utilities.Events;
 
-	public interface IScriptableWeavingData<T> where T : ILinkable { }
-	public struct UnityWeavingData<T> : IScriptableWeavingData<T> where T : ILinkable
-	{
-		public T Original { get; set; }
+	public interface IThreadlinkSystem : ILinkable { }
+	public interface IThreadlinkSystem<S> : IThreadlinkSystem, IThreadlinkSingleton<S> { }
+	public interface IUnityWeaver<S, E> : IThreadlinkSystem<S> { public E Weave(E original); }
+	public interface INativeWeaver<S, E> : IThreadlinkSystem<S> { public E Weave(); }
 
-		public UnityWeavingData(T original) { Original = original; }
+	public abstract class ThreadlinkSystem : LinkableBehaviour, IThreadlinkSystem, IBootable
+	{
+		public abstract void Boot();
 	}
-	public struct NativeWeavingData<T> : IScriptableWeavingData<T> where T : ILinkable { }
 
-	public abstract class ThreadlinkSystem<SingletonType, ManagedType, WeavingData> : LinkableBehaviourSingleton<SingletonType>
-	where SingletonType : LinkableBehaviourSingleton<SingletonType>
-	where ManagedType : ILinkable
-	where WeavingData : IScriptableWeavingData<ManagedType>
+	public abstract class ThreadlinkSystem<S> : ThreadlinkSystem, IThreadlinkSystem<S>
+	where S : ThreadlinkSystem<S>
 	{
-		protected int LinkedEntityCount => LinkedEntities.Count;
+		public static S Instance { get; protected set; }
 
-		protected bool EntityListAlteredSinceLastSort { get; set; }
-		protected List<ManagedType> LinkedEntities { get; private set; }
-
-		public override VoidOutput Discard(VoidInput _ = default)
+		public override void Boot()
 		{
-			LinkedEntities = null;
+			var thisSystem = this as S;
+
+			if (Instance == null || Instance.Equals(thisSystem) == false) Instance = thisSystem;
+			else this.LogException<ExistingSingletonException>();
+		}
+
+		public override Empty Discard(Empty _ = default)
+		{
 			Instance = null;
+			return base.Discard(_);
+		}
+	}
+
+	public abstract class Register<S, E> : ThreadlinkSystem<S>
+	where S : Register<S, E>
+	where E : ILinkable
+	{
+#if ODIN_INSPECTOR
+		[ShowInInspector, ReadOnly]
+#endif
+		protected Dictionary<NewId, E> Registry { get; private set; }
+
+		protected void ClearRegistry(bool trimRegistry = false)
+		{
+			Registry.Clear();
+			if (trimRegistry) Registry.TrimExcess();
+		}
+
+		public override Empty Discard(Empty _ = default)
+		{
+			ClearRegistry(true);
+			Registry = null;
 			return base.Discard(_);
 		}
 
 		public override void Boot()
 		{
+			Registry = new();
 			base.Boot();
-			LinkedEntities = new();
-			EntityListAlteredSinceLastSort = true;
 		}
 
-		private void ClearManagedEntitiesList()
+		public bool TryGetLinkedEntity(NewId entityID, out E entity)
 		{
-			if (LinkedEntities != null)
+			return Registry.TryGetValue(entityID, out entity);
+		}
+
+		public bool TryGetLinkedEntity(string singletonID, out E entity)
+		{
+			if (Threadlink.TryGetConstantSingletonID(singletonID, out var id) == false)
 			{
-				LinkedEntities.Clear();
-				LinkedEntities.TrimExcess();
+				entity = default;
+				return false;
 			}
 
-			EntityListAlteredSinceLastSort = true;
-			Scribe.SystemLog(LinkID, Scribe.InfoNotif, "Cleared all managed Entities.");
+			return Registry.TryGetValue(id, out entity);
+		}
+	}
+
+	public abstract class Linker<S, E> : Register<S, E>
+	where S : Linker<S, E>
+	where E : ILinkable
+	{
+		public virtual bool TryLink(E entity)
+		{
+			if (entity.InstanceID.Equals(NewId.Empty))
+				entity.InstanceID = NewId.Next();
+
+			return Registry.TryAdd(entity.InstanceID, entity);
 		}
 
-		public virtual void DisconnectAll() { ClearManagedEntitiesList(); }
+		public virtual bool TryDisconnect(NewId entityID, out E disconnectedEntity)
+		{
+			return Registry.Remove(entityID, out disconnectedEntity);
+		}
+
+		public virtual void DisconnectAll(bool trimRegistry)
+		{
+			ClearRegistry(trimRegistry);
+		}
+	}
+
+	public abstract class Weaver<S, E> : Register<S, E>
+	where S : Weaver<S, E>
+	where E : IDiscardable
+	{
+		public virtual bool TrySever(NewId entityID)
+		{
+			bool severed = Registry.Remove(entityID, out var handle);
+
+			if (severed) handle?.Discard();
+
+			return severed;
+		}
 
 		public virtual void SeverAll()
 		{
-			int count = LinkedEntities.Count;
-			for (int i = 0; i < count; i++)
+			foreach (var id in Registry.Keys) Registry[id]?.Discard();
+
+			ClearRegistry();
+		}
+	}
+
+	public abstract class UnityWeaver<S, E> : Weaver<S, E>, IUnityWeaver<S, E>
+	where S : UnityWeaver<S, E>
+	where E : UnityEngine.Object, IDiscardable
+	{
+		private E CreateNewInstance(ref E original)
+		{
+			var singleton = Instantiate(original);
+			singleton.name = original.name;
+			singleton.InstanceID = NewId.Next();
+			return singleton;
+		}
+
+		public virtual E Weave(E original)
+		{
+			if (original is IThreadlinkSingleton)
 			{
-				try
+				if (Threadlink.TryGetConstantSingletonID(original.LinkID, out var id))
 				{
-					LinkedEntities[i].Discard();
+					if (TryGetLinkedEntity(id, out var singleton) && singleton != null) return singleton;
+					else
+					{
+						this.SystemLog<ConstantIDsBufferException>();
+						return null;
+					}
 				}
-				catch (Exception exception)
+				else
 				{
-					Scribe.SystemLog<InvalidOperationException>(LinkID, exception.Message);
+					var singleton = CreateNewInstance(ref original);
+
+					Threadlink.RegisterConstantSingletonID(singleton.LinkID, singleton.InstanceID);
+					Registry.Add(singleton.InstanceID, singleton);
+
+					if (singleton is not IThreadlinkSystem) DontDestroyOnLoad(singleton);
+					return singleton;
 				}
-			}
-
-			ClearManagedEntitiesList();
-		}
-
-		public void FindManagedEntity(string entityLinkID, out ManagedType result)
-		{
-			if (EntityListAlteredSinceLastSort)
-			{
-				LinkedEntities.SortByID();
-				EntityListAlteredSinceLastSort = false;
-			}
-
-			LinkedEntities.BinarySearch(entityLinkID, out var entity);
-			result = entity;
-		}
-
-		/// <summary>
-		/// Create a copy of the original <typeparamref name="Entity"/> provided and link it to <typeparamref name="SingletonType"/>.
-		/// </summary>
-		/// <typeparam name="Entity"> The type of <typeparamref name="ILinkable"/> to create and link.</typeparam>
-		/// <param name="original">The original <typeparamref name="Entity"/>.</param>
-		/// <param name="logAction">Whether to provide console logs of the process.</param>
-		/// <returns>The created and linked <typeparamref name="Entity"/>.</returns>
-		public abstract ManagedType Weave(WeavingData data, bool logAction = false);
-
-		/// <summary>
-		/// Link an existing <typeparamref name="Entity"/> to <typeparamref name="SingletonType"/>.
-		/// </summary>
-		/// <typeparam name="Entity"> The type of <typeparamref name="ILinkable"/> to link.</typeparam>
-		/// <param name="instance">The existing <typeparamref name="Entity"/>.</param>
-		/// <param name="logAction">Whether to provide console logs of the process.</param>
-		/// <returns>The linked <typeparamref name="Entity"/>.</returns>
-		public virtual Entity Link<Entity>(Entity instance, bool logAction = false) where Entity : ManagedType
-		{
-			if (instance == null)
-			{
-				Scribe.SystemLog<ArgumentNullException>(LinkID, "The requested Entity to link is NULL!");
-			}
-			else if (LinkedEntities.Contains(instance))
-			{
-				Scribe.SystemLog<InvalidOperationException>(LinkID, "The requested Entity to link is already linked!");
-			}
-
-			LinkedEntities.Add(instance);
-
-			if (logAction) Scribe.SystemLog(LinkID, Scribe.InfoNotif, "Linked Entity ", instance.LinkID, ".");
-
-			EntityListAlteredSinceLastSort = true;
-			return instance;
-		}
-
-		/// <summary>
-		/// Discard a created <typeparamref name="ManagedType"/> from <typeparamref name="SingletonType"/>.
-		/// </summary>
-		/// <param name="instance">The created <typeparamref name="ManagedType"/>.</param>
-		/// <param name="logAction">Whether to provide console logs of the process.</param>
-		public void Sever(ManagedType entity, bool logAction = false)
-		{
-			if (entity == null)
-			{
-				Scribe.SystemLog<ArgumentNullException>(LinkID, "The requested Entity to sever is NULL!");
-			}
-
-			if (LinkedEntities.Contains(entity))
-			{
-				LinkedEntities.RemoveEfficiently(LinkedEntities.IndexOf(entity));
-				entity.Discard();
-				EntityListAlteredSinceLastSort = true;
-				if (logAction) Scribe.SystemLog(LinkID, Scribe.InfoNotif, "Severed Entity ", entity.LinkID, ".");
 			}
 			else
 			{
-				Scribe.SystemLog<InvalidOperationException>(LinkID, "A Sever request was made for Entity ", entity.LinkID,
-				", however it's not managed by ", LinkID, ". This is probably a memory leak and should never happen!");
-			}
-		}
+				var entity = CreateNewInstance(ref original);
+				Registry.Add(entity.InstanceID, entity);
 
-		/// <summary>
-		/// Disconnect a linked <typeparamref name="ManagedType"/> from <typeparamref name="SingletonType"/>. 
-		/// This will NOT discard the <typeparamref name="ManagedType"/>.
-		/// </summary>
-		/// <param name="instance">The existing <typeparamref name="ManagedType"/>.</param>
-		/// <param name="logAction">Whether to provide console logs of the process.</param>
-		public virtual void Disconnect(ManagedType instance, bool logAction = false)
-		{
-			if (instance == null)
-			{
-				Scribe.SystemLog<ArgumentNullException>(LinkID, "The requested Entity to disconnect is NULL!");
-			}
-
-			if (LinkedEntities.Contains(instance))
-			{
-				LinkedEntities.RemoveEfficiently(LinkedEntities.IndexOf(instance));
-				EntityListAlteredSinceLastSort = true;
-				if (logAction) Scribe.SystemLog(LinkID, Scribe.InfoNotif, "Disconnected Entity ", instance.LinkID, ".");
-			}
-			else
-			{
-				Scribe.SystemLog<InvalidOperationException>(LinkID, "A Disconnect request was made for Entity ", instance.LinkID,
-				", however it's not managed by ", LinkID, ". This is probably a memory leak and should never happen!");
+				return entity;
 			}
 		}
 	}
 
-	/// <summary>
-	/// Base class used to define a Threadlink Sub-System that manages Unity Objects.
-	/// Derive from this class only if you  need a Sub-System that explicitly manages its own collection of objects.
-	/// If your Sub-System is not supposed to manage live objects, use one of the Singleton Types instead.
-	/// </summary>
-	public abstract class UnitySystem<SingletonType, ManagedType> : ThreadlinkSystem<SingletonType, ManagedType, UnityWeavingData<ManagedType>>
-	where SingletonType : LinkableBehaviourSingleton<SingletonType>
-	where ManagedType : UnityEngine.Object, ILinkable
+	public abstract class NativeWeaver<S, E> : Weaver<S, E>, INativeWeaver<S, E>
+	where S : NativeWeaver<S, E>
+	where E : IDiscardable, new()
 	{
-		public override ManagedType Weave(UnityWeavingData<ManagedType> data, bool logAction = false)
+		private E CreateNewInstance() { return new E { InstanceID = NewId.Next() }; }
+
+		public virtual E Weave()
 		{
-			if (data.Original == null)
+			var type = typeof(E);
+
+			if (typeof(IThreadlinkSingleton).IsAssignableFrom(type))
 			{
-				Scribe.SystemLog<ArgumentNullException>(LinkID, "The requested Entity to weave is NULL!");
+				if (Threadlink.TryGetConstantSingletonID(type.Name, out var id))
+				{
+					if (TryGetLinkedEntity(id, out var singleton) && singleton.Equals(default) == false) return singleton;
+					else
+					{
+						this.SystemLog<ConstantIDsBufferException>();
+						return default;
+					}
+				}
+				else
+				{
+					var singleton = CreateNewInstance();
+
+					Threadlink.RegisterConstantSingletonID(type.Name, singleton.InstanceID);
+					Registry.Add(singleton.InstanceID, singleton);
+
+					(singleton as IThreadlinkSingleton).Boot();
+
+					return singleton;
+				}
 			}
+			else
+			{
+				var entity = CreateNewInstance();
+				Registry.Add(entity.InstanceID, entity);
 
-			var copy = Instantiate(data.Original);
-			LinkedEntities.Add(copy);
-
-			copy.name = data.Original.name;
-
-			if (copy is LinkableAsset) (copy as LinkableAsset).IsInstance = true;
-
-			if (logAction) Scribe.SystemLog(LinkID, Scribe.InfoNotif, "Weaved Entity ", copy.name, ".");
-
-			EntityListAlteredSinceLastSort = true;
-			return copy;
-		}
-	}
-
-	/// <summary>
-	/// Base class used to define a Threadlink Sub-System that manages Pure C# Objects.
-	/// Derive from this class only if you  need a Sub-System that explicitly manages its own collection of objects.
-	/// If your Sub-System is not supposed to manage live objects, use one of the Singleton Types instead.
-	/// </summary>
-	public abstract class NativeSystem<SingletonType, ManagedType> : ThreadlinkSystem<SingletonType, ManagedType, NativeWeavingData<ManagedType>>
-	where SingletonType : LinkableBehaviourSingleton<SingletonType>
-	where ManagedType : ILinkable, new()
-	{
-		public override ManagedType Weave(NativeWeavingData<ManagedType> data = default, bool logAction = false)
-		{
-			var copy = new ManagedType();
-			LinkedEntities.Add(copy);
-
-			if (logAction) Scribe.SystemLog(LinkID, Scribe.InfoNotif, "Weaved Entity ", copy.LinkID, ".");
-
-			EntityListAlteredSinceLastSort = true;
-			return copy;
+				return entity;
+			}
 		}
 	}
 }

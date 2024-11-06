@@ -1,25 +1,33 @@
 namespace Threadlink.Utilities.Collections
 {
-#if UNITY_EDITOR
-	using Editor;
-	using UnityEditor;
-#endif
+	using MassTransit;
 	using RNG;
-	using String = Text.String;
 	using System;
+	using System.Collections;
 	using System.Collections.Generic;
 	using System.Linq;
 	using UnityEngine;
-	using UnityEngine.InputSystem.Utilities;
-	using Threadlink.Utilities.UnityLogging;
-	using FullSerializer;
+	using Utilities.Text;
+	using Utilities.UnityLogging;
 
-	public interface IIdentifiable { string LinkID { get; } }
+#if UNITY_EDITOR
+	using Editor;
+#endif
+
+	public interface IIdentifiable
+	{
+		/// <summary>
+		/// The IDs associated with this entity.
+		/// The string object is intended for use as a constant identifier (Useful for assets, directories etc).
+		/// Different types of Threadlink Systems may differ on which ID they use when querying.
+		/// See <see cref="Core.IThreadlinkSystem"/>
+		/// </summary>
+		public string LinkID { get; }
+		public NewId InstanceID { get; set; }
+	}
 
 	public interface IRegistryElement : IIdentifiable
 	{
-		public bool IsUtilized { get; }
-
 		/// <summary>
 		/// Callback invoked right before the registry containing this element is discarded.
 		/// </summary>
@@ -31,9 +39,9 @@ namespace Threadlink.Utilities.Collections
 		public void OnBeforeUtilized();
 
 		/// <summary>
-		/// Callback invoked when this entity is set to the unitilized state.
+		/// Callback invoked when this entity is flagged as available.
 		/// </summary>
-		public void OnSetToUnutilized();
+		public void OnSetToAvailable();
 	}
 
 	public interface IRegistriesManager
@@ -44,11 +52,19 @@ namespace Threadlink.Utilities.Collections
 
 		public void DiscardAllRegistries()
 		{
-			foreach (var registry in Registries.Values) registry.Discard();
+			foreach (var registry in Registries.Values) registry.Discard(true);
 
 			Registries.Clear();
 			Registries.TrimExcess();
 			Registries = null;
+		}
+
+		public void ClearAllRegistries()
+		{
+			foreach (var registry in Registries.Values) registry.Discard();
+
+			Registries.Clear();
+			Registries.TrimExcess();
 		}
 
 		public bool TryRegister(IRegistryElement target, string registryID, int initialCapacity = 100)
@@ -64,81 +80,23 @@ namespace Threadlink.Utilities.Collections
 
 		public bool RetrieveFrom<T>(string registryID, out T retrievedElement) where T : IRegistryElement
 		{
-			if (Registries.TryGetValue(registryID, out var registry) && registry.TryRetrieve<T>(out var result))
-			{
-				retrievedElement = result;
-				return true;
-			}
-			else
-			{
-				retrievedElement = default;
-				return false;
-			}
+			var result = default(T);
+			bool found = Registries.TryGetValue(registryID, out var registry) && registry.TryRetrieve(out result);
+
+			retrievedElement = found ? result : default;
+			return found;
 		}
 
 		public void SetAllToUnutilizedState()
 		{
-			foreach (var entry in Registries) entry.Value.SetAllToUnutilizedState();
-		}
-	}
-
-	public struct MatrixPosition : IComparable<MatrixPosition>
-	{
-		public readonly bool IsValid => R >= 0 && C >= 0;
-
-		/// <summary>
-		/// Row.
-		/// </summary>
-		public int R { get; set; }
-		/// <summary>
-		/// Column.
-		/// </summary>
-		public int C { get; set; }
-
-		public MatrixPosition(int invalidIndex = -1)
-		{
-			R = invalidIndex;
-			C = invalidIndex;
-		}
-
-		public MatrixPosition(int row, int column)
-		{
-			R = row;
-			C = column;
-		}
-
-		public MatrixPosition(Vector2Int vector)
-		{
-			R = vector.x;
-			C = vector.y;
-		}
-
-		public override readonly int GetHashCode()
-		{
-			return HashCode.Combine(R, C);
-		}
-
-		public readonly bool Equals(MatrixPosition other)
-		{
-			return R == other.R && C == other.C;
-		}
-
-		public override readonly string ToString()
-		{
-			return String.Construct("[", R.ToString(), ",", C.ToString(), "]");
-		}
-
-		public readonly int CompareTo(MatrixPosition other)
-		{
-			if (C != other.C) return C.CompareTo(other.C);
-
-			return R.CompareTo(other.R);
+			foreach (var entry in Registries) entry.Value.SetAllToAvailableState();
 		}
 	}
 
 	public sealed class ThreadlinkRegistry
 	{
-		private List<IRegistryElement> List { get; set; }
+		private Queue<IRegistryElement> AvailableElements { get; set; }
+		private Queue<IRegistryElement> UtilizedElements { get; set; }
 
 		private delegate void VoidDelegate();
 
@@ -147,55 +105,79 @@ namespace Threadlink.Utilities.Collections
 
 		public ThreadlinkRegistry(int capacity)
 		{
-			List = new(capacity);
+			AvailableElements = new(capacity);
+			UtilizedElements = new(capacity);
 		}
 
-		public void Discard()
+		public void Discard(bool nullifyCollections = false)
 		{
 			OnBeforeDiscarded?.Invoke();
 			Clear(true);
 
 			OnAllSetToUnitilizedState = null;
 			OnBeforeDiscarded = null;
-			List = null;
+
+			if (nullifyCollections)
+			{
+				AvailableElements = null;
+				UtilizedElements = null;
+			}
 		}
 
-		public void Clear(bool trimInternalCollection = false)
+		public void Clear(bool trimCollections = false)
 		{
-			List.Clear();
-			if (trimInternalCollection) List.TrimExcess();
+			AvailableElements.Clear();
+			UtilizedElements.Clear();
+
+			if (trimCollections)
+			{
+				AvailableElements.TrimExcess();
+				UtilizedElements.TrimExcess();
+			}
 		}
 
 		public bool TryRetrieve<T>(out T result) where T : IRegistryElement
 		{
-			static bool Filter(IRegistryElement element) { return element.IsUtilized == false; }
+			if (AvailableElements.TryDequeue(out var dequedElement))
+			{
+				if (UtilizedElements.Contains(dequedElement) == false)
+					UtilizedElements.Enqueue(dequedElement);
 
-			var retrievedElement = List.FirstOrDefault(Filter);
+				dequedElement.OnBeforeUtilized();
 
-			if (retrievedElement == null)
+				result = (T)dequedElement;
+				return true;
+			}
+			else
 			{
 				result = default;
 				return false;
 			}
-
-			retrievedElement.OnBeforeUtilized();
-
-			result = (T)retrievedElement;
-			return true;
 		}
 
 		public bool TryRegister(IRegistryElement element)
 		{
-			List.Add(element);
+			if (UtilizedElements.Contains(element) == false)
+			{
+				void OnElementSetToAvailable()
+				{
+					if (AvailableElements.Contains(element) == false)
+						AvailableElements.Enqueue(element);
 
-			OnBeforeDiscarded += element.OnBeforeRegistryDiscarded;
-			OnAllSetToUnitilizedState += element.OnSetToUnutilized;
+					element.OnSetToAvailable();
+				}
+
+				UtilizedElements.Enqueue(element);
+				OnBeforeDiscarded += element.OnBeforeRegistryDiscarded;
+				OnAllSetToUnitilizedState += OnElementSetToAvailable;
+			}
 
 			return true;
 		}
 
-		public void SetAllToUnutilizedState()
+		public void SetAllToAvailableState()
 		{
+			UtilizedElements.Clear();
 			OnAllSetToUnitilizedState?.Invoke();
 		}
 	}
@@ -253,64 +235,164 @@ namespace Threadlink.Utilities.Collections
 		}
 	}
 
-	[Serializable]
-	public class HybridDictionary<TKey, TValue> : ISerializationCallbackReceiver
+	public struct MatrixPosition : IComparable<MatrixPosition>
 	{
-		// Public indexer for accessing dictionary values
-		public TValue this[TKey key] => dictionary[key];
+		public readonly bool IsValid => R >= 0 && C >= 0;
 
-#if UNITY_EDITOR
-		// FullSerializer object for handling editor-only serialization
-		private static readonly fsSerializer serializer = new();
+		/// <summary>
+		/// Row.
+		/// </summary>
+		public int R { get; set; }
+		/// <summary>
+		/// Column.
+		/// </summary>
+		public int C { get; set; }
 
-		// Serialized field to store the dictionary's JSON string (Editor only)
-		[SerializeField, HideInInspector] private string serializedData;
-#endif
-
-		// The actual dictionary that will be used at runtime
-		public Dictionary<TKey, TValue> dictionary = new();
-
-		// This method will be called before Unity serializes this object
-		public void OnBeforeSerialize()
+		public MatrixPosition(int invalidIndex = -1)
 		{
-#if UNITY_EDITOR
-			// Use FullSerializer to serialize the dictionary to JSON only in Editor mode
-			if (dictionary != null)
-			{
-				serializer.TrySerialize(dictionary, out fsData data).AssertSuccessWithoutWarnings();
-				serializedData = fsJsonPrinter.CompressedJson(data); // Store the serialized JSON
-			}
-#endif
+			R = invalidIndex;
+			C = invalidIndex;
 		}
 
-		// This method will be called after Unity deserializes this object
-		public void OnAfterDeserialize()
+		public MatrixPosition(int row, int column)
 		{
-#if UNITY_EDITOR
-			if (!string.IsNullOrEmpty(serializedData))
-			{
-				// Editor: Deserialize the JSON back into the dictionary
-				fsData data = fsJsonParser.Parse(serializedData);
-				Dictionary<TKey, TValue> deserializedDictionary = null;
-				serializer.TryDeserialize(data, ref deserializedDictionary).AssertSuccessWithoutWarnings();
-
-				if (deserializedDictionary != null) dictionary = deserializedDictionary;
-			}
-#endif
+			R = row;
+			C = column;
 		}
 
-		// Utility methods for manipulating the dictionary
-		public bool TryAddItem(TKey key, TValue value)
+		public MatrixPosition(Vector2Int vector)
 		{
-			return dictionary.TryAdd(key, value);
+			R = vector.x;
+			C = vector.y;
 		}
 
-		public void RemoveItem(TKey key)
+		public override readonly int GetHashCode()
 		{
-			dictionary.Remove(key);
+			return HashCode.Combine(R, C);
+		}
+
+		public readonly bool Equals(MatrixPosition other)
+		{
+			return R == other.R && C == other.C;
+		}
+
+		public override readonly string ToString()
+		{
+			return TLZString.Construct("[", R.ToString(), ",", C.ToString(), "]");
+		}
+
+		public readonly int CompareTo(MatrixPosition other)
+		{
+			if (C != other.C) return C.CompareTo(other.C);
+
+			return R.CompareTo(other.R);
 		}
 	}
 
+	/// <summary>
+	/// Unity can't serialize Dictionary so here's a custom wrapper that does.
+	/// </summary>
+	[Serializable]
+	public sealed class SerializedDictionary<K, V> : SerializedDictionary<K, V, K, V>
+	{
+		/// <summary>
+		/// Conversion to serialize a key
+		/// </summary>
+		/// <param name="key">The key to serialize</param>
+		/// <returns>The Key that has been serialized</returns>
+		public override K SerializeKey(K key) => key;
+
+		/// <summary>
+		/// Conversion to serialize a value
+		/// </summary>
+		/// <param name="val">The value</param>
+		/// <returns>The value</returns>
+		public override V SerializeValue(V val) => val;
+
+		/// <summary>
+		/// Conversion to serialize a key
+		/// </summary>
+		/// <param name="key">The key to serialize</param>
+		/// <returns>The Key that has been serialized</returns>
+		public override K DeserializeKey(K key) => key;
+
+		/// <summary>
+		/// Conversion to serialize a value
+		/// </summary>
+		/// <param name="val">The value</param>
+		/// <returns>The value</returns>
+		public override V DeserializeValue(V val) => val;
+	}
+
+	/// <summary>
+	/// Dictionary that can serialize keys and values as other types
+	/// </summary>
+	/// <typeparam name="K">The key type</typeparam>
+	/// <typeparam name="V">The value type</typeparam>
+	/// <typeparam name="SK">The type which the key will be serialized for</typeparam>
+	/// <typeparam name="SV">The type which the value will be serialized for</typeparam>
+	[Serializable]
+	public abstract class SerializedDictionary<K, V, SK, SV> : Dictionary<K, V>, ISerializationCallbackReceiver
+	{
+		[SerializeField] private List<SK> m_Keys = new();
+		[SerializeField] private List<SV> m_Values = new();
+
+		/// <summary>
+		/// From <see cref="K"/> to <see cref="SK"/>
+		/// </summary>
+		/// <param name="key">They key in <see cref="K"/></param>
+		/// <returns>The key in <see cref="SK"/></returns>
+		public abstract SK SerializeKey(K key);
+
+		/// <summary>
+		/// From <see cref="V"/> to <see cref="SV"/>
+		/// </summary>
+		/// <param name="value">The value in <see cref="V"/></param>
+		/// <returns>The value in <see cref="SV"/></returns>
+		public abstract SV SerializeValue(V value);
+
+
+		/// <summary>
+		/// From <see cref="SK"/> to <see cref="K"/>
+		/// </summary>
+		/// <param name="serializedKey">They key in <see cref="SK"/></param>
+		/// <returns>The key in <see cref="K"/></returns>
+		public abstract K DeserializeKey(SK serializedKey);
+
+		/// <summary>
+		/// From <see cref="SV"/> to <see cref="V"/>
+		/// </summary>
+		/// <param name="serializedValue">The value in <see cref="SV"/></param>
+		/// <returns>The value in <see cref="V"/></returns>
+		public abstract V DeserializeValue(SV serializedValue);
+
+		/// <summary>
+		/// OnBeforeSerialize implementation.
+		/// </summary>
+		public void OnBeforeSerialize()
+		{
+			m_Keys.Clear();
+			m_Values.Clear();
+
+			foreach (var kvp in this)
+			{
+				m_Keys.Add(SerializeKey(kvp.Key));
+				m_Values.Add(SerializeValue(kvp.Value));
+			}
+		}
+
+		/// <summary>
+		/// OnAfterDeserialize implementation.
+		/// </summary>
+		public void OnAfterDeserialize()
+		{
+			for (int i = 0; i < m_Keys.Count; i++)
+				Add(DeserializeKey(m_Keys[i]), DeserializeValue(m_Values[i]));
+
+			m_Keys.Clear();
+			m_Values.Clear();
+		}
+	}
 
 	public static class Collections
 	{
@@ -339,6 +421,21 @@ namespace Threadlink.Utilities.Collections
 				EditorUtilities.SaveAllAssets();
 			}
 #endif
+		}
+
+		public static int IndexOf<TKey>(this IDictionary dictionary, TKey key)
+		{
+			int index = 0;
+			var keys = dictionary.Keys;
+
+			foreach (var k in keys)
+			{
+				if (k.Equals(key)) break;
+
+				index++;
+			}
+
+			return index;
 		}
 
 		public static bool IsRingCell(this MatrixPosition position, int matrixDimensionSize)
@@ -385,6 +482,13 @@ namespace Threadlink.Utilities.Collections
 			return true;
 		}
 
+		public static bool IsWithinBoundsOf(this ushort index, Array array)
+		{
+			if (index < 0 || index >= array.Length) return false;
+
+			return true;
+		}
+
 		public static bool IsWithinBoundsOf<T>(this int index, List<T> list)
 		{
 			if (index < 0 || index >= list.Count) return false;
@@ -407,34 +511,6 @@ namespace Threadlink.Utilities.Collections
 			if (position.Item2 < 0 || position.Item1 < 0 || position.Item1 >= array.Rows() || position.Item2 >= array.Columns()) return false;
 
 			return true;
-		}
-
-		/// <summary>
-		/// Efficiently removes the element at the target index from this list.
-		/// Keep in mind that this method DOES NOT preserve the original order of the list.
-		/// If the original order needs to be maintained, please use the standard List methods Remove() and RemoveAt().
-		/// </summary>
-		/// <typeparam name="T">The type of the list.</typeparam>
-		/// <param name="list">The target list.</param>
-		/// <param name="index">The index at which to remove the element.</param>
-		/// <exception cref="ArgumentOutOfRangeException">Thrown if the provided index is invalid.</exception>
-		public static void RemoveEfficiently<T>(this List<T> list, int index)
-		{
-			int count = list.Count;
-			int lastElementIdx = count - 1;
-
-			// If it's the last element, simply remove it
-			if (index == lastElementIdx)
-			{
-				list.RemoveAt(index);
-				return;
-			}
-
-			// Replace the element at the given index with the last element
-			list[index] = list[lastElementIdx];
-
-			// Remove the last element
-			list.RemoveAt(lastElementIdx);
 		}
 
 		public static int BinarySearch<T>(this IReadOnlyList<T> collection, string id, out T result, bool logIndex = false) where T : IIdentifiable
@@ -462,20 +538,20 @@ namespace Threadlink.Utilities.Collections
 
 			int index = BinarySearchIterative();
 
-			if (logIndex) UnityConsole.Notify(DebugNotificationType.Info, "Binary Search yielded object at index ", index);
+			if (logIndex) UnityConsole.Notify(context: null, "Binary Search yielded object at index ", index);
 			result = index >= 0 ? collection[index] : default;
 			return index;
 		}
 
-		public static void BruteForceSearch<T>(this T[] collection, string id, out T result) where T : IIdentifiable
+		public static bool BruteForceSearch<T>(this IReadOnlyList<T> collection, string id, out T result) where T : IIdentifiable
 		{
 			if (string.IsNullOrEmpty(id))
 			{
 				result = default;
-				return;
+				return false;
 			}
 
-			int length = collection.Length;
+			int length = collection.Count;
 
 			for (int i = 0; i < length; i++)
 			{
@@ -485,11 +561,12 @@ namespace Threadlink.Utilities.Collections
 				else if (element.LinkID.Equals(id))
 				{
 					result = element;
-					return;
+					return true;
 				}
 			}
 
 			result = default;
+			return false;
 		}
 
 		public static void Filter<T>(this T[] source, List<T> destination, Func<T, bool> filter, int maxCount = -1, bool shuffle = true)

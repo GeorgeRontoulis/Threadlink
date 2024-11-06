@@ -1,5 +1,6 @@
 namespace Threadlink.Core
 {
+	using MassTransit;
 	using System;
 	using UnityEngine;
 	using Utilities.Editor.Attributes;
@@ -9,33 +10,36 @@ namespace Threadlink.Core
 	/// Base class for all Threadlink-Compatible Components.
 	/// </summary>
 	[RequireComponent(typeof(Transform))]
-	public abstract class LinkableBehaviour : MonoBehaviour, ILinkable
+	public abstract class LinkableBehaviour : MonoBehaviour, IDiscardable
 	{
 		public virtual string LinkID => name;
+		public virtual NewId InstanceID { get; set; }
+
+		public event ThreadlinkDelegate<Empty, Empty> OnDiscard
+		{
+			add => onDiscard.OnInvoke += value;
+			remove => onDiscard.OnInvoke -= value;
+		}
 
 		public Transform SelfTransform => selfTransform;
-		public VoidEvent OnBeforeDiscarded => onBeforeDiscarded;
 
 		[ReadOnly][SerializeField] protected Transform selfTransform = null;
 
-		[NonSerialized] protected VoidEvent onBeforeDiscarded = new();
+		[NonSerialized] private VoidEvent onDiscard = new();
 
 		protected virtual void Reset()
 		{
 			TryGetComponent(out selfTransform);
 		}
 
-		public abstract void Boot();
-		public abstract void Initialize();
-
-		public virtual VoidOutput Discard(VoidInput _ = default)
+		public virtual Empty Discard(Empty _ = default)
 		{
-			if (onBeforeDiscarded != null)
+			if (onDiscard != null)
 			{
-				onBeforeDiscarded.Invoke();
-				onBeforeDiscarded.Discard();
+				onDiscard.Invoke();
+				onDiscard.Discard();
 
-				onBeforeDiscarded = null;
+				onDiscard = null;
 			}
 
 			selfTransform = null;

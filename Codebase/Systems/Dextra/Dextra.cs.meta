@@ -7,8 +7,8 @@ MonoImporter:
   - selfTransform: {instanceID: 0}
   - eventSystem: {instanceID: 0}
   - deviceDetector: {instanceID: 0}
-  - customInputModule: {fileID: 11400000, guid: 164c84310c59e7940b1a5ee7a6cbd037,
-      type: 2}
+  - customInputModule: {instanceID: 0}
+  - uiStateMachine: {fileID: 11400000, guid: 95a2acd0ba7e1fb4ea1f97ce761b56c5, type: 2}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 
