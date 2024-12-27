@@ -1,7 +1,0 @@
-GridBackground
-{
-	--grid-background-color : var(--ikc-colors-light-grey-1);
-	--line-color:  var(--ikc-colors-light-grey-2);
-	--thick-line-color:  var(--ikc-colors-light-grey-3);
-	--spacing:  var(--ikc-metrics-grid-25);
-}

@@ -1,0 +1,24 @@
+{
+    "name": "Threadlink.Editor",
+    "rootNamespace": "Threadlink.Editor",
+    "references": [
+        "GUID:69448af7b92c7f342b298e06a37122aa",
+        "GUID:84651a3751eca9349aac36a66bba901b",
+        "GUID:6b9f8ccc7ae865f49b1a80b216dfe39e"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "Sirenix.OdinInspector.Attributes.dll",
+        "CSharpier.dll",
+        "Microsoft.CodeAnalysis.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

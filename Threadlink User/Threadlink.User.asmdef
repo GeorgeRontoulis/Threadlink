@@ -1,0 +1,17 @@
+{
+    "name": "Threadlink.User",
+    "rootNamespace": "Threadlink.User",
+    "references": [
+        "GUID:6b9f8ccc7ae865f49b1a80b216dfe39e",
+        "GUID:1af69f6dafdd7b646b4719a849fadc2c"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
