@@ -108,33 +108,6 @@ namespace Threadlink.Utilities.Reflection
 			}
 		}
 
-		public static SerializedDictionary<TKey, TValue> TryGetSerializedDictionaryOfType<TKey, TValue>(this object owner)
-		{
-			var ownerType = owner.GetType();
-			var fields = ownerType.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
-
-			if (fields == null) return null;
-
-			foreach (var field in fields)
-			{
-				var fieldType = field.FieldType;
-
-				// Check if the field is of the correct generic type
-				if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(SerializedDictionary<,>))
-				{
-					// Check if the field's generic arguments match TKey and TValue
-					var genericArgs = fieldType.GetGenericArguments();
-
-					if (genericArgs[0] == typeof(TKey) && genericArgs[1] == typeof(TValue))
-					{
-						return (SerializedDictionary<TKey, TValue>)field.GetValue(owner);
-					}
-				}
-			}
-
-			return null;
-		}
-
 		public static IEnumerable<string> GetAllUnityComponents()
 		{
 			var assemblies = AppDomain.CurrentDomain.GetAssemblies();

@@ -6,7 +6,7 @@ namespace Threadlink.Addressables
 	using Editor.Attributes;
 #endif
 
-	public abstract class Addressable : IIdentifiable<string>
+	public abstract class Addressable : ILinkable<string>
 	{
 		public virtual string LinkID
 		{

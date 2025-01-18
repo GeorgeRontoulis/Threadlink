@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Base interface for Threadlink-Compatible entities that can be queried at runtime.
 	/// </summary>
-	public interface IIdentifiable<T> { public T LinkID { get; set; } }
+	public interface ILinkable<T> { public T LinkID { get; set; } }
 
 	/// <summary>
 	/// Boot = Unity's Awake

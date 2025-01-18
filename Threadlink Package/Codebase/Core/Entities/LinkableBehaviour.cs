@@ -15,10 +15,10 @@ namespace Threadlink.Core
 	/// Base class for all Threadlink-Compatible Components.
 	/// </summary>
 	[RequireComponent(typeof(Transform))]
-	public abstract class LinkableBehaviour : MonoBehaviour, IDiscardable, IIdentifiable<Ulid>, IIdentifiable<string>
+	public abstract class LinkableBehaviour : MonoBehaviour, IDiscardable, ILinkable<Ulid>, ILinkable<string>
 	{
 		public virtual Ulid LinkID { get; set; }
-		string IIdentifiable<string>.LinkID { get => name; set => name = value; }
+		string ILinkable<string>.LinkID { get => name; set => name = value; }
 
 		public Transform CachedTransform => cachedTransform;
 

@@ -37,10 +37,10 @@ namespace Threadlink.Core
 	/// <summary>
 	/// Base class for all Threadlink-Compatible assets.
 	/// </summary>
-	public abstract class LinkableAsset : ScriptableObject, IDiscardable, IIdentifiable<Ulid>, IIdentifiable<string>
+	public abstract class LinkableAsset : ScriptableObject, IDiscardable, ILinkable<Ulid>, ILinkable<string>
 	{
 		public virtual Ulid LinkID { get; set; }
-		string IIdentifiable<string>.LinkID { get => name; set => name = value; }
+		string ILinkable<string>.LinkID { get => name; set => name = value; }
 		public bool IsInstance { get; internal set; }
 
 		public event Action OnDiscard = null;

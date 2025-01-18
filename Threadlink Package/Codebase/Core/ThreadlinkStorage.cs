@@ -6,12 +6,15 @@ namespace Threadlink.Core.StorageAPI
 	using Utilities.Collections;
 	using ExtensionMethods;
 	using Subsystems.Scribe;
-
-#if UNITY_EDITOR && ODIN_INSPECTOR
-	using Sirenix.OdinInspector;
-	using System.Linq;
 	using System.Collections.Generic;
-	using UnityEditor;
+
+#if UNITY_EDITOR
+#if ODIN_INSPECTOR
+	using Sirenix.OdinInspector;
+
+#elif THREADLINK_INSPECTOR
+	using Editor.Attributes;
+#endif
 #endif
 
 	namespace ExtensionMethods
@@ -34,9 +37,11 @@ namespace Threadlink.Core.StorageAPI
 		}
 	}
 
-	public abstract class ThreadlinkParcel : LinkableAsset
+	public abstract class ThreadlinkParcel : LinkableAsset, IComparable<string>
 	{
-		[SerializeField] private bool allowCloning = true;
+		public bool allowCloning = false;
+
+		public int CompareTo(string other) => string.Compare(name, other);
 
 		public virtual void OnCloned() { }
 	}
@@ -74,98 +79,22 @@ namespace Threadlink.Core.StorageAPI
 	[CreateAssetMenu(menuName = "Threadlink/Core/Threadlink Storage")]
 	public sealed class ThreadlinkStorage : LinkableAsset
 	{
-		public SerializedDictionary<string, ThreadlinkParcel> Parcels => parcels;
+		public List<ThreadlinkParcel> Parcels => parcels;
 
-#if UNITY_EDITOR && ODIN_INSPECTOR
-		[DictionaryDrawerSettings(DisplayMode = DictionaryDisplayOptions.ExpandedFoldout)]
+#if UNITY_EDITOR && (ODIN_INSPECTOR || THREADLINK_INSPECTOR)
 		[ReadOnly]
 #endif
-		[SerializeField] private SerializedDictionary<string, ThreadlinkParcel> parcels = new();
-
-		#region Inspector Logic:
-#if UNITY_EDITOR && ODIN_INSPECTOR
-		private IEnumerable<ValueDropdownItem> GetParcelTypes()
-		{
-			var assembly = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => a.GetName().Name == "Threadlink.User");
-
-			if (assembly == null) return null;
-
-			return assembly.GetTypes().
-			Where(type => typeof(ThreadlinkParcel).IsAssignableFrom(type) && !type.IsAbstract).
-			Select(type => new ValueDropdownItem(type.Name, type));
-		}
-
-		[PropertySpace(10)]
-
-		[BoxGroup(GroupID = "Add", GroupName = "Add Parcel", ShowLabel = true)]
-		[ValueDropdown(nameof(GetParcelTypes), FlattenTreeView = true, NumberOfItemsBeforeEnablingSearch = 16)]
-		[ShowInInspector]
-		private Type parcelType = null;
-
-		[BoxGroup(GroupID = "Add", GroupName = "Add Parcel", ShowLabel = true)]
-		[Button(Style = ButtonStyle.Box)]
-		private void AddNewParcel(string parcelName)
-		{
-			if (parcels.ContainsKey(parcelName))
-				throw new InvalidOperationException("A parcel with the same name already exists in this Storage!");
-
-			var newParcel = CreateInstance(parcelType) as ThreadlinkParcel;
-			newParcel.name = parcelName;
-
-			AssetDatabase.AddObjectToAsset(newParcel, this);
-
-			parcels.Add(parcelName, newParcel);
-
-			EditorUtility.SetDirty(this);
-			AssetDatabase.SaveAssets();
-			AssetDatabase.Refresh();
-		}
-
-		[BoxGroup(GroupID = "Add", GroupName = "Add Parcel", ShowLabel = true)]
-		[Button(Style = ButtonStyle.Box)]
-		private void AddExistingParcel(ThreadlinkParcel existingParcel)
-		{
-			if (existingParcel == null) return;
-
-			var clone = Instantiate(existingParcel);
-			clone.name = existingParcel.name;
-
-			AssetDatabase.AddObjectToAsset(clone, this);
-
-			parcels.Add(clone.name, clone);
-
-			EditorUtility.SetDirty(this);
-			AssetDatabase.SaveAssets();
-			AssetDatabase.Refresh();
-		}
-
-		[BoxGroup(GroupID = "Remove", GroupName = "Remove Parcel", ShowLabel = true)]
-		[Button(Style = ButtonStyle.Box)]
-		private void RemoveParcel(string parcelName)
-		{
-			if (parcels.TryGetValue(parcelName, out var parcel))
-			{
-				parcels.Remove(parcelName);
-
-				AssetDatabase.RemoveObjectFromAsset(parcel);
-				EditorUtility.SetDirty(this);
-				AssetDatabase.SaveAssets();
-				AssetDatabase.Refresh();
-			}
-		}
-#endif
-		#endregion
+		[SerializeField] private List<ThreadlinkParcel> parcels = new();
 
 		public override void Discard()
 		{
 			if (IsInstance)
 			{
-				var parcels = this.parcels.Values;
-				foreach (var parcel in parcels) parcel.Discard();
+				for (int i = parcels.Count - 1; i >= 0; i--) parcels[i].Discard();
 
-				this.parcels.Clear();
-				this.parcels.TrimExcess();
-				this.parcels = null;
+				parcels.Clear();
+				parcels.TrimExcess();
+				parcels = null;
 			}
 
 			base.Discard();
@@ -173,83 +102,115 @@ namespace Threadlink.Core.StorageAPI
 
 		internal void CloneParcels()
 		{
-			int length = parcels.Count;
-			var originalParcels = parcels.Values.ToArray();
-
-			parcels.Clear();
-
-			for (int i = 0; i < length; i++)
+			for (int i = parcels.Count - 1; i >= 0; i--)
 			{
-				var original = originalParcels[i];
+				var original = parcels[i];
 
-				bool isAlreadyInstance = original.IsInstance;
+				if (original.IsInstance || !original.allowCloning) continue;
 
-				var clonedParcel = isAlreadyInstance ? original : original.Clone();
-
-				if (isAlreadyInstance == false) clonedParcel.OnCloned();
-
-				parcels.Add(clonedParcel.name, clonedParcel);
+				parcels[i] = original.Clone();
+				parcels[i].OnCloned();
 			}
 		}
 
 		public bool TryAdd<T>(string parcelName, out T parcel) where T : ThreadlinkParcel
 		{
-			if (IsInstance && parcels.ContainsKey(parcelName) == false)
-			{
-				parcel = Create<T>(parcelName);
-				parcels.Add(parcelName, parcel);
-				return true;
-			}
-			else
-			{
-				parcel = null;
-				return false;
-			}
+			bool result = IsInstance && parcels.BruteForceSearch(parcelName) >= 0;
+
+			parcel = result ? Create<T>(parcelName) : null;
+
+			if (result) parcels.Add(parcel);
+
+			return result;
 		}
 
 		public bool Remove(string parcelName)
 		{
-			if (IsInstance && parcels.ContainsKey(parcelName))
-			{
-				parcels[parcelName].Discard();
+			if (IsInstance == false) return false;
 
-				return parcels.Remove(parcelName);
+			int index = parcels.BruteForceSearch(parcelName);
+			bool result = index >= 0;
+
+			if (result)
+			{
+				var parcel = parcels[index];
+
+				parcel.Discard();
+				parcels.RemoveAt(index);
 			}
 
-			return false;
+			return result;
 		}
 
 		public bool TryGet<T>(string parcelID, out ThreadlinkParcel<T> result)
 		{
-			bool found = parcels.TryGetValue(parcelID, out var parcel) && parcel is ThreadlinkParcel<T>;
+			int index = parcels.BruteForceSearch(parcelID);
+			bool validIndex = index >= 0;
 
-			result = found ? parcel as ThreadlinkParcel<T> : null;
-			return found;
+			result = validIndex ? parcels[index] as ThreadlinkParcel<T> : null;
+			return validIndex;
 		}
 
 		public bool TryGet<T>(string parcelID, out T result) where T : ThreadlinkParcel
 		{
-			bool found = parcels.TryGetValue(parcelID, out var parcel);
+			int index = parcels.BruteForceSearch(parcelID);
+			bool validIndex = index >= 0;
 
-			result = parcel as T;
-			return found;
+			result = validIndex ? parcels[index] as T : null;
+			return validIndex;
+		}
+
+		public bool TryGet<T>(int parcelIndex, out ThreadlinkParcel<T> result)
+		{
+			if (!parcelIndex.IsWithinBoundsOf(parcels))
+			{
+				result = null;
+				return false;
+			}
+
+			result = parcels[parcelIndex] is ThreadlinkParcel<T> castParcel ? castParcel : null;
+			return result != null;
+		}
+
+		public bool TryGet<T>(int parcelIndex, out T result) where T : ThreadlinkParcel
+		{
+			if (!parcelIndex.IsWithinBoundsOf(parcels))
+			{
+				result = null;
+				return false;
+			}
+
+			result = parcels[parcelIndex] is T castParcel ? castParcel : null;
+			return result != null;
 		}
 
 		public T ValueOf<T>(string parcelID)
 		{
-			return parcels.TryGetValue(parcelID, out var parcel) && parcel is ThreadlinkParcel<T> castParcel ? castParcel.Value : default;
+			int index = parcels.BruteForceSearch(parcelID);
+			return index >= 0 && parcels[index] is ThreadlinkParcel<T> castParcel ? castParcel.Value : default;
 		}
 
 		public bool TrySet<T>(string parcelID, T newValue)
 		{
 			bool found = TryGet<T>(parcelID, out var parcel);
 
-			if (found)
-				parcel.Value = newValue;
-			else
-				throw new InvalidOperationException(Scribe.FromSubsystem<Threadlink>("Parcel to set was not found!").ToString());
+			if (found) parcel.Value = newValue; else PostParcelNotFoundMessage();
 
 			return found;
+		}
+
+		public bool TrySet<T>(int parcelIndex, T newValue)
+		{
+			bool found = TryGet<T>(parcelIndex, out var parcel);
+
+			if (found) parcel.Value = newValue; else PostParcelNotFoundMessage();
+
+			return found;
+		}
+
+		private void PostParcelNotFoundMessage()
+		{
+			Scribe.FromSubsystem<Threadlink>("Parcel to set was not found!").ToUnityConsole(this, Scribe.WARN);
 		}
 	}
 }

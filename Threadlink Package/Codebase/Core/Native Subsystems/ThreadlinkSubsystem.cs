@@ -42,7 +42,7 @@
 
 	public abstract class Register<S, E> : ThreadlinkSubsystem<S>
 	where S : Register<S, E>
-	where E : IIdentifiable<Ulid>
+	where E : ILinkable<Ulid>
 	{
 #if UNITY_EDITOR && ODIN_INSPECTOR
 		[ShowInInspector, ReadOnly]
@@ -87,7 +87,7 @@
 
 	public abstract class Linker<S, E> : Register<S, E>
 	where S : Linker<S, E>
-	where E : IIdentifiable<Ulid>
+	where E : ILinkable<Ulid>
 	{
 		public virtual bool TryLink(E entity)
 		{
@@ -109,7 +109,7 @@
 
 	public abstract class Weaver<S, E> : Register<S, E>
 	where S : Weaver<S, E>
-	where E : IDiscardable, IIdentifiable<Ulid>
+	where E : IDiscardable, ILinkable<Ulid>
 	{
 		public virtual bool TrySever(Ulid linkID)
 		{
@@ -130,7 +130,7 @@
 
 	public abstract class UnityWeaver<S, E> : Weaver<S, E>, IUnityWeaver<S, E>
 	where S : UnityWeaver<S, E>
-	where E : UnityEngine.Object, IDiscardable, IIdentifiable<Ulid>
+	where E : UnityEngine.Object, IDiscardable, ILinkable<Ulid>
 	{
 		public virtual E Weave(E original)
 		{
@@ -178,7 +178,7 @@
 
 	public abstract class NativeWeaver<S, E> : Weaver<S, E>, INativeWeaver<S, E>
 	where S : NativeWeaver<S, E>
-	where E : IDiscardable, IIdentifiable<Ulid>, new()
+	where E : IDiscardable, ILinkable<Ulid>, new()
 	{
 		public virtual E Weave()
 		{

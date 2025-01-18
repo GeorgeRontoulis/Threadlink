@@ -8,11 +8,7 @@ namespace Threadlink.Utilities.Collections
 	using System.Linq;
 	using UnityEngine;
 
-#if UNITY_EDITOR
-	using UnityEditor;
-#endif
-
-	public interface IRegistryElement : IIdentifiable<string>
+	public interface IRegistryElement : ILinkable<string>
 	{
 		/// <summary>
 		/// Callback invoked right before the registry containing this element is discarded.
@@ -168,59 +164,6 @@ namespace Threadlink.Utilities.Collections
 		}
 	}
 
-	[Serializable]
-	public sealed class ChunkedArray<T>
-	{
-		public int Count { get; private set; }
-
-		private int ChunkSize { get; set; }
-		private List<T[]> Chunks { get; set; }
-
-		public T this[int index]
-		{
-			get
-			{
-				int chunkIndex = index / ChunkSize;
-				int localIndex = index % ChunkSize;
-
-				return Chunks[chunkIndex][localIndex];
-			}
-			set
-			{
-				int chunkIndex = index / ChunkSize;
-				int localIndex = index % ChunkSize;
-
-				Chunks[chunkIndex][localIndex] = value;
-			}
-		}
-
-		public ChunkedArray(int chunkSize)
-		{
-			ChunkSize = chunkSize;
-			Count = 0;
-			Chunks = new();
-		}
-
-		public void Add(T item)
-		{
-			int chunkIndex = Count / ChunkSize;
-			int localIndex = Count % ChunkSize;
-
-			if (localIndex == 0) Chunks.Add(new T[ChunkSize]);
-
-			Chunks[chunkIndex][localIndex] = item;
-			Count++;
-		}
-
-		public void Clear()
-		{
-			for (int i = Chunks.Count - 1; i >= 0; i--) Chunks[i] = null;
-
-			Chunks.Clear();
-			Chunks.TrimExcess();
-		}
-	}
-
 	public struct MatrixPosition : IComparable<MatrixPosition>
 	{
 		public readonly bool IsValid => R >= 0 && C >= 0;
@@ -261,111 +204,6 @@ namespace Threadlink.Utilities.Collections
 			if (C != other.C) return C.CompareTo(other.C);
 
 			return R.CompareTo(other.R);
-		}
-	}
-
-	/// <summary>
-	/// Unity can't serialize Dictionary so here's a custom wrapper that does.
-	/// </summary>
-	[Serializable]
-	public sealed class SerializedDictionary<K, V> : SerializedDictionary<K, V, K, V>
-	{
-		/// <summary>
-		/// Conversion to serialize a key
-		/// </summary>
-		/// <param name="key">The key to serialize</param>
-		/// <returns>The Key that has been serialized</returns>
-		public override K SerializeKey(K key) => key;
-
-		/// <summary>
-		/// Conversion to serialize a value
-		/// </summary>
-		/// <param name="val">The value</param>
-		/// <returns>The value</returns>
-		public override V SerializeValue(V val) => val;
-
-		/// <summary>
-		/// Conversion to serialize a key
-		/// </summary>
-		/// <param name="key">The key to serialize</param>
-		/// <returns>The Key that has been serialized</returns>
-		public override K DeserializeKey(K key) => key;
-
-		/// <summary>
-		/// Conversion to serialize a value
-		/// </summary>
-		/// <param name="val">The value</param>
-		/// <returns>The value</returns>
-		public override V DeserializeValue(V val) => val;
-	}
-
-	/// <summary>
-	/// Dictionary that can serialize keys and values as other types
-	/// </summary>
-	/// <typeparam name="K">The key type</typeparam>
-	/// <typeparam name="V">The value type</typeparam>
-	/// <typeparam name="SK">The type which the key will be serialized for</typeparam>
-	/// <typeparam name="SV">The type which the value will be serialized for</typeparam>
-	[Serializable]
-	public abstract class SerializedDictionary<K, V, SK, SV> : Dictionary<K, V>, ISerializationCallbackReceiver
-	{
-		[SerializeField] private List<SK> m_Keys = new();
-		[SerializeField] private List<SV> m_Values = new();
-
-		/// <summary>
-		/// From <see cref="K"/> to <see cref="SK"/>
-		/// </summary>
-		/// <param name="key">They key in <see cref="K"/></param>
-		/// <returns>The key in <see cref="SK"/></returns>
-		public abstract SK SerializeKey(K key);
-
-		/// <summary>
-		/// From <see cref="V"/> to <see cref="SV"/>
-		/// </summary>
-		/// <param name="value">The value in <see cref="V"/></param>
-		/// <returns>The value in <see cref="SV"/></returns>
-		public abstract SV SerializeValue(V value);
-
-
-		/// <summary>
-		/// From <see cref="SK"/> to <see cref="K"/>
-		/// </summary>
-		/// <param name="serializedKey">They key in <see cref="SK"/></param>
-		/// <returns>The key in <see cref="K"/></returns>
-		public abstract K DeserializeKey(SK serializedKey);
-
-		/// <summary>
-		/// From <see cref="SV"/> to <see cref="V"/>
-		/// </summary>
-		/// <param name="serializedValue">The value in <see cref="SV"/></param>
-		/// <returns>The value in <see cref="V"/></returns>
-		public abstract V DeserializeValue(SV serializedValue);
-
-		/// <summary>
-		/// OnBeforeSerialize implementation.
-		/// </summary>
-		public void OnBeforeSerialize()
-		{
-			m_Keys.Clear();
-			m_Values.Clear();
-
-			foreach (var kvp in this)
-			{
-				m_Keys.Add(SerializeKey(kvp.Key));
-				m_Values.Add(SerializeValue(kvp.Value));
-			}
-		}
-
-		/// <summary>
-		/// OnAfterDeserialize implementation.
-		/// </summary>
-		public void OnAfterDeserialize()
-		{
-			for (int i = 0; i < m_Keys.Count; i++)
-				Add(DeserializeKey(m_Keys[i]), DeserializeValue(m_Values[i]));
-
-			m_Keys.Clear();
-			m_Values.Clear();
 		}
 	}
 
@@ -450,6 +288,23 @@ namespace Threadlink.Utilities.Collections
 			if (position.Item2 < 0 || position.Item1 < 0 || position.Item1 >= array.Rows() || position.Item2 >= array.Columns()) return false;
 
 			return true;
+		}
+
+		public static int BruteForceSearch<T>(this IReadOnlyList<T> collection, string key) where T : ILinkable<string>
+		{
+			if (string.IsNullOrEmpty(key)) return -1;
+
+			int length = collection.Count;
+
+			for (int i = 0; i < length; i++)
+			{
+				var element = collection[i];
+
+				if (element == null || string.IsNullOrEmpty(element.LinkID)) continue;
+				else if (element.LinkID.Equals(key)) return i;
+			}
+
+			return -1;
 		}
 
 		public static bool BruteForceSearch<T>(this IReadOnlyList<T> collection, Func<T, bool> filter, out T result)

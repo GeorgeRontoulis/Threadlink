@@ -20,4 +20,11 @@ MonoBehaviour:
   - Assets/Threadlink/Threadlink Package/Prefabs/Dextra.prefab
   - Assets/Threadlink/Threadlink Package/Prefabs/Aura.prefab
   - Assets/Threadlink/Threadlink Package/Prefabs/Nexus.prefab
-  additionalNativeAssets: []
+  - Assets/Threadlink/Threadlink User/Prefabs/Subsystems/Conqueror.prefab
+  - Assets/Threadlink/Threadlink User/Prefabs/Subsystems/Inventory.prefab
+  additionalNativeAssets:
+  - Assets/Threadlink/Threadlink User/Prefabs/UI/OverlayUI_CriticalModule.prefab
+  - Assets/Threadlink/Threadlink User/Prefabs/UI/OverlayUI_InteractionPrompt.prefab
+  - Assets/Threadlink/Threadlink User/Prefabs/UI/OverlayUI_Inventory.prefab
+  - Assets/Threadlink/Threadlink User/Prefabs/UI/OverlayUI_LockonIndicator.prefab
+  - Assets/Threadlink/Threadlink User/Prefabs/UI/Slot.prefab
