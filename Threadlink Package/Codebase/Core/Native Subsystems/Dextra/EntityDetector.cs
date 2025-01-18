@@ -11,15 +11,8 @@ namespace Threadlink.Core.Subsystems.Dextra
 #endif
 #endif
 
-	public abstract class EntityDetector : LinkableBehaviour
-	{
-		public abstract bool ActiveState { get; set; }
-		public abstract PropagatorEvents OnEntityDetectedEvent { get; }
-		public abstract PropagatorEvents OnEntityOutOfRangeEvent { get; }
-	}
-
 	[RequireComponent(typeof(Rigidbody))]
-	public abstract class EntityDetector<ActiveAreaType, EntityType> : EntityDetector
+	public abstract class EntityDetector3D<ActiveAreaType, EntityType> : EntityDetector<EntityType>
 	where ActiveAreaType : Collider
 	where EntityType : LinkableBehaviour
 	{
@@ -46,24 +39,52 @@ namespace Threadlink.Core.Subsystems.Dextra
 			if (OutOfRangeFilter(other, out var entity)) OnEntityOutOfRange(entity);
 		}
 
-		public virtual void OnEntityDetected(EntityType entity)
+		public virtual bool DetectionFilter(Collider other, out EntityType entity) => other.TryGetComponent(out entity);
+		public virtual bool OutOfRangeFilter(Collider other, out EntityType entity) => other.TryGetComponent(out entity);
+	}
+
+	[RequireComponent(typeof(Rigidbody2D))]
+	public abstract class EntityDetector2D<ActiveAreaType, EntityType> : EntityDetector<EntityType>
+	where ActiveAreaType : Collider2D
+	where EntityType : LinkableBehaviour
+	{
+		public override bool ActiveState { get => activeArea.enabled; set => activeArea.enabled = value; }
+
+#if UNITY_EDITOR && (ODIN_INSPECTOR || THREADLINK_INSPECTOR)
+		[ReadOnly]
+#endif
+		[SerializeField] private ActiveAreaType activeArea = null;
+
+		protected override void Reset()
 		{
-			Propagator.Publish(OnEntityDetectedEvent, entity);
+			base.Reset();
+			TryGetComponent(out activeArea);
 		}
 
-		public virtual void OnEntityOutOfRange(EntityType entity)
+		private void OnTriggerEnter2D(Collider2D collision)
 		{
-			Propagator.Publish(OnEntityOutOfRangeEvent, entity);
+			if (DetectionFilter2D(collision, out var entity)) OnEntityDetected(entity);
 		}
 
-		public virtual bool DetectionFilter(Collider other, out EntityType entity)
+		private void OnTriggerExit2D(Collider2D collision)
 		{
-			return other.TryGetComponent(out entity);
+			if (OutOfRangeFilter2D(collision, out var entity)) OnEntityOutOfRange(entity);
 		}
 
-		public virtual bool OutOfRangeFilter(Collider other, out EntityType entity)
-		{
-			return other.TryGetComponent(out entity);
-		}
+		public virtual bool DetectionFilter2D(Collider2D other, out EntityType entity) => other.TryGetComponent(out entity);
+		public virtual bool OutOfRangeFilter2D(Collider2D other, out EntityType entity) => other.TryGetComponent(out entity);
+	}
+
+	public abstract class EntityDetector<EntityType> : EntityDetector where EntityType : LinkableBehaviour
+	{
+		public virtual void OnEntityDetected(EntityType entity) => Propagator.Publish(OnEntityDetectedEvent, entity);
+		public virtual void OnEntityOutOfRange(EntityType entity) => Propagator.Publish(OnEntityOutOfRangeEvent, entity);
+	}
+
+	public abstract class EntityDetector : LinkableBehaviour
+	{
+		public abstract bool ActiveState { get; set; }
+		public abstract PropagatorEvents OnEntityDetectedEvent { get; }
+		public abstract PropagatorEvents OnEntityOutOfRangeEvent { get; }
 	}
 }

@@ -8,24 +8,21 @@ namespace Threadlink.Core.Subsystems.Dextra
 
 #if UNITY_EDITOR
 #if THREADLINK_INSPECTOR
-	using Utilities.Editor.Attributes;
+	using Editor.Attributes;
 #elif ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
 #endif
 #endif
 
-	public abstract class Interactable : LinkableBehaviour
+	public enum InteractionOptions : byte
 	{
-		public enum InteractionOptions : byte
-		{
-			None = 0,
-			InteractOnContact = 1 << 0,
-		}
+		None = 0,
+		InteractOnContact = 1 << 0,
+	}
 
-		public bool ActiveState { get => activeArea.enabled; set => activeArea.enabled = value; }
-		public string InteractionPrompt => configuration.InteractionPrompt;
-
-		[SerializeField] protected InteractableConfig configuration = null;
+	public abstract class Interactable3D : Interactable
+	{
+		public override bool ActiveState { get => activeArea.enabled; set => activeArea.enabled = value; }
 
 #if UNITY_EDITOR && (THREADLINK_INSPECTOR || ODIN_INSPECTOR)
 		[ReadOnly]
@@ -38,15 +35,54 @@ namespace Threadlink.Core.Subsystems.Dextra
 			TryGetComponent(out activeArea);
 		}
 
-		public override void Discard()
+		protected override void DiscardActiveArea()
 		{
-			UnsubscribeFromInteraction();
-
 			if (activeArea != null)
 			{
 				activeArea.enabled = false;
 				activeArea = null;
 			}
+		}
+	}
+
+	public abstract class Interactable2D : Interactable
+	{
+		public override bool ActiveState { get => activeArea.enabled; set => activeArea.enabled = value; }
+
+#if UNITY_EDITOR && (THREADLINK_INSPECTOR || ODIN_INSPECTOR)
+		[ReadOnly]
+#endif
+		[SerializeField] protected Collider2D activeArea = null;
+
+		protected override void Reset()
+		{
+			base.Reset();
+			TryGetComponent(out activeArea);
+		}
+
+		protected override void DiscardActiveArea()
+		{
+			if (activeArea != null)
+			{
+				activeArea.enabled = false;
+				activeArea = null;
+			}
+		}
+	}
+
+	public abstract class Interactable : LinkableBehaviour
+	{
+		public abstract bool ActiveState { get; set; }
+		public string InteractionPrompt => configuration.InteractionPrompt;
+
+		[SerializeField] protected InteractableConfig configuration = null;
+
+		protected abstract void DiscardActiveArea();
+
+		public override void Discard()
+		{
+			UnsubscribeFromInteraction();
+			DiscardActiveArea();
 
 			base.Discard();
 		}

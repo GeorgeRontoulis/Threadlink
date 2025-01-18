@@ -7,7 +7,7 @@ namespace Threadlink.Core
 #if ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
 #elif THREADLINK_INSPECTOR
-	using Utilities.Editor.Attributes;
+	using Editor.Attributes;
 #endif
 #endif
 

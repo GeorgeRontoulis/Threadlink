@@ -1,7 +1,7 @@
 namespace Threadlink.Core.Subsystems.Dextra
 {
 #if UNITY_EDITOR && THREADLINK_INSPECTOR
-using Threadlink.Utilities.Editor.Attributes;
+	using Editor.Attributes;
 #endif
 
 	using UnityEngine;
@@ -14,17 +14,17 @@ using Threadlink.Utilities.Editor.Attributes;
 		[Space(10)]
 
 #if UNITY_EDITOR && THREADLINK_INSPECTOR
-[SpritePreview]
+		[SpritePreview]
 #endif
 		[SerializeField] internal Sprite mkbIcon = null;
 
 #if UNITY_EDITOR && THREADLINK_INSPECTOR
-[SpritePreview]
+		[SpritePreview]
 #endif
 		[SerializeField] internal Sprite xboxIcon = null;
 
 #if UNITY_EDITOR && THREADLINK_INSPECTOR
-[SpritePreview]
+		[SpritePreview]
 #endif
 		[SerializeField] internal Sprite dualsenseIcon = null;
 	}

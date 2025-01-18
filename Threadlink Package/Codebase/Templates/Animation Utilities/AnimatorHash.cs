@@ -5,7 +5,7 @@ namespace Threadlink.Utilities.Animation
 #if ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
 #elif THREADLINK_INSPECTOR
-	using Threadlink.Utilities.Editor.Attributes;
+	using Editor.Attributes;
 #endif
 #endif
 

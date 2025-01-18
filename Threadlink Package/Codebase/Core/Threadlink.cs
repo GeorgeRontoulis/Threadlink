@@ -15,7 +15,7 @@
 
 #if UNITY_EDITOR
 #if THREADLINK_INSPECTOR
-	using Utilities.Editor.Attributes;
+	using Editor.Attributes;
 #elif ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
 #endif

@@ -5,10 +5,10 @@ namespace Threadlink.Core.Subsystems.Dextra
 	[CreateAssetMenu(menuName = "Threadlink/Dextra/Interactable Config")]
 	public sealed class InteractableConfig : ScriptableObject
 	{
-		public Interactable.InteractionOptions InteractionOptions => interactionOptions;
+		public InteractionOptions InteractionOptions => interactionOptions;
 		public string InteractionPrompt => interactionPrompt;
 
-		[SerializeField] private Interactable.InteractionOptions interactionOptions = 0;
+		[SerializeField] private InteractionOptions interactionOptions = 0;
 		[SerializeField] private string interactionPrompt = "Interact";
 	}
 }

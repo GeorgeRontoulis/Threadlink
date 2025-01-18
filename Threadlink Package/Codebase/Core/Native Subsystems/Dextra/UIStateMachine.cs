@@ -5,10 +5,13 @@ namespace Threadlink.Core.Subsystems.Dextra
 	using Cysharp.Threading.Tasks;
 	using Initium;
 	using Scribe;
-	using Sirenix.OdinInspector;
 	using System;
 	using System.Collections.Generic;
 	using UnityEngine;
+
+#if UNITY_EDITOR && ODIN_INSPECTOR
+	using Sirenix.OdinInspector;
+#endif
 
 	[Flags]
 	public enum StackingFeatures : byte
@@ -50,7 +53,10 @@ namespace Threadlink.Core.Subsystems.Dextra
 
 		internal Action OnInterfaceCancelled = null;
 
-		[ShowInInspector, ReadOnly] private Stack<string> StackedInterfaces { get; set; }
+#if UNITY_EDITOR && ODIN_INSPECTOR
+		[ShowInInspector, ReadOnly]
+#endif
+		private Stack<string> StackedInterfaces { get; set; }
 
 		[Space(10)]
 
