@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>CSharpier.Core</id>
+    <version>0.30.3</version>
+    <authors>CSharpier</authors>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <icon>logo.png</icon>
+    <readme>README.md</readme>
+    <description>CSharpier is an opinionated code formatter for c#.</description>
+    <repository type="git" url="https://github.com/belav/csharpier" commit="0bec7d28ea22b775fb4451837432f4824e080e0c" />
+    <dependencies>
+      <group targetFramework="net8.0">
+        <dependency id="Microsoft.CodeAnalysis.CSharp" version="4.11.0" exclude="Build,Analyzers" />
+        <dependency id="System.IO.Abstractions" version="21.0.29" exclude="Build,Analyzers" />
+        <dependency id="System.Text.Json" version="8.0.5" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework="net9.0">
+        <dependency id="Microsoft.CodeAnalysis.CSharp" version="4.11.0" exclude="Build,Analyzers" />
+        <dependency id="System.IO.Abstractions" version="21.0.29" exclude="Build,Analyzers" />
+        <dependency id="System.Text.Json" version="8.0.5" exclude="Build,Analyzers" />
+      </group>
+      <group targetFramework=".NETStandard2.0">
+        <dependency id="Microsoft.CodeAnalysis.CSharp" version="4.11.0" exclude="Build,Analyzers" />
+        <dependency id="System.IO.Abstractions" version="21.0.29" exclude="Build,Analyzers" />
+        <dependency id="System.Text.Json" version="8.0.5" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+</package>

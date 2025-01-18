@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 6ff4b31633d184445bd3c28668247e70
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - selfTransform: {instanceID: 0}
+  - eventSystem: {instanceID: 0}
+  - deviceDetector: {instanceID: 0}
+  - customInputModule: {instanceID: 0}
+  - uiStateMachine: {fileID: 11400000, guid: 95a2acd0ba7e1fb4ea1f97ce761b56c5, type: 2}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

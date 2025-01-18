@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 7592a1f9be12a554e9998ad21e1e3588
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - selfTransform: {instanceID: 0}
+  - addressables: {fileID: 11400000, guid: 986b4057361de7045a878d5a75fc09f6, type: 2}
+  - eventBus: {fileID: 11400000, guid: 194e262a03af5a947b2c21559b538efd, type: 2}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

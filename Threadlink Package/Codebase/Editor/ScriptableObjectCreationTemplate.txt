@@ -1,0 +1,10 @@
+namespace <Namespace>
+{
+	<Usings>
+
+	[CreateAssetMenu(menuName = "<AssetMenuPath>")]
+	<Scope> class <ClassName> : <BaseClass>
+	{ 
+		<Implementation>
+	}
+}
