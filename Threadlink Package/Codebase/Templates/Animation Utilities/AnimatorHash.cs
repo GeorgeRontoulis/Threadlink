@@ -14,7 +14,7 @@ namespace Threadlink.Utilities.Animation
 	[CreateAssetMenu(menuName = "Threadlink/Animation Utilities/Animator Hash")]
 	public sealed class AnimatorHash : ScriptableObject
 	{
-		public int Value { get => hashValue; }
+		public int Value => hashValue;
 
 		[SerializeField] private string stringValue = string.Empty;
 

@@ -36,18 +36,10 @@ namespace Threadlink.Core.Subsystems.Propagator
         OnPlayerSpawned,
         OnPlayerWarped,
         OnPlayerDied,
-        OnAllEquipmentPocketsCreated,
-        OnPlayerStatsDeployed,
-        OnPauseMenuStacked,
-        OnPauseMenuPopped,
         OnLiveCameraChanged,
-        OnWeaponsActiveMountsChanged,
         OnEnemyDetected,
         OnEnemyOutOfRange,
-        OnEnemyLocked,
-        OnEnemyUnlocked,
         OnEntityScreenPosRequested,
-        OnPlayerPosRequested,
         OnItemPickup,
     }
 }
