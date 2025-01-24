@@ -45,5 +45,14 @@ namespace Threadlink.Core
 			cachedTransform = null;
 			Destroy(gameObject);
 		}
+
+		public static T CreateFrom<T>(string name) where T : LinkableBehaviour
+		{
+			var behaviour = new GameObject(name, typeof(T)).GetComponent<T>();
+			behaviour.cachedTransform = behaviour.transform;
+			behaviour.LinkID = Ulid.NewUlid();
+
+			return behaviour;
+		}
 	}
 }

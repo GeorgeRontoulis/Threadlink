@@ -1,6 +1,5 @@
 namespace Threadlink.Utilities.RNG
 {
-	using Collections;
 	using System.Collections.Generic;
 	using UnityEngine;
 
@@ -47,11 +46,12 @@ namespace Threadlink.Utilities.RNG
 		public static void Shuffle<T>(this IList<T> list)
 		{
 			int n = list.Count;
+			int k;
 
 			while (n > 1)
 			{
 				n--;
-				int k = Generator.Next(n + 1);
+				k = Generator.Next(n + 1);
 				(list[n], list[k]) = (list[k], list[n]);
 			}
 		}
@@ -59,19 +59,20 @@ namespace Threadlink.Utilities.RNG
 		public static void Shuffle<T>(this T[] array)
 		{
 			int n = array.Length;
+			int k;
 
 			while (n > 1)
 			{
 				n--;
-				int k = Generator.Next(n + 1);
+				k = Generator.Next(n + 1);
 				(array[n], array[k]) = (array[k], array[n]);
 			}
 		}
 
 		public static T[,] Shuffle<T>(this T[,] array)
 		{
-			int rows = array.Rows();
-			int columns = array.Columns();
+			int rows = array.GetLength(0);
+			int columns = array.GetLength(1);
 
 			for (int i = rows - 1; i > 0; i--)
 			{
@@ -85,90 +86,6 @@ namespace Threadlink.Utilities.RNG
 			}
 
 			return array;
-		}
-
-		public static T[,] GetRandomPatch<T>(this T[,] grid)
-		{
-			int gridWidth = grid.Rows();
-			int gridHeight = grid.Columns();
-
-			// Choose random dimensions for the patch
-			int patchWidth = IntegerFromRange(1, gridWidth);
-			int patchHeight = IntegerFromRange(1, gridHeight);
-
-			// Choose a random start point for the patch
-			int startX = IntegerFromRange(0, gridWidth - patchWidth + 1);
-			int startY = IntegerFromRange(0, gridHeight - patchHeight + 1);
-
-			// Create a new array to hold the patch
-			var patch = new T[patchWidth, patchHeight];
-
-			// Fill the new array with elements from the grid
-			for (int i = 0; i < patchWidth; i++)
-			{
-				for (int j = 0; j < patchHeight; j++) patch[i, j] = grid[startX + i, startY + j];
-			}
-
-			return patch;
-		}
-
-		public static T[,] GetRandomPatch<T>(this T[,] grid, Vector2Int maxPatchSize)
-		{
-			int gridWidth = grid.Columns();
-			int gridHeight = grid.Rows();
-
-			// Choose random dimensions for the patch
-			int patchWidth = IntegerFromRange(2, maxPatchSize.x + 1);
-			int patchHeight = IntegerFromRange(2, maxPatchSize.y + 1);
-
-			// Choose a random start point for the patch
-			int startX = IntegerFromRange(0, gridWidth - patchWidth + 1);
-			int startY = IntegerFromRange(0, gridHeight - patchHeight + 1);
-
-			// Create a new array to hold the patch
-			var patch = new T[patchWidth, patchHeight];
-
-			// Fill the new array with elements from the grid
-			for (int i = 0; i < patchWidth; i++)
-			{
-				for (int j = 0; j < patchHeight; j++) patch[i, j] = grid[startX + i, startY + j];
-			}
-
-			return patch;
-		}
-
-		public static Vector3 GetRandomPointOnMesh(int[] tris, Vector3[] verts, float[] sizes, float[] cumulativeSizes, float total)
-		{
-			float randomsample = (float)NextDoubleAugmented * total;
-			int triIndex = -1;
-
-			int length = sizes.Length;
-
-			for (int i = 0; i < length; i++)
-			{
-				if (randomsample <= cumulativeSizes[i])
-				{
-					triIndex = i;
-					break;
-				}
-			}
-
-			if (triIndex == -1) throw new System.ArgumentException("triIndex should never be -1");
-
-			int indexMul3 = triIndex * 3;
-			var a = verts[tris[indexMul3]];
-
-			// Generate random barycentric coordinates
-			float r = (float)NextDoubleAugmented;
-			float s = (float)NextDoubleAugmented;
-
-			if (r + s >= 1)
-			{
-				r = 1 - r;
-				s = 1 - s;
-			}
-
-			return a + r * (verts[tris[indexMul3 + 1]] - a) + s * (verts[tris[indexMul3 + 2]] - a);
 		}
 	}
 }

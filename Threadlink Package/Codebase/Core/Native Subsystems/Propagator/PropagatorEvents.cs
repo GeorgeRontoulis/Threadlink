@@ -33,13 +33,5 @@ namespace Threadlink.Core.Subsystems.Propagator
         OnStopSprintInput,
         OnInteractableDetected,
         OnInteractableOutOfRange,
-        OnPlayerSpawned,
-        OnPlayerWarped,
-        OnPlayerDied,
-        OnLiveCameraChanged,
-        OnEnemyDetected,
-        OnEnemyOutOfRange,
-        OnEntityScreenPosRequested,
-        OnItemPickup,
     }
 }

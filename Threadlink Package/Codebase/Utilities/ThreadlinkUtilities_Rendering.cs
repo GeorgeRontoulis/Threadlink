@@ -59,12 +59,8 @@ namespace Threadlink.Utilities.Rendering
 			renderer = null;
 		}
 
-		public void CacheGraphics(Renderer renderer)
-		{
-			this.renderer = renderer;
-			CachedMaterials = renderer.materials;
-		}
-
+		public void CacheRenderer(Renderer renderer) => this.renderer = renderer;
+		public void CacheMaterials() => CachedMaterials = renderer.materials;
 		public void SetRenderingState(bool state) => renderer.enabled = state;
 	}
 

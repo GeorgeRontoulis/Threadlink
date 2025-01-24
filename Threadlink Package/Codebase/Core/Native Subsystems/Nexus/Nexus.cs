@@ -15,7 +15,7 @@ namespace Threadlink.Core.Subsystems.Nexus
 	/// </summary>
 	public sealed class Nexus : ThreadlinkSubsystem<Nexus>
 	{
-		internal enum PlayerLoadingAction { None = -1, Unload, Load }
+		internal enum PlayerLoadingAction : byte { None, Unload, Load }
 
 		[SerializeField] private SceneEntry startingSceneEntry = null;
 		[SerializeField] private int startingEntranceIndex = -1;

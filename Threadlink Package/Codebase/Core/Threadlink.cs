@@ -66,7 +66,7 @@
 		[ShowInInspector]
 		[ReadOnly]
 #endif
-		private static readonly Dictionary<string, Ulid> ConstantIDsBuffer = new();
+		private readonly Dictionary<string, Ulid> ConstantIDsBuffer = new();
 
 		[Space(10)]
 
@@ -152,12 +152,12 @@
 
 		public static bool TryGetConstantSingletonID(string singletonName, out Ulid result)
 		{
-			return ConstantIDsBuffer.TryGetValue(singletonName, out result);
+			return Instance.ConstantIDsBuffer.TryGetValue(singletonName, out result);
 		}
 
 		public static void RegisterConstantSingletonID(string singletonName, Ulid result)
 		{
-			ConstantIDsBuffer.Add(singletonName, result);
+			Instance.ConstantIDsBuffer.Add(singletonName, result);
 		}
 
 		public static async UniTask WaitForFrames(int frameCount)

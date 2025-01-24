@@ -14,20 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   template: {fileID: 4900000, guid: 448e61610577bef40b7f1d96de7da4f7, type: 3}
   propagatorScript: {fileID: 11500000, guid: 40cafc8bc65767348853d9a72f457c26, type: 3}
-  customEventSignatures:
-  - OnPlayerSpawned
-  - OnPlayerWarped
-  - OnPlayerDied
-  - OnAllEquipmentPocketsCreated
-  - OnPlayerStatsDeployed
-  - OnPauseMenuStacked
-  - OnPauseMenuPopped
-  - OnLiveCameraChanged
-  - OnWeaponsActiveMountsChanged
-  - OnEnemyDetected
-  - OnEnemyOutOfRange
-  - OnEnemyLocked
-  - OnEnemyUnlocked
-  - OnEntityScreenPosRequested
-  - OnPlayerPosRequested
-  - OnItemPickup
+  customEventSignatures: []

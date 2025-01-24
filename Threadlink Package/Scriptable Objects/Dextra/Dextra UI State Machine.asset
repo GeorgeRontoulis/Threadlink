@@ -12,8 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 08ddba31488607648b468617ad921674, type: 3}
   m_Name: Dextra UI State Machine
   m_EditorClassIdentifier: 
-  userInterfaceReferences:
-  - assetAddress: Assets/Threadlink/Threadlink User/Prefabs/UI/OverlayUI_CriticalModule.prefab
-  - assetAddress: Assets/Threadlink/Threadlink User/Prefabs/UI/OverlayUI_LockonIndicator.prefab
-  - assetAddress: Assets/Threadlink/Threadlink User/Prefabs/UI/OverlayUI_InteractionPrompt.prefab
-  - assetAddress: Assets/Threadlink/Threadlink User/Prefabs/UI/OverlayUI_Inventory.prefab
+  userInterfaceReferences: []

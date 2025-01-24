@@ -17,15 +17,15 @@ MonoBehaviour:
   parcelsToGenerate:
   - parcelType: int
     parcelNamespace: 
+  - parcelType: float
+    parcelNamespace: 
   - parcelType: bool
     parcelNamespace: 
   - parcelType: Vector3
     parcelNamespace: UnityEngine
   - parcelType: Vector2
     parcelNamespace: UnityEngine
+  - parcelType: YggdrasilTile
+    parcelNamespace: User.Subsystems.Yggdrasil
   - parcelType: Transform
-    parcelNamespace: UnityEngine
-  - parcelType: Rigidbody
-    parcelNamespace: UnityEngine
-  - parcelType: CharacterController
     parcelNamespace: UnityEngine
