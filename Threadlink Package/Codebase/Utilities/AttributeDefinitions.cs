@@ -65,7 +65,6 @@ namespace Threadlink.Editor.Attributes
 		#endregion
 	}
 
-
 	public sealed class AddressableAssetButtonAttribute : PropertyAttribute { }
 	public sealed class ReadOnlyAttribute : PropertyAttribute { }
 }

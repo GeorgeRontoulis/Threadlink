@@ -13,11 +13,9 @@ MonoBehaviour:
   m_Name: Threadlink User Data
   m_EditorClassIdentifier: 
   coreDeployment: 0
-  nativeSubSystems:
-  - Assets/Threadlink/Threadlink Package/Prefabs/Threadlink.prefab
-  - Assets/Threadlink/Threadlink Package/Prefabs/Propagator.prefab
-  - Assets/Threadlink/Threadlink Package/Prefabs/Chronos.prefab
-  - Assets/Threadlink/Threadlink Package/Prefabs/Dextra.prefab
-  - Assets/Threadlink/Threadlink Package/Prefabs/Aura.prefab
-  - Assets/Threadlink/Threadlink Package/Prefabs/Nexus.prefab
-  additionalNativeAssets: []
+  subsystemDatabase: []
+  sceneDatabase: []
+  assetDatabase:
+    _serializedList: []
+  prefabDatabase:
+    _serializedList: []

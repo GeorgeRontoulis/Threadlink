@@ -6,37 +6,6 @@ namespace Threadlink.Utilities.Collections
 	using System.Collections.Generic;
 	using System.Linq;
 	using Unity.Mathematics;
-	using UnityEngine;
-
-	/// <summary>
-	/// A Unity-serializable version of the C# Dictionary.
-	/// </summary>
-	/// <typeparam name="TKey"></typeparam>
-	/// <typeparam name="TValue"></typeparam>
-	[Serializable]
-	public sealed class ThreadlinkDictionary<TKey, TValue> : Dictionary<TKey, TValue>, ISerializationCallbackReceiver
-	{
-		[SerializeField, HideInInspector] private List<TKey> keyData = new();
-		[SerializeField, HideInInspector] private List<TValue> valueData = new();
-
-		void ISerializationCallbackReceiver.OnAfterDeserialize()
-		{
-			Clear();
-			for (int i = 0; i < keyData.Count && i < valueData.Count; i++) this[keyData[i]] = valueData[i];
-		}
-
-		void ISerializationCallbackReceiver.OnBeforeSerialize()
-		{
-			keyData.Clear();
-			valueData.Clear();
-
-			foreach (var item in this)
-			{
-				keyData.Add(item.Key);
-				valueData.Add(item.Value);
-			}
-		}
-	}
 
 	public static class Collections
 	{

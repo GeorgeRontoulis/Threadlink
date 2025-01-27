@@ -23,13 +23,6 @@ namespace Threadlink.Core.Exceptions
 		public CorruptConstantsBufferException(string message, Exception inner) : base(message, inner) { }
 	}
 
-	public sealed class NullAddressablesExtensionException : Exception
-	{
-		public NullAddressablesExtensionException() { }
-		public NullAddressablesExtensionException(string message) : base(message) { }
-		public NullAddressablesExtensionException(string message, Exception inner) : base(message, inner) { }
-	}
-
 	public sealed class ExistingSingletonException : Exception
 	{
 		public ExistingSingletonException() { }

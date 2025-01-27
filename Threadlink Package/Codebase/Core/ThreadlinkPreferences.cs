@@ -1,28 +1,33 @@
 namespace Threadlink.Core
 {
+	using Addressables;
+	using AYellowpaper.SerializedCollections;
 	using UnityEngine;
+	using UnityEngine.AddressableAssets;
 
-#if UNITY_EDITOR
-#if ODIN_INSPECTOR
-	using Sirenix.OdinInspector;
-#elif THREADLINK_INSPECTOR
-	using Editor.Attributes;
-#endif
-#endif
-
-	[CreateAssetMenu(fileName = "Threadlink User Data", menuName = "Threadlink/Preferences Asset", order = 999)]
-	public class ThreadlinkPreferences : ScriptableObject
+	[CreateAssetMenu(fileName = "Threadlink User Data", menuName = "Threadlink/Preferences Asset")]
+	public sealed class ThreadlinkPreferences : ScriptableObject
 	{
-		public enum CoreDeploymentMethod { Automatic, Manual }
+		public enum CoreDeploymentMethod : byte { Automatic, Manual }
 
+		[Tooltip("Automatic: Automatically loads and deploys Threadlink when entering playmode, or in the first scene in a Built Player." +
+		" Manual: You will be responsible for deploying the core using Threadlink's Lifecycle API in your custom logic.")]
 		public CoreDeploymentMethod coreDeployment;
 
 		[Space(10)]
 
-		public string[] nativeSubSystems;
+		public AssetReferenceGameObject[] subsystemDatabase = new AssetReferenceGameObject[0];
 
 		[Space(10)]
 
-		public string[] additionalNativeAssets;
+		public SceneAssetReference[] sceneDatabase = new SceneAssetReference[0];
+
+		[Space(10)]
+
+		public SerializedDictionary<ThreadlinkAddressableGroup, AssetReference[]> assetDatabase = new();
+
+		[Space(10)]
+
+		public SerializedDictionary<ThreadlinkAddressableGroup, AssetReferenceGameObject[]> prefabDatabase = new();
 	}
 }

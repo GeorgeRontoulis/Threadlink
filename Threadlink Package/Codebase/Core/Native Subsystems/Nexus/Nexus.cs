@@ -62,11 +62,11 @@ namespace Threadlink.Core.Subsystems.Nexus
 				await activeScene.OnBeforeUnloadedAsync();
 				Propagator.Publish(PropagatorEvents.OnBeforeActiveSceneUnload);
 
-				await activeScene.AddressableScene.UnloadAsync();
+				await Threadlink.UnloadSceneAsync(activeScene.SceneIndexInDatabase);
 				Propagator.Publish(PropagatorEvents.OnActiveSceneFinishedUnloading);
 			}
 
-			await sceneEntry.AddressableScene.LoadAsync(sceneEntry.loadingMode);
+			await Threadlink.LoadSceneAsync(sceneEntry.SceneIndexInDatabase, sceneEntry.loadingMode);
 
 			Propagator.Publish(PropagatorEvents.OnNewSceneFinishedLoading, sceneEntry);
 

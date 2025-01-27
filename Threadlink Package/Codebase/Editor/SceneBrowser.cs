@@ -25,12 +25,16 @@ namespace Threadlink.Editor
 
 			scrollPos = EditorGUILayout.BeginScrollView(scrollPos);
 
-			var paths = Directory.GetFiles(directoryPath, "*.unity");
-
-			foreach (string scenePath in paths)
+			try
 			{
-				if (GUILayout.Button(Path.GetFileNameWithoutExtension(scenePath))) OpenScene(scenePath);
+				var paths = Directory.GetFiles(directoryPath, "*.unity");
+
+				foreach (string scenePath in paths)
+				{
+					if (GUILayout.Button(Path.GetFileNameWithoutExtension(scenePath))) OpenScene(scenePath);
+				}
 			}
+			catch { Debug.LogError("The provided directory does not exist!"); }
 
 			EditorGUILayout.EndScrollView();
 		}

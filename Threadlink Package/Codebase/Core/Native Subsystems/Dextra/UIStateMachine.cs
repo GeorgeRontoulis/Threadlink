@@ -60,19 +60,25 @@ namespace Threadlink.Core.Subsystems.Dextra
 
 		[Space(10)]
 
-		[SerializeField] private AddressablePrefab<UserInterface>[] userInterfaceReferences = new AddressablePrefab<UserInterface>[0];
+		[SerializeField] private GroupedAssetPointer[] uiPrefabPointers = new GroupedAssetPointer[0];
 
 		public override void Discard()
 		{
 			StackedInterfaces.Clear();
 			StackedInterfaces.TrimExcess();
 
-			if (userInterfaceReferences != null)
+			if (uiPrefabPointers != null)
 			{
-				int length = userInterfaceReferences.Length;
-				for (int i = 0; i < length; i++) userInterfaceReferences[i].Unload();
+				int length = uiPrefabPointers.Length;
 
-				if (IsInstance) userInterfaceReferences = null;
+				for (int i = 0; i < length; i++)
+				{
+					var pointer = uiPrefabPointers[i];
+
+					Threadlink.ReleasePrefab(pointer.Group, pointer.IndexInDatabase);
+				}
+
+				if (IsInstance) uiPrefabPointers = null;
 			}
 
 			OnInterfaceCancelled = null;
@@ -82,23 +88,28 @@ namespace Threadlink.Core.Subsystems.Dextra
 
 		public void Boot()
 		{
-			StackedInterfaces = new(userInterfaceReferences.Length);
+			StackedInterfaces = new(uiPrefabPointers.Length);
 		}
 
 		public void Initialize()
 		{
-			var interfaces = new UserInterface[userInterfaceReferences.Length];
+			var interfaces = new UserInterface[uiPrefabPointers.Length];
 			int length = interfaces.Length;
 
 			for (int i = 0; i < length; i++)
 			{
-				var ui = Dextra.Instance.Weave(userInterfaceReferences[i].Result);
+				var pointer = uiPrefabPointers[i];
 
-				if (ui is IBootable bootable) Initium.Boot(bootable);
-				interfaces[i] = ui;
+				if (Threadlink.TryGetAssetReference(pointer.Group, pointer.IndexInDatabase, out var reference))
+				{
+					var ui = Dextra.Instance.Weave(reference.Asset as UserInterface);
+
+					if (ui is IBootable bootable) Initium.Boot(bootable);
+					interfaces[i] = ui;
+				}
 			}
 
-			userInterfaceReferences = null;
+			uiPrefabPointers = null;
 
 			for (int i = 0; i < length; i++) if (interfaces[i] is IInitializable initializable) Initium.Initialize(initializable);
 
@@ -107,10 +118,14 @@ namespace Threadlink.Core.Subsystems.Dextra
 
 		public async UniTask PreloadAssetsAsync()
 		{
-			int length = userInterfaceReferences.Length;
+			int length = uiPrefabPointers.Length;
 			var tasks = new UniTask[length];
 
-			for (int i = 0; i < length; i++) tasks[i] = userInterfaceReferences[i].LoadAsync();
+			for (int i = 0; i < length; i++)
+			{
+				var pointer = uiPrefabPointers[i];
+				tasks[i] = Threadlink.LoadPrefabAsync<UserInterface>(pointer.Group, pointer.IndexInDatabase);
+			}
 
 			await UniTask.WhenAll(tasks);
 		}

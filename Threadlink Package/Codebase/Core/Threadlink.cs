@@ -1,7 +1,7 @@
 ﻿namespace Threadlink.Core
 {
 	using Addressables;
-	using Addressables.Extensions;
+	using AYellowpaper.SerializedCollections;
 	using Cysharp.Threading.Tasks;
 	using Exceptions;
 	using Subsystems.Initium;
@@ -11,6 +11,8 @@
 	using System.Collections.Generic;
 	using UnityEngine;
 	using UnityEngine.AddressableAssets;
+	using UnityEngine.ResourceManagement.ResourceProviders;
+	using UnityEngine.SceneManagement;
 	using Utilities.Collections;
 
 #if UNITY_EDITOR
@@ -18,6 +20,7 @@
 	using Editor.Attributes;
 #elif ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
+	using UnityEngine.ResourceManagement.AsyncOperations;
 #endif
 #endif
 
@@ -68,14 +71,7 @@
 #endif
 		private readonly Dictionary<string, Ulid> ConstantIDsBuffer = new();
 
-		[Space(10)]
-
-		[SerializeField] internal AddressableScene[] runtimeScenes = new AddressableScene[0];
-
-		[Space(10)]
-
 		[SerializeField] internal ThreadlinkPreferences preferences = null;
-		[SerializeField] internal ThreadlinkAddressablesExtension addressablesExtension = null;
 
 		#region Main Lifecycle API:
 		public static void ShutDown() => Instance.Discard();
@@ -92,7 +88,6 @@
 		public override void Boot()
 		{
 			ConstantIDsBuffer.Clear();
-			if (addressablesExtension != null) addressablesExtension.Boot();
 			base.Boot();
 		}
 
@@ -100,31 +95,37 @@
 		{
 			Boot();
 
-			var preferencesArray = preferences.nativeSubSystems;
-			int subSystemCount = preferencesArray.Length - 1; //Exclude core system.
-			var subsystemAddressables = new List<AddressablePrefab<ThreadlinkSubsystem>>(subSystemCount);
-
-			subsystemAddressables.PopulateWithNewInstances(subSystemCount);
-
-			for (int i = 0; i < subSystemCount; i++) subsystemAddressables[i].assetAddress = preferencesArray[i + 1]; //Exclude core system.
-
-			var uniTasks = new UniTask[subSystemCount];
-
-			for (int i = 0; i < subSystemCount; i++) uniTasks[i] = subsystemAddressables[i].LoadAsync();
-
-			await UniTask.WhenAll(uniTasks);
+			var subsystemDB = preferences.subsystemDatabase;
+			int subSystemCount = subsystemDB.Length;
+			var uniTasks = new List<UniTask>(subSystemCount);
 
 			for (int i = 0; i < subSystemCount; i++)
 			{
-				var wovenSystem = Weave(subsystemAddressables[i].Result);
+				_ = subsystemDB[i].LoadAssetAsync();
 
-				await Initium.BootAsync(wovenSystem);
-
-				if (wovenSystem is IAddressablesPreloader preloader) await preloader.PreloadAssetsAsync();
+				uniTasks.Add(subsystemDB[i].OperationHandle.ToUniTask());
 			}
 
-			subsystemAddressables.Clear();
-			subsystemAddressables.TrimExcess();
+			await UniTask.WhenAll(uniTasks);
+
+			uniTasks.Clear();
+
+			for (int i = 0; i < subSystemCount; i++)
+			{
+				if ((subsystemDB[i].Asset as GameObject).TryGetComponent<ThreadlinkSubsystem>(out var subsystem))
+				{
+					var wovenSystem = Weave(subsystem);
+
+					await Initium.BootAsync(wovenSystem);
+
+					if (wovenSystem is IAddressablesPreloader preloader) uniTasks.Add(preloader.PreloadAssetsAsync());
+				}
+			}
+
+			await UniTask.WhenAll(uniTasks);
+
+			uniTasks.Clear();
+			uniTasks.TrimExcess();
 
 			foreach (var subSystem in Registry.Values)
 			{
@@ -134,6 +135,36 @@
 			enabled = true;
 			Scribe.FromSubsystem<Threadlink>("Core successfully deployed. All Subsystems operational.").ToUnityConsole(this);
 		}
+
+		/*internal async UniTask Deploy()
+		{
+			Boot();
+
+			var subsystemDB = preferences.subsystemDatabase;
+			int subSystemCount = subsystemDB.Length;
+
+			for (int i = 0; i < subSystemCount; i++) await subsystemDB[i].LoadAssetAsync();
+
+			for (int i = 0; i < subSystemCount; i++)
+			{
+				var wovenSystem = Weave((subsystemDB[i].Asset as GameObject).GetComponent<ThreadlinkSubsystem>());
+
+				await Initium.BootAsync(wovenSystem);
+
+				if (wovenSystem is IAddressablesPreloader preloader)
+				{
+					await preloader.PreloadAssetsAsync();
+				}
+			}
+
+			foreach (var subSystem in Registry.Values)
+			{
+				if (subSystem is IInitializable initializable) await Initium.InitializeAsync(initializable);
+			}
+
+			enabled = true;
+			Scribe.FromSubsystem<Threadlink>("Core successfully deployed. All Subsystems operational.").ToUnityConsole(this);
+		}*/
 		#endregion
 
 		#region Unity Update Messages:
@@ -150,6 +181,7 @@
 			return system;
 		}
 
+		#region Miscellaneous:
 		public static bool TryGetConstantSingletonID(string singletonName, out Ulid result)
 		{
 			return Instance.ConstantIDsBuffer.TryGetValue(singletonName, out result);
@@ -164,49 +196,143 @@
 		{
 			for (int i = 0; i < frameCount; i++) await UniTask.NextFrame();
 		}
+		#endregion
 
-		#region Addressables Methods
-		public static bool TryGetAddressablePrefab<PrefabType>(string prefabID, out AddressablePrefab<PrefabType> result)
-		where PrefabType : Component
+		#region Asset Reference/Loading/Unloading API:
+		public static async UniTask<T> LoadAssetAsync<T>(ThreadlinkAddressableGroup group, int indexInDB) where T : UnityEngine.Object
 		{
-			var extension = Instance.addressablesExtension;
-
-			if (extension == null)
+			if (ValidateDatabaseRequest(Instance.preferences.assetDatabase, group, indexInDB, out var reference))
 			{
-				throw new NullAddressablesExtensionException(
-				Scribe.FromSubsystem<Threadlink>("No ", nameof(ThreadlinkAddressablesExtension), " has been specified!").ToString());
+				_ = reference.LoadAssetAsync<T>();
+
+				await reference.OperationHandle.ToUniTask();
+
+				return reference.Asset as T;
 			}
 
-			return extension.TryGetAddressablePrefab(prefabID, out result);
+			return null;
 		}
 
-		public static bool TryGetAddressableAsset<AssetType>(string assetID, out AddressableAsset<AssetType> result)
-		where AssetType : UnityEngine.Object
+		public static async UniTask<T> LoadPrefabAsync<T>(ThreadlinkAddressableGroup group, int indexInDB) where T : Component
 		{
-			var extension = Instance.addressablesExtension;
-
-			if (extension == null)
+			if (ValidateDatabaseRequest(Instance.preferences.prefabDatabase, group, indexInDB, out var reference))
 			{
-				throw new NullAddressablesExtensionException(
-				Scribe.FromSubsystem<Threadlink>("No ", nameof(ThreadlinkAddressablesExtension), " has been specified!").ToString());
+				_ = reference.LoadAssetAsync<T>();
+
+				await reference.OperationHandle.ToUniTask();
+
+				if ((reference.Asset as GameObject).TryGetComponent<T>(out var component)) return component;
+				else
+				{
+					Scribe.FromSubsystem<Threadlink>("Could not find the requested component of type ", typeof(T).Name, " on the loaded prefab!");
+					ReleasePrefab(group, indexInDB);
+					return null;
+				}
 			}
 
-			return extension.TryGetAddressableAsset(assetID, out result);
+			return null;
 		}
 
-		public static bool TryGetAddressableScene(string address, out AddressableScene result)
+		public static void ReleaseAsset(ThreadlinkAddressableGroup group, int indexInDB)
 		{
-			bool Matches(AddressableScene scene) => scene.assetAddress.Equals(address);
-
-			return Instance.runtimeScenes.BruteForceSearch(Matches, out result) && result != null;
+			if (ValidateDatabaseRequest(Instance.preferences.assetDatabase, group, indexInDB, out var reference) && reference.IsValid())
+				reference.ReleaseAsset();
 		}
 
-		public static T GetCustomAddressablesExtension<T>() where T : ThreadlinkAddressablesExtension
+		public static void ReleasePrefab(ThreadlinkAddressableGroup group, int indexInDB)
 		{
-			var result = (Instance.addressablesExtension is T customExtension ? customExtension : null)
-			?? throw new NullAddressablesExtensionException(Scribe.FromSubsystem<Threadlink>("No ", nameof(T), " has been specified!").ToString());
+			if (ValidateDatabaseRequest(Instance.preferences.prefabDatabase, group, indexInDB, out var reference) && reference.IsValid())
+				reference.ReleaseAsset();
+		}
 
-			return result;
+		public static async UniTask<SceneInstance> LoadSceneAsync(int sceneReferenceIndex, LoadSceneMode mode)
+		{
+			if (ValidateDatabaseRequest(sceneReferenceIndex, out var reference))
+			{
+				_ = reference.LoadSceneAsync(mode);
+
+				return await reference.OperationHandle.Convert<SceneInstance>().ToUniTask();
+			}
+
+			throw new AddressableLoadingFailedException();
+		}
+
+		public static async UniTask<SceneInstance> UnloadSceneAsync(int sceneReferenceIndex)
+		{
+			if (ValidateDatabaseRequest(sceneReferenceIndex, out var reference))
+			{
+				_ = reference.UnLoadScene();
+
+				return await reference.OperationHandle.Convert<SceneInstance>().ToUniTask();
+			}
+
+			throw new AddressableLoadingFailedException();
+		}
+
+		public static bool TryGetAssetReference(ThreadlinkAddressableGroup group, int indexInDB, out AssetReference result)
+		{
+			return ValidateDatabaseRequest(Instance.preferences.assetDatabase, group, indexInDB, out result);
+		}
+
+		public static bool TryGetPrefabReference(ThreadlinkAddressableGroup group, int indexInDB, out AssetReferenceGameObject result)
+		{
+			return ValidateDatabaseRequest(Instance.preferences.prefabDatabase, group, indexInDB, out result);
+		}
+
+		public static bool TryGetSceneReference(int indexInDB, out SceneAssetReference result)
+		{
+			return ValidateDatabaseRequest(indexInDB, out result);
+		}
+		#endregion
+
+		#region Addressable Database Request Validation:
+		private static bool ValidateDatabaseRequest(int indexInDB, out SceneAssetReference reference)
+		{
+			return ValidateAssetReferenceRequest(Instance.preferences.sceneDatabase, indexInDB, out reference);
+		}
+
+		private static bool ValidateDatabaseRequest<T>(SerializedDictionary<ThreadlinkAddressableGroup, T[]> database,
+		ThreadlinkAddressableGroup group, int indexInDB, out T reference) where T : AssetReference
+		{
+			var prefs = Instance.preferences;
+
+			if (database.TryGetValue(group, out var assetRefCollection))
+			{
+				return ValidateAssetReferenceRequest(assetRefCollection, indexInDB, out reference);
+			}
+			else Scribe.FromSubsystem<Threadlink>("The requested asset group does not exist in the database!").ToUnityConsole(prefs, Scribe.ERROR);
+
+			reference = null;
+			return false;
+		}
+
+		private static bool ValidateAssetReferenceRequest<T>(T[] assetRefCollection, int indexInDB, out T reference) where T : AssetReference
+		{
+			var prefs = Instance.preferences;
+
+			reference = null;
+
+			if (!indexInDB.IsWithinBoundsOf(assetRefCollection))
+			{
+				Scribe.FromSubsystem<Threadlink>("The Scene Reference Index ", indexInDB, " is invalid!").ToUnityConsole(prefs, Scribe.ERROR);
+				return false;
+			}
+
+			var assetReference = assetRefCollection[indexInDB];
+
+			if (assetReference == null)
+			{
+				Scribe.FromSubsystem<Threadlink>(assetReference, " at index ", indexInDB, " is NULL!").ToUnityConsole(prefs, Scribe.ERROR);
+				return false;
+			}
+			else if (!assetReference.RuntimeKeyIsValid())
+			{
+				Scribe.FromSubsystem<Threadlink>("RuntimeKey of ", assetReference, ", ", assetReference.RuntimeKey, " is invalid!").ToUnityConsole(prefs, Scribe.ERROR);
+				return false;
+			}
+
+			reference = assetReference;
+			return true;
 		}
 		#endregion
 	}

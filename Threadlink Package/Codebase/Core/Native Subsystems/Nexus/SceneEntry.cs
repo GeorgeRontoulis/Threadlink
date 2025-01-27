@@ -4,21 +4,15 @@ namespace Threadlink.Core.Subsystems.Nexus
 	using Aura;
 	using Core;
 	using Cysharp.Threading.Tasks;
+	using Unity.Mathematics;
 	using UnityEngine;
 	using UnityEngine.SceneManagement;
 
 	public abstract class SceneEntry : ScriptableObject
 	{
-		internal AddressableScene AddressableScene
-		{
-			get
-			{
-				Threadlink.TryGetAddressableScene(sceneInfo.assetAddress, out var scene);
-				return scene;
-			}
-		}
+		public int SceneIndexInDatabase => scenePointer.IndexInDatabase;
 
-		[SerializeField] private AddressablePointer sceneInfo = new();
+		[SerializeField] private ScenePointer scenePointer = new();
 
 		[Space(10)]
 
@@ -27,8 +21,8 @@ namespace Threadlink.Core.Subsystems.Nexus
 
 		[Space(10)]
 
-		[SerializeField] private AddressablePointer musicClipInfo = new();
-		[SerializeField] private AddressablePointer atmosClipInfo = new();
+		[SerializeField] private GroupedAssetPointer musicClipPointer = new();
+		[SerializeField] private GroupedAssetPointer atmosClipPointer = new();
 
 		[Space(5)]
 
@@ -39,41 +33,38 @@ namespace Threadlink.Core.Subsystems.Nexus
 
 		[SerializeField] internal Vector3[] playerSpawnPoints = new Vector3[0];
 
-		public virtual UniTask OnBeforeUnloadedAsync() { return UniTask.CompletedTask; }
+		public virtual UniTask OnBeforeUnloadedAsync() => UniTask.CompletedTask;
 
 		public virtual async UniTask OnFinishedLoadingAsync()
 		{
-			static async UniTask TransitionToAudioScenario(AudioClip music, AudioClip atmos, Vector2 volumes)
+			static async UniTask TransitionToAudioScenario(AudioClip music, AudioClip atmos, float2 volumes)
 			{
 				Aura.SetGlobalVolumes(volumes);
 
 				await Aura.TransitionToAudioScenarioAsync(music, atmos, volumes);
 			}
 
-			Threadlink.TryGetAddressableAsset<AudioClip>(musicClipInfo.assetAddress, out var musicClipAddressable);
-			Threadlink.TryGetAddressableAsset<AudioClip>(atmosClipInfo.assetAddress, out var atmosClipAddressable);
-
-			bool foundMusic = musicClipAddressable != null;
-			bool foundAtmos = atmosClipAddressable != null;
+			bool foundMusic = Threadlink.TryGetAssetReference(musicClipPointer.Group, musicClipPointer.IndexInDatabase, out var musicReference);
+			bool foundAtmos = Threadlink.TryGetAssetReference(atmosClipPointer.Group, atmosClipPointer.IndexInDatabase, out var atmosReference);
 
 			if (foundMusic == false && foundAtmos == false) return;
 
 			if (foundMusic && foundAtmos == false)
 			{
-				await musicClipAddressable.LoadAsync();
-				await TransitionToAudioScenario(musicClipAddressable.Result, null, new(musicVolume, 0f));
+				var clip = await musicReference.LoadAssetAsync<AudioClip>().ToUniTask();
+				await TransitionToAudioScenario(clip, null, new(musicVolume, 0f));
 				return;
 			}
 			else if (foundMusic == false && foundAtmos)
 			{
-				await atmosClipAddressable.LoadAsync();
-				await TransitionToAudioScenario(null, atmosClipAddressable.Result, new(0f, atmosVolume));
+				var clip = await atmosReference.LoadAssetAsync<AudioClip>().ToUniTask();
+				await TransitionToAudioScenario(null, clip, new(0f, atmosVolume));
 				return;
 			}
 			else
 			{
-				await UniTask.WhenAll(musicClipAddressable.LoadAsync(), atmosClipAddressable.LoadAsync());
-				await TransitionToAudioScenario(musicClipAddressable.Result, atmosClipAddressable.Result, new(musicVolume, atmosVolume));
+				await UniTask.WhenAll(musicReference.LoadAssetAsync<AudioClip>().ToUniTask(), atmosReference.LoadAssetAsync<AudioClip>().ToUniTask());
+				await TransitionToAudioScenario(musicReference.Asset as AudioClip, atmosReference.Asset as AudioClip, new(musicVolume, atmosVolume));
 			}
 		}
 	}

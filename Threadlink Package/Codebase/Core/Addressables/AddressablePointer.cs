@@ -1,17 +1,24 @@
 namespace Threadlink.Addressables
 {
 	using System;
-
-#if UNITY_EDITOR
-	using Editor.Attributes;
-#endif
+	using UnityEngine;
 
 	[Serializable]
-	public sealed class AddressablePointer
+	public abstract class AddressablePointer
 	{
-#if UNITY_EDITOR
-		[AddressableAssetButton]
-#endif
-		public string assetAddress = string.Empty;
+		public int IndexInDatabase => indexInDatabase;
+
+		[SerializeField] protected int indexInDatabase = 0;
+	}
+
+	[Serializable]
+	public sealed class ScenePointer : AddressablePointer { }
+
+	[Serializable]
+	public sealed class GroupedAssetPointer : AddressablePointer
+	{
+		public ThreadlinkAddressableGroup Group => group;
+
+		[SerializeField] private ThreadlinkAddressableGroup group = 0;
 	}
 }
