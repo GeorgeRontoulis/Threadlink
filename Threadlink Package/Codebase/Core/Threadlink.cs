@@ -20,7 +20,6 @@
 	using Editor.Attributes;
 #elif ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
-	using UnityEngine.ResourceManagement.AsyncOperations;
 #endif
 #endif
 
