@@ -130,36 +130,6 @@
 			enabled = true;
 			Scribe.FromSubsystem<Threadlink>("Core successfully deployed. All Subsystems operational.").ToUnityConsole(this);
 		}
-
-		/*internal async UniTask Deploy()
-		{
-			Boot();
-
-			var subsystemDB = preferences.subsystemDatabase;
-			int subSystemCount = subsystemDB.Length;
-
-			for (int i = 0; i < subSystemCount; i++) await subsystemDB[i].LoadAssetAsync();
-
-			for (int i = 0; i < subSystemCount; i++)
-			{
-				var wovenSystem = Weave((subsystemDB[i].Asset as GameObject).GetComponent<ThreadlinkSubsystem>());
-
-				await Initium.BootAsync(wovenSystem);
-
-				if (wovenSystem is IAddressablesPreloader preloader)
-				{
-					await preloader.PreloadAssetsAsync();
-				}
-			}
-
-			foreach (var subSystem in Registry.Values)
-			{
-				if (subSystem is IInitializable initializable) await Initium.InitializeAsync(initializable);
-			}
-
-			enabled = true;
-			Scribe.FromSubsystem<Threadlink>("Core successfully deployed. All Subsystems operational.").ToUnityConsole(this);
-		}*/
 		#endregion
 
 		#region Unity Update Messages:
