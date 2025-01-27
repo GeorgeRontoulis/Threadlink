@@ -203,34 +203,44 @@
 		{
 			if (ValidateDatabaseRequest(Instance.preferences.assetDatabase, group, indexInDB, out var reference))
 			{
-				_ = reference.LoadAssetAsync<T>();
-
-				await reference.OperationHandle.ToUniTask();
-
-				return reference.Asset as T;
+				return await LoadAssetAsync<T>(reference);
 			}
 
 			return null;
+		}
+
+		public static async UniTask<T> LoadAssetAsync<T>(AssetReference reference) where T : UnityEngine.Object
+		{
+			_ = reference.LoadAssetAsync<T>();
+
+			await reference.OperationHandle.ToUniTask();
+
+			return reference.Asset as T;
 		}
 
 		public static async UniTask<T> LoadPrefabAsync<T>(ThreadlinkAddressableGroup group, int indexInDB) where T : Component
 		{
 			if (ValidateDatabaseRequest(Instance.preferences.prefabDatabase, group, indexInDB, out var reference))
 			{
-				_ = reference.LoadAssetAsync<T>();
-
-				await reference.OperationHandle.ToUniTask();
-
-				if ((reference.Asset as GameObject).TryGetComponent<T>(out var component)) return component;
-				else
-				{
-					Scribe.FromSubsystem<Threadlink>("Could not find the requested component of type ", typeof(T).Name, " on the loaded prefab!");
-					ReleasePrefab(group, indexInDB);
-					return null;
-				}
+				return await LoadPrefabAsync<T>(reference);
 			}
 
 			return null;
+		}
+
+		public static async UniTask<T> LoadPrefabAsync<T>(AssetReferenceGameObject reference) where T : Component
+		{
+			_ = reference.LoadAssetAsync<T>();
+
+			await reference.OperationHandle.ToUniTask();
+
+			if ((reference.Asset as GameObject).TryGetComponent<T>(out var component)) return component;
+			else
+			{
+				Scribe.FromSubsystem<Threadlink>("Could not find the requested component of type ", typeof(T).Name, " on the loaded prefab!");
+				ReleasePrefab(reference);
+				return null;
+			}
 		}
 
 		public static void ReleaseAsset(ThreadlinkAddressableGroup group, int indexInDB)
@@ -239,10 +249,20 @@
 				reference.ReleaseAsset();
 		}
 
+		public static void ReleaseAsset(AssetReference reference)
+		{
+			if (reference.IsValid()) reference.ReleaseAsset();
+		}
+
 		public static void ReleasePrefab(ThreadlinkAddressableGroup group, int indexInDB)
 		{
 			if (ValidateDatabaseRequest(Instance.preferences.prefabDatabase, group, indexInDB, out var reference) && reference.IsValid())
 				reference.ReleaseAsset();
+		}
+
+		public static void ReleasePrefab(AssetReferenceGameObject reference)
+		{
+			if (reference.IsValid()) reference.ReleaseAsset();
 		}
 
 		public static async UniTask<SceneInstance> LoadSceneAsync(int sceneReferenceIndex, LoadSceneMode mode)
