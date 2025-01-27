@@ -333,7 +333,7 @@
 
 			if (!indexInDB.IsWithinBoundsOf(assetRefCollection))
 			{
-				Scribe.FromSubsystem<Threadlink>("The Scene Reference Index ", indexInDB, " is invalid!").ToUnityConsole(prefs, Scribe.ERROR);
+				Scribe.FromSubsystem<Threadlink>("The Asset Reference Index ", indexInDB, " is invalid!").ToUnityConsole(prefs, Scribe.ERROR);
 				return false;
 			}
 
