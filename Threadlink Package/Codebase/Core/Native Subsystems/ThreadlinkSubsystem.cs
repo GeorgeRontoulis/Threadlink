@@ -122,7 +122,14 @@
 
 		public virtual void SeverAll()
 		{
-			foreach (var id in Registry.Keys) Registry[id]?.Discard();
+			foreach (var id in Registry.Keys)
+			{
+				var entity = Registry[id];
+
+#pragma warning disable IDE0031 // Use null propagation
+				if (entity != null) entity.Discard(); //Unity weavers cannot use null propagation.
+#pragma warning restore IDE0031 // Use null propagation
+			}
 
 			ClearRegistry();
 		}
