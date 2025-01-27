@@ -99,11 +99,7 @@
 			var uniTasks = new List<UniTask>(subSystemCount);
 
 			for (int i = 0; i < subSystemCount; i++)
-			{
-				_ = subsystemDB[i].LoadAssetAsync();
-
-				uniTasks.Add(subsystemDB[i].OperationHandle.ToUniTask());
-			}
+				uniTasks.Add(LoadPrefabAsync<ThreadlinkSubsystem>(subsystemDB[i]));
 
 			await UniTask.WhenAll(uniTasks);
 
@@ -229,7 +225,7 @@
 
 		public static async UniTask<T> LoadPrefabAsync<T>(AssetReferenceGameObject reference) where T : Component
 		{
-			_ = reference.LoadAssetAsync<T>();
+			_ = reference.LoadAssetAsync();
 
 			await reference.OperationHandle.ToUniTask();
 
