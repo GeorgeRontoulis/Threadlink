@@ -11,8 +11,8 @@
 	using Sirenix.OdinInspector;
 #endif
 
-	public interface IUnityWeaver<S, E> : IThreadlinkSingleton<S> { public E Weave(E original); }
-	public interface INativeWeaver<S, E> : IThreadlinkSingleton<S> { public E Weave(); }
+	public interface IUnityWeaver<S, E> : IThreadlinkSingleton<S> { public T Weave<T>(T original) where T : E; }
+	public interface INativeWeaver<S, E> : IThreadlinkSingleton<S> { public T Weave<T>() where T : E, new(); }
 	public interface IAddressablesPreloader { public UniTask PreloadAssetsAsync(); }
 
 	public abstract class ThreadlinkSubsystem : LinkableBehaviour, IBootable
@@ -139,12 +139,12 @@
 	where S : UnityWeaver<S, E>
 	where E : UnityEngine.Object, IDiscardable, ILinkable<Ulid>
 	{
-		public virtual E Weave(E original)
+		public virtual T Weave<T>(T original) where T : E
 		{
-			static E CreateNewInstance(ref E original)
+			static T CreateNewInstance(ref T original)
 			{
 				if (original is LinkableAsset asset)
-					return asset.Clone() as E;
+					return asset.Clone() as T;
 				else
 				{
 					var newInstance = Instantiate(original);
@@ -159,7 +159,7 @@
 			{
 				if (Threadlink.TryGetConstantSingletonID(original.name, out var id))
 				{
-					if (TryGetLinkedEntity(id, out var singleton) && singleton != null) return singleton;
+					if (TryGetLinkedEntity(id, out var singleton) && singleton != null) return singleton as T;
 					else throw new CorruptConstantsBufferException(Scribe.FromSubsystem<S>("Constant IDs Buffer mismatch detected!").ToString());
 				}
 				else
@@ -187,17 +187,17 @@
 	where S : NativeWeaver<S, E>
 	where E : IDiscardable, ILinkable<Ulid>, new()
 	{
-		public virtual E Weave()
+		public virtual T Weave<T>() where T : E, new()
 		{
-			static E CreateNewInstance() => new() { LinkID = Ulid.NewUlid() };
+			static T CreateNewInstance() => new() { LinkID = Ulid.NewUlid() };
 
-			var type = typeof(E);
+			var type = typeof(T);
 
 			if (typeof(IThreadlinkSingleton).IsAssignableFrom(type))
 			{
 				if (Threadlink.TryGetConstantSingletonID(type.Name, out var id))
 				{
-					if (TryGetLinkedEntity(id, out var singleton) && singleton.Equals(default) == false) return singleton;
+					if (TryGetLinkedEntity(id, out var singleton) && singleton.Equals(default) == false) return (T)singleton;
 					else throw new CorruptConstantsBufferException(Scribe.FromSubsystem<S>("Constant IDs Buffer mismatch detected!").ToString());
 				}
 				else

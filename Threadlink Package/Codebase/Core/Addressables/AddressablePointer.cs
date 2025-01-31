@@ -8,7 +8,7 @@ namespace Threadlink.Addressables
 	{
 		public int IndexInDatabase => indexInDatabase;
 
-		[SerializeField] protected int indexInDatabase = 0;
+		[SerializeField] protected int indexInDatabase = -1;
 	}
 
 	[Serializable]

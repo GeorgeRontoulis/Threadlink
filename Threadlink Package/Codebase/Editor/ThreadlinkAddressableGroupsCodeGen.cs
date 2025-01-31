@@ -57,9 +57,9 @@ namespace Threadlink.Editor
 			{
 				var groupName = groups[i].name;
 
-				if (groupName.Equals("Built In Data")) continue;
+				if (groupName.Equals("Built In Data") || groupName.Contains("Localization")) continue;
 
-				discoveredAddressableGroups.Add(groupName.Replace(" ", string.Empty));
+				discoveredAddressableGroups.Add(groupName.Replace(" ", string.Empty).Replace("-", "_"));
 			}
 
 			templateContent = templateContent.Replace("{CustomEntries}", string.Join(separator, discoveredAddressableGroups));

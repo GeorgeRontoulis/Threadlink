@@ -1,4 +1,4 @@
-namespace Threadlink.Utilities.Animation
+namespace Threadlink.Templates.AnimationUtilities
 {
 #if UNITY_EDITOR
 	using UnityEditor;

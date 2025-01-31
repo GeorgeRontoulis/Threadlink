@@ -128,6 +128,7 @@
 			}
 
 			enabled = true;
+
 			Scribe.FromSubsystem<Threadlink>("Core successfully deployed. All Subsystems operational.").ToUnityConsole(this);
 		}
 		#endregion
@@ -138,12 +139,12 @@
 		private void LateUpdate() => Propagator.Publish(PropagatorEvents.OnLateUpdate);
 		#endregion
 
-		public override ThreadlinkSubsystem Weave(ThreadlinkSubsystem original)
+		public override T Weave<T>(T original)
 		{
-			var system = base.Weave(original);
-			system.CachedTransform.SetParent(cachedTransform);
+			var subsystem = base.Weave(original);
+			subsystem.CachedTransform.SetParent(cachedTransform);
 
-			return system;
+			return subsystem;
 		}
 
 		#region Miscellaneous:
@@ -202,7 +203,8 @@
 			if ((reference.Asset as GameObject).TryGetComponent<T>(out var component)) return component;
 			else
 			{
-				Scribe.FromSubsystem<Threadlink>("Could not find the requested component of type ", typeof(T).Name, " on the loaded prefab!");
+				Scribe.FromSubsystem<Threadlink>("Could not find the requested component of type ",
+				typeof(T).Name, " on the loaded prefab!").ToUnityConsole(Scribe.WARN);
 				ReleasePrefab(reference);
 				return null;
 			}
@@ -285,7 +287,8 @@
 			{
 				return ValidateAssetReferenceRequest(assetRefCollection, indexInDB, out reference);
 			}
-			else Scribe.FromSubsystem<Threadlink>("The requested asset group does not exist in the database!").ToUnityConsole(prefs, Scribe.ERROR);
+			else Scribe.FromSubsystem<Threadlink>("The requested asset group does not exist in the database!").
+			ToUnityConsole(prefs, Scribe.WARN);
 
 			reference = null;
 			return false;
@@ -299,7 +302,8 @@
 
 			if (!indexInDB.IsWithinBoundsOf(assetRefCollection))
 			{
-				Scribe.FromSubsystem<Threadlink>("The Asset Reference Index ", indexInDB, " is invalid!").ToUnityConsole(prefs, Scribe.ERROR);
+				Scribe.FromSubsystem<Threadlink>("The Asset Reference Index ", indexInDB, " is invalid!").
+				ToUnityConsole(prefs, Scribe.WARN);
 				return false;
 			}
 
@@ -307,12 +311,14 @@
 
 			if (assetReference == null)
 			{
-				Scribe.FromSubsystem<Threadlink>(assetReference, " at index ", indexInDB, " is NULL!").ToUnityConsole(prefs, Scribe.ERROR);
+				Scribe.FromSubsystem<Threadlink>(assetReference, " at index ", indexInDB, " is NULL!").
+				ToUnityConsole(prefs, Scribe.WARN);
 				return false;
 			}
 			else if (!assetReference.RuntimeKeyIsValid())
 			{
-				Scribe.FromSubsystem<Threadlink>("RuntimeKey of ", assetReference, ", ", assetReference.RuntimeKey, " is invalid!").ToUnityConsole(prefs, Scribe.ERROR);
+				Scribe.FromSubsystem<Threadlink>("RuntimeKey of ", assetReference, ", ", assetReference.RuntimeKey, " is invalid!").
+				ToUnityConsole(prefs, Scribe.WARN);
 				return false;
 			}
 

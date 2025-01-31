@@ -166,7 +166,7 @@ namespace Threadlink.Core.Subsystems.Aura
 				break;
 			}
 
-			Instance.sfxAudiosource.PlayOneShot(sfx, volume);
+			if (sfx != null) Instance.sfxAudiosource.PlayOneShot(sfx, volume);
 		}
 
 		public static async UniTask TransitionToAudioScenarioAsync(AudioClip musicClip, AudioClip atmosClip, Vector2 volumes)

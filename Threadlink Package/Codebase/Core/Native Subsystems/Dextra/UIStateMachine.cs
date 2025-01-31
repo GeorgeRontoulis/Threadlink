@@ -62,6 +62,10 @@ namespace Threadlink.Core.Subsystems.Dextra
 
 		[SerializeField] private GroupedAssetPointer[] uiPrefabPointers = new GroupedAssetPointer[0];
 
+		[Space(10)]
+
+		[SerializeField] private bool stackFirstInterface = false;
+
 		public override void Discard()
 		{
 			StackedInterfaces.Clear();
@@ -100,20 +104,20 @@ namespace Threadlink.Core.Subsystems.Dextra
 			{
 				var pointer = uiPrefabPointers[i];
 
-				if (Threadlink.TryGetAssetReference(pointer.Group, pointer.IndexInDatabase, out var reference))
+				if (Threadlink.TryGetPrefabReference(pointer.Group, pointer.IndexInDatabase, out var reference))
 				{
-					var ui = Dextra.Instance.Weave(reference.Asset as UserInterface);
+					var ui = Dextra.Instance.Weave((reference.Asset as GameObject).GetComponent<UserInterface>());
 
 					if (ui is IBootable bootable) Initium.Boot(bootable);
 					interfaces[i] = ui;
 				}
 			}
 
-			uiPrefabPointers = null;
+			if (IsInstance) uiPrefabPointers = null;
 
 			for (int i = 0; i < length; i++) if (interfaces[i] is IInitializable initializable) Initium.Initialize(initializable);
 
-			if (length > 0) Stack(interfaces[0]);
+			if (stackFirstInterface && length > 0) Stack(interfaces[0]);
 		}
 
 		public async UniTask PreloadAssetsAsync()

@@ -1,6 +1,6 @@
 {
     "name": "Threadlink.Templates.CameraUtilities",
-    "rootNamespace": "",
+    "rootNamespace": "Threadlink.Templates.CameraUtilities",
     "references": [
         "GUID:7eab34bd1f23d374bb9e2a642d3327db",
         "GUID:6b9f8ccc7ae865f49b1a80b216dfe39e"

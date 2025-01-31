@@ -1,8 +1,8 @@
 {
-    "name": "Threadlink.Templates.AnimationUtilities",
-    "rootNamespace": "Threadlink.Templates.AnimationUtilities",
+    "name": "Threadlink.Templates.UIUtilities",
+    "rootNamespace": "Threadlink.Templates.UIUtilities",
     "references": [
-        "GUID:6b9f8ccc7ae865f49b1a80b216dfe39e"
+        "GUID:2bafac87e7f4b9b418d9448d219b01ab"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

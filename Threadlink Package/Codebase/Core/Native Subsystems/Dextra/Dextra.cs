@@ -26,8 +26,8 @@ using Editor.Attributes;
 	/// </summary>
 	public sealed class Dextra : UnityWeaver<Dextra, UserInterface>, IInitializable, IAddressablesPreloader
 	{
-		public enum InputDevice { MouseKeyboard, XBOXController, DualSense }
-		public enum InputMode { Unresponsive = -1, UI = 0, Player = 1 }
+		public enum InputDevice : byte { MouseKeyboard, XBOXController, DualSense }
+		public enum InputMode : short { Unresponsive = -1, UI = 0, Player = 1 }
 
 		public static InputMode CurrentInputMode
 		{
@@ -219,7 +219,7 @@ using Editor.Attributes;
 
 			var sm = Instance.uiStateMachine;
 
-			if (syncSelection && sm != null && sm.StackedInterfacesCount > 1 && sm.TopInterface is IInteractableInterface)
+			if (syncSelection && sm != null && sm.TopInterface is IInteractableInterface)
 			{
 				SyncSelection();
 			}

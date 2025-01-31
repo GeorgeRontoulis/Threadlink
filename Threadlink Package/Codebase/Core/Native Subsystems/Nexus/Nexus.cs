@@ -20,17 +20,37 @@ namespace Threadlink.Core.Subsystems.Nexus
 		[SerializeField] private SceneEntry startingSceneEntry = null;
 		[SerializeField] private int startingEntranceIndex = -1;
 
+		[Space(10)]
+
+		[SerializeField] private bool loadStartingSceneOnBootup = false;
+
+		#region Threadlink Lifecycle API:
 		public override void Discard()
 		{
 			startingSceneEntry = null;
 			base.Discard();
 		}
 
+		public override void Boot()
+		{
+			base.Boot();
+
+			if (loadStartingSceneOnBootup) LoadStartingScene();
+		}
+		#endregion
+
 		public static void LoadStartingScene()
 		{
 			var entry = Instance.startingSceneEntry;
 
 			if (entry != null) LoadSceneAsync(entry, Instance.startingEntranceIndex).Forget();
+		}
+
+		public static async UniTask LoadStartingSceneAsync()
+		{
+			var entry = Instance.startingSceneEntry;
+
+			if (entry != null) await LoadSceneAsync(entry, Instance.startingEntranceIndex);
 		}
 
 		public static async UniTask LoadSceneAsync(SceneEntry sceneEntry, int entranceIndex = -1)
