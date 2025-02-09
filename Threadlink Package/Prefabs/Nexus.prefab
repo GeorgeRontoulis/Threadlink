@@ -47,3 +47,4 @@ MonoBehaviour:
   cachedTransform: {fileID: 6395504302552424439}
   startingSceneEntry: {fileID: 0}
   startingEntranceIndex: -1
+  loadStartingSceneOnBootup: 0

@@ -49,13 +49,13 @@ namespace Threadlink.Core.Subsystems.Nexus
 
 			if (foundMusic == false && foundAtmos == false) return;
 
-			if (foundMusic && foundAtmos == false)
+			if (foundMusic && !foundAtmos)
 			{
 				var clip = await musicReference.LoadAssetAsync<AudioClip>().ToUniTask();
 				await TransitionToAudioScenario(clip, null, new(musicVolume, 0f));
 				return;
 			}
-			else if (foundMusic == false && foundAtmos)
+			else if (!foundMusic && foundAtmos)
 			{
 				var clip = await atmosReference.LoadAssetAsync<AudioClip>().ToUniTask();
 				await TransitionToAudioScenario(null, clip, new(0f, atmosVolume));
@@ -63,8 +63,11 @@ namespace Threadlink.Core.Subsystems.Nexus
 			}
 			else
 			{
-				await UniTask.WhenAll(musicReference.LoadAssetAsync<AudioClip>().ToUniTask(), atmosReference.LoadAssetAsync<AudioClip>().ToUniTask());
-				await TransitionToAudioScenario(musicReference.Asset as AudioClip, atmosReference.Asset as AudioClip, new(musicVolume, atmosVolume));
+				await UniTask.WhenAll(musicReference.LoadAssetAsync<AudioClip>().ToUniTask(),
+				atmosReference.LoadAssetAsync<AudioClip>().ToUniTask());
+
+				await TransitionToAudioScenario(musicReference.Asset as AudioClip,
+				atmosReference.Asset as AudioClip, new(musicVolume, atmosVolume));
 			}
 		}
 	}

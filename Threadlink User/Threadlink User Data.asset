@@ -13,7 +13,32 @@ MonoBehaviour:
   m_Name: Threadlink User Data
   m_EditorClassIdentifier: 
   coreDeployment: 0
-  subsystemDatabase: []
+  subsystemDatabase:
+  - m_AssetGUID: 3090a2b3c6625454a93bd8cb3ee6e656
+    m_SubObjectName: 
+    m_SubObjectGUID: 
+    m_SubObjectType: 
+    m_EditorAssetChanged: 1
+  - m_AssetGUID: cd94fb137fa39024db15c2c403b017b8
+    m_SubObjectName: 
+    m_SubObjectGUID: 
+    m_SubObjectType: 
+    m_EditorAssetChanged: 1
+  - m_AssetGUID: 1f8b4bf9e38597f4790b27627540a23a
+    m_SubObjectName: 
+    m_SubObjectGUID: 
+    m_SubObjectType: 
+    m_EditorAssetChanged: 1
+  - m_AssetGUID: 4469c2a933d03154687fc4dd5eaf0380
+    m_SubObjectName: 
+    m_SubObjectGUID: 
+    m_SubObjectType: 
+    m_EditorAssetChanged: 1
+  - m_AssetGUID: dd8d0a6a40ac09f4bbb2b9dfef37d191
+    m_SubObjectName: 
+    m_SubObjectGUID: 
+    m_SubObjectType: 
+    m_EditorAssetChanged: 1
   sceneDatabase: []
   assetDatabase:
     _serializedList: []

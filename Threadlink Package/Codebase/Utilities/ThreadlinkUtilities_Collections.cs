@@ -3,6 +3,7 @@ namespace Threadlink.Utilities.Collections
 	using Core;
 	using RNG;
 	using System;
+	using System.Collections;
 	using System.Collections.Generic;
 	using System.Linq;
 	using Unity.Mathematics;
@@ -30,14 +31,9 @@ namespace Threadlink.Utilities.Collections
 			|| (position.x == endIndex && position.y == endIndex);
 		}
 
-		public static bool IsWithinBoundsOf(this int index, Array array)
+		public static bool IsWithinBoundsOf(this int index, ICollection collection)
 		{
-			return index >= 0 && index < array.Length;
-		}
-
-		public static bool IsWithinBoundsOf<T>(this int index, List<T> list)
-		{
-			return index >= 0 && index < list.Count;
+			return index >= 0 && index < collection.Count;
 		}
 
 		public static int BruteForceSearch<T>(this IReadOnlyList<T> collection, string key) where T : ILinkable<string>
