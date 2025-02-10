@@ -11,6 +11,9 @@ namespace Threadlink.Utilities.Serialization
 
 	public static class ThreadlinkSerializationProxy
 	{
+		private static T GetInvalidDataOfType<T>()
+		where T : IThreadlinkSerializable, new() => new() { IsValid = false };
+
 #if PLATFORM_STANDALONE_WIN
 		public const int STREAM_BUFFER_SIZE = 4096;
 
@@ -26,7 +29,7 @@ namespace Threadlink.Utilities.Serialization
 				return deserializedData;
 			}
 
-			return new() { IsValid = false };
+			return GetInvalidDataOfType<DeserializedType>();
 		}
 
 		public static async UniTask SerializeAsync<SerializableType>
