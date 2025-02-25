@@ -45,6 +45,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cachedTransform: {fileID: 6395504302552424439}
-  startingSceneEntry: {fileID: 0}
+  startingSceneEntry: {fileID: 11400000, guid: 660620c6d465e9c468e09413363f157b, type: 2}
   startingEntranceIndex: -1
-  loadStartingSceneOnBootup: 0
+  loadStartingSceneOnBootup: 1

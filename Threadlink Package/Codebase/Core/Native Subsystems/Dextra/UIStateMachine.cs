@@ -136,11 +136,34 @@ namespace Threadlink.Core.Subsystems.Dextra
 
 		internal bool IsTopInterface(UserInterface userInterface) => userInterface != null && userInterface.Equals(TopInterface);
 
+		internal void ClearStack()
+		{
+			Dextra.ClearEventSystemSelection();
+
+			var system = Dextra.Instance;
+
+			foreach (var stackedUI in StackedInterfaces)
+			{
+				if (system.TryGetLinkedEntity(stackedUI, out var userInterface))
+				{
+					userInterface.OnPopped();
+
+					if (userInterface is ICancellableInterface cancellable)
+					{
+						cancellable.OnCancelled();
+						OnInterfaceCancelled?.Invoke();
+					}
+				}
+			}
+
+			StackedInterfaces.Clear();
+		}
+
 		internal void Cancel()
 		{
 			var topUI = TopInterface;
 
-			if (topUI is ICancellableInterface)
+			if (topUI is ICancellableInterface cancellableInterface)
 			{
 				Dextra.ClearEventSystemSelection();
 				StackedInterfaces.Pop();
@@ -150,7 +173,7 @@ namespace Threadlink.Core.Subsystems.Dextra
 				var newTopUI = TopInterface;
 				if (newTopUI != null) newTopUI.OnResurfaced();
 
-				(topUI as ICancellableInterface).OnCancelled();
+				cancellableInterface.OnCancelled();
 				OnInterfaceCancelled?.Invoke();
 			}
 		}

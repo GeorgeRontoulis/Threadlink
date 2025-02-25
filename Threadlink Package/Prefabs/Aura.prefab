@@ -49,6 +49,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cachedTransform: {fileID: 8419690752644417509}
+  mixer: {fileID: 24100000, guid: b55b202805331be448521ac7235c6b8a, type: 2}
+  audioListener: {fileID: 3295304006412539131}
   musicAudiosource: {fileID: 8651048370448150978}
   atmosAudiosource: {fileID: 649196750275146345}
   volumeFadeSpeed: 8
@@ -137,7 +139,7 @@ AudioSource:
   m_GameObject: {fileID: 3963606603785986624}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 5717869975669681419, guid: b55b202805331be448521ac7235c6b8a, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 0
@@ -266,7 +268,7 @@ AudioSource:
   m_GameObject: {fileID: 3972432622755863814}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: -7677955939202177372, guid: b55b202805331be448521ac7235c6b8a, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 0
@@ -395,7 +397,7 @@ AudioSource:
   m_GameObject: {fileID: 4834501239690114204}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: -6885200929688973258, guid: b55b202805331be448521ac7235c6b8a, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 0

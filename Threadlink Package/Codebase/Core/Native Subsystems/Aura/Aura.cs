@@ -5,7 +5,10 @@ namespace Threadlink.Core.Subsystems.Aura
 	using Cysharp.Threading.Tasks;
 	using Propagator;
 	using System;
+	using Unity.Mathematics;
 	using UnityEngine;
+	using UnityEngine.Audio;
+	using Utilities.Geometry;
 
 	/// <summary>
 	/// System responsible for Audio Mixing during Threadlink's runtime.
@@ -13,15 +16,23 @@ namespace Threadlink.Core.Subsystems.Aura
 	/// </summary>
 	public sealed class Aura : Linker<Aura, AuraSpatialEntity>
 	{
-		public enum UISFX { Cancel = -1, Nagivate, Confirm }
+		public enum UISFX : byte { Cancel, Nagivate, Confirm }
 
-		private static AudioListener AudioListener { get; set; }
-		private static Transform AudioListenerTransform => AudioListener.transform;
+		public AudioMixer AudioMixer => Instance.mixer;
+
+		private Transform AudioListenerTransform { get; set; }
 
 		private float CurrentMaxMusicVolume { get; set; }
 		private float CurrentMaxAtmosVolume { get; set; }
 
+		[Space(10)]
+
+		[SerializeField] private AudioMixer mixer = null;
+		[SerializeField] private AudioListener audioListener = null;
+
+		[Space(10)]
 		[Header("Music & Ambiance:")]
+
 		[SerializeField] private AudioSource musicAudiosource = null;
 		[SerializeField] private AudioSource atmosAudiosource = null;
 
@@ -29,7 +40,9 @@ namespace Threadlink.Core.Subsystems.Aura
 
 		[SerializeField] private float volumeFadeSpeed = 8;
 
+		[Space(10)]
 		[Header("SFX:")]
+
 		[SerializeField] private AudioSource sfxAudiosource = null;
 
 		[Space(10)]
@@ -42,7 +55,7 @@ namespace Threadlink.Core.Subsystems.Aura
 		{
 			AudioListenerTransform.SetParent(cachedTransform);
 
-			AudioListener = null;
+			audioListener = null;
 			musicAudiosource = null;
 			atmosAudiosource = null;
 			sfxAudiosource = null;
@@ -67,9 +80,9 @@ namespace Threadlink.Core.Subsystems.Aura
 
 			base.Boot();
 
-			AudioListener = GetComponentInChildren<AudioListener>();
 			musicAudiosource.volume = atmosAudiosource.volume = 0f;
 
+			AudioListenerTransform = audioListener.transform;
 			AudioListenerTransform.SetParent(cachedTransform);
 
 			Propagator.Subscribe<Action>(PropagatorEvents.OnBeforeActiveSceneUnload, DisconnectAllZones);
@@ -80,9 +93,10 @@ namespace Threadlink.Core.Subsystems.Aura
 
 		public override bool TryLink(AuraSpatialEntity entity)
 		{
+			int previousCount = Registry.Count;
 			bool linked = base.TryLink(entity);
 
-			if (linked && Registry.Count > 0)
+			if (previousCount <= 0 && linked)
 				Propagator.Subscribe<Action>(PropagatorEvents.OnUpdate, CalculateSpatialInfluence);
 
 			return linked;
@@ -92,7 +106,7 @@ namespace Threadlink.Core.Subsystems.Aura
 		{
 			bool disconnected = base.TryDisconnect(linkID, out disconnectedEntity);
 
-			if (disconnected && Registry.Count - 1 <= 0)
+			if (disconnected && Registry.Count <= 0)
 				Propagator.Unsubscribe<Action>(PropagatorEvents.OnUpdate, CalculateSpatialInfluence);
 
 			return disconnected;
@@ -119,16 +133,16 @@ namespace Threadlink.Core.Subsystems.Aura
 		{
 			void ReattachListenerToAura()
 			{
-				AudioListenerTransform.SetParent(Instance.cachedTransform);
+				Instance.AudioListenerTransform.SetParent(Instance.cachedTransform);
 				owner.OnDiscard -= ReattachListenerToAura;
 			}
 
 			owner.OnDiscard += ReattachListenerToAura;
-			AudioListenerTransform.SetParent(parent);
+			Instance.AudioListenerTransform.SetParent(parent);
 			ResetAudioListenerLocalPosition();
 		}
 
-		public static void SetGlobalVolumes(Vector2 volumes)
+		public static void SetGlobalVolumes(float2 volumes)
 		{
 			volumes.x = Mathf.Clamp01(volumes.x);
 			volumes.y = Mathf.Clamp01(volumes.y);
@@ -169,7 +183,7 @@ namespace Threadlink.Core.Subsystems.Aura
 			if (sfx != null) Instance.sfxAudiosource.PlayOneShot(sfx, volume);
 		}
 
-		public static async UniTask TransitionToAudioScenarioAsync(AudioClip musicClip, AudioClip atmosClip, Vector2 volumes)
+		public static async UniTask TransitionToAudioScenarioAsync(AudioClip musicClip, AudioClip atmosClip, float2 volumes)
 		{
 			var musicSource = Instance.musicAudiosource;
 			var atmosSource = Instance.atmosAudiosource;
@@ -215,7 +229,7 @@ namespace Threadlink.Core.Subsystems.Aura
 
 		private static void ResetAudioListenerLocalPosition()
 		{
-			AudioListenerTransform.localPosition = Vector3.zero;
+			Instance.AudioListenerTransform.localPosition = Geometry.Zero;
 		}
 	}
 }

@@ -68,6 +68,8 @@
 			base.Boot();
 		}
 
+		public bool HasLinkedEntity(Ulid linkID) => Registry.ContainsKey(linkID);
+
 		public bool TryGetLinkedEntity(Ulid linkID, out E entity)
 		{
 			return Registry.TryGetValue(linkID, out entity);

@@ -55,11 +55,21 @@ namespace Threadlink.Core.Subsystems.Dextra
 		{
 			OnSelect?.Invoke(this);
 			if (SyncSelection) Dextra.SyncSelection();
+			else Dextra.PublishEmptySelectionEvent();
 		}
 
 		void IDeselectHandler.OnDeselect(BaseEventData eventData)
 		{
 			OnDeselect?.Invoke(this);
+
+			//The code in OnSelect should be enough, but for some edge cases, uncommenting this should
+			//properly update the selection at all times.
+			/*var newSelectedElement = eventData.selectedObject;
+
+			if (newSelectedElement == null || !newSelectedElement.TryGetComponent<DextraButton>(out var button) || !button.SyncSelection)
+			{
+				Dextra.PublishEmptySelectionEvent();
+			}*/
 		}
 	}
 }

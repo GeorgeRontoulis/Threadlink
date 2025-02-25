@@ -107,7 +107,7 @@ MonoBehaviour:
       m_Calls: []
   m_ActionEvents: []
   m_NeverAutoSwitchControlSchemes: 0
-  m_DefaultControlScheme: Keyboard&Mouse
+  m_DefaultControlScheme: KeyboardAndMouse
   m_DefaultActionMap: Player
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
@@ -127,6 +127,6 @@ MonoBehaviour:
   eventSystem: {fileID: -3723733279200821361}
   uiModule: {fileID: -4789208448503080142}
   deviceDetector: {fileID: 8810402675517737953}
-  customInputModule: {fileID: 11400000, guid: e30bbe286e0c46746a362fc97de8050e, type: 2}
-  currentInputMode: -1
+  customInputModule: {fileID: 0}
+  currentInputMode: 0
   uiStateMachine: {fileID: 11400000, guid: 95a2acd0ba7e1fb4ea1f97ce761b56c5, type: 2}

@@ -27,7 +27,7 @@ using Editor.Attributes;
 	public sealed class Dextra : UnityWeaver<Dextra, UserInterface>, IInitializable, IAddressablesPreloader
 	{
 		public enum InputDevice : byte { MouseKeyboard, XBOXController, DualSense }
-		public enum InputMode : short { Unresponsive = -1, UI = 0, Player = 1 }
+		public enum InputMode : byte { Unresponsive, UI, Player }
 
 		public static InputMode CurrentInputMode
 		{
@@ -61,6 +61,9 @@ using Editor.Attributes;
 			}
 		}
 
+#if UNITY_EDITOR && ODIN_INSPECTOR
+		[ShowInInspector, ReadOnly]
+#endif
 		public static InputDevice CurrentInputDevice { get; private set; }
 
 		private static DextraInputModuleExtension CustomInputModule => Instance.customInputModule;
@@ -138,6 +141,13 @@ using Editor.Attributes;
 			var sm = Instance.uiStateMachine;
 
 			if (sm != null && sm.StackedInterfacesCount > 1) sm.Cancel();
+		}
+
+		public static void ClearStackedInterfaces()
+		{
+			var sm = Instance.uiStateMachine;
+
+			if (sm != null && sm.StackedInterfacesCount > 0) sm.ClearStack();
 		}
 		#endregion
 
