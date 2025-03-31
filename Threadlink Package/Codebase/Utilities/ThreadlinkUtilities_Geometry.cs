@@ -1,5 +1,6 @@
 namespace Threadlink.Utilities.Geometry
 {
+	using System.Runtime.CompilerServices;
 	using Unity.Mathematics;
 	using UnityEngine;
 
@@ -12,6 +13,7 @@ namespace Threadlink.Utilities.Geometry
 		public static readonly Vector3 Up = Vector3.up;
 		public static readonly Vector3 XZ = new(1f, 0f, 1f);
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool Approximately(Vector3 a, Vector3 b)
 		{
 			static bool Approx(float a, float b) => Mathf.Approximately(a, b);
@@ -19,16 +21,19 @@ namespace Threadlink.Utilities.Geometry
 			return Approx(a.x, b.x) && Approx(a.y, b.y) && Approx(a.z, b.z);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Vector2 ToUVCoordinates(this int2 input, int2 dimensions)
 		{
 			return new(input.x / (float)dimensions.x, input.y / (float)dimensions.y);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Vector2 ToScreenPosition(this Vector2 input, Vector2 dimensions)
 		{
 			return new(input.x * dimensions.x, input.y * dimensions.y);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Vector3 CubicInterpolation(Vector3 k0, Vector3 k1, float u)
 		{
 			float u2 = u * u;
@@ -36,6 +41,7 @@ namespace Threadlink.Utilities.Geometry
 			return k0 * (2 * u3 - 3 * u2 + 1) + k1 * (3 * u2 - 2 * u3);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Vector3 VectorTo(this Transform start, Transform end) => end.position - start.position;
 	}
 }

@@ -15,11 +15,10 @@ namespace Threadlink.Core
 	/// Base class for all Threadlink-Compatible Components.
 	/// </summary>
 	[RequireComponent(typeof(Transform))]
-	public abstract class LinkableBehaviour : MonoBehaviour, IDiscardable, ILinkable<Ulid>, ILinkable<string>
+	public abstract class LinkableBehaviour : MonoBehaviour, IDiscardable, IIdentifiable, INamable
 	{
-		public virtual Ulid LinkID { get; set; }
-		string ILinkable<string>.LinkID { get => name; set => name = value; }
-
+		public virtual int ID => GetInstanceID();
+		public virtual string Name => name;
 		public Transform CachedTransform => cachedTransform;
 
 		public event Action OnDiscard = null;
@@ -50,7 +49,6 @@ namespace Threadlink.Core
 		{
 			var behaviour = new GameObject(name, typeof(T)).GetComponent<T>();
 			behaviour.cachedTransform = behaviour.transform;
-			behaviour.LinkID = Ulid.NewUlid();
 
 			return behaviour;
 		}

@@ -1,14 +1,14 @@
-#if ENABLE_LOCALIZATION
+#if THREADLINK_LOCALIZATION
 namespace Threadlink.Templates.UIUtilities
 {
 	using UnityEngine;
 	using UnityEngine.Localization.Components;
+	using UnityEngine.Localization.Metadata;
+	using UnityEngine.Localization.Settings;
 
 #if UNITY_EDITOR
 #if ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
-	using UnityEngine.Localization.Metadata;
-	using UnityEngine.Localization.Settings;
 #elif THREADLINK_INSPECTOR
 	using Editor.Attributes;
 #endif

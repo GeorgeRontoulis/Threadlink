@@ -68,7 +68,7 @@
 		[ShowInInspector]
 		[ReadOnly]
 #endif
-		private readonly Dictionary<string, Ulid> ConstantIDsBuffer = new();
+		private readonly Dictionary<string, int> ConstantIDsBuffer = new();
 
 		[SerializeField] internal ThreadlinkPreferences preferences = null;
 
@@ -148,12 +148,12 @@
 		}
 
 		#region Miscellaneous:
-		public static bool TryGetConstantSingletonID(string singletonName, out Ulid result)
+		public static bool TryGetConstantSingletonID(string singletonName, out int result)
 		{
 			return Instance.ConstantIDsBuffer.TryGetValue(singletonName, out result);
 		}
 
-		public static void RegisterConstantSingletonID(string singletonName, Ulid result)
+		public static void RegisterConstantSingletonID(string singletonName, int result)
 		{
 			Instance.ConstantIDsBuffer.Add(singletonName, result);
 		}

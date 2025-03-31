@@ -6,37 +6,15 @@ namespace Threadlink.Utilities.Collections
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Linq;
-	using Unity.Mathematics;
 
 	public static class Collections
 	{
-		public static void PopulateWithNewInstances<T>(this IList<T> collection, int instanceCount) where T : new()
-		{
-			collection.Clear();
-			for (int i = 0; i < instanceCount; i++) collection.Add(new T());
-		}
-
-		public static bool IsRingCell(this int2 position, int dimSize)
-		{
-			var endIndex = dimSize - 1;
-			return position.x == 0 || position.x == endIndex || position.y == 0 || position.y == endIndex;
-		}
-
-		public static bool IsCornerCell(this int2 position, int dimSize)
-		{
-			var endIndex = dimSize - 1;
-			return (position.x == 0 && position.y == 0)
-			|| (position.x == 0 && position.y == endIndex)
-			|| (position.x == endIndex && position.y == 0)
-			|| (position.x == endIndex && position.y == endIndex);
-		}
-
 		public static bool IsWithinBoundsOf(this int index, ICollection collection)
 		{
 			return index >= 0 && index < collection.Count;
 		}
 
-		public static int BruteForceSearch<T>(this IReadOnlyList<T> collection, string key) where T : ILinkable<string>
+		public static int BruteForceSearch<T>(this IReadOnlyList<T> collection, string key) where T : INamable
 		{
 			if (string.IsNullOrEmpty(key)) return -1;
 
@@ -46,8 +24,8 @@ namespace Threadlink.Utilities.Collections
 			{
 				var element = collection[i];
 
-				if (element == null || string.IsNullOrEmpty(element.LinkID)) continue;
-				else if (element.LinkID.Equals(key)) return i;
+				if (element == null || string.IsNullOrEmpty(element.Name)) continue;
+				else if (element.Name.Equals(key)) return i;
 			}
 
 			return -1;
@@ -71,6 +49,28 @@ namespace Threadlink.Utilities.Collections
 
 			result = default;
 			return false;
+		}
+
+		public static int BinarySearch<T>(this IReadOnlyList<T> collection, string key) where T : INamable
+		{
+			int left = 0;
+			int right = collection.Count - 1;
+
+			while (left <= right)
+			{
+				int mid = left + ((right - left) >> 1); // Avoids potential overflow
+
+				int comparison = string.Compare(collection[mid].Name, key, StringComparison.Ordinal);
+
+				if (comparison == 0) return mid; // Match found
+
+				if (comparison < 0)
+					left = mid + 1; // Search right half
+				else
+					right = mid - 1; // Search left half
+			}
+
+			return ~left; // Not found, return bitwise complement of insertion point
 		}
 
 		public static void Filter<T>(this T[] source, List<T> destination, Func<T, bool> filter, int maxCount = -1, bool shuffle = true)

@@ -102,7 +102,7 @@ namespace Threadlink.Core.Subsystems.Aura
 			return linked;
 		}
 
-		public override bool TryDisconnect(Ulid linkID, out AuraSpatialEntity disconnectedEntity)
+		public override bool TryDisconnect(int linkID, out AuraSpatialEntity disconnectedEntity)
 		{
 			bool disconnected = base.TryDisconnect(linkID, out disconnectedEntity);
 

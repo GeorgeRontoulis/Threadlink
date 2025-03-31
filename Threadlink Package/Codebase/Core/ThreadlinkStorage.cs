@@ -11,7 +11,6 @@ namespace Threadlink.Core.StorageAPI
 #if UNITY_EDITOR
 #if ODIN_INSPECTOR
 	using Sirenix.OdinInspector;
-
 #elif THREADLINK_INSPECTOR
 	using Editor.Attributes;
 #endif
@@ -104,18 +103,20 @@ namespace Threadlink.Core.StorageAPI
 		{
 			for (int i = parcels.Count - 1; i >= 0; i--)
 			{
-				var original = parcels[i];
+				var parcel = parcels[i];
 
-				if (original.IsInstance || !original.allowCloning) continue;
+				if (parcel.IsInstance || !parcel.allowCloning) continue;
 
-				parcels[i] = original.Clone();
-				parcels[i].OnCloned();
+				parcel = parcel.Clone();
+
+				parcels[i] = parcel;
+				parcel.OnCloned();
 			}
 		}
 
 		public bool TryAdd<T>(string parcelName, out T parcel) where T : ThreadlinkParcel
 		{
-			bool result = IsInstance && parcels.BruteForceSearch(parcelName) >= 0;
+			bool result = IsInstance && parcels.BinarySearch(parcelName).IsWithinBoundsOf(parcels);
 
 			parcel = result ? Create<T>(parcelName) : null;
 
@@ -128,8 +129,8 @@ namespace Threadlink.Core.StorageAPI
 		{
 			if (IsInstance == false) return false;
 
-			int index = parcels.BruteForceSearch(parcelName);
-			bool result = index >= 0;
+			int index = parcels.BinarySearch(parcelName);
+			bool result = index.IsWithinBoundsOf(parcels);
 
 			if (result)
 			{
@@ -144,8 +145,8 @@ namespace Threadlink.Core.StorageAPI
 
 		public bool TryGet<T>(string parcelID, out ThreadlinkParcel<T> result)
 		{
-			int index = parcels.BruteForceSearch(parcelID);
-			bool validIndex = index >= 0;
+			int index = parcels.BinarySearch(parcelID);
+			bool validIndex = index.IsWithinBoundsOf(parcels);
 
 			result = validIndex ? parcels[index] as ThreadlinkParcel<T> : null;
 			return validIndex;
@@ -153,8 +154,8 @@ namespace Threadlink.Core.StorageAPI
 
 		public bool TryGet<T>(string parcelID, out T result) where T : ThreadlinkParcel
 		{
-			int index = parcels.BruteForceSearch(parcelID);
-			bool validIndex = index >= 0;
+			int index = parcels.BinarySearch(parcelID);
+			bool validIndex = index.IsWithinBoundsOf(parcels);
 
 			result = validIndex ? parcels[index] as T : null;
 			return validIndex;
@@ -186,8 +187,8 @@ namespace Threadlink.Core.StorageAPI
 
 		public T ValueOf<T>(string parcelID)
 		{
-			int index = parcels.BruteForceSearch(parcelID);
-			return index >= 0 && parcels[index] is ThreadlinkParcel<T> castParcel ? castParcel.Value : default;
+			int index = parcels.BinarySearch(parcelID);
+			return index.IsWithinBoundsOf(parcels) && parcels[index] is ThreadlinkParcel<T> castParcel ? castParcel.Value : default;
 		}
 
 		public bool TrySet<T>(string parcelID, T newValue)

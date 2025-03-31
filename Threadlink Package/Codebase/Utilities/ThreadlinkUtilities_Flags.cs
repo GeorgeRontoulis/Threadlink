@@ -6,8 +6,18 @@ namespace Threadlink.Utilities.Flags
 	using Unity.Collections.LowLevel.Unsafe;
 #endif
 
+	public static class Enums
+	{
+		public static T[] ToArray<T>() where T : Enum => (T[])Enum.GetValues(typeof(T));
+	}
+
 	public static class Flags
 	{
+#if CSHARP_7_3_OR_NEWER
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#else
+		[MethodImpl((MethodImplOptions)256)]
+#endif
 		public static bool HasFlagUnsafe<TEnum>(this TEnum lhs, TEnum rhs) where TEnum :
 #if CSHARP_7_3_OR_NEWER
 			unmanaged, Enum

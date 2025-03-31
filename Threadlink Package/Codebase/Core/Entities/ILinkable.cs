@@ -1,9 +1,7 @@
 ﻿namespace Threadlink.Core
 {
-	/// <summary>
-	/// Base interface for Threadlink-Compatible entities that can be queried at runtime.
-	/// </summary>
-	public interface ILinkable<T> { public T LinkID { get; set; } }
+	public interface INamable { public string Name { get; } }
+	public interface IIdentifiable { public int ID { get; } }
 
 	/// <summary>
 	/// Boot = Unity's Awake

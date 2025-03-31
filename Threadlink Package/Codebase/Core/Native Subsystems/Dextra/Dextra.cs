@@ -140,7 +140,7 @@ using Editor.Attributes;
 		{
 			var sm = Instance.uiStateMachine;
 
-			if (sm != null && sm.StackedInterfacesCount > 1) sm.Cancel();
+			if (sm != null) sm.Cancel();
 		}
 
 		public static void ClearStackedInterfaces()

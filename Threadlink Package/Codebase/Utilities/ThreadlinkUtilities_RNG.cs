@@ -1,21 +1,53 @@
 namespace Threadlink.Utilities.RNG
 {
 	using System.Collections.Generic;
+	using System.Runtime.CompilerServices;
 	using UnityEngine;
 
-	public interface IRNGWeighted { public bool RandomWeightEvaluation { get; } }
-
+	/// <summary>
+	/// Non-deterministic RNG library using System.Random under the hood.
+	/// </summary>
 	public static class RNG
 	{
+		/// <summary>
+		/// Deterministic variant using UnityEngine.Random under the hood.
+		/// Use this to replicate game state for debugging and testing purposes.
+		/// </summary>
+		public static class Unity
+		{
+			public static bool Coinflip => IntegerFromRange(0, 2) > 0;
+			public static float NormalizedFloat => Random.value;
+
+			public static int NewRandomSeed
+			{
+				get
+				{
+					int seed = RNG.IntegerFromRange(int.MinValue, int.MaxValue);
+					Random.InitState(seed);
+					return seed;
+				}
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static int IntegerFromRange(int minInclusive, int maxExclusive) => Random.Range(minInclusive, maxExclusive);
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static float FloatFromRange(float minInclusive, float maxInclusive) => Random.Range(minInclusive, maxInclusive);
+		}
+
 		public static double NextDoubleAugmented => NextDouble * (1.0 + Mathf.Epsilon);
 		public static double NextDouble => Generator.NextDouble();
 		public static bool Coinflip => IntegerFromRange(0, 2) > 0;
 
 		private static readonly System.Random Generator = new();
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int IntegerFromRange(int minInclusive, int maxExclusive) => Generator.Next(minInclusive, maxExclusive);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static float FloatFromRange(float min, float max) => (float)(NextDoubleAugmented * (max - min) + min);
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool RandomlyEvaluateWeight(float weight)
 		{
 			float randomFloat = (float)NextDoubleAugmented;
@@ -23,6 +55,7 @@ namespace Threadlink.Utilities.RNG
 			return randomFloat < weight || Mathf.Approximately(randomFloat, weight);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Color RandomColor(float alpha)
 		{
 			static float ColorValue() => (float)NextDoubleAugmented;
@@ -30,6 +63,7 @@ namespace Threadlink.Utilities.RNG
 			return new(ColorValue(), ColorValue(), ColorValue(), alpha);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void RandomPositionInVolume(Transform volumeTransform, Vector3 volumeCenter, Vector3 volumeSize, out Vector3 result)
 		{
 			float x = volumeSize.x * 0.5f;
@@ -43,6 +77,7 @@ namespace Threadlink.Utilities.RNG
 			result = volumeTransform.position + volumeCenter + volumeTransform.TransformDirection(volumeSize);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Shuffle<T>(this IList<T> list)
 		{
 			int n = list.Count;
@@ -56,6 +91,7 @@ namespace Threadlink.Utilities.RNG
 			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Shuffle<T>(this T[] array)
 		{
 			int n = array.Length;
@@ -69,6 +105,7 @@ namespace Threadlink.Utilities.RNG
 			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T[,] Shuffle<T>(this T[,] array)
 		{
 			int rows = array.GetLength(0);

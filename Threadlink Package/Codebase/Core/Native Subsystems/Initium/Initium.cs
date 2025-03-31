@@ -6,8 +6,6 @@ namespace Threadlink.Core.Subsystems.Initium
 	using UnityEngine;
 
 	public interface IInitiumDiscoverable { }
-	public interface IBootDiscoverable : IInitiumDiscoverable, IBootable { }
-	public interface IInitializationDiscoverable : IInitiumDiscoverable, IInitializable { }
 
 	public static class Initium
 	{

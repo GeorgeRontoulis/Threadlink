@@ -104,6 +104,25 @@ namespace Threadlink.Core.Subsystems.Scribe
 		}
 
 		#region Text Operations:
+		public static void SplitByPunctuation(this string input, List<string> buffer)
+		{
+			if (string.IsNullOrEmpty(input) || buffer == null) return;
+
+			const string pattern = @"([^.!?]*[.!?])";
+
+			buffer.Clear();
+
+			var matches = Regex.Matches(input, pattern);
+
+			foreach (Match match in matches)
+			{
+				string sentence = match.Value.Trim();
+
+				if (sentence.Length > 0) buffer.Add(sentence);
+			}
+		}
+
+
 		public static string FirstToUpper(this string input)
 		{
 			if (string.IsNullOrEmpty(input)) return input;

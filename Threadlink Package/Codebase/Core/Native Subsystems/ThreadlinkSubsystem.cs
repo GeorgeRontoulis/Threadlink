@@ -2,9 +2,7 @@
 {
 	using Core.Exceptions;
 	using Cysharp.Threading.Tasks;
-	using ExtensionMethods;
 	using Subsystems.Scribe;
-	using System;
 	using System.Collections.Generic;
 
 #if UNITY_EDITOR && ODIN_INSPECTOR
@@ -12,7 +10,6 @@
 #endif
 
 	public interface IUnityWeaver<S, E> : IThreadlinkSingleton<S> { public T Weave<T>(T original) where T : E; }
-	public interface INativeWeaver<S, E> : IThreadlinkSingleton<S> { public T Weave<T>() where T : E, new(); }
 	public interface IAddressablesPreloader { public UniTask PreloadAssetsAsync(); }
 
 	public abstract class ThreadlinkSubsystem : LinkableBehaviour, IBootable
@@ -42,12 +39,12 @@
 
 	public abstract class Register<S, E> : ThreadlinkSubsystem<S>
 	where S : Register<S, E>
-	where E : ILinkable<Ulid>
+	where E : IIdentifiable
 	{
 #if UNITY_EDITOR && ODIN_INSPECTOR
 		[ShowInInspector, ReadOnly]
 #endif
-		protected Dictionary<Ulid, E> Registry { get; private set; }
+		protected Dictionary<int, E> Registry { get; private set; }
 
 		protected void ClearRegistry(bool trimRegistry = false)
 		{
@@ -68,12 +65,8 @@
 			base.Boot();
 		}
 
-		public bool HasLinkedEntity(Ulid linkID) => Registry.ContainsKey(linkID);
-
-		public bool TryGetLinkedEntity(Ulid linkID, out E entity)
-		{
-			return Registry.TryGetValue(linkID, out entity);
-		}
+		public bool HasLinkedEntity(int linkID) => Registry.ContainsKey(linkID);
+		public bool TryGetLinkedEntity(int linkID, out E entity) => Registry.TryGetValue(linkID, out entity);
 
 		public bool TryGetLinkedEntity(string singletonID, out E entity)
 		{
@@ -83,37 +76,24 @@
 				return false;
 			}
 
-			return Registry.TryGetValue(id, out entity);
+			return Registry.TryGetValue(id, out entity) && entity != null;
 		}
 	}
 
 	public abstract class Linker<S, E> : Register<S, E>
 	where S : Linker<S, E>
-	where E : ILinkable<Ulid>
+	where E : IIdentifiable
 	{
-		public virtual bool TryLink(E entity)
-		{
-			if (entity.LinkID.Equals(Ulid.Empty)) entity.LinkID = Ulid.NewUlid();
-
-			return Registry.TryAdd(entity.LinkID, entity);
-		}
-
-		public virtual bool TryDisconnect(Ulid linkID, out E disconnectedEntity)
-		{
-			return Registry.Remove(linkID, out disconnectedEntity);
-		}
-
-		public virtual void DisconnectAll(bool trimRegistry)
-		{
-			ClearRegistry(trimRegistry);
-		}
+		public virtual bool TryLink(E entity) => Registry.TryAdd(entity.ID, entity);
+		public virtual bool TryDisconnect(int linkID, out E disconnectedEntity) => Registry.Remove(linkID, out disconnectedEntity);
+		public virtual void DisconnectAll(bool trimRegistry) => ClearRegistry(trimRegistry);
 	}
 
 	public abstract class Weaver<S, E> : Register<S, E>
 	where S : Weaver<S, E>
-	where E : IDiscardable, ILinkable<Ulid>
+	where E : IDiscardable, IIdentifiable
 	{
-		public virtual bool TrySever(Ulid linkID)
+		public virtual bool TrySever(int linkID)
 		{
 			bool severed = Registry.Remove(linkID, out var handle);
 
@@ -139,22 +119,17 @@
 
 	public abstract class UnityWeaver<S, E> : Weaver<S, E>, IUnityWeaver<S, E>
 	where S : UnityWeaver<S, E>
-	where E : UnityEngine.Object, IDiscardable, ILinkable<Ulid>
+	where E : UnityEngine.Object, IDiscardable, IIdentifiable
 	{
 		public virtual T Weave<T>(T original) where T : E
 		{
 			static T CreateNewInstance(ref T original)
 			{
-				if (original is LinkableAsset asset)
-					return asset.Clone() as T;
-				else
-				{
-					var newInstance = Instantiate(original);
-					newInstance.name = original.name;
-					newInstance.LinkID = Ulid.NewUlid();
+				var newInstance = Instantiate(original);
+				newInstance.name = original.name;
+				if (newInstance is LinkableAsset asset) asset.IsInstance = true;
 
-					return newInstance;
-				}
+				return newInstance;
 			}
 
 			if (original is IThreadlinkSingleton)
@@ -168,8 +143,8 @@
 				{
 					var singleton = CreateNewInstance(ref original);
 
-					Threadlink.RegisterConstantSingletonID(singleton.name, singleton.LinkID);
-					Registry.Add(singleton.LinkID, singleton);
+					Threadlink.RegisterConstantSingletonID(singleton.name, singleton.ID);
+					Registry.Add(singleton.ID, singleton);
 
 					if (singleton is not ThreadlinkSubsystem) DontDestroyOnLoad(singleton);
 					return singleton;
@@ -178,46 +153,7 @@
 			else
 			{
 				var entity = CreateNewInstance(ref original);
-				Registry.Add(entity.LinkID, entity);
-
-				return entity;
-			}
-		}
-	}
-
-	public abstract class NativeWeaver<S, E> : Weaver<S, E>, INativeWeaver<S, E>
-	where S : NativeWeaver<S, E>
-	where E : IDiscardable, ILinkable<Ulid>, new()
-	{
-		public virtual T Weave<T>() where T : E, new()
-		{
-			static T CreateNewInstance() => new() { LinkID = Ulid.NewUlid() };
-
-			var type = typeof(T);
-
-			if (typeof(IThreadlinkSingleton).IsAssignableFrom(type))
-			{
-				if (Threadlink.TryGetConstantSingletonID(type.Name, out var id))
-				{
-					if (TryGetLinkedEntity(id, out var singleton) && singleton.Equals(default) == false) return (T)singleton;
-					else throw new CorruptConstantsBufferException(Scribe.FromSubsystem<S>("Constant IDs Buffer mismatch detected!").ToString());
-				}
-				else
-				{
-					var singleton = CreateNewInstance();
-
-					Threadlink.RegisterConstantSingletonID(type.Name, singleton.LinkID);
-					Registry.Add(singleton.LinkID, singleton);
-
-					(singleton as IThreadlinkSingleton).Boot();
-
-					return singleton;
-				}
-			}
-			else
-			{
-				var entity = CreateNewInstance();
-				Registry.Add(entity.LinkID, entity);
+				Registry.Add(entity.ID, entity);
 
 				return entity;
 			}

@@ -50,7 +50,7 @@ namespace Threadlink.Core.Subsystems.Dextra
 
 		protected internal virtual void SelectLastSelectedButton()
 		{
-			Dextra.SelectUIElement(LastSelectedButton.gameObject).Forget();
+			if (LastSelectedButton != null) Dextra.SelectUIElement(LastSelectedButton.gameObject).Forget();
 		}
 
 		public override void OnStacked()
