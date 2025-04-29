@@ -193,6 +193,8 @@ namespace Threadlink.Editor
 				}
 			}
 
+			storage.Parcels.Sort((p1, p2) => string.Compare(p1.Name, p2.Name));
+
 			AssetDatabase.SaveAssets();
 			AssetDatabase.Refresh();
 

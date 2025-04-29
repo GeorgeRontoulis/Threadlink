@@ -13,7 +13,16 @@ namespace Threadlink.Utilities.Mathematics
 		public static float NormalizeBetween(this float target, float min, float max)
 		{
 			float dif = max - min;
-			if (Mathf.Approximately(dif, 0f)) throw new DivideByZeroException();
+			if (Mathf.Approximately(dif, 0f)) dif = 1;
+
+			return (target - min) / dif;
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static double NormalizeBetween(this double target, double min, double max)
+		{
+			double dif = max - min;
+			if (dif == 0d) dif = 1;
 
 			return (target - min) / dif;
 		}
@@ -22,7 +31,7 @@ namespace Threadlink.Utilities.Mathematics
 		public static float NormalizeBetween(this int target, float min, float max)
 		{
 			float dif = max - min;
-			if (Mathf.Approximately(dif, 0f)) throw new DivideByZeroException();
+			if (Mathf.Approximately(dif, 0f)) dif = 1;
 
 			return (target - min) / dif;
 		}

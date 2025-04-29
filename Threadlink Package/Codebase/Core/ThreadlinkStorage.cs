@@ -36,11 +36,9 @@ namespace Threadlink.Core.StorageAPI
 		}
 	}
 
-	public abstract class ThreadlinkParcel : LinkableAsset, IComparable<string>
+	public abstract class ThreadlinkParcel : LinkableAsset
 	{
 		public bool allowCloning = false;
-
-		public int CompareTo(string other) => string.Compare(name, other);
 
 		public virtual void OnCloned() { }
 	}

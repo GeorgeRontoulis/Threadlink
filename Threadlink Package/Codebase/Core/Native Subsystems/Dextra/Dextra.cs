@@ -3,8 +3,6 @@ namespace Threadlink.Core.Subsystems.Dextra
 	using Core;
 	using Core.ExtensionMethods;
 	using Cysharp.Threading.Tasks;
-	using Extensions;
-	using Initium;
 	using Propagator;
 	using System;
 	using UnityEngine;
@@ -66,7 +64,6 @@ using Editor.Attributes;
 #endif
 		public static InputDevice CurrentInputDevice { get; private set; }
 
-		private static DextraInputModuleExtension CustomInputModule => Instance.customInputModule;
 		private static Gamepad CurrentGamepad => Gamepad.current;
 		private static EventSystem EventSystem => Instance.eventSystem;
 
@@ -74,7 +71,6 @@ using Editor.Attributes;
 		[SerializeField] private EventSystem eventSystem = null;
 		[SerializeField] private InputSystemUIInputModule uiModule = null;
 		[SerializeField] private PlayerInput deviceDetector = null;
-		[SerializeField] private DextraInputModuleExtension customInputModule = null;
 
 		[Space(10)]
 
@@ -92,14 +88,11 @@ using Editor.Attributes;
 
 			deviceDetector.onControlsChanged -= UpdateInputDevice;
 
-			if (customInputModule != null) customInputModule.Discard();
-
 			SeverAll();
 
 			uiStateMachine = null;
 			eventSystem = null;
 			deviceDetector = null;
-			customInputModule = null;
 
 			base.Discard();
 		}
@@ -115,12 +108,6 @@ using Editor.Attributes;
 			}
 
 			deviceDetector.onControlsChanged += UpdateInputDevice;
-
-			if (customInputModule != null)
-			{
-				customInputModule = customInputModule.Clone();
-				Initium.Boot(customInputModule);
-			}
 		}
 
 		public void Initialize()
@@ -238,11 +225,6 @@ using Editor.Attributes;
 		#endregion
 
 		#region Input Code:
-		public static T GetCustomInputModule<T>() where T : DextraInputModuleExtension
-		{
-			return CustomInputModule == null ? null : CustomInputModule as T;
-		}
-
 		private static void UpdateInputDevice(PlayerInput input)
 		{
 			var newDevice = CurrentInputDevice;

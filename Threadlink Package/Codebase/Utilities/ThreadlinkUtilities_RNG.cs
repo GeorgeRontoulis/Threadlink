@@ -28,6 +28,12 @@ namespace Threadlink.Utilities.RNG
 				}
 			}
 
+			public static int ForceConstantSeed(int seed)
+			{
+				Random.InitState(seed);
+				return seed;
+			}
+
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static int IntegerFromRange(int minInclusive, int maxExclusive) => Random.Range(minInclusive, maxExclusive);
 
