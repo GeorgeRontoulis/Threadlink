@@ -1,9 +1,9 @@
 namespace Threadlink.StateMachines
 {
 	using Core;
-	using Core.StorageAPI;
-	using Core.StorageAPI.ExtensionMethods;
+	using Core.ExtensionMethods;
 	using Core.Subsystems.Propagator;
+	using Core.Subsystems.Vault;
 	using Processors;
 	using States;
 	using System;
@@ -11,64 +11,63 @@ namespace Threadlink.StateMachines
 	namespace ExtensionMethods
 	{
 		using Core.ExtensionMethods;
-		using Core.StorageAPI.ExtensionMethods;
 
 		public static class ExtensionMethods
 		{
 			/// <summary>
-			/// Timesaver method for deploying a copy of the original state machine provided. 
+			/// Timesaver method for deploying a copy of an existing state machine reference.
+			/// Can be useful if you have derived from the base class to create your own state machines.
 			/// Always pass instances of processors and states when calling this method!
 			/// </summary>
 			/// <typeparam name="T">The desried type of state machine.</typeparam>
-			/// <returns>The state machine copy in the desired type.</returns>
-			public static T Deploy<T>(this BaseStateMachine original, ref ThreadlinkStorage paramStorage, IProcessor[] processors, IState[] states)
-			where T : BaseStateMachine
+			/// <returns>The state machine copy as the specified type.</returns>
+			public static T Deploy<T>(this StateMachine original, Vault parameters, IProcessor[] processors, IState[] states)
+			where T : StateMachine
 			{
 				var clone = original.Clone();
 
 				clone.States = states;
 				clone.Processors = processors;
-				clone.ParameterStorage = paramStorage.Deploy();
+				clone.Parameters = parameters.IsInstance ? parameters : parameters.Clone();
 
-				clone.Boot(paramStorage);
+				clone.Boot();
 
 				return clone as T;
 			}
 		}
 	}
 
-	public enum UpdateMode { Update, FixedUpdate, LateUpdate }
+	public enum UpdateMode : byte { Update, FixedUpdate, LateUpdate }
 
-	public abstract class BaseStateMachine : LinkableAsset
+	public abstract class StateMachine : LinkableAsset, IBootable
 	{
 		public IState[] States { get; internal set; }
 		public IProcessor[] Processors { get; internal set; }
 
 		public IState CurrentState { get; protected set; }
 
-		internal ThreadlinkStorage ParameterStorage { get; set; }
+		public Vault Parameters { get; internal set; }
 
-		protected event Action<ThreadlinkStorage> OnUpdate = null;
-		protected event Action<ThreadlinkStorage> OnFixedUpdate = null;
-		protected event Action<ThreadlinkStorage> OnLateUpdate = null;
-
+		protected event Action<Vault> OnUpdate = null;
+		protected event Action<Vault> OnFixedUpdate = null;
+		protected event Action<Vault> OnLateUpdate = null;
 
 		/// <summary>
 		/// Timesaver method for deploying a new state machine. 
 		/// Always pass instances of processors and states when calling this method!
 		/// </summary>
 		/// <typeparam name="T">The desried type of state machine.</typeparam>
-		/// <returns>The newly created state machine in the desired type.</returns>
-		public static T Deploy<T>(string name, ref ThreadlinkStorage paramStorage, IProcessor[] processors, IState[] states)
-		where T : BaseStateMachine
+		/// <returns>The new state machine as the specified type.</returns>
+		public static T Deploy<T>(string name, Vault parameters, IProcessor[] processors, IState[] states)
+		where T : StateMachine
 		{
 			var newStateMachine = Create<T>(name);
 
 			newStateMachine.States = states;
 			newStateMachine.Processors = processors;
-			newStateMachine.ParameterStorage = paramStorage.Deploy();
+			newStateMachine.Parameters = parameters.IsInstance ? parameters : parameters.Clone();
 
-			newStateMachine.Boot(paramStorage);
+			newStateMachine.Boot();
 
 			return newStateMachine;
 		}
@@ -83,37 +82,35 @@ namespace Threadlink.StateMachines
 			OnFixedUpdate = null;
 			OnLateUpdate = null;
 
-			if (CurrentState is IDiscardable currentState) currentState.Discard();
+			if (CurrentState != default) CurrentState.Discard();
 
 			int length = Processors.Length;
-
-			for (int i = 0; i < length; i++) if (Processors[i] is IDiscardable processor) processor.Discard();
+			for (int i = 0; i < length; i++) Processors[i].Discard();
 
 			length = States.Length;
-
-			for (int i = 0; i < length; i++) if (States[i] is IDiscardable processor) processor.Discard();
+			for (int i = 0; i < length; i++) States[i].Discard();
 
 			CurrentState = default;
 			States = null;
 			Processors = null;
 
-			if (IsInstance)
+			if (IsInstance && Parameters != null)
 			{
-				ParameterStorage.Discard();
-				ParameterStorage = null;
+				if (Parameters.IsInstance) Parameters.Discard();
+				Parameters = null;
 			}
 
 			base.Discard();
 		}
 
-		public virtual void Boot(ThreadlinkStorage paramStorage)
+		public virtual void Boot()
 		{
 			int length = Processors.Length;
 			for (int i = 0; i < length; i++)
 			{
 				var processor = Processors[i];
 
-				processor.Boot(paramStorage);
+				processor.Boot(Parameters);
 
 				switch (processor.Mode)
 				{
@@ -130,126 +127,82 @@ namespace Threadlink.StateMachines
 			}
 
 			length = States.Length;
-			for (int i = 0; i < length; i++) States[i].Boot(paramStorage);
+			for (int i = 0; i < length; i++) States[i].Boot(Parameters);
 
 			Propagator.Subscribe<Action>(PropagatorEvents.OnUpdate, Update);
 			Propagator.Subscribe<Action>(PropagatorEvents.OnFixedUpdate, FixedUpdate);
 			Propagator.Subscribe<Action>(PropagatorEvents.OnLateUpdate, LateUpdate);
 
-			if (length > 0)
-			{
-				CurrentState = States[0];
-				CurrentState.OnEnter(ParameterStorage);
-
-				if (CurrentState is IUpdatableState updatableState)
-				{
-					switch (updatableState.UpdateMode)
-					{
-						case UpdateMode.Update:
-						OnUpdate += updatableState.OnUpdate;
-						break;
-						case UpdateMode.FixedUpdate:
-						OnFixedUpdate += updatableState.OnUpdate;
-						break;
-						case UpdateMode.LateUpdate:
-						OnLateUpdate += updatableState.OnUpdate;
-						break;
-					}
-				}
-			}
+			if (length > 0) Enter(States[0]);
 		}
 
 		public virtual void SwitchTo(IState newState)
 		{
-			if (CurrentState != default)
-			{
-				if (CurrentState is IUpdatableState updatableState)
-				{
-					switch (updatableState.UpdateMode)
-					{
-						case UpdateMode.Update:
-						OnUpdate -= updatableState.OnUpdate;
-						break;
-						case UpdateMode.FixedUpdate:
-						OnFixedUpdate -= updatableState.OnUpdate;
-						break;
-						case UpdateMode.LateUpdate:
-						OnLateUpdate -= updatableState.OnUpdate;
-						break;
-					}
-				}
-
-				CurrentState.OnExit(ParameterStorage);
-			}
-
-			CurrentState = newState;
-			CurrentState.OnEnter(ParameterStorage);
-
-			if (CurrentState is IUpdatableState newUpdatableState)
-			{
-				switch (newUpdatableState.UpdateMode)
-				{
-					case UpdateMode.Update:
-					OnUpdate += newUpdatableState.OnUpdate;
-					break;
-					case UpdateMode.FixedUpdate:
-					OnFixedUpdate += newUpdatableState.OnUpdate;
-					break;
-					case UpdateMode.LateUpdate:
-					OnLateUpdate += newUpdatableState.OnUpdate;
-					break;
-				}
-			}
+			ExitCurrentState();
+			Enter(newState);
 		}
 
-		public virtual void SwitchTo<T>(IState newState, T stateData)
+		public virtual void SwitchTo<T>(IScriptableState<T> newState, T stateData)
+		{
+			ExitCurrentState();
+			newState.Preprocess(stateData);
+			Enter(newState);
+		}
+
+		private void ExitCurrentState()
 		{
 			if (CurrentState != default)
 			{
 				if (CurrentState is IUpdatableState updatableState)
 				{
+					Action<Vault> action = updatableState.OnUpdate;
+
 					switch (updatableState.UpdateMode)
 					{
 						case UpdateMode.Update:
-						OnUpdate -= updatableState.OnUpdate;
+						OnUpdate -= action;
 						break;
 						case UpdateMode.FixedUpdate:
-						OnFixedUpdate -= updatableState.OnUpdate;
+						OnFixedUpdate -= action;
 						break;
 						case UpdateMode.LateUpdate:
-						OnLateUpdate -= updatableState.OnUpdate;
+						OnLateUpdate -= action;
 						break;
 					}
 				}
 
-				CurrentState.OnExit(ParameterStorage);
-			}
-
-			CurrentState = newState;
-
-			if (CurrentState is IScriptableState<T> scriptableState) scriptableState.Preprocess(stateData);
-
-			CurrentState.OnEnter(ParameterStorage);
-
-			if (CurrentState is IUpdatableState newUpdatableState)
-			{
-				switch (newUpdatableState.UpdateMode)
-				{
-					case UpdateMode.Update:
-					OnUpdate += newUpdatableState.OnUpdate;
-					break;
-					case UpdateMode.FixedUpdate:
-					OnFixedUpdate += newUpdatableState.OnUpdate;
-					break;
-					case UpdateMode.LateUpdate:
-					OnLateUpdate += newUpdatableState.OnUpdate;
-					break;
-				}
+				CurrentState.OnExit(Parameters);
+				CurrentState = default;
 			}
 		}
 
-		private void Update() => OnUpdate?.Invoke(ParameterStorage);
-		private void FixedUpdate() => OnFixedUpdate?.Invoke(ParameterStorage);
-		private void LateUpdate() => OnLateUpdate?.Invoke(ParameterStorage);
+		private void Enter(IState newState)
+		{
+			newState.OnEnter(Parameters);
+
+			if (newState is IUpdatableState newUpdatableState)
+			{
+				Action<Vault> action = newUpdatableState.OnUpdate;
+
+				switch (newUpdatableState.UpdateMode)
+				{
+					case UpdateMode.Update:
+					OnUpdate += action;
+					break;
+					case UpdateMode.FixedUpdate:
+					OnFixedUpdate += action;
+					break;
+					case UpdateMode.LateUpdate:
+					OnLateUpdate += action;
+					break;
+				}
+			}
+
+			CurrentState = newState;
+		}
+
+		private void Update() => OnUpdate?.Invoke(Parameters);
+		private void FixedUpdate() => OnFixedUpdate?.Invoke(Parameters);
+		private void LateUpdate() => OnLateUpdate?.Invoke(Parameters);
 	}
 }

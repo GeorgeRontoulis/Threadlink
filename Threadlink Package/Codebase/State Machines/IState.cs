@@ -1,15 +1,16 @@
 namespace Threadlink.StateMachines.States
 {
-	using Core.StorageAPI;
+	using Core.Subsystems.Vault;
+	using Core;
 
 	/// <summary>
 	/// Representation of a simple state with basic callbacks.
 	/// </summary>
-	public interface IState
+	public interface IState : IDiscardable
 	{
-		public void Boot(ThreadlinkStorage paramStorage);
-		public void OnEnter(ThreadlinkStorage paramStorage);
-		public void OnExit(ThreadlinkStorage paramStorage);
+		public void Boot(Vault parameters);
+		public void OnEnter(Vault parameters);
+		public void OnExit(Vault parameters);
 	}
 
 	/// <summary>
@@ -22,12 +23,13 @@ namespace Threadlink.StateMachines.States
 	}
 
 	/// <summary>
-	/// Representation of a state that can run per-frame logic.
+	/// Representation of a state that can run in intervals
+	/// according to the specified <see cref="UpdateMode"/>.
 	/// </summary>
 	public interface IUpdatableState : IState
 	{
 		public UpdateMode UpdateMode { get; }
 
-		public void OnUpdate(ThreadlinkStorage paramStorage);
+		public void OnUpdate(Vault parameters);
 	}
 }
