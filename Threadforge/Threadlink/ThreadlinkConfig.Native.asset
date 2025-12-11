@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fffe0b07706603d44870cc5203288474, type: 3}
+  m_Name: ThreadlinkConfig.Native
+  m_EditorClassIdentifier: Threadlink.Runtime::Threadlink.Core.ThreadlinkNativeConfig
+  userConfig:
+    m_AssetGUID: 061b003e96918214e8d8925cd84fc0b2
+    m_SubObjectName: 
+    m_SubObjectType: 
+    m_SubObjectGUID: 
+    m_EditorAssetChanged: 0
+  sentinelConfig:
+    m_AssetGUID: f50adf5c1dc539944bdc094ff28c9303
+    m_SubObjectName: 
+    m_SubObjectType: 
+    m_SubObjectGUID: 
+    m_EditorAssetChanged: 0
+  dextraDependenciesPrefab:
+    m_AssetGUID: 0574e06bb8693804daf25e1e49504948
+    m_SubObjectName: 
+    m_SubObjectType: 
+    m_SubObjectGUID: 
+    m_EditorAssetChanged: 0

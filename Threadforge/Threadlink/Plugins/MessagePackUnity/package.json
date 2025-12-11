@@ -1,0 +1,13 @@
+{
+  "name": "com.github.messagepack-csharp",
+  "displayName": "MessagePack",
+  "version": "3.1.4",
+  "unity": "2021.3",
+  "description": "Extremely Fast MessagePack Serializer for C#.",
+  "keywords": [
+    "Serializer"
+  ],
+  "license": "MIT",
+  "category": "Scripting",
+  "_fingerprint": "6553eee8cc51aa1e8369c976618a2f3a41cbf0fd"
+}

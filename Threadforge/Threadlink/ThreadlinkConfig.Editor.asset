@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d2eaefba841019f42a7bbb0583e7c65c, type: 3}
+  m_Name: ThreadlinkConfig.Editor
+  m_EditorClassIdentifier: Threadlink.Editor::Threadlink.Editor.ThreadlinkEditorConfig
+  nativeIrisEventsTemplate: {fileID: 4900000, guid: 80d7ef5e5302f3c418aaa08277cf205a, type: 3}
+  userIrisEventsTemplate: {fileID: 4900000, guid: 6801d28faf4886047ac1c9650f15e809, type: 3}
+  irisEventsScript: {fileID: 11500000, guid: 96b3536504e14a2429d0e42954a6470a, type: 3}
+  assetGroupsTemplate: {fileID: 4900000, guid: 3fc630b161953974db3cd0780a3dc3d9, type: 3}
+  assetGroupsScript: {fileID: 11500000, guid: fef05a72d6d12f047b3ecb0d493cf289, type: 3}

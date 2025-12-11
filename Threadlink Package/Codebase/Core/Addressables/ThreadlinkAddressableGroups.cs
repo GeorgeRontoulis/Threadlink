@@ -1,4 +1,0 @@
-namespace Threadlink.Addressables
-{
-    public enum ThreadlinkAddressableGroup : uint { }
-}
