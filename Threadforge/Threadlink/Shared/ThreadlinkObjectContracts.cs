@@ -1,5 +1,7 @@
 ﻿namespace Threadlink.Shared
 {
+    using Cysharp.Threading.Tasks;
+
     /// <summary>
     /// Contract ensuring the existence of a name for use in collections.
     /// </summary>
@@ -69,4 +71,33 @@
     {
         public static T Instance { get; }
     }
+
+    /// <summary>
+    /// Base interface for objects meant to asynchronously consume serialized binary data during a loading or initialization step.
+    /// How that data is deserialized or consumed is up to the user.
+    /// </summary>
+    public interface IAsyncBinaryConsumer
+    {
+        /// <summary>
+        /// Asynchronously process any binary files the consumer depends on.
+        /// </summary>
+        /// <returns></returns>
+        public UniTask ConsumeBinariesAsync();
+    }
+
+#if UNITY_EDITOR
+    /// <summary>
+    /// Editor-Only interface for objects containing authoring data which can then be serialized into binary and stored inside the project.
+    /// The binary file can then be loaded on any platform through the <see cref="UnityEngine.AddressableAssets"/> Pipeline.
+    /// Use this in conjunction with the <see cref="UnityEngine.ContextMenu"/> attribute, 
+    /// Odin or some other custom-drawn button to easily call <see cref="SerializeAuthoringDataIntoBinary"/> from your inspector.
+    /// </summary>
+    public interface IBinaryAuthor
+    {
+        /// <summary>
+        /// Serialize the author's data into binary and store the resulting file(s) inside the project.
+        /// </summary>
+        public void SerializeAuthoringDataIntoBinary();
+    }
+#endif
 }

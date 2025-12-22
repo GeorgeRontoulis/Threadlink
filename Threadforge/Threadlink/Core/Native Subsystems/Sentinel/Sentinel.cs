@@ -6,7 +6,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
     using UnityEngine;
 
     /// <summary>
-    /// Threadlink's environment-aware IO System.
+    /// Threadlink's environment-aware IO Subsystem.
     /// The purpose of this system is to allow for a singular entry point for read/write operations during the game's lifecycle.
     /// How data is serialized/deserialized is entirely customizable, however it should always be in bytes.
     /// Non-byte serialization schemes like JSON are not supported, since all environments typically work with bytes.
@@ -20,7 +20,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
     /// Where applicable, the native environments use <see cref="Application.persistentDataPath"/> 
     /// for their operations. Naturally, this behaviour may also be overridden as needed.
     /// </summary>
-    public sealed partial class Sentinel : ThreadlinkSubsystem<Sentinel>, IThreadlinkDependency<SentinelConfig>, IAddressablesPreloader
+    public sealed partial class Sentinel : ThreadlinkSubsystem<Sentinel>, IDependencyConsumer<SentinelConfig>, IAddressablesPreloader
     {
         public enum OperationState : byte { Idle, Deploying, Reading, Writing }
 

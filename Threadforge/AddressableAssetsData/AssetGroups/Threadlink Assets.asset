@@ -15,6 +15,11 @@ MonoBehaviour:
   m_GroupName: Threadlink Assets
   m_GUID: 115c89c1669982e43bf8aa7cf96e1d28
   m_SerializeEntries:
+  - m_GUID: 03b1cfc5f43c6074d800f53dd04bc539
+    m_Address: Assets/Threadforge/Threadlink User/Configs/Dextra/ThreadlinkInputActions.inputactions
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 0574e06bb8693804daf25e1e49504948
     m_Address: Assets/Threadforge/Threadlink/Native Subsystem Dependencies/DextraComponents.prefab
     m_ReadOnly: 0
@@ -25,13 +30,38 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 1a1b40ba8f55c674b89fb9424596aac6
+    m_Address: Assets/Threadforge/Threadlink User/Configs/Aura/AuraConfig.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2690df501d4874548813e60319b1abb0
+    m_Address: Assets/Threadforge/Threadlink User/Configs/Aura/AuraComponents.prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2bfe1104a4abe0140bcc3e0483cf2ab4
+    m_Address: Assets/Threadforge/Threadlink User/Configs/Dextra/UIInputActions.inputactions
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 634af3997ab1c86419499593f6be5a7d
+    m_Address: Assets/Threadforge/Threadlink User/Configs/Dextra/DextraConfig.asset
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: a68ac0956923572438284466a77334b3
     m_Address: Assets/Threadforge/Threadlink/ThreadlinkConfig.Native.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: b55b202805331be448521ac7235c6b8a
+    m_Address: Assets/Threadforge/Threadlink User/Configs/Aura/AuraMixer.mixer
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: f50adf5c1dc539944bdc094ff28c9303
-    m_Address: Assets/Threadforge/Threadlink/Native Subsystem Dependencies/SentinelConfig.asset
+    m_Address: Assets/Threadforge/Threadlink User/Configs/SentinelConfig.asset
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

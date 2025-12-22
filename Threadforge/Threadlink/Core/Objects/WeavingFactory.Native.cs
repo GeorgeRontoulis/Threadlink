@@ -1,7 +1,9 @@
 namespace Threadlink.Core
 {
+    using NativeSubsystems.Aura;
     using NativeSubsystems.Chronos;
     using NativeSubsystems.Dextra;
+    using NativeSubsystems.Nexus;
     using NativeSubsystems.Sentinel;
     using Shared;
     using UnityEngine;
@@ -11,12 +13,13 @@ namespace Threadlink.Core
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void Register()
         {
-            //Native types here.
-            //WeavingFactory<NativeSubsystem>.OnCreate += static () => new NativeSubsystem();
-
+            #region Native Subsystems:
             WeavingFactory<Sentinel>.OnCreate += static () => new Sentinel();
             WeavingFactory<Chronos>.OnCreate += static () => new Chronos();
             WeavingFactory<Dextra>.OnCreate += static () => new Dextra();
+            WeavingFactory<Nexus>.OnCreate += static () => new Nexus();
+            WeavingFactory<Aura>.OnCreate += static () => new Aura();
+            #endregion
         }
     }
 }

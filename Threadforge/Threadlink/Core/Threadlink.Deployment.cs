@@ -9,71 +9,57 @@ namespace Threadlink.Core
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Runtime.CompilerServices;
     using UnityEngine;
     using UnityEngine.AddressableAssets;
-    using UnityEngine.ResourceManagement.AsyncOperations;
+    using Utilities.UniTask;
 
     public partial class Threadlink
     {
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static async UniTaskVoid DeployCoreAsync()
         {
-            await Addressables.InitializeAsync().ToUniTask();
+            await Addressables.InitializeAsync().ToUniTask(); //This should never fail.
 
-            var nativeConfigHandle = Addressables.LoadAssetAsync<ThreadlinkNativeConfig>(NativeConstants.Addressables.NATIVE_CONFIG);
+            var nativeConfig = await LoadAssetAsync<ThreadlinkNativeConfig>(NativeConstants.Addressables.NATIVE_CONFIG);
 
-            await nativeConfigHandle.ToUniTask();
-
-            if (nativeConfigHandle.Status is AsyncOperationStatus.Succeeded)
+            if (nativeConfig != null)
             {
-                var nativeConfig = nativeConfigHandle.Result;
                 var userConfig = await nativeConfig.LoadUserConfigAsync();
 
                 if (userConfig != null)
                 {
-                    if (userConfig.CoreDeployment is ThreadlinkUserConfig.CoreDeploymentMethod.Automatic)
+                    var core = new Threadlink
                     {
-                        var core = new Threadlink
-                        {
-                            NativeConfig = nativeConfig,
-                            UserConfig = userConfig
-                        };
+                        NativeConfig = nativeConfig,
+                        UserConfig = userConfig
+                    };
 
-                        await core.DeployAsync();
+                    await core.DeployAsync();
 
-                        Initium.BootAndInitUnityObjectsAsync().Forget();
-                    }
-                    else
-                    {
-                        if (nativeConfigHandle.IsValid())
-                            nativeConfigHandle.Release();
-
-                        Scribe.Send<Threadlink>("Core Deployment is set to Manual. You are responsible for deploying the Core!").ToUnityConsole(DebugType.Warning);
-                    }
+                    Initium.BootAndInitUnityObjectsAsync().Forget();
                 }
                 else Scribe.Send<Threadlink>("Could not load User Config! Will not deploy the Core!").ToUnityConsole(DebugType.Error);
             }
-            else
-            {
-                if (nativeConfigHandle.IsValid())
-                    nativeConfigHandle.Release();
-
-                Scribe.Send<Threadlink>("Could not load Native Config! Will not deploy the Core!").ToUnityConsole(DebugType.Error);
-            }
+            else Scribe.Send<Threadlink>("Could not load Native Config! Will not deploy the Core!").ToUnityConsole(DebugType.Error);
         }
 
-        internal async UniTask DeployAsync()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private async UniTask DeployAsync()
         {
-            #region Local Helper Methods:
-            static async UniTask AwaitAll(List<UniTask> tasks, bool trim = false)
-            {
-                await UniTask.WhenAll(tasks);
-                tasks.Clear();
+            await UserConfig.ConsumeBinariesAsync();
 
-                if (trim)
-                    tasks.TrimExcess();
-            }
+            Boot();
 
+            await RegisterSubsystemsAsync(Iris.Events.OnNativeSubsystemRegistration);
+            await RegisterSubsystemsAsync(Iris.Events.OnUserSubsystemRegistration);
+
+            this.Send("Core successfully deployed.").ToUnityConsole();
+            Iris.Publish(Iris.Events.OnCoreDeployed, this);
+        }
+
+        private async UniTask RegisterSubsystemsAsync(Iris.Events subsystemsRegistrationEvent)
+        {
             static string BuildWovenSubsystemsReport(IThreadlinkSubsystem[] wovenSubsystems)
             {
                 using var sb = ZString.CreateUtf8StringBuilder();
@@ -91,6 +77,8 @@ namespace Threadlink.Core
                     if (subsystem == null)
                         continue;
 
+                    sb.Append(i + 1);
+                    sb.Append(". ");
                     sb.Append(subsystem.GetType().Name);
 
                     if (i < lastIndex)
@@ -99,33 +87,26 @@ namespace Threadlink.Core
 
                 return sb.ToString();
             }
-            #endregion
 
-            Boot();
+            var wovenSubsystems = Iris.Publish<IThreadlinkSubsystem[]>(subsystemsRegistrationEvent);
+            int subsystemCount = wovenSubsystems.Length;
 
-            var wovenSubsystems = Iris.Publish<IThreadlinkSubsystem[]>(Iris.Events.OnSubsystemRegistration);
-            var tasks = new List<UniTask>(wovenSubsystems.Length);
+            string type = subsystemsRegistrationEvent switch
+            {
+                Iris.Events.OnNativeSubsystemRegistration => "Native",
+                Iris.Events.OnUserSubsystemRegistration => "User",
+                _ => string.Empty,
+            };
 
-            var preloaders = wovenSubsystems.OfType<IAddressablesPreloader>();
+            if (subsystemCount <= 0)
+            {
+                this.Send("No ", type, " Subsystems found to register!").ToUnityConsole();
+                return;
+            }
 
-            foreach (var preloader in preloaders)
-                tasks.Add(preloader.TryPreloadAssetsAsync());
+            await Initium.PreloadBootAndInitAsync(wovenSubsystems);
 
-            await AwaitAll(tasks);
-
-            foreach (var system in wovenSubsystems)
-                tasks.Add(Initium.BootAsync(system));
-
-            await AwaitAll(tasks);
-
-            var initializableSystems = wovenSubsystems.OfType<IInitializable>();
-
-            foreach (var system in initializableSystems)
-                tasks.Add(Initium.InitializeAsync(system));
-
-            await AwaitAll(tasks, true);
-
-            this.Send("Core successfully deployed. All Subsystems operational. Woven Systems: ", BuildWovenSubsystemsReport(wovenSubsystems)).ToUnityConsole();
+            this.Send("All ", type, " Subsystems operational. Woven Subsystems: ", BuildWovenSubsystemsReport(wovenSubsystems)).ToUnityConsole();
         }
     }
 }

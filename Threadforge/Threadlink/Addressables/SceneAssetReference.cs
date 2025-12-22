@@ -3,6 +3,9 @@ namespace Threadlink.Addressables
     using System;
     using UnityEngine.AddressableAssets;
 
+    /// <summary>
+    /// A special <see cref="AssetReference"/> restricted to selecting <see cref="UnityEditor.SceneAsset"/>s.
+    /// </summary>
     [Serializable]
     public sealed class SceneAssetReference : AssetReference
     {

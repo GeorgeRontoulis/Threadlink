@@ -24,9 +24,33 @@ MonoBehaviour:
     m_SubObjectType: 
     m_SubObjectGUID: 
     m_EditorAssetChanged: 0
-  dextraDependenciesPrefab:
+  dextraConfig:
+    m_AssetGUID: 634af3997ab1c86419499593f6be5a7d
+    m_SubObjectName: 
+    m_SubObjectType: 
+    m_SubObjectGUID: 
+    m_EditorAssetChanged: 0
+  auraConfig:
+    m_AssetGUID: 1a1b40ba8f55c674b89fb9424596aac6
+    m_SubObjectName: 
+    m_SubObjectType: 
+    m_SubObjectGUID: 
+    m_EditorAssetChanged: 0
+  dextraComponentsPrefab:
     m_AssetGUID: 0574e06bb8693804daf25e1e49504948
     m_SubObjectName: 
     m_SubObjectType: 
     m_SubObjectGUID: 
     m_EditorAssetChanged: 0
+  auraComponentsPrefab:
+    m_AssetGUID: 2690df501d4874548813e60319b1abb0
+    m_SubObjectName: 
+    m_SubObjectType: 
+    m_SubObjectGUID: 
+    m_EditorAssetChanged: 0
+  auraMixer:
+    m_AssetGUID: b55b202805331be448521ac7235c6b8a
+    m_SubObjectName: 
+    m_SubObjectType: 
+    m_SubObjectGUID: 
+    m_EditorAssetChanged: 1

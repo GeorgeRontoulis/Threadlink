@@ -1,35 +1,95 @@
 namespace Threadlink.Core
 {
+#if UNITY_EDITOR
+    using Authoring;
+    using AssetAuthoringTable = Authoring.ThreadlinkSerializableAuthoringTable<Addressables.AssetGroups, UnityEngine.AddressableAssets.AssetReference[]>;
+    using PrefabAuthoringTable = Authoring.ThreadlinkSerializableAuthoringTable<Addressables.AssetGroups, UnityEngine.AddressableAssets.AssetReferenceGameObject[]>;
+#endif
+    using ThreadlinkDatabase = System.Collections.Generic.Dictionary<Addressables.AssetGroups, string[]>;
+
     using Addressables;
-    using AYellowpaper.SerializedCollections;
-    using System.Collections.Generic;
+    using Cysharp.Threading.Tasks;
+    using NativeSubsystems.Scribe;
+    using Shared;
     using UnityEngine;
     using UnityEngine.AddressableAssets;
+    using Utilities.Strings;
+    using System;
 
     [CreateAssetMenu(fileName = "ThreadlinkConfig.User.asset", menuName = "Threadlink/User Config")]
-    public sealed class ThreadlinkUserConfig : ScriptableObject
+    public sealed class ThreadlinkUserConfig : ScriptableObject, IAsyncBinaryConsumer, IBinaryAuthor
     {
-        public enum CoreDeploymentMethod : byte { Automatic, Manual }
+        #region Runtime:
+        public ThreadlinkDatabase Assets { get; private set; }
+        public ThreadlinkDatabase Prefabs { get; private set; }
 
-        public CoreDeploymentMethod CoreDeployment => coreDeployment;
-        public SceneAssetReference[] Scenes => sceneDatabase;
-        public Dictionary<AssetGroups, AssetReference[]> Assets => assetDatabase;
-        public Dictionary<AssetGroups, AssetReferenceGameObject[]> Prefabs => prefabDatabase;
+        public ReadOnlySpan<SceneAssetReference> Scenes => sceneDatabase;
 
-        [Tooltip("Automatic: Automatically loads and deploys Threadlink when entering playmode, or in the first scene in a Built Player." +
-        " Manual: You will be responsible for deploying the core using Threadlink's Lifecycle API in your custom logic.")]
-        [SerializeField] private CoreDeploymentMethod coreDeployment;
-
+        [Header("Runtime Properties:")]
         [Space(10)]
 
         [SerializeField] private SceneAssetReference[] sceneDatabase = new SceneAssetReference[0];
 
         [Space(10)]
 
-        [SerializeField] private SerializedDictionary<AssetGroups, AssetReference[]> assetDatabase = null;
+        [Tooltip("Reference to the serialized file which will be deserialized at runtime to populate Threadlink's internal asset registry.")]
+        [SerializeField] private AssetReferenceT<TextAsset> assetDatabaseBinary = null;
 
+        [Tooltip("Reference to the serialized file which will be deserialized at runtime to populate Threadlink's internal prefab registry.")]
+        [SerializeField] private AssetReferenceT<TextAsset> prefabDatabaseBinary = null;
+
+        public async UniTask ConsumeBinariesAsync()
+        {
+            var assetTask = assetDatabaseBinary.DeserializeIntoDictionaryAsync<AssetGroups, string[]>().Preserve();
+            var prefabTask = prefabDatabaseBinary.DeserializeIntoDictionaryAsync<AssetGroups, string[]>().Preserve();
+
+            await UniTask.WhenAll(assetTask, prefabTask);
+
+            Assets = assetTask.AsValueTask().Result;
+            Prefabs = prefabTask.AsValueTask().Result;
+        }
+        #endregion
+
+#if UNITY_EDITOR
+        #region Edit-time:
+        public AssetAuthoringTable AssetAuthoringTable => assetAuthoringTable;
+        public PrefabAuthoringTable PrefabAuthoringTable => prefabAuthoringTable;
+
+        [Header("Edit-time Properties:")]
         [Space(10)]
 
-        [SerializeField] private SerializedDictionary<AssetGroups, AssetReferenceGameObject[]> prefabDatabase = null;
+        [SerializeField] private AssetAuthoringTable assetAuthoringTable = new();
+        [SerializeField] private PrefabAuthoringTable prefabAuthoringTable = new();
+
+        [ContextMenu("Serialize Authoring Data Into Binary")]
+        public void SerializeAuthoringDataIntoBinary()
+        {
+            ThreadlinkDatabase ConvertToSerializableRuntimeData<T>(ThreadlinkAuthoringTable<AssetGroups, T[]> authoringData)
+            where T : AssetReference
+            {
+                var result = new ThreadlinkDatabase(authoringData.Count);
+
+                foreach (var entry in authoringData)
+                {
+                    var key = entry.Key;
+                    var refs = entry.Value;
+                    int length = refs.Length;
+                    var guids = new string[length];
+
+                    for (int i = 0; i < length; i++)
+                        guids[i] = refs[i].RuntimeKey.ToString();
+
+                    if (!result.TryAdd(key, guids))
+                        this.Send($"Duplicate key detected: {key}").ToUnityConsole(DebugType.Warning);
+                }
+
+                return result;
+            }
+
+            assetAuthoringTable.SerializeIntoBinary(ConvertToSerializableRuntimeData(assetAuthoringTable), "ThreadlinkAssetDatabase");
+            prefabAuthoringTable.SerializeIntoBinary(ConvertToSerializableRuntimeData(prefabAuthoringTable), "ThreadlinkPrefabDatabase");
+        }
+        #endregion
+#endif
     }
 }

@@ -3,6 +3,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     using Cysharp.Threading.Tasks;
     using Iris;
     using Shared;
+    using System.Runtime.CompilerServices;
     using UnityEngine;
     using UnityEngine.EventSystems;
     using UnityEngine.InputSystem;
@@ -11,15 +12,22 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     using UnityEngine.InputSystem.UI;
 
     /// <summary>
-    /// Threadlink's Human-Interface Interaction System.
+    /// Threadlink's Human-Interface Interaction Subsystem.
+    /// This is a multipurpose solution offering built-in fuctionality
+    /// for both Input and UI.
+    /// <para></para>
+    /// The Input implementation is based on Unity's modern Input System package,
+    /// while the UI is based on Unity's standard UI package.
     /// </summary>
-    public sealed class Dextra : ThreadlinkSubsystem<Dextra>,
-    IThreadlinkDependency<EventSystem>,
-    IThreadlinkDependency<InputActionAsset>,
-    IAddressablesPreloader
+    public sealed partial class Dextra : ThreadlinkSubsystem<Dextra>,
+    IInitializable,
+    IAddressablesPreloader,
+    IDependencyConsumer<EventSystem>,
+    IDependencyConsumer<InputActionAsset>,
+    IDependencyConsumer<DextraConfig>
     {
         public enum InputMode : byte { Unresponsive, Player, UI }
-        internal enum InputDevice : byte
+        public enum InputDevice : byte
         {
             MouseAndKeyboard,
             XBOXController,
@@ -55,28 +63,41 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         private PlayerInput InputDeviceDetector { get; set; }
         private InputActionMap PlayerMap { get; set; }
         private InputActionMap UIMap { get; set; }
+        private DextraConfig Config { get; set; }
 
         public bool TryConsumeDependency(EventSystem input)
         {
-            if (input != null
-            && input.TryGetComponent(out PlayerInput deviceDetector)
-            && input.TryGetComponent(out InputSystemUIInputModule uiInputModule))
+            if (input != null)
             {
-                UnityEventSystem = input;
-                InputDeviceDetector = deviceDetector;
-                UIMap = uiInputModule.actionsAsset.FindActionMap(NativeConstants.Input.UI_MAP);
-                return true;
+                var eventSystem = Object.Instantiate(input);
+
+                eventSystem.name = input.name;
+                eventSystem.gameObject.hideFlags = HideFlags.HideInHierarchy;
+                Object.DontDestroyOnLoad(eventSystem);
+
+                if (eventSystem.TryGetComponent(out PlayerInput deviceDetector)
+                && eventSystem.TryGetComponent(out InputSystemUIInputModule uiInputModule))
+                {
+                    UnityEventSystem = eventSystem;
+                    InputDeviceDetector = deviceDetector;
+                    UIMap = uiInputModule.actionsAsset.FindActionMap(NativeConstants.Input.UI_MAP);
+                    return true;
+                }
             }
 
             return false;
         }
 
-        public bool TryConsumeDependency(InputActionAsset input)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryConsumeDependency(InputActionAsset input) => (PlayerMap = input.FindActionMap(NativeConstants.Input.GAMEPLAY_MAP)) != null;
+
+        public bool TryConsumeDependency(DextraConfig input)
         {
             if (input != null)
             {
-                PlayerMap = input.FindActionMap(NativeConstants.Input.GAMEPLAY_MAP);
-                return PlayerMap != null;
+                Config = input;
+                UIStack = new();
+                return true;
             }
 
             return false;
@@ -84,17 +105,17 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
         public async UniTask<bool> TryPreloadAssetsAsync()
         {
-            var loadedPrefab = await Threadlink.Instance.NativeConfig.LoadDextraDependenciesAsync();
+            var loadedResources = await Threadlink.Instance.NativeConfig.LoadDextraResourcesAsync();
+            var config = loadedResources.Item2;
 
-            if (loadedPrefab == null)
-                return false;
+            var binaryConsumptionTask = config.ConsumeBinariesAsync();
+            var uiLoadingTask = config.LoadAllUserInterfacesAsync();
 
-            var dependencyInstance = Object.Instantiate(loadedPrefab);
+            await UniTask.WhenAll(binaryConsumptionTask, uiLoadingTask);
 
-            dependencyInstance.name = loadedPrefab.name;
-            Object.DontDestroyOnLoad(dependencyInstance);
-
-            return TryConsumeDependency(dependencyInstance) && TryConsumeDependency(InputSystem.actions);
+            return TryConsumeDependency(config)
+            && TryConsumeDependency(loadedResources.Item1)
+            && TryConsumeDependency(InputSystem.actions);
         }
 
         public override void Discard()
@@ -104,6 +125,17 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             UnityEventSystem = null;
             InputDeviceDetector = null;
             PlayerMap = UIMap = null;
+
+            if (UIStack != null)
+            {
+                UIStack.Discard();
+                Config.UnloadAllUserInterfaces();
+
+                UIStack = null;
+            }
+
+            Config = null;
+
             base.Discard();
         }
 
@@ -111,11 +143,30 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         {
             base.Boot();
 
-            //uiStack.Boot();
+            UIStack.CreateAllInterfaces(Config.InterfacePointers);
+            UIStack.Boot();
 
             InputDeviceDetector.notificationBehavior = PlayerNotifications.InvokeCSharpEvents;
             InputDeviceDetector.onControlsChanged += UpdateInputDevice;
             CurrentInputMode = InputMode.Unresponsive;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Initialize()
+        {
+            UIStack.Initialize();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetInputIcon(InputDevice device, System.Guid actionID, out Sprite result)
+        {
+            if (Config == null)
+            {
+                result = null;
+                return false;
+            }
+
+            return Config.TryGetInputIcon(device, actionID, out result);
         }
 
         private void UpdateInputDevice(PlayerInput input)

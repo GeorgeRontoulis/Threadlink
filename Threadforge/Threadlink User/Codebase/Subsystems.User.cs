@@ -1,20 +1,19 @@
 namespace Threadlink.User
 {
     using Core;
-    using Core.NativeSubsystems.Chronos;
     using Core.NativeSubsystems.Iris;
-    using Core.NativeSubsystems.Sentinel;
     using Shared;
     using System;
-    using Threadlink.Core.NativeSubsystems.Dextra;
     using UnityEngine;
 
-    internal static class SubsystemsConfig
+    internal static class UserSubsystemsConfig
     {
+        private const Iris.Events REGISTRATION_EVENT = Iris.Events.OnUserSubsystemRegistration;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
         private static void ListenForSubsystemRegistration()
         {
-            Iris.Subscribe<Func<IThreadlinkSubsystem[]>>(Iris.Events.OnSubsystemRegistration, WeaveSubsystems);
+            Iris.Subscribe<Func<IThreadlinkSubsystem[]>>(REGISTRATION_EVENT, WeaveSubsystems);
         }
 
         /// <summary>
@@ -31,13 +30,11 @@ namespace Threadlink.User
         {
             var buffer = new IThreadlinkSubsystem[]
             {
-                Threadlink.Weave<Sentinel>(),
-                Threadlink.Weave<Dextra>(),
-                Threadlink.Weave<Chronos>(),
+                //Threadlink.Weave<MyCustomSubsystem>(),
                 //Add your custom subsystems here.
             };
 
-            Iris.Unsubscribe<Func<IThreadlinkSubsystem[]>>(Iris.Events.OnSubsystemRegistration, WeaveSubsystems);
+            Iris.Unsubscribe<Func<IThreadlinkSubsystem[]>>(REGISTRATION_EVENT, WeaveSubsystems);
             return buffer;
         }
     }

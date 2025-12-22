@@ -170,7 +170,7 @@ namespace Threadlink.Editor
             if (ThreadlinkConfigFinder.TryGetConfig(out ThreadlinkUserConfig userData))
             {
                 // Check assetDatabase first
-                if (userData.Assets.TryGetValue(group, out var assetRefs) && assetRefs != null)
+                if (userData.AssetAuthoringTable.TryGetValue(group, out var assetRefs) && assetRefs != null)
                 {
                     foreach (var assetRef in assetRefs)
                     {
@@ -182,7 +182,7 @@ namespace Threadlink.Editor
                 }
 
                 // Check prefabDatabase
-                if (userData.Prefabs.TryGetValue(group, out var prefabRefs) && prefabRefs != null)
+                if (userData.PrefabAuthoringTable.TryGetValue(group, out var prefabRefs) && prefabRefs != null)
                 {
                     foreach (var prefabRef in prefabRefs)
                     {
@@ -211,7 +211,7 @@ namespace Threadlink.Editor
                 return false;
 
             // Check assetDatabase first
-            if (userData.Assets.TryGetValue(group, out var assetRefs))
+            if (userData.AssetAuthoringTable.TryGetValue(group, out var assetRefs))
             {
                 if (index < assetRefs.Length)
                 {
@@ -223,7 +223,7 @@ namespace Threadlink.Editor
             }
 
             // Check prefabDatabase
-            if (userData.Prefabs.TryGetValue(group, out var prefabRefs))
+            if (userData.PrefabAuthoringTable.TryGetValue(group, out var prefabRefs))
             {
                 if (index < prefabRefs.Length)
                 {

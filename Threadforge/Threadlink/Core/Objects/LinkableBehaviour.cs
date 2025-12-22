@@ -18,15 +18,12 @@ namespace Threadlink.Core
 
         [HideInInspector, SerializeField] protected Transform cachedTransform = null;
 
-        protected virtual void Reset()
+        protected virtual void OnValidate()
         {
-            cachedTransform = transform;
-        }
+            var self = transform;
 
-        private void OnValidate()
-        {
-            if (cachedTransform == null || cachedTransform != transform)
-                cachedTransform = transform;
+            if (cachedTransform != self)
+                cachedTransform = self;
         }
 
         public virtual void Discard()

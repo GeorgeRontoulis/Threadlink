@@ -4,7 +4,7 @@ namespace Threadlink.Utilities.Collections
     using System.Collections;
     using System.Runtime.CompilerServices;
 
-    public static class CollectionExtensions
+    public static class CollectionUtilities
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Clear<T>(ref T[] array, bool nullifyCollection = true)
@@ -35,6 +35,12 @@ namespace Threadlink.Utilities.Collections
         public static bool IsWithinBoundsOf<T>(this int index, T collection) where T : ICollection
         {
             return collection != null && index >= 0 && index < collection.Count;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsWithinBoundsOf<T>(this int index, ReadOnlySpan<T> span)
+        {
+            return span != null && index >= 0 && index < span.Length;
         }
     }
 }

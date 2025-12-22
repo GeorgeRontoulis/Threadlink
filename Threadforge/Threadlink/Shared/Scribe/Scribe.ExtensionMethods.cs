@@ -17,7 +17,8 @@ namespace Threadlink.Core.NativeSubsystems.Scribe
             stringBuilder.Append(source.GetType().Name);
             stringBuilder.Append("] - ");
 
-            for (int i = 0; i < length; i++) stringBuilder.Append(message[i]);
+            for (int i = 0; i < length; i++)
+                stringBuilder.Append(message[i]);
 
             return stringBuilder;
         }
