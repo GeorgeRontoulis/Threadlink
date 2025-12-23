@@ -21,7 +21,8 @@
 
     /// <summary>
     /// Objects implementing this interface become bootable. 
-    /// The bootup step comes first in Threadlink's initialization pipeline.
+    /// The bootup step comes first in Threadlink's initialization pipeline,
+    /// but only after any preloading from <see cref="IAddressablesPreloader"/>s.
     /// </summary>
     public interface IBootable
     {
@@ -85,7 +86,6 @@
         public UniTask ConsumeBinariesAsync();
     }
 
-#if UNITY_EDITOR
     /// <summary>
     /// Editor-Only interface for objects containing authoring data which can then be serialized into binary and stored inside the project.
     /// The binary file can then be loaded on any platform through the <see cref="UnityEngine.AddressableAssets"/> Pipeline.
@@ -94,10 +94,11 @@
     /// </summary>
     public interface IBinaryAuthor
     {
+#if UNITY_EDITOR
         /// <summary>
         /// Serialize the author's data into binary and store the resulting file(s) inside the project.
         /// </summary>
         public void SerializeAuthoringDataIntoBinary();
-    }
 #endif
+    }
 }
