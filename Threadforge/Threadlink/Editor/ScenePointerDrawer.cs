@@ -52,9 +52,8 @@ namespace Threadlink.Editor
             mapNamesBuffer.Clear();
             mapNamesBuffer.Add("None");
 
-            if (ThreadlinkConfigFinder.TryGetConfig(out ThreadlinkUserConfig database))
+            if (ThreadlinkConfigFinder.TryGetConfig(out ThreadlinkUserConfig database) && database.TryGetScenes(out var scenes))
             {
-                var scenes = database.Scenes;
                 int length = scenes.Length;
 
                 for (int i = 0; i < length; i++)
@@ -69,9 +68,7 @@ namespace Threadlink.Editor
             if (indexInDatabase < 0 || !ThreadlinkConfigFinder.TryGetConfig(out ThreadlinkUserConfig database))
                 return false;
 
-            var scenes = database.Scenes;
-
-            if (indexInDatabase.IsWithinBoundsOf(scenes))
+            if (database.TryGetScenes(out var scenes) && indexInDatabase.IsWithinBoundsOf(scenes))
             {
                 var scene = scenes[indexInDatabase].editorAsset as SceneAsset;
 

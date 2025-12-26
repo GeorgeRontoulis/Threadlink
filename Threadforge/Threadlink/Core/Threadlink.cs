@@ -261,9 +261,8 @@
         public static bool TryGetSceneReference(int indexInDB, out SceneAssetReference result)
         {
             var config = Instance.UserConfig;
-            var scenes = config.Scenes;
 
-            if (indexInDB.IsWithinBoundsOf(scenes))
+            if (config.TryGetScenes(out var scenes) && indexInDB.IsWithinBoundsOf(scenes))
             {
                 result = scenes[indexInDB];
                 return result != null && result.RuntimeKeyIsValid();

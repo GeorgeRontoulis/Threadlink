@@ -130,7 +130,8 @@ namespace Threadlink.Authoring
 
         public IEnumerator<KeyValuePair<K, V>> GetEnumerator()
         {
-            for (int i = 0; i < entries.Count; i++)
+            int count = entries.Count;
+            for (int i = 0; i < count; i++)
             {
                 var entry = entries[i];
                 yield return new KeyValuePair<K, V>(entry.key, entry.value);
@@ -140,14 +141,15 @@ namespace Threadlink.Authoring
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
+        private static readonly EqualityComparer<K> Comparer = EqualityComparer<K>.Default;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int FindIndex(K key)
         {
-            var comparer = EqualityComparer<K>.Default;
-
-            for (int i = 0; i < entries.Count; i++)
+            int count = entries.Count;
+            for (int i = 0; i < count; i++)
             {
-                if (comparer.Equals(entries[i].key, key))
+                if (Comparer.Equals(entries[i].key, key))
                     return i;
             }
 

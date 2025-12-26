@@ -26,11 +26,6 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     {
         private InputIconsMap InputIconsMap { get; set; }
 
-        /// <summary>
-        /// Accessor exposing a read-only view of the pointers for immediate consumption.
-        /// </summary>
-        internal ReadOnlySpan<GroupedAssetPointer> InterfacePointers => interfacePointers;
-
         #region Runtime:
         [Header("Runtime Properties:")]
         [Space(10)]
@@ -40,6 +35,9 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         [Space(10)]
 
         [SerializeField] private AssetReferenceT<TextAsset> inputIconMapBinary = null;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal bool TryGetInterfacePointers(out ReadOnlySpan<GroupedAssetPointer> result) => !(result = interfacePointers).IsEmpty;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryGetInputIcon(Dextra.InputDevice device, Guid actionID, out Sprite result)

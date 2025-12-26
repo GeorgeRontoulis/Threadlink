@@ -11,10 +11,11 @@ namespace Threadlink.Core
     using Cysharp.Threading.Tasks;
     using NativeSubsystems.Scribe;
     using Shared;
+    using System;
+    using System.Runtime.CompilerServices;
     using UnityEngine;
     using UnityEngine.AddressableAssets;
     using Utilities.Strings;
-    using System;
 
     [CreateAssetMenu(fileName = "ThreadlinkConfig.User.asset", menuName = "Threadlink/User Config")]
     public sealed class ThreadlinkUserConfig : ScriptableObject, IAsyncBinaryConsumer, IBinaryAuthor
@@ -22,8 +23,6 @@ namespace Threadlink.Core
         #region Runtime:
         public ThreadlinkDatabase Assets { get; private set; }
         public ThreadlinkDatabase Prefabs { get; private set; }
-
-        public ReadOnlySpan<SceneAssetReference> Scenes => sceneDatabase;
 
         [Header("Runtime Properties:")]
         [Space(10)]
@@ -37,6 +36,9 @@ namespace Threadlink.Core
 
         [Tooltip("Reference to the serialized file which will be deserialized at runtime to populate Threadlink's internal prefab registry.")]
         [SerializeField] private AssetReferenceT<TextAsset> prefabDatabaseBinary = null;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetScenes(out ReadOnlySpan<SceneAssetReference> result) => !(result = sceneDatabase).IsEmpty;
 
         public async UniTask ConsumeBinariesAsync()
         {

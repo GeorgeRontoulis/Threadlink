@@ -4,6 +4,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     using Iris;
     using Shared;
     using System.Runtime.CompilerServices;
+    using Scribe;
     using UnityEngine;
     using UnityEngine.EventSystems;
     using UnityEngine.InputSystem;
@@ -143,8 +144,12 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         {
             base.Boot();
 
-            UIStack.CreateAllInterfaces(Config.InterfacePointers);
-            UIStack.Boot();
+            if (Config.TryGetInterfacePointers(out var pointers))
+            {
+                UIStack.CreateAllInterfaces(pointers);
+                UIStack.Boot();
+            }
+            else this.Send("Could not retrieve a valid view of the interface pointers!").ToUnityConsole(DebugType.Error);
 
             InputDeviceDetector.notificationBehavior = PlayerNotifications.InvokeCSharpEvents;
             InputDeviceDetector.onControlsChanged += UpdateInputDevice;
