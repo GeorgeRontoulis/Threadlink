@@ -7,24 +7,44 @@ namespace Threadlink.Utilities.Strings
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using Threadlink.Addressables;
     using UnityEngine;
     using UnityEngine.AddressableAssets;
 
     public static class StringUtilities
     {
-        private static readonly string separator = Path.DirectorySeparatorChar.ToString();
-        private static readonly string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+        private static readonly string projectRoot = Directory.GetParent(Application.dataPath).FullName.Replace("\\", "/").TrimEnd('/');
 
         public static string ToAbsolutePath(this string projectRelativePath)
         {
-            if (!projectRelativePath.StartsWith("Assets", StringComparison.OrdinalIgnoreCase))
-                throw new ArgumentException("Path must start with 'Assets'", nameof(projectRelativePath));
+            if (string.IsNullOrEmpty(projectRelativePath))
+                throw new ArgumentNullException(nameof(projectRelativePath));
 
-            var sanitizedPath = projectRelativePath.Replace("\\", "/").TrimStart('/');
+            if (!projectRelativePath.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException("Path must start with 'Assets/'", nameof(projectRelativePath));
 
-            return Path.Combine(projectRoot, sanitizedPath.Replace("/", separator));
+            var sanitized = projectRelativePath.Replace("\\", "/").TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+
+            return Path.Combine(projectRoot, sanitized);
         }
+
+        public static string ToProjectRelativePath(this string absolutePath)
+        {
+            if (string.IsNullOrEmpty(absolutePath))
+                throw new ArgumentNullException(nameof(absolutePath));
+
+            var sanitizedAbs = Path.GetFullPath(absolutePath).Replace("\\", "/");
+
+            if (!sanitizedAbs.StartsWith(ZString.Join(string.Empty, projectRoot, "/"), StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException("Path is not inside the Unity project", nameof(absolutePath));
+
+            var relative = sanitizedAbs[(projectRoot.Length + 1)..];
+
+            if (!relative.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException("Path is inside project but not inside the Assets folder", nameof(absolutePath));
+
+            return relative;
+        }
+
 
         public static void ReadLines<T>(this TextAsset asset, T buffer) where T : ICollection<string>
         {
@@ -85,21 +105,15 @@ namespace Threadlink.Utilities.Strings
         /// <returns>The reconstructed dictionary after deserialization.</returns>
         public static async UniTask<Dictionary<K, V>> DeserializeIntoDictionaryAsync<K, V>(this AssetReferenceT<TextAsset> binaryReference)
         {
-            if (binaryReference == null || !binaryReference.RuntimeKeyIsValid())
-            {
-                Scribe.Send<Threadlink>("Binary referece is invalid!").ToUnityConsole(DebugType.Error);
-                return null;
-            }
+            var binary = await Threadlink.LoadAssetAsync<TextAsset>(binaryReference);
 
-            var runtimeKey = binaryReference.RuntimeKey;
-            var binaryFile = await Threadlink.LoadAssetAsync<TextAsset>(runtimeKey);
-            Dictionary<K, V> result = null;
+            if (binary == null)
+                binaryReference.Send("Binary is NULL!").ToUnityConsole(DebugType.Error);
 
-            ///Note: Probably keep it this way but include async API for deserialization as well.
-            if (binaryFile == null || !Threadlink.TryDeserialize(binaryFile.bytes, out result))
-                Scribe.Send<Threadlink>("Could not deserialize binary!").ToUnityConsole(DebugType.Error);
+            if (!Threadlink.TryDeserialize(binary.bytes, out Dictionary<K, V> result))
+                binaryReference.Send("Could not deserialize binary!").ToUnityConsole(DebugType.Error);
 
-            ThreadlinkResourceProvider<TextAsset>.ReleaseAt(runtimeKey);
+            binaryReference.ReleaseAsset();
             return result;
         }
     }

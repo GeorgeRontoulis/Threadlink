@@ -4,7 +4,6 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     using Iris;
     using Shared;
     using System.Runtime.CompilerServices;
-    using Scribe;
     using UnityEngine;
     using UnityEngine.EventSystems;
     using UnityEngine.InputSystem;
@@ -109,10 +108,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             var loadedResources = await Threadlink.Instance.NativeConfig.LoadDextraResourcesAsync();
             var config = loadedResources.Item2;
 
-            var binaryConsumptionTask = config.ConsumeBinariesAsync();
-            var uiLoadingTask = config.LoadAllUserInterfacesAsync();
-
-            await UniTask.WhenAll(binaryConsumptionTask, uiLoadingTask);
+            await config.LoadAllUserInterfacesAsync();
 
             return TryConsumeDependency(config)
             && TryConsumeDependency(loadedResources.Item1)
@@ -121,6 +117,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
         public override void Discard()
         {
+            Iris.Unsubscribe<System.Action<Threadlink>>(Iris.Events.OnCoreDeployed, OnCoreDeployed);
             CurrentInputMode = InputMode.Unresponsive;
             InputDeviceDetector.onControlsChanged -= UpdateInputDevice;
             UnityEventSystem = null;
@@ -149,8 +146,8 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
                 UIStack.CreateAllInterfaces(pointers);
                 UIStack.Boot();
             }
-            else this.Send("Could not retrieve a valid view of the interface pointers!").ToUnityConsole(DebugType.Error);
 
+            Iris.Subscribe<System.Action<Threadlink>>(Iris.Events.OnCoreDeployed, OnCoreDeployed);
             InputDeviceDetector.notificationBehavior = PlayerNotifications.InvokeCSharpEvents;
             InputDeviceDetector.onControlsChanged += UpdateInputDevice;
             CurrentInputMode = InputMode.Unresponsive;
@@ -163,7 +160,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryGetInputIcon(InputDevice device, System.Guid actionID, out Sprite result)
+        public bool TryGetInputIcon(InputDevice device, DextraInputControlPath inputControlPath, out Sprite result)
         {
             if (Config == null)
             {
@@ -171,7 +168,21 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
                 return false;
             }
 
-            return Config.TryGetInputIcon(device, actionID, out result);
+            return Config.TryGetInputIcon(device, inputControlPath, out result);
+        }
+
+        private void OnCoreDeployed(Threadlink _)
+        {
+            var inputIcons = Object.FindObjectsByType<DextraInputIcon>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+
+            if (inputIcons != null)
+            {
+                int length = inputIcons.Length;
+                for (int i = 0; i < length; i++)
+                {
+                    inputIcons[i].ListenForInputDeviceChanges(true);
+                }
+            }
         }
 
         private void UpdateInputDevice(PlayerInput input)

@@ -1,5 +1,6 @@
 namespace Threadlink.Utilities.Localization
 {
+#if THREADLINK_LOCALIZATION
     using Cysharp.Threading.Tasks;
     using UnityEngine.Localization;
 
@@ -54,4 +55,5 @@ namespace Threadlink.Utilities.Localization
             return await reference.GetLocalizedStringAsync().ToUniTask();
         }
     }
+#endif
 }

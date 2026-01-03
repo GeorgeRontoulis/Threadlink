@@ -4,6 +4,7 @@ namespace Threadlink.Core.NativeSubsystems.Chronos
     using System;
     using System.Runtime.CompilerServices;
     using UnityEngine;
+    using Utilities.Mathematics;
 
     /// <summary>
     /// Threadlink's Time Management Subsystem.
@@ -23,9 +24,7 @@ namespace Threadlink.Core.NativeSubsystems.Chronos
             get => Time.timeScale;
             set
             {
-                bool Approx(float compare) => Mathf.Approximately(value, compare);
-
-                if (Approx(0f) || Approx(1f))
+                if (value.IsSimilarTo(0f) || value.IsSimilarTo(1f))
                     Time.timeScale = value;
             }
         }
@@ -40,18 +39,16 @@ namespace Threadlink.Core.NativeSubsystems.Chronos
             get => Time.timeScale;
             set
             {
-                bool Approx(float compare) => Mathf.Approximately(value, compare);
-
-                if (Approx(Time.timeScale)) return;
+                if (value.IsSimilarTo(Time.timeScale)) return;
 
                 void UpdateTimescale() => Time.timeScale = value;
 
-                if (Approx(0f))
+                if (value.IsSimilarTo(0f))
                 {
                     UpdateTimescale();
                     Iris.Publish(Iris.Events.OnGamePaused);
                 }
-                else if (Approx(1f))
+                else if (value.IsSimilarTo(1f))
                 {
                     UpdateTimescale();
                     Iris.Publish(Iris.Events.OnGameResumed);

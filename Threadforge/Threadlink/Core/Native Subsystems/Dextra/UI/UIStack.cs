@@ -39,6 +39,9 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
         public void Boot()
         {
+            if (CreatedInterfaces == null)
+                return;
+
             StackedInterfaces = new(1);
 
             var createdInterfaces = CreatedInterfaces.Values.OfType<IBootable>();
@@ -52,6 +55,9 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
         public void Initialize()
         {
+            if (CreatedInterfaces == null)
+                return;
+
             var userInterfaces = CreatedInterfaces.Values;
 
             foreach (var userInterface in userInterfaces)
@@ -67,15 +73,19 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
             CreatedInterfaces = new(length);
 
+            UserInterface ui;
+            GroupedAssetPointer pointer;
+
             for (int i = 0; i < length; i++)
             {
-                var pointer = pointers[i];
+                pointer = pointers[i];
 
-                if (Threadlink.TryGetPrefabKey(pointer.Group, pointer.IndexInDatabase, out var runtimeKey)
-                && ThreadlinkResourceProvider<GameObject>.LoadOrGetCachedAt(runtimeKey).As<UserInterface>(out var loadedUIComponent))
+                ui = Threadlink.LoadPrefab<UserInterface>(pointer.Group, pointer.IndexInDatabase);
+
+                if (ui != null)
                 {
-                    string originalName = loadedUIComponent.name;
-                    var userInterface = UnityEngine.Object.Instantiate(loadedUIComponent);
+                    string originalName = ui.name;
+                    var userInterface = UnityEngine.Object.Instantiate(ui);
 
                     userInterface.name = originalName;
                     UnityEngine.Object.DontDestroyOnLoad(userInterface.gameObject);

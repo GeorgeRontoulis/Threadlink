@@ -13,12 +13,5 @@ MonoBehaviour:
   m_Name: DextraConfig
   m_EditorClassIdentifier: Threadlink.Runtime::Threadlink.Core.NativeSubsystems.Dextra.DextraConfig
   interfacePointers: []
-  inputIconMapBinary:
-    m_AssetGUID: 70ae055c1f3020a4986e4cbde973bc48
-    m_SubObjectName: 
-    m_SubObjectType: 
-    m_SubObjectGUID: 
-    m_EditorAssetChanged: 0
-  inputIconsAuthoringTable:
+  inputIcons:
     entries: []
-    binariesFolder: {fileID: 102900000, guid: b79b506c782e12b459b4501c094bcc21, type: 3}

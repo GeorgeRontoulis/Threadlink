@@ -132,7 +132,7 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public virtual void DisconnectAll(bool trimRegistry) => ClearRegistry(trimRegistry);
+        public virtual void DisconnectAll(bool trimRegistry = false) => ClearRegistry(trimRegistry);
     }
     #endregion
 

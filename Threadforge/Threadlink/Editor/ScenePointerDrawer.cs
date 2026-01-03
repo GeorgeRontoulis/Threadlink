@@ -2,6 +2,7 @@ namespace Threadlink.Editor
 {
     using Addressables;
     using Core;
+    using Shared;
     using System.Collections.Generic;
     using UnityEditor;
     using UnityEngine;

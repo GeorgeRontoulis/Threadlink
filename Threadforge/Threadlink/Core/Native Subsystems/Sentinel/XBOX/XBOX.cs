@@ -1,6 +1,6 @@
 namespace Threadlink.Core.NativeSubsystems.Sentinel
 {
-#if MICROSOFT_GDK_SUPPORT
+#if THREADLINK_SENTINEL_XBOX
     using Cysharp.Threading.Tasks;
     using Scribe;
     using System;
@@ -94,7 +94,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
                 {
                     this.Send("Stored data found for container ", folderID, " in blob ", fileID, "! Retrieving!").ToUnityConsole();
                     byteData = candidateBlob.Data;
-                    await UniTask.Yield();
+                    await Threadlink.WaitForFramesAsync(1);
                     break;
                 }
             }
@@ -133,7 +133,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
             SDK.XGameSaveSubmitUpdate(handle);
             SDK.XGameSaveCloseUpdate(handle);
 
-            await UniTask.Yield();
+            await Threadlink.WaitForFramesAsync(1);
 
             this.Send("Error when creating update handle! The handle is invalid!").ToUnityConsole(DebugType.Error);
             return true;

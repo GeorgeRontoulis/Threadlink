@@ -1,13 +1,13 @@
-namespace Threadlink.Editor
+#if UNITY_EDITOR
+namespace Threadlink.Shared
 {
-    using Core;
     using Core.NativeSubsystems.Scribe;
     using System;
     using System.Collections.Generic;
     using UnityEditor;
     using UnityEngine;
 
-    internal static class ThreadlinkConfigFinder
+    public static class ThreadlinkConfigFinder
     {
         private const string ERROR_MSG = "User Config not found. Please create one via the Create Asset menu.";
         private static readonly Dictionary<Type, ScriptableObject> CachedConfigs = new(1);
@@ -33,7 +33,7 @@ namespace Threadlink.Editor
                 }
                 else
                 {
-                    Scribe.Send<Threadlink>(ERROR_MSG).ToUnityConsole(DebugType.Error);
+                    Scribe.Send<T>(ERROR_MSG).ToUnityConsole(DebugType.Error);
                     result = null;
                     return false;
                 }
@@ -41,3 +41,4 @@ namespace Threadlink.Editor
         }
     }
 }
+#endif

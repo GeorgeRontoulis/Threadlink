@@ -1,11 +1,13 @@
 ﻿namespace Threadlink.Core
 {
     using Addressables;
+    using Collections;
+    using Collections.Extensions;
     using Cysharp.Threading.Tasks;
     using MessagePack;
+    using NativeSubsystems.Iris;
     using NativeSubsystems.Scribe;
     using Shared;
-    using System.Collections.Generic;
     using System.Runtime.CompilerServices;
     using UnityEngine;
     using UnityEngine.AddressableAssets;
@@ -22,6 +24,21 @@
     public sealed partial class Threadlink : Weaver<Threadlink, IThreadlinkSubsystem>
     {
         /// <summary>
+        /// <see cref="Native"/> = Instantiate the native <see cref="ThreadlinkLoop"/> 
+        /// <see cref="GameObject"/> to start receiving update callbacks through <see cref="Iris"/>.
+        /// <para></para>
+        /// <see cref="Custom"/> = Use your own logic to instantiate a custom update loop 
+        /// <see cref="MonoBehaviour"/> that will publish <see cref="Iris"/>' update events.
+        /// Subscribe to <see cref="Iris.Events.OnCoreDeployed"/> to get a callback when
+        /// the core is deployed, then set up your update loop there.
+        /// <para></para>
+        /// This is useful when using Threadlink alongside another framework.
+        /// For example, in the context of <see href="https://doc.photonengine.com/quantum/current/quantum-intro">Photon Quantum</see>,
+        /// Threadlink would only manage the View, while Quantum would manage the deterministic multiplayer Simulation.
+        /// </summary>
+        internal enum UpdateLoop : byte { Native, Custom }
+
+        /// <summary>
         /// Uses <see cref="MessagePackSerializerOptions.Standard"/> by default.
         /// You may customize this as you see fit. Use <see cref="Threadlink"/>'s
         /// serialization API to make sure serialization uses these options.
@@ -29,7 +46,7 @@
         /// When using <see cref="MessagePack"/> manually, make sure you pass these
         /// or any options from your custom source into all serialization methods.
         /// </summary>
-        public static MessagePackSerializerOptions SerializerOptions { get; set; } = MessagePackSerializerOptions.Standard;
+        public static readonly MessagePackSerializerOptions serializerOptions = MessagePackSerializerOptions.Standard;
 
         internal ThreadlinkNativeConfig NativeConfig { get; set; }
         public ThreadlinkUserConfig UserConfig { get; internal set; }
@@ -56,11 +73,14 @@
         {
             base.Boot();
 
-            ///Start the Threadlink Update Loop.
-            Object.DontDestroyOnLoad(new GameObject(nameof(ThreadlinkLoop), typeof(ThreadlinkLoop))
+            if (UserConfig != null && UserConfig.UpdateLoopBehaviour is UpdateLoop.Native)
             {
-                hideFlags = HideFlags.HideAndDontSave
-            });
+                ///Start the Threadlink Update Loop.
+                Object.DontDestroyOnLoad(new GameObject(nameof(ThreadlinkLoop), typeof(ThreadlinkLoop))
+                {
+                    hideFlags = HideFlags.HideAndDontSave
+                });
+            }
         }
         #endregion
 
@@ -80,7 +100,7 @@
         public static T Weave<T>() where T : IThreadlinkSubsystem => Instance.TryWeave(out T wovenSubsystem) ? wovenSubsystem : default;
 
         /// <summary>
-        /// Attempt to serialize data into bytes using <see cref="MessagePack"/> and <see cref="SerializerOptions"/>.
+        /// Attempt to serialize data into bytes using <see cref="MessagePack"/> and <see cref="serializerOptions"/>.
         /// Any and all requirements and limitations of the serializer apply to the data you want to serialize.
         /// </summary>
         /// <typeparam name="T">The type of data.</typeparam>
@@ -92,16 +112,17 @@
         {
             if (input == null)
             {
+                Scribe.Send<Threadlink>("NULL input data detected! Will not serialize!").ToUnityConsole(DebugType.Error);
                 result = null;
                 return false;
             }
 
-            result = MessagePackSerializer.Serialize(input, SerializerOptions);
+            result = MessagePackSerializer.Serialize(input, serializerOptions);
             return true;
         }
 
         /// <summary>
-        /// Attempt to deserialize byte data into the desired data type using <see cref="MessagePack"/> and <see cref="SerializerOptions"/>.
+        /// Attempt to deserialize byte data into the desired data type using <see cref="MessagePack"/> and <see cref="serializerOptions"/>.
         /// Any and all requirements and limitations of the serializer apply to the data you want to deserialize.
         /// </summary>
         /// <typeparam name="T">The type of data.</typeparam>
@@ -113,16 +134,34 @@
         {
             if (input == null || input.Length <= 0)
             {
+                Scribe.Send<Threadlink>("NULL or empty byte data detected! Will not deserialize!").ToUnityConsole(DebugType.Error);
                 result = default;
                 return false;
             }
 
-            result = MessagePackSerializer.Deserialize<T>(input, SerializerOptions);
+            result = MessagePackSerializer.Deserialize<T>(input, serializerOptions);
             return true;
         }
         #endregion
 
         #region Asset Reference/Loading/Unloading API:
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static T LoadAsset<T>(AssetGroups group, int indexInDB) where T : Object
+        {
+            if (ValidateDatabaseRequest(Instance.UserConfig.Assets, group, indexInDB, out var runtimeKey))
+            {
+                return ThreadlinkResourceProvider<T>.LoadOrGetCachedAt(runtimeKey);
+            }
+
+            return null;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static T LoadAsset<T>(AssetReference reference) where T : Object
+        {
+            return reference.RuntimeKeyIsValid() ? ThreadlinkResourceProvider<T>.LoadOrGetCachedAt(reference) : null;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static async UniTask<T> LoadAssetAsync<T>(AssetGroups group, int indexInDB) where T : Object
         {
@@ -135,15 +174,20 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static async UniTask<T> LoadAssetAsync<T>(object runtimeKey) where T : Object
+        public static async UniTask<T> LoadAssetAsync<T>(AssetReference reference) where T : Object
         {
-            return await ThreadlinkResourceProvider<T>.LoadOrGetCachedAtKeyAsync(runtimeKey);
+            return reference.RuntimeKeyIsValid() ? await ThreadlinkResourceProvider<T>.LoadOrGetCachedAtRefAsync(reference) : null;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static async UniTask<T> LoadAssetAsync<T>(AssetReference reference) where T : Object
+        public static T LoadPrefab<T>(AssetGroups group, int indexInDB) where T : Component
         {
-            return await ThreadlinkResourceProvider<T>.LoadOrGetCachedAtKeyAsync(reference.RuntimeKey);
+            if (ValidateDatabaseRequest(Instance.UserConfig.Prefabs, group, indexInDB, out var reference))
+            {
+                return ThreadlinkResourceProvider<T>.LoadOrGetCachedAt(reference);
+            }
+
+            return null;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -158,20 +202,12 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static async UniTask<T> LoadPrefabAsync<T>(object runtimeKey) where T : Component
-        {
-            var prefab = await ThreadlinkResourceProvider<GameObject>.LoadOrGetCachedAtKeyAsync(runtimeKey);
-
-            if (prefab != null && prefab.As<T>(out var component))
-                return component;
-
-            return null;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static async UniTask<T> LoadPrefabAsync<T>(AssetReferenceGameObject reference) where T : Component
         {
-            var prefab = await ThreadlinkResourceProvider<GameObject>.LoadOrGetCachedAtKeyAsync(reference.RuntimeKey);
+            if (!reference.RuntimeKeyIsValid())
+                return null;
+
+            var prefab = await ThreadlinkResourceProvider<GameObject>.LoadOrGetCachedAtRefAsync(reference);
 
             if (prefab != null && prefab.As<T>(out var component))
                 return component;
@@ -182,50 +218,22 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ReleaseAsset(AssetGroups group, int indexInDB)
         {
-            if (ValidateDatabaseRequest(Instance.UserConfig.Assets, group, indexInDB, out var runtimeKey))
-                ThreadlinkResourceProvider<Object>.ReleaseAt(runtimeKey);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ReleaseAsset(AssetReference reference)
-        {
-            if (reference != null)
-                ThreadlinkResourceProvider<Object>.ReleaseAt(reference.RuntimeKey);
+            if (ValidateDatabaseRequest(Instance.UserConfig.Assets, group, indexInDB, out var reference))
+                reference.ReleaseAsset();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ReleasePrefab(AssetGroups group, int indexInDB)
         {
-            if (ValidateDatabaseRequest(Instance.UserConfig.Prefabs, group, indexInDB, out var runtimeKey))
-                ThreadlinkResourceProvider<GameObject>.ReleaseAt(runtimeKey);
+            if (ValidateDatabaseRequest(Instance.UserConfig.Prefabs, group, indexInDB, out var reference))
+                reference.ReleaseAsset();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ReleasePrefab(AssetReferenceGameObject reference)
-        {
-            if (reference != null)
-                ThreadlinkResourceProvider<GameObject>.ReleaseAt(reference.RuntimeKey);
-        }
-
         public static async UniTask<SceneInstance> LoadSceneAsync(int sceneReferenceIndex, LoadSceneMode mode)
         {
             if (TryGetSceneReference(sceneReferenceIndex, out var reference))
-            {
-                var runtimeKey = reference.RuntimeKey;
-                var handle = Addressables.LoadSceneAsync(runtimeKey, mode, true, 100, SceneReleaseMode.ReleaseSceneWhenSceneUnloaded);
-
-                await handle.ToUniTask();
-
-                if (handle.Status is AsyncOperationStatus.Succeeded)
-                {
-                    ThreadlinkResourceProvider<SceneInstance>.Track(runtimeKey, handle);
-                    return handle.Result;
-                }
-                else if (handle.IsValid())
-                    handle.Release();
-
-                return default;
-            }
+                return await ThreadlinkResourceProvider<Object>.LoadSceneAsync(reference, mode);
 
             return default;
         }
@@ -233,26 +241,20 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static async UniTask<SceneInstance> UnloadSceneAsync(int sceneReferenceIndex)
         {
-            if (TryGetSceneReference(sceneReferenceIndex, out var reference)
-            && ThreadlinkResourceProvider<SceneInstance>.TryGetHandleAt(reference.RuntimeKey, out var handle))
-            {
-                var result = await Addressables.UnloadSceneAsync(handle, true).ToUniTask();
-
-                ThreadlinkResourceProvider<SceneInstance>.Remove(reference.RuntimeKey);
-                return result;
-            }
+            if (TryGetSceneReference(sceneReferenceIndex, out var reference))
+                return await ThreadlinkResourceProvider<Object>.UnloadSceneAsync(reference);
 
             return default;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryGetAssetKey(AssetGroups group, int indexInDB, out string result)
+        public static bool TryGetAssetReference(AssetGroups group, int indexInDB, out AssetReference result)
         {
             return ValidateDatabaseRequest(Instance.UserConfig.Assets, group, indexInDB, out result);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryGetPrefabKey(AssetGroups group, int indexInDB, out string result)
+        public static bool TryGetPrefabReference(AssetGroups group, int indexInDB, out AssetReferenceGameObject result)
         {
             return ValidateDatabaseRequest(Instance.UserConfig.Prefabs, group, indexInDB, out result);
         }
@@ -274,37 +276,56 @@
         #endregion
 
         #region Addressable Database Request Validation:
-        private static bool ValidateDatabaseRequest(Dictionary<AssetGroups, string[]> database,
-        AssetGroups group, int indexInDB, out string runtimeKey)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool CheckAssetPointerValidity(AssetGroups group, int indexInDatabase)
         {
-            if (database.TryGetValue(group, out var runtimeKeyCollection))
-                return ValidateAssetReferenceRequest(runtimeKeyCollection, indexInDB, out runtimeKey);
-            else
-                Instance.Send("The requested asset group does not exist in the database!").ToUnityConsole(DebugType.Error);
+            return ValidateDatabaseRequest(Instance.UserConfig.Assets, group, indexInDatabase, out _);
+        }
 
-            runtimeKey = null;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool CheckPrefabPointerValidity(AssetGroups group, int indexInDatabase)
+        {
+            return ValidateDatabaseRequest(Instance.UserConfig.Prefabs, group, indexInDatabase, out _);
+        }
+
+        private static bool ValidateDatabaseRequest<T>(FieldTable<AssetGroups, T[]> database, AssetGroups group, int indexInDB, out T reference)
+        where T : AssetReference
+        {
+            if (database.TryGetValue(group, out var assetRefCollection))
+            {
+                return ValidateAssetReferenceRequest(assetRefCollection, indexInDB, out reference);
+            }
+            else Instance.Send("The requested asset group does not exist in the database!").ToUnityConsole(DebugType.Error);
+
+            reference = null;
             return false;
         }
 
-        private static bool ValidateAssetReferenceRequest(string[] runtimeKeyCollection, int indexInDB, out string runtimeKey)
+        private static bool ValidateAssetReferenceRequest<T>(T[] assetRefCollection, int indexInDB, out T reference)
+        where T : AssetReference
         {
-            runtimeKey = null;
+            reference = null;
 
-            if (!indexInDB.IsWithinBoundsOf(runtimeKeyCollection))
+            if (!indexInDB.IsWithinBoundsOf(assetRefCollection))
             {
-                Instance.Send("The Runtime Key Index ", indexInDB, " is invalid!").ToUnityConsole(DebugType.Error);
+                Instance.Send("The Asset Reference Index ", indexInDB, " is invalid!").ToUnityConsole(DebugType.Error);
                 return false;
             }
 
-            var matchedKey = runtimeKeyCollection[indexInDB];
+            var assetReference = assetRefCollection[indexInDB];
 
-            if (string.IsNullOrEmpty(matchedKey))
+            if (assetReference == null)
             {
-                Instance.Send("RuntimeKey ", matchedKey, " is invalid!").ToUnityConsole(DebugType.Error);
+                Instance.Send(assetReference, " at index ", indexInDB, " is NULL!").ToUnityConsole(DebugType.Error);
+                return false;
+            }
+            else if (!assetReference.RuntimeKeyIsValid())
+            {
+                Instance.Send("RuntimeKey of ", assetReference, ", ", assetReference.RuntimeKey, " is invalid!").ToUnityConsole(DebugType.Error);
                 return false;
             }
 
-            runtimeKey = matchedKey;
+            reference = assetReference;
             return true;
         }
         #endregion

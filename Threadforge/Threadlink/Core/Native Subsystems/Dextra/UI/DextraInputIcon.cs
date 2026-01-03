@@ -5,15 +5,15 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     using System;
     using UnityEngine;
     using UnityEngine.InputSystem;
+    using UnityEngine.InputSystem.Layouts;
     using UnityEngine.UI;
 
     /// <summary>
     /// Attach this component to UI images indicating device-specific input actions.
-    /// The image will be updated with the <see cref="Sprite"/> corresponding to the 
-    /// <see cref="InputActionReference.m_ActionId"/>. The configuration for these
-    /// icons lives in the <see cref="DextraConfig"/> asset, is serialized into binary
-    /// and loaded at runtime through the <see cref="UnityEngine.AddressableAssets"/> Pipeline.
-    /// See <see cref="DextraConfig.inputIconsAuthoringTable"/> for more insight into how the binary file is compiled.
+    /// The image will be updated with the <see cref="Sprite"/> corresponding to the
+    /// <see cref="InputActionReference"/>. The configuration for these
+    /// icons lives in the <see cref="DextraConfig"/> asset and is loaded at runtime
+    /// through the <see cref="UnityEngine.AddressableAssets"/> Pipeline.
     /// </summary>
     [RequireComponent(typeof(Image))]
     public sealed class DextraInputIcon : MonoBehaviour
@@ -21,7 +21,8 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         private const Iris.Events DEVICE_CHANGED_EVENT = Iris.Events.OnInputDeviceChanged;
 
         [HideInInspector, SerializeField] private Image targetImage = null;
-        [SerializeField] private InputActionReference targetAction = null;
+
+        [SerializeField] private DextraInputControlPath inputControlPath = null;
 
         private void OnValidate()
         {
@@ -37,31 +38,29 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             }
         }
 
-        private void OnEnable()
+        private void OnDestroy()
         {
-            if (Application.isPlaying)
+            ListenForInputDeviceChanges(false);
+        }
+
+        internal void ListenForInputDeviceChanges(bool listen)
+        {
+            if (listen)
             {
                 OnInputDeviceChanged(Dextra.Instance.CurrentInputDevice);
                 Iris.Subscribe<Action<Dextra.InputDevice>>(DEVICE_CHANGED_EVENT, OnInputDeviceChanged);
             }
-        }
-
-        private void OnDisable()
-        {
-            if (Application.isPlaying)
-                Iris.Unsubscribe<Action<Dextra.InputDevice>>(DEVICE_CHANGED_EVENT, OnInputDeviceChanged);
+            else Iris.Unsubscribe<Action<Dextra.InputDevice>>(DEVICE_CHANGED_EVENT, OnInputDeviceChanged);
         }
 
         private void OnInputDeviceChanged(Dextra.InputDevice inputDevice)
         {
-            var action = targetAction.action;
-
-            if (action != null)
+            if (!string.IsNullOrEmpty(inputControlPath))
             {
-                targetImage.enabled = Dextra.Instance.TryGetInputIcon(inputDevice, action.id, out var icon);
+                targetImage.enabled = Dextra.Instance.TryGetInputIcon(inputDevice, inputControlPath, out var icon);
                 targetImage.sprite = icon;
             }
-            else this.Send(nameof(targetAction), " is unassigned!").ToUnityConsole(DebugType.Warning);
+            else this.Send(nameof(inputControlPath), " is unassigned!").ToUnityConsole(DebugType.Warning);
         }
     }
 }

@@ -7,7 +7,10 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
     {
         internal Sentinel.Environment TargetEnvironment => targetEnvironment;
 
-        [SerializeReference, SerializeReferenceButton]
+#if !ODIN_INSPECTOR
+        [SerializeReferenceButton]
+#endif
+        [SerializeReference]
         private Sentinel.Environment targetEnvironment = null;
     }
 }

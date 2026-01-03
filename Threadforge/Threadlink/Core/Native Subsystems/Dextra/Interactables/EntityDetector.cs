@@ -9,7 +9,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     where ActiveAreaType : Collider
     where EntityType : LinkableBehaviour
     {
-        protected internal override bool ActiveState
+        public override bool ActiveState
         {
             get => activeArea.enabled;
             set => activeArea.enabled = value;
@@ -58,7 +58,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     where ActiveAreaType : Collider2D
     where EntityType : LinkableBehaviour
     {
-        protected internal override bool ActiveState
+        public override bool ActiveState
         {
             get => activeArea.enabled;
             set => activeArea.enabled = value;
@@ -113,7 +113,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
     public abstract class EntityDetector : LinkableBehaviour
     {
-        protected internal abstract bool ActiveState { get; set; }
+        public abstract bool ActiveState { get; set; }
         protected internal abstract Iris.Events OnEntityDetectedEvent { get; }
         protected internal abstract Iris.Events OnEntityOutOfRangeEvent { get; }
     }

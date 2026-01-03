@@ -4,13 +4,14 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     using Iris;
     using Shared;
     using System;
+    using Utilities.Mathematics;
     using UnityEngine;
 
     [RequireComponent(typeof(CanvasGroup))]
     public abstract class UserInterface : LinkableBehaviour
     {
-        public bool IsVisible => Mathf.Approximately(canvasGroup.alpha, 1f);
-        public bool IsHidden => Mathf.Approximately(canvasGroup.alpha, 0f);
+        public bool IsVisible => canvasGroup.alpha.IsSimilarTo(1f);
+        public bool IsHidden => canvasGroup.alpha.IsSimilarTo(0f);
         public bool UpdatingAlpha { get; private set; }
         private float TargetAlpha { get; set; }
 
@@ -42,9 +43,9 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
         private void MoveTowardsTargetAlpha()
         {
-            canvasGroup.alpha = Mathf.MoveTowards(canvasGroup.alpha, TargetAlpha, 4 * Chronos.Instance.UnscaledDeltaTime);
+            canvasGroup.alpha = canvasGroup.alpha.MoveTowards(TargetAlpha, 4 * Chronos.Instance.UnscaledDeltaTime);
 
-            if (Mathf.Approximately(canvasGroup.alpha, TargetAlpha))
+            if (canvasGroup.alpha.IsSimilarTo(TargetAlpha))
             {
                 Iris.Unsubscribe<Action>(Iris.Events.OnUpdate, MoveTowardsTargetAlpha);
                 canvasGroup.alpha = TargetAlpha;

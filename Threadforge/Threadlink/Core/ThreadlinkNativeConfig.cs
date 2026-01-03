@@ -11,8 +11,28 @@ namespace Threadlink.Core
     using UnityEngine.EventSystems;
 
     [CreateAssetMenu(fileName = "ThreadlinkConfig.Native.asset", menuName = "Threadlink/Native Config")]
-    internal sealed class ThreadlinkNativeConfig : ScriptableObject
+    public sealed class ThreadlinkNativeConfig : ScriptableObject
     {
+#if UNITY_EDITOR
+        public string[] NativeAssetGUIDs
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                return new string[7]
+                {
+                    userConfig.AssetGUID,
+                    sentinelConfig.AssetGUID,
+                    dextraConfig.AssetGUID,
+                    auraConfig.AssetGUID,
+                    dextraComponentsPrefab.AssetGUID,
+                    auraComponentsPrefab.AssetGUID,
+                    auraMixer.AssetGUID
+                };
+            }
+        }
+#endif
+
         [Header("Runtime Resources:")]
         [Space(10)]
 

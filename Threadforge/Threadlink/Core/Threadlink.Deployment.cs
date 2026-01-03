@@ -7,12 +7,9 @@ namespace Threadlink.Core
     using NativeSubsystems.Scribe;
     using Shared;
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using System.Runtime.CompilerServices;
     using UnityEngine;
     using UnityEngine.AddressableAssets;
-    using Utilities.UniTask;
 
     public partial class Threadlink
     {
@@ -21,7 +18,7 @@ namespace Threadlink.Core
         {
             await Addressables.InitializeAsync().ToUniTask(); //This should never fail.
 
-            var nativeConfig = await LoadAssetAsync<ThreadlinkNativeConfig>(NativeConstants.Addressables.NATIVE_CONFIG);
+            var nativeConfig = await Addressables.LoadAssetAsync<ThreadlinkNativeConfig>(NativeConstants.Addressables.NATIVE_CONFIG).ToUniTask();
 
             if (nativeConfig != null)
             {
@@ -47,8 +44,6 @@ namespace Threadlink.Core
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private async UniTask DeployAsync()
         {
-            await UserConfig.ConsumeBinariesAsync();
-
             Boot();
 
             await RegisterSubsystemsAsync(Iris.Events.OnNativeSubsystemRegistration);

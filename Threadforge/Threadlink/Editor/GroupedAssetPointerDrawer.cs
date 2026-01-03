@@ -1,10 +1,13 @@
 namespace Threadlink.Editor
 {
     using Addressables;
+    using Collections.Extensions;
     using Core;
+    using Shared;
     using System.Collections.Generic;
     using UnityEditor;
     using UnityEngine;
+    using Utilities.Collections;
 
     [CustomPropertyDrawer(typeof(GroupedAssetPointer))]
     internal sealed class GroupedAssetPointerDrawer : PropertyDrawer
@@ -50,10 +53,27 @@ namespace Threadlink.Editor
 
                 // Access the 'group' property
                 var groupProp = property.FindPropertyRelative("group");
-                var currentGroup = (AssetGroups)groupProp.enumValueIndex;
 
-                // Retrieve asset names based on the selected group, including "None"
-                var assetNames = GetAssetNamesForGroup(currentGroup);
+                if (groupProp == null)
+                {
+                    EditorGUI.LabelField(position, label.text, "Missing 'group' field");
+                    EditorGUI.EndProperty();
+                    return;
+                }
+
+                AssetGroups currentGroup;
+                switch (groupProp.propertyType)
+                {
+                    case SerializedPropertyType.Enum:
+                    case SerializedPropertyType.Integer:
+                        currentGroup = (AssetGroups)groupProp.intValue;
+                        break;
+
+                    default:
+                        EditorGUI.LabelField(position, label.text, $"Unsupported 'group' type: {groupProp.propertyType}");
+                        EditorGUI.EndProperty();
+                        return;
+                }
 
                 // Access the 'indexInDatabase' property
                 var indexPropAsset = property.FindPropertyRelative("indexInDatabase");
@@ -77,13 +97,10 @@ namespace Threadlink.Editor
                 EditorGUI.BeginChangeCheck();
 
                 var selectedGroup = (AssetGroups)EditorGUI.EnumPopup(groupFieldRect, GUIContent.none, currentGroup);
-
                 if (EditorGUI.EndChangeCheck())
                 {
-                    groupProp.enumValueIndex = (int)selectedGroup;
-
-                    // Reset indexInDatabase when group changes
-                    indexPropAsset.intValue = -1; // Default to "None"
+                    groupProp.intValue = (int)selectedGroup;
+                    indexPropAsset.intValue = -1;
                 }
 
                 // Draw the 'Asset' label
@@ -98,7 +115,7 @@ namespace Threadlink.Editor
                     // "None" selected - Invalid selection
                     GUI.color = Color.red;
                 }
-                else if (TryGetSceneAsset(currentGroup, currentIndexInDatabase, out _))
+                else if (TryGetResource(currentGroup, currentIndexInDatabase, out _))
                 {
                     // Valid asset selected
                     GUI.color = Color.green;
@@ -108,6 +125,9 @@ namespace Threadlink.Editor
                     // Invalid asset selection
                     GUI.color = Color.red;
                 }
+
+                // Retrieve asset names based on the selected group, including "None"
+                var assetNames = GetAssetNamesForGroup(currentGroup);
 
                 // Draw the asset dropdown
                 EditorGUI.BeginChangeCheck();
@@ -170,26 +190,22 @@ namespace Threadlink.Editor
             if (ThreadlinkConfigFinder.TryGetConfig(out ThreadlinkUserConfig userData))
             {
                 // Check assetDatabase first
-                if (userData.AssetAuthoringTable.TryGetValue(group, out var assetRefs) && assetRefs != null)
+                if (userData.Assets.TryGetValue(group, out var assetRefs) && assetRefs != null)
                 {
                     foreach (var assetRef in assetRefs)
                     {
-                        if (assetRef == null) continue;
-
-                        string assetName = assetRef.editorAsset != null ? assetRef.editorAsset.name : "Invalid Asset Entry";
-                        groupsBuffer.Add(assetName);
+                        if (assetRef != null && assetRef.editorAsset != null)
+                            groupsBuffer.Add(assetRef.editorAsset.name);
                     }
                 }
 
                 // Check prefabDatabase
-                if (userData.PrefabAuthoringTable.TryGetValue(group, out var prefabRefs) && prefabRefs != null)
+                if (userData.Prefabs.TryGetValue(group, out var prefabRefs) && prefabRefs != null)
                 {
                     foreach (var prefabRef in prefabRefs)
                     {
-                        if (prefabRef == null) continue;
-
-                        string prefabName = prefabRef.editorAsset != null ? prefabRef.editorAsset.name : "Invalid Prefab Entry";
-                        groupsBuffer.Add(prefabName);
+                        if (prefabRef == null && prefabRef.editorAsset != null)
+                            groupsBuffer.Add(prefabRef.editorAsset.name);
                     }
                 }
             }
@@ -203,7 +219,7 @@ namespace Threadlink.Editor
         /// <param name="group">The addressable group.</param>
         /// <param name="index">The selected index in the database.</param>
         /// <returns>The corresponding editor asset if valid; otherwise, null.</returns>
-        private bool TryGetSceneAsset(AssetGroups group, int index, out Object result)
+        private bool TryGetResource(AssetGroups group, int index, out Object result)
         {
             result = null;
 
@@ -211,24 +227,24 @@ namespace Threadlink.Editor
                 return false;
 
             // Check assetDatabase first
-            if (userData.AssetAuthoringTable.TryGetValue(group, out var assetRefs))
+            if (userData.Assets.TryGetValue(group, out var assetRefs) && assetRefs != null)
             {
-                if (index < assetRefs.Length)
+                if (index.IsWithinBoundsOf(assetRefs))
                 {
                     result = assetRefs[index].editorAsset;
-                    return true;
+                    return result != null;
                 }
 
                 index -= assetRefs.Length;
             }
 
             // Check prefabDatabase
-            if (userData.PrefabAuthoringTable.TryGetValue(group, out var prefabRefs))
+            if (userData.Prefabs.TryGetValue(group, out var prefabRefs) && prefabRefs != null)
             {
-                if (index < prefabRefs.Length)
+                if (index.IsWithinBoundsOf(prefabRefs))
                 {
-                    result = prefabRefs[index].editorAsset; ;
-                    return true;
+                    result = prefabRefs[index].editorAsset;
+                    return result != null;
                 }
             }
 

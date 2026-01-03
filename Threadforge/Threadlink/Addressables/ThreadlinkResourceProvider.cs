@@ -3,119 +3,102 @@ namespace Threadlink.Addressables
     using Core;
     using Core.NativeSubsystems.Scribe;
     using Cysharp.Threading.Tasks;
-    using System.Collections.Generic;
     using System.Runtime.CompilerServices;
+    using UnityEngine;
     using UnityEngine.AddressableAssets;
     using UnityEngine.ResourceManagement.AsyncOperations;
+    using UnityEngine.ResourceManagement.ResourceProviders;
+    using UnityEngine.SceneManagement;
 
     /// <summary>
     /// Threadlink's Resource Provider based on the <see cref="UnityEngine.AddressableAssets"/> Pipeline.
-    /// Uses an internal cache to determine whether a resource has already been loaded, effectively circumventing
-    /// the reference counter implemented in the Pipeline by default. 
+    /// Works exclusively with <see cref="AssetReference"/> to enforce a simple, 
+    /// centralized way of authoring and managing content. 
     /// <para></para>
-    /// Assets only need to be loaded once, then accessed/used as much as desired. This approach maintains a centralized
-    /// registry of the loaded resources, instead of having the hidden reference count altered from multiple places in your code. 
-    /// This makes it easier to track the memory overhead of your assets at runtime.
-    /// Naturally, you are responsible for correctly loading/releasing your assets at the correct times.
+    /// Please set up your
+    /// references in your project's <see cref="ThreadlinkUserConfig"/> asset,
+    /// then use <see cref="Threadlink"/>'s <see langword="static"/> Resource Loading API to fetch your content.
     /// <para></para>
-    /// To encourage the use of <see cref="Threadlink"/>'s async methods for loading, the asynchronous API of the
-    /// provider has been kept <see langword="internal"/> to the framework. If, however, you need to load assets synchronously, you may freely
-    /// use <see cref="LoadOrGetCachedAt(object)"/>, which calls <see cref="AsyncOperationHandle.WaitForCompletion"/> internally.
+    /// Please remember that you are responsible for loading/releasing your assets at the correct times.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    public static class ThreadlinkResourceProvider<T>
+    /// <typeparam name="T">The resource type, in the context of a call site.</typeparam>
+    internal static class ThreadlinkResourceProvider<T> where T : Object
     {
-        private static readonly Dictionary<object, AsyncOperationHandle<T>> cache = new();
-
         /// <summary>
-        /// Synchronously load or get the cached resource at the specified <paramref name="runtimeKey"/>.
+        /// Synchronously load or get the cached resource at the specified <paramref name="reference"/>.
         /// </summary>
-        /// <param name="runtimeKey">The runtime key.</param>
+        /// <param name="reference">The reference.</param>
         /// <returns>The loaded resouce.</returns>
-        public static T LoadOrGetCachedAt(object runtimeKey)
+        internal static T LoadOrGetCachedAt(AssetReference reference)
         {
-            if (cache.TryGetValue(runtimeKey, out var handle) && handle.IsValid())
-                return handle.Result;
+            if (reference.Asset is T loadedAsset)
+                return loadedAsset;
 
-            handle = Addressables.LoadAssetAsync<T>(runtimeKey);
-            handle.WaitForCompletion();
+            reference.LoadAssetAsync<T>().WaitForCompletion();
 
-            if (handle.Status is not AsyncOperationStatus.Succeeded)
+            if (reference.OperationHandle.Status is not AsyncOperationStatus.Succeeded)
             {
-                if (handle.IsValid())
-                    handle.Release();
+                reference.ReleaseAsset();
 
-                Scribe.Send<T>("Failed to load resource from address: ", runtimeKey.ToString()).ToUnityConsole(DebugType.Error);
+                Scribe.Send<T>("Failed to load resource from reference: ", reference.RuntimeKey).ToUnityConsole(DebugType.Error);
                 return default;
             }
 
-            cache[runtimeKey] = handle;
-            return handle.Result;
+            return (T)reference.Asset;
         }
 
         /// <summary>
-        /// Asynchronously load or get the cached resource at the specified <paramref name="runtimeKey"/>.
+        /// Asynchronously load or get the cached resource at the specified <paramref name="reference"/>.
         /// </summary>
-        /// <param name="runtimeKey">The runtime key.</param>
+        /// <param name="reference">The reference.</param>
         /// <returns>The loaded resouce.</returns>
-        internal static async UniTask<T> LoadOrGetCachedAtKeyAsync(object runtimeKey)
+        internal static async UniTask<T> LoadOrGetCachedAtRefAsync(AssetReference reference)
         {
-            if (cache.TryGetValue(runtimeKey, out var handle) && handle.IsValid())
-                return handle.Result;
+            if (reference.Asset is T loadedAsset)
+                return loadedAsset;
 
-            handle = Addressables.LoadAssetAsync<T>(runtimeKey);
+            _ = reference.LoadAssetAsync<T>();
 
-            await handle.ToUniTask();
+            await reference.OperationHandle.ToUniTask();
 
-            if (handle.Status is not AsyncOperationStatus.Succeeded)
+            if (reference.OperationHandle.Status is not AsyncOperationStatus.Succeeded)
             {
-                if (handle.IsValid())
-                    handle.Release();
+                reference.ReleaseAsset();
 
-                Scribe.Send<T>("Failed to load resource from address: ", runtimeKey.ToString()).ToUnityConsole(DebugType.Error);
+                Scribe.Send<T>("Failed to load resource from address: ", reference.RuntimeKey).ToUnityConsole(DebugType.Error);
                 return default;
             }
 
-            cache[runtimeKey] = handle;
-            return handle.Result;
+            return (T)reference.Asset;
         }
 
-        /// <summary>
-        /// Unload the resource at the specified <paramref name="runtimeKey"/>.
-        /// </summary>
-        /// <param name="runtimeKey">The runtime key.</param>
-        internal static void ReleaseAt(object runtimeKey)
+        public static async UniTask<SceneInstance> LoadSceneAsync(SceneAssetReference reference, LoadSceneMode mode)
         {
-            if (!cache.TryGetValue(runtimeKey, out var handle))
-                return;
+            _ = reference.LoadSceneAsync(mode);
 
-            if (handle.IsValid())
-                handle.Release();
+            await reference.OperationHandle.ToUniTask();
 
-            cache.Remove(runtimeKey);
+            if (reference.OperationHandle.Status is AsyncOperationStatus.Succeeded)
+                return reference.OperationHandle.Convert<SceneInstance>().Result;
+            else
+                reference.ReleaseAsset();
+
+            return default;
         }
 
-        /// <summary>
-        /// Check whether a resource has been loaded using the specified <paramref name="runtimeKey"/>.
-        /// </summary>
-        /// <param name="runtimeKey">The runtime key.</param>
-        /// <returns><see langword="true"/> if the resource is loaded. <see langword="false"/> otherwise.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool Has(object runtimeKey) => cache.TryGetValue(runtimeKey, out var handle) && handle.IsValid();
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool TryGetHandleAt(object runtimeKey, out AsyncOperationHandle<T> result)
+        public static async UniTask<SceneInstance> UnloadSceneAsync(SceneAssetReference reference)
         {
-            if (cache.TryGetValue(runtimeKey, out result))
-                return true;
+            _ = reference.UnLoadScene();
 
-            return false;
+            await reference.OperationHandle.ToUniTask();
+
+            if (reference.OperationHandle.Status is AsyncOperationStatus.Succeeded)
+                return reference.OperationHandle.Convert<SceneInstance>().Result;
+            else
+                reference.ReleaseAsset();
+
+            return default;
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool Remove(object runtimeKey) => cache.Remove(runtimeKey);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void Track(object runtimeKey, AsyncOperationHandle<T> handle) => cache.TryAdd(runtimeKey, handle);
     }
 }

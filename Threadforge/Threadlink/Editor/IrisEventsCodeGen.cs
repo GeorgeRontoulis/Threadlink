@@ -2,6 +2,7 @@ namespace Threadlink.Editor.CodeGen
 {
     using CSharpier;
     using Cysharp.Text;
+    using Shared;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;

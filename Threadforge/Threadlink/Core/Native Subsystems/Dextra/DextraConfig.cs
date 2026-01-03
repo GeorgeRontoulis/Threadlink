@@ -1,52 +1,39 @@
 namespace Threadlink.Core.NativeSubsystems.Dextra
 {
-#if UNITY_EDITOR
-    using InputIconsAuthoringTable = Authoring.ThreadlinkSerializableAuthoringTable
-    <
-        UnityEngine.InputSystem.InputActionReference,
-        Authoring.ThreadlinkAuthoringTable<Dextra.InputDevice, UnityEngine.AddressableAssets.AssetReferenceT<UnityEngine.Sprite>>
-    >;
-#endif
-    using InputIconsMap = System.Collections.Generic.Dictionary<System.Guid, System.Collections.Generic.Dictionary<Dextra.InputDevice, string>>;
-
     using Addressables;
+    using Collections;
+    using Collections.Extensions;
     using Cysharp.Threading.Tasks;
     using Scribe;
     using System;
-    using System.Collections.Generic;
     using System.Runtime.CompilerServices;
-    using Shared;
     using UnityEngine;
-    using UnityEngine.AddressableAssets;
     using UnityEngine.InputSystem;
-    using Utilities.Strings;
 
     [CreateAssetMenu(menuName = "Threadlink/Subsystem Dependencies/Dextra Config")]
-    public sealed class DextraConfig : ScriptableObject, IAsyncBinaryConsumer, IBinaryAuthor
+    public sealed class DextraConfig : ScriptableObject
     {
-        private InputIconsMap InputIconsMap { get; set; }
-
-        #region Runtime:
-        [Header("Runtime Properties:")]
-        [Space(10)]
+        [Serializable]
+        private sealed class NestedFieldTable : FieldTable<Dextra.InputDevice, GroupedAssetPointer> { }
 
         [SerializeField] private GroupedAssetPointer[] interfacePointers = new GroupedAssetPointer[0];
 
         [Space(10)]
 
-        [SerializeField] private AssetReferenceT<TextAsset> inputIconMapBinary = null;
+        [SerializeField] private FieldTable<DextraInputControlPath, NestedFieldTable> inputIcons = new();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool TryGetInterfacePointers(out ReadOnlySpan<GroupedAssetPointer> result) => !(result = interfacePointers).IsEmpty;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryGetInputIcon(Dextra.InputDevice device, Guid actionID, out Sprite result)
+        public bool TryGetInputIcon(Dextra.InputDevice device, DextraInputControlPath inputControlPath, out Sprite result)
         {
-            if (InputIconsMap.TryGetValue(actionID, out var deviceIconMap))
+            if (inputIcons.TryGetValue(inputControlPath, out var deviceIconMap))
             {
-                if (deviceIconMap.TryGetValue(device, out var runtimeKey) && !string.IsNullOrEmpty(runtimeKey))
+                if (deviceIconMap.TryGetValue(device, out var iconPointer)
+                && Threadlink.TryGetAssetReference(iconPointer.Group, iconPointer.IndexInDatabase, out var runtimeKey))
                 {
-                    result = ThreadlinkResourceProvider<Sprite>.LoadOrGetCachedAt(runtimeKey);
+                    result = Threadlink.LoadAsset<Sprite>(runtimeKey);
                     return true;
                 }
                 else
@@ -91,53 +78,5 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
             await UniTask.WhenAll(tasks);
         }
-
-        public async UniTask ConsumeBinariesAsync()
-        {
-            InputIconsMap = await inputIconMapBinary.DeserializeIntoDictionaryAsync<Guid, Dictionary<Dextra.InputDevice, string>>();
-        }
-        #endregion
-
-#if UNITY_EDITOR
-        #region Edit-time Properties:
-        [Header("Edit-time Properties:")]
-        [Space(10)]
-
-        [SerializeField] private InputIconsAuthoringTable inputIconsAuthoringTable = new();
-
-        [ContextMenu("Serialize Authoring Data Into Binary")]
-        public void SerializeAuthoringDataIntoBinary()
-        {
-            InputIconsMap ConvertToSerializableRuntimeData(InputIconsAuthoringTable authoringData)
-            {
-                var result = new InputIconsMap(authoringData.Count);
-
-                foreach (var entry in authoringData)
-                {
-                    var deviceIconRefs = entry.Value;
-                    var runtimeDeviceIconRefs = new Dictionary<Dextra.InputDevice, string>(deviceIconRefs.Count);
-
-                    foreach (var deviceIconRefPair in deviceIconRefs)
-                    {
-                        var device = deviceIconRefPair.Key;
-                        var spriteRef = deviceIconRefPair.Value;
-
-                        if (!runtimeDeviceIconRefs.TryAdd(device, spriteRef.RuntimeKey.ToString()))
-                            this.Send($"Duplicate key detected: {device}").ToUnityConsole(DebugType.Warning);
-                    }
-
-                    var actionID = entry.Key.action.id;
-
-                    if (!result.TryAdd(actionID, runtimeDeviceIconRefs))
-                        this.Send($"Duplicate key detected: {actionID}").ToUnityConsole(DebugType.Warning);
-                }
-
-                return result;
-            }
-
-            inputIconsAuthoringTable.SerializeIntoBinary(ConvertToSerializableRuntimeData(inputIconsAuthoringTable), "DextraInputIconDatabase");
-        }
-        #endregion
-#endif
     }
 }

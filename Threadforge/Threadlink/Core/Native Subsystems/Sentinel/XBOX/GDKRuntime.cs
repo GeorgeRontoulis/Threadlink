@@ -1,6 +1,6 @@
 namespace Threadlink.Core.NativeSubsystems.Sentinel
 {
-#if MICROSOFT_GDK_SUPPORT
+#if THREADLINK_SENTINEL_XBOX
     using Cysharp.Threading.Tasks;
     using Scribe;
     using Shared;

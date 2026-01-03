@@ -1,14 +1,14 @@
 namespace Threadlink.Core.NativeSubsystems.Aura
 {
-    using Addressables;
     using Chronos;
     using Core;
+    using Unity.Mathematics;
     using Cysharp.Threading.Tasks;
     using Iris;
     using Shared;
     using System;
     using System.Runtime.CompilerServices;
-    using Unity.Mathematics;
+    using Utilities.Mathematics;
     using UnityEngine;
     using UnityEngine.Audio;
 
@@ -96,11 +96,15 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             #region Callbacks:
             void OnLoadingProcessFinished()
             {
-                var entities = UnityEngine.Object.FindObjectsByType<AuraSpatialObject>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-                int length = entities.Length;
+                var spatialObjects = UnityEngine.Object.FindObjectsByType<AuraSpatialObject>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
 
-                for (int i = 0; i < length; i++)
-                    TryLink(entities[i]);
+                if (spatialObjects != null)
+                {
+                    int length = spatialObjects.Length;
+
+                    for (int i = 0; i < length; i++)
+                        TryLink(spatialObjects[i]);
+                }
             }
 
             void OnCoreDeployed(Threadlink core)
@@ -156,8 +160,8 @@ namespace Threadlink.Core.NativeSubsystems.Aura
 
             foreach (var entity in Registry.Values) totalInfluence += entity.GetSpatialInfluence(listenerPos);
 
-            MoveTowardsVolume(Music, Mathf.Clamp01(CurrentMaxMusicVolume - totalInfluence));
-            MoveTowardsVolume(Atmos, Mathf.Clamp01(CurrentMaxAtmosVolume - totalInfluence));
+            MoveTowardsVolume(Music, math.clamp(CurrentMaxMusicVolume - totalInfluence, 0f, 1f));
+            MoveTowardsVolume(Atmos, math.clamp(CurrentMaxAtmosVolume - totalInfluence, 0f, 1f));
         }
 
         public static void AttachAudioListenerTo(LinkableBehaviour owner, Transform parent)
@@ -167,48 +171,39 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             Instance.ResetAudioListenerLocalPosition();
         }
 
-        public static void SetGlobalVolumes(float2 volumes)
+        public static void SetGlobalVolumes(float musicVolume, float atmosVolume)
         {
-            volumes.x = Mathf.Clamp01(volumes.x);
-            volumes.y = Mathf.Clamp01(volumes.y);
-            Instance.CurrentMaxMusicVolume = volumes.x;
-            Instance.CurrentMaxAtmosVolume = volumes.y;
+#if THREADLINK_MATHEMATICS
+            Instance.CurrentMaxMusicVolume = Unity.Mathematics.math.clamp(musicVolume, 0f, 1f);
+            Instance.CurrentMaxAtmosVolume = Unity.Mathematics.math.clamp(atmosVolume, 0f, 1f);
+#else
+            Instance.CurrentMaxMusicVolume = Mathf.Clamp01(musicVolume);
+            Instance.CurrentMaxAtmosVolume = Mathf.Clamp01(atmosVolume);
+#endif
         }
 
         public static async UniTask FadeAudioListenerVolumeAsync(float targetVolume)
         {
-            targetVolume = Mathf.Clamp01(targetVolume);
+            targetVolume = math.clamp(targetVolume, 0f, 1f);
 
             float speed = Instance.Config.VolumeFadeSpeed;
 
-            while (!Mathf.Approximately(AudioListener.volume, targetVolume))
+            while (!AudioListener.volume.IsSimilarTo(targetVolume))
             {
-                AudioListener.volume = Mathf.MoveTowards(AudioListener.volume, targetVolume, Chronos.Instance.UnscaledDeltaTime * speed);
+                AudioListener.volume = AudioListener.volume.MoveTowards(targetVolume, Chronos.Instance.UnscaledDeltaTime * speed);
                 await UniTask.Yield();
             }
         }
 
         public static void PlayUISFX(UISFX uiSFX, float volume = 1f)
         {
-            static bool TryLoadClip(AssetGroups group, int index, out AudioClip result)
-            {
-                if (Threadlink.TryGetAssetKey(group, index, out var runtimeKey))
-                {
-                    result = ThreadlinkResourceProvider<AudioClip>.LoadOrGetCachedAt(runtimeKey);
-                    return result != null;
-                }
-
-                result = null;
-                return false;
-            }
-
             var config = Instance.Config;
 
             AudioClip sfx = uiSFX switch
             {
-                UISFX.Cancel => TryLoadClip(config.CancelClipPointer.Group, config.CancelClipPointer.IndexInDatabase, out var clip) ? clip : null,
-                UISFX.Nagivate => TryLoadClip(config.NavClipPointer.Group, config.NavClipPointer.IndexInDatabase, out var clip) ? clip : null,
-                UISFX.Confirm => TryLoadClip(config.ConfirmClipPointer.Group, config.ConfirmClipPointer.IndexInDatabase, out var clip) ? clip : null,
+                UISFX.Cancel => Threadlink.LoadAsset<AudioClip>(config.CancelClipPointer.Group, config.CancelClipPointer.IndexInDatabase),
+                UISFX.Nagivate => Threadlink.LoadAsset<AudioClip>(config.NavClipPointer.Group, config.NavClipPointer.IndexInDatabase),
+                UISFX.Confirm => Threadlink.LoadAsset<AudioClip>(config.ConfirmClipPointer.Group, config.ConfirmClipPointer.IndexInDatabase),
                 _ => null,
             };
 
@@ -216,7 +211,7 @@ namespace Threadlink.Core.NativeSubsystems.Aura
                 Instance.SFX.PlayOneShot(sfx, volume);
         }
 
-        public static async UniTask TransitionToAudioScenarioAsync(AudioClip musicClip, AudioClip atmosClip, float2 volumes)
+        public static async UniTask TransitionToAudioScenarioAsync(AudioClip musicClip, AudioClip atmosClip, float musicVolume, float atmosVolume)
         {
             var musicSource = Instance.Music;
             var atmosSource = Instance.Atmos;
@@ -243,21 +238,18 @@ namespace Threadlink.Core.NativeSubsystems.Aura
 
             await Threadlink.WaitForFramesAsync(1);
 
-            volumes.x = Mathf.Clamp(volumes.x, 0f, Instance.CurrentMaxMusicVolume);
-            volumes.y = Mathf.Clamp(volumes.y, 0f, Instance.CurrentMaxAtmosVolume);
-
             await UniTask.WhenAll
             (
-                Instance.FadeAudiosourceVolumeAsync(musicSource, volumes.x),
-                Instance.FadeAudiosourceVolumeAsync(atmosSource, volumes.y)
+                Instance.FadeAudiosourceVolumeAsync(musicSource, math.clamp(musicVolume, 0f, Instance.CurrentMaxMusicVolume)),
+                Instance.FadeAudiosourceVolumeAsync(atmosSource, math.clamp(atmosVolume, 0f, Instance.CurrentMaxAtmosVolume))
             );
         }
 
         private async UniTask FadeAudiosourceVolumeAsync(AudioSource source, float targetVolume)
         {
-            targetVolume = Mathf.Clamp01(targetVolume);
+            targetVolume = math.clamp(targetVolume, 0f, 1f);
 
-            while (Mathf.Approximately(source.volume, targetVolume) == false)
+            while (!source.volume.IsSimilarTo(targetVolume))
             {
                 MoveTowardsVolume(source, targetVolume);
                 await UniTask.Yield();
@@ -267,7 +259,7 @@ namespace Threadlink.Core.NativeSubsystems.Aura
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void MoveTowardsVolume(AudioSource source, float targetVolume)
         {
-            source.volume = Mathf.MoveTowards(source.volume, targetVolume, Chronos.Instance.UnscaledDeltaTime * Config.VolumeFadeSpeed);
+            source.volume = source.volume.MoveTowards(targetVolume, Chronos.Instance.UnscaledDeltaTime * Config.VolumeFadeSpeed);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

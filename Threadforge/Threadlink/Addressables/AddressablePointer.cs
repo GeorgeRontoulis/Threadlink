@@ -8,6 +8,9 @@ namespace Threadlink.Addressables
     {
         public int IndexInDatabase => indexInDatabase;
 
+#if ODIN_INSPECTOR
+        [Sirenix.OdinInspector.DrawWithUnity]
+#endif
         [SerializeField] protected int indexInDatabase = -1;
     }
 
@@ -19,6 +22,9 @@ namespace Threadlink.Addressables
     {
         public AssetGroups Group => group;
 
+#if ODIN_INSPECTOR
+        [Sirenix.OdinInspector.DrawWithUnity]
+#endif
         [SerializeField] private AssetGroups group = 0;
     }
 }

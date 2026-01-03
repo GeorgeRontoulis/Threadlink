@@ -1,7 +1,9 @@
 namespace Threadlink.Core.NativeSubsystems.Aura
 {
     using Core;
+    using Unity.Mathematics;
     using UnityEngine;
+    using Utilities.Mathematics;
 
     public abstract class AuraSpatialObject : LinkableBehaviour
     {
@@ -26,7 +28,7 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             {
                 float target = source.maxDistance * radiusCoefficient;
 
-                if (!Mathf.Approximately(Radius, target))
+                if (!Radius.IsSimilarTo(target))
                     Radius = target;
             }
 
@@ -46,7 +48,7 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             float distance = Vector3.Distance(listenerPosition, SourcePosition);
 
             // Inverse distance influence
-            return Mathf.Clamp(distance >= Radius ? 0f : Mathf.Clamp01(1f - (distance / Radius)), 0f, influence);
+            return math.clamp(distance >= Radius ? 0f : math.clamp(1f - (distance / Radius), 0f, 1f), 0f, influence);
         }
     }
 }
