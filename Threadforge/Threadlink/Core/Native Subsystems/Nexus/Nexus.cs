@@ -7,6 +7,7 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
     using Dextra;
     using Initium;
     using Iris;
+    using System;
     using Utilities.Collections;
 
     /// <summary>
@@ -19,7 +20,7 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
         public static async UniTask LoadSceneAsync(SceneEntry sceneEntry, int entranceIndex = -1)
         {
             Dextra.Instance.CurrentInputMode = Dextra.InputMode.Unresponsive;
-            Chronos.Instance.RawTimeScale = 0;
+            Iris.Publish<Action>(Iris.Events.OnGamePauseRequested);
 
             var volumeTask = Aura.FadeAudioListenerVolumeAsync(0f);
             var faderTask = Iris.Publish<UniTask>(Iris.Events.OnDisplayFaderAsync);
@@ -72,7 +73,7 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
             await sceneEntry.OnFinishedLoadingAsync();
 
             Iris.Publish(Iris.Events.OnLoadingProcessFinished);
-            Chronos.Instance.RawTimeScale = 1;
+            Iris.Publish<Action>(Iris.Events.OnGameResumeRequested);
 
             await Iris.Publish<UniTask>(Iris.Events.OnDisplayFaderAsync);
 

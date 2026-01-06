@@ -2,7 +2,6 @@ namespace Threadlink.User
 {
     using Core;
     using Core.NativeSubsystems.Aura;
-    using Core.NativeSubsystems.Chronos;
     using Core.NativeSubsystems.Dextra;
     using Core.NativeSubsystems.Iris;
     using Core.NativeSubsystems.Sentinel;
@@ -25,7 +24,6 @@ namespace Threadlink.User
             var buffer = new IThreadlinkSubsystem[]
             {
                 Threadlink.Weave<Sentinel>(),
-                Threadlink.Weave<Chronos>(),
                 Threadlink.Weave<Dextra>(),
                 Threadlink.Weave<Aura>(),
             };

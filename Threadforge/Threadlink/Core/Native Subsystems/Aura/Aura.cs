@@ -190,7 +190,7 @@ namespace Threadlink.Core.NativeSubsystems.Aura
 
             while (!AudioListener.volume.IsSimilarTo(targetVolume))
             {
-                AudioListener.volume = AudioListener.volume.MoveTowards(targetVolume, Chronos.Instance.UnscaledDeltaTime * speed);
+                AudioListener.volume = AudioListener.volume.MoveTowards(targetVolume, Chronos.UnscaledDeltaTime * speed);
                 await UniTask.Yield();
             }
         }
@@ -259,7 +259,7 @@ namespace Threadlink.Core.NativeSubsystems.Aura
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void MoveTowardsVolume(AudioSource source, float targetVolume)
         {
-            source.volume = source.volume.MoveTowards(targetVolume, Chronos.Instance.UnscaledDeltaTime * Config.VolumeFadeSpeed);
+            source.volume = source.volume.MoveTowards(targetVolume, Chronos.UnscaledDeltaTime * Config.VolumeFadeSpeed);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

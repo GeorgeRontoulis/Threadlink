@@ -18,6 +18,8 @@ namespace Threadlink.Core.NativeSubsystems.Iris
             OnFixedUpdate,
             OnLateUpdate,
             OnPlaytimeCountTick,
+            OnGamePauseRequested,
+            OnGameResumeRequested,
             OnGamePaused,
             OnGameResumed,
             OnInputDeviceChanged,

@@ -43,7 +43,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
         private void MoveTowardsTargetAlpha()
         {
-            canvasGroup.alpha = canvasGroup.alpha.MoveTowards(TargetAlpha, 4 * Chronos.Instance.UnscaledDeltaTime);
+            canvasGroup.alpha = canvasGroup.alpha.MoveTowards(TargetAlpha, 4 * Chronos.UnscaledDeltaTime);
 
             if (canvasGroup.alpha.IsSimilarTo(TargetAlpha))
             {
