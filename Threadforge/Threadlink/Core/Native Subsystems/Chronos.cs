@@ -78,8 +78,8 @@ namespace Threadlink.Core.NativeSubsystems.Chronos
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Start()
         {
-            Iris.Unsubscribe<Action>(Iris.Events.OnUpdate, UpdateStandardTime);
-            Iris.Unsubscribe<Action>(Iris.Events.OnFixedUpdate, UpdatePhysicsTime);
+            Iris.Subscribe<Action>(Iris.Events.OnUpdate, UpdateStandardTime);
+            Iris.Subscribe<Action>(Iris.Events.OnFixedUpdate, UpdatePhysicsTime);
         }
 
         /// <summary>
