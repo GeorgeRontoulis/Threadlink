@@ -9,7 +9,7 @@
     {
         public virtual void Discard() { }
 
-        public abstract bool TryApplyValueTo(Vault targetVault, DataFieldIDs targetFieldID);
+        public abstract bool TryApplyValueTo(Vault targetVault, Vault.DataFields targetFieldID);
     }
 
     [Serializable]
@@ -36,7 +36,7 @@
             OnValueChanged = null;
         }
 
-        public override bool TryApplyValueTo(Vault targetVault, DataFieldIDs targetFieldID)
+        public override bool TryApplyValueTo(Vault targetVault, Vault.DataFields targetFieldID)
         {
             return targetVault != null && targetVault.TrySet(targetFieldID, value);
         }

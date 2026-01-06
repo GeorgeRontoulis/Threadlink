@@ -13,17 +13,17 @@ namespace Threadlink.Vault
     /// It includes API for actually handling that data at runtime.
     /// </summary>
     [CreateAssetMenu(menuName = "Threadlink/Vault")]
-    public class Vault : LinkableAsset
+    public partial class Vault : LinkableAsset
     {
-        [SerializeField] private ReferenceTable<DataFieldIDs, DataField> dataFields = new();
+        [SerializeField] private ReferenceTable<DataFields, DataField> dataFields = new();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public virtual bool Has(DataFieldIDs fieldID) => dataFields.ContainsKey(fieldID);
+        public virtual bool Has(DataFields fieldID) => dataFields.ContainsKey(fieldID);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public virtual bool TryGetDataField(DataFieldIDs fieldID, out DataField result) => dataFields.TryGetValue(fieldID, out result);
+        public virtual bool TryGetDataField(DataFields fieldID, out DataField result) => dataFields.TryGetValue(fieldID, out result);
 
-        public virtual bool TryGetDataField<T>(DataFieldIDs fieldID, out DataField<T> result)
+        public virtual bool TryGetDataField<T>(DataFields fieldID, out DataField<T> result)
         {
             if (TryGetDataField(fieldID, out var field) && field is DataField<T> castField)
             {
@@ -35,7 +35,7 @@ namespace Threadlink.Vault
             return false;
         }
 
-        public virtual bool TryGetDataField<T>(DataFieldIDs fieldID, out T result) where T : DataField
+        public virtual bool TryGetDataField<T>(DataFields fieldID, out T result) where T : DataField
         {
             if (TryGetDataField(fieldID, out var field) && field is T castField)
             {
@@ -47,7 +47,7 @@ namespace Threadlink.Vault
             return false;
         }
 
-        public virtual bool TryGet<T>(DataFieldIDs fieldID, out T value)
+        public virtual bool TryGet<T>(DataFields fieldID, out T value)
         {
             bool retrieved = TryGetDataField<T>(fieldID, out var field);
 
@@ -56,7 +56,7 @@ namespace Threadlink.Vault
             return retrieved;
         }
 
-        public virtual bool TrySet<T>(DataFieldIDs fieldID, T value)
+        public virtual bool TrySet<T>(DataFields fieldID, T value)
         {
             bool retrieved = TryGetDataField<T>(fieldID, out var field);
 

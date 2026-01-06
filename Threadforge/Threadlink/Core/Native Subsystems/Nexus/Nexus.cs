@@ -12,7 +12,7 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
     /// <summary>
     /// System responsible for scene and player loading during Threadlink's runtime.
     /// </summary>
-    public sealed class Nexus : ThreadlinkSubsystem<Nexus>
+    public static class Nexus
     {
         internal enum PlayerLoadingAction : byte { None, Unload, Load }
 

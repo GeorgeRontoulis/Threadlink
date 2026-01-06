@@ -11,10 +11,10 @@ namespace Threadlink.Vault
     {
         private sealed class Entry
         {
-            internal DataFieldIDs FieldID => fieldID;
+            internal Vault.DataFields FieldID => fieldID;
             internal DataField DataField => dataField;
 
-            [SerializeField] private DataFieldIDs fieldID = 0;
+            [SerializeField] private Vault.DataFields fieldID = 0;
             [SerializeReference] private DataField dataField = null;
         }
 

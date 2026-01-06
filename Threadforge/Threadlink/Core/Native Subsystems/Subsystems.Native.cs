@@ -5,7 +5,6 @@ namespace Threadlink.User
     using Core.NativeSubsystems.Chronos;
     using Core.NativeSubsystems.Dextra;
     using Core.NativeSubsystems.Iris;
-    using Core.NativeSubsystems.Nexus;
     using Core.NativeSubsystems.Sentinel;
     using Shared;
     using System;
@@ -28,7 +27,6 @@ namespace Threadlink.User
                 Threadlink.Weave<Sentinel>(),
                 Threadlink.Weave<Chronos>(),
                 Threadlink.Weave<Dextra>(),
-                Threadlink.Weave<Nexus>(),
                 Threadlink.Weave<Aura>(),
             };
 

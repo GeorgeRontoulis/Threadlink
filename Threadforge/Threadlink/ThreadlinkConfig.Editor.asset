@@ -15,5 +15,7 @@ MonoBehaviour:
   nativeIrisEventsTemplate: {fileID: 4900000, guid: 80d7ef5e5302f3c418aaa08277cf205a, type: 3}
   userIrisEventsTemplate: {fileID: 4900000, guid: 6801d28faf4886047ac1c9650f15e809, type: 3}
   irisEventsScript: {fileID: 11500000, guid: 96b3536504e14a2429d0e42954a6470a, type: 3}
+  nativeVaultFieldsTemplate: {fileID: 4900000, guid: 52e7d43862e1aa547b1d3533f0459d3b, type: 3}
+  userVaultFieldsTemplate: {fileID: 4900000, guid: 41c4c8835c1fffa45885d6996cc5a63f, type: 3}
+  vaultFieldsScript: {fileID: 11500000, guid: 9aa6f0e40678c5641a29a23f6d1c9886, type: 3}
   assetGroupsTemplate: {fileID: 4900000, guid: 3fc630b161953974db3cd0780a3dc3d9, type: 3}
-  assetGroupsScript: {fileID: 11500000, guid: fef05a72d6d12f047b3ecb0d493cf289, type: 3}
