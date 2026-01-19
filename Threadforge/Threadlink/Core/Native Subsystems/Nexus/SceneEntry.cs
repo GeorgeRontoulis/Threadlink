@@ -1,18 +1,18 @@
 namespace Threadlink.Core.NativeSubsystems.Nexus
 {
-    using Addressables;
     using Aura;
     using Core;
     using Cysharp.Threading.Tasks;
+    using Shared;
     using UnityEngine;
     using UnityEngine.SceneManagement;
 
     [CreateAssetMenu(menuName = "Threadlink/Nexus/Scene Entry")]
     public class SceneEntry : ScriptableObject
     {
-        protected internal int SceneIndexInDatabase => scenePointer.IndexInDatabase;
+        protected internal SceneIDs ScenePointer => scenePointer;
 
-        [SerializeField] private ScenePointer scenePointer = new();
+        [SerializeField] private SceneIDs scenePointer = default;
 
         [Space(10)]
 
@@ -21,8 +21,8 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
 
         [Space(10)]
 
-        [SerializeField] private GroupedAssetPointer musicClipPointer = new();
-        [SerializeField] private GroupedAssetPointer atmosClipPointer = new();
+        [SerializeField] private AssetIDs musicClipPointer = default;
+        [SerializeField] private AssetIDs atmosClipPointer = default;
 
         [Space(5)]
 
@@ -44,8 +44,8 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
                 await Aura.TransitionToAudioScenarioAsync(music, atmos, musicVolume, atmosVolume);
             }
 
-            bool foundMusic = Threadlink.TryGetAssetReference(musicClipPointer.Group, musicClipPointer.IndexInDatabase, out var musicRef);
-            bool foundAtmos = Threadlink.TryGetAssetReference(atmosClipPointer.Group, atmosClipPointer.IndexInDatabase, out var atmosRef);
+            bool foundMusic = Threadlink.TryGetAssetReference(musicClipPointer, out var musicRef);
+            bool foundAtmos = Threadlink.TryGetAssetReference(atmosClipPointer, out var atmosRef);
 
             if (!foundMusic && !foundAtmos) return;
 

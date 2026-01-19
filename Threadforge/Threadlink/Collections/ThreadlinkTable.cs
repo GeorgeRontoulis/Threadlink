@@ -24,14 +24,14 @@ namespace Threadlink.Collections
             }
         }
 
-        public IEnumerable<K> Values
+        public IEnumerable<V> Values
         {
             get
             {
                 int length = entries.Length;
 
                 for (int i = 0; i < length; i++)
-                    yield return entries[i].Key;
+                    yield return entries[i].Value;
             }
         }
 
@@ -59,14 +59,14 @@ namespace Threadlink.Collections
             }
         }
 
-        public IEnumerable<K> Values
+        public IEnumerable<V> Values
         {
             get
             {
                 int length = entries.Length;
 
                 for (int i = 0; i < length; i++)
-                    yield return entries[i].Key;
+                    yield return entries[i].Value;
             }
         }
 

@@ -1,35 +1,21 @@
-namespace Threadlink.Addressables
+namespace Threadlink.Shared
 {
-    using Core;
     using Core.NativeSubsystems.Scribe;
     using Cysharp.Threading.Tasks;
-    using System.Runtime.CompilerServices;
     using UnityEngine;
     using UnityEngine.AddressableAssets;
     using UnityEngine.ResourceManagement.AsyncOperations;
     using UnityEngine.ResourceManagement.ResourceProviders;
     using UnityEngine.SceneManagement;
 
-    /// <summary>
-    /// Threadlink's Resource Provider based on the <see cref="UnityEngine.AddressableAssets"/> Pipeline.
-    /// Works exclusively with <see cref="AssetReference"/> to enforce a simple, 
-    /// centralized way of authoring and managing content. 
-    /// <para></para>
-    /// Please set up your
-    /// references in your project's <see cref="ThreadlinkUserConfig"/> asset,
-    /// then use <see cref="Threadlink"/>'s <see langword="static"/> Resource Loading API to fetch your content.
-    /// <para></para>
-    /// Please remember that you are responsible for loading/releasing your assets at the correct times.
-    /// </summary>
-    /// <typeparam name="T">The resource type, in the context of a call site.</typeparam>
-    internal static class ThreadlinkResourceProvider<T> where T : Object
+    public static class AssetReferenceExtensions
     {
         /// <summary>
         /// Synchronously load or get the cached resource at the specified <paramref name="reference"/>.
         /// </summary>
         /// <param name="reference">The reference.</param>
         /// <returns>The loaded resouce.</returns>
-        internal static T LoadOrGetCachedAt(AssetReference reference)
+        public static T LoadSynchronously<T>(this AssetReference reference) where T : Object
         {
             if (reference.Asset is T loadedAsset)
                 return loadedAsset;
@@ -52,7 +38,7 @@ namespace Threadlink.Addressables
         /// </summary>
         /// <param name="reference">The reference.</param>
         /// <returns>The loaded resouce.</returns>
-        internal static async UniTask<T> LoadOrGetCachedAtRefAsync(AssetReference reference)
+        public static async UniTask<T> LoadAsync<T>(this AssetReference reference) where T : Object
         {
             if (reference.Asset is T loadedAsset)
                 return loadedAsset;
@@ -72,7 +58,7 @@ namespace Threadlink.Addressables
             return (T)reference.Asset;
         }
 
-        public static async UniTask<SceneInstance> LoadSceneAsync(SceneAssetReference reference, LoadSceneMode mode)
+        public static async UniTask<SceneInstance> LoadAsync(this SceneAssetReference reference, LoadSceneMode mode)
         {
             _ = reference.LoadSceneAsync(mode);
 
@@ -86,8 +72,7 @@ namespace Threadlink.Addressables
             return default;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static async UniTask<SceneInstance> UnloadSceneAsync(SceneAssetReference reference)
+        public static async UniTask<SceneInstance> UnloadAsync(this SceneAssetReference reference)
         {
             _ = reference.UnLoadScene();
 

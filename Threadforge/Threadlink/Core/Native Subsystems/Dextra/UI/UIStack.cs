@@ -1,6 +1,5 @@
 namespace Threadlink.Core.NativeSubsystems.Dextra
 {
-    using Addressables;
     using Initium;
     using Iris;
     using Shared;
@@ -8,8 +7,6 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     using System.Collections.Generic;
     using System.Linq;
     using System.Runtime.CompilerServices;
-    using UnityEngine;
-    using Utilities.Objects;
 
     /// <summary>
     /// A State-Machine-like object controlling how user interfaces stack. 
@@ -67,20 +64,17 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             }
         }
 
-        internal void CreateAllInterfaces(ReadOnlySpan<GroupedAssetPointer> pointers)
+        internal void CreateAllInterfaces(ReadOnlySpan<PrefabIDs> pointers)
         {
             int length = pointers.Length;
 
             CreatedInterfaces = new(length);
 
             UserInterface ui;
-            GroupedAssetPointer pointer;
 
             for (int i = 0; i < length; i++)
             {
-                pointer = pointers[i];
-
-                ui = Threadlink.LoadPrefab<UserInterface>(pointer.Group, pointer.IndexInDatabase);
+                ui = Threadlink.LoadPrefab<UserInterface>(pointers[i]);
 
                 if (ui != null)
                 {

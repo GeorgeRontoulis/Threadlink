@@ -46,11 +46,11 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
                 await activeScene.OnBeforeUnloadedAsync();
                 Iris.Publish(Iris.Events.OnBeforeActiveSceneUnload);
 
-                await Threadlink.UnloadSceneAsync(activeScene.SceneIndexInDatabase);
+                await Threadlink.UnloadSceneAsync(activeScene.ScenePointer);
                 Iris.Publish(Iris.Events.OnActiveSceneFinishedUnloading);
             }
 
-            await Threadlink.LoadSceneAsync(sceneEntry.SceneIndexInDatabase, sceneEntry.loadingMode);
+            await Threadlink.LoadSceneAsync(sceneEntry.ScenePointer, sceneEntry.loadingMode);
 
             Iris.Publish(Iris.Events.OnNewSceneFinishedLoading, sceneEntry);
 

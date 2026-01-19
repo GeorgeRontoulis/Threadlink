@@ -7,11 +7,6 @@ namespace Threadlink.Utilities.Vectors
 
     public static class Vectors
     {
-        public static readonly Vector3 One = Vector3.one;
-        public static readonly Vector3 Zero = Vector3.zero;
-        public static readonly Vector3 Forward = Vector3.forward;
-        public static readonly Vector3 Right = Vector3.right;
-        public static readonly Vector3 Up = Vector3.up;
         public static readonly Vector3 XZ = new(1f, 0f, 1f);
 
         /// <summary>
@@ -28,8 +23,8 @@ namespace Threadlink.Utilities.Vectors
 
             float mag = v.magnitude;
 
-            if (mag < Mathematics.TOLERANCE_FACTOR)
-                return Zero;
+            if (mag < Vector3.kEpsilon)
+                return Vector3.zero;
 
             float target = math.clamp(mag, min, max);
             return v * (target / mag);
@@ -48,9 +43,9 @@ namespace Threadlink.Utilities.Vectors
 
             float mag = v.magnitude;
 
-            if (mag < Mathematics.TOLERANCE_FACTOR)
+            if (mag < Vector3.kEpsilon)
             {
-                var dir = fallbackDirection.sqrMagnitude > 0f ? fallbackDirection.normalized : Zero;
+                var dir = fallbackDirection.sqrMagnitude > 0f ? fallbackDirection.normalized : Vector3.zero;
                 return dir * math.clamp(0f, min, max);
             }
 

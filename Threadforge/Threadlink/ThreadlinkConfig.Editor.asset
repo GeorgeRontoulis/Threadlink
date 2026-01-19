@@ -16,6 +16,11 @@ MonoBehaviour:
   userIrisEventsTemplate: {fileID: 4900000, guid: 6801d28faf4886047ac1c9650f15e809, type: 3}
   irisEventsScript: {fileID: 11500000, guid: 96b3536504e14a2429d0e42954a6470a, type: 3}
   nativeVaultFieldsTemplate: {fileID: 4900000, guid: 52e7d43862e1aa547b1d3533f0459d3b, type: 3}
-  userVaultFieldsTemplate: {fileID: 4900000, guid: 41c4c8835c1fffa45885d6996cc5a63f, type: 3}
+  userVaultFieldsTemplate: {fileID: 4900000, guid: c843ce716275fd5408d256daffaccddf, type: 3}
   vaultFieldsScript: {fileID: 11500000, guid: 9aa6f0e40678c5641a29a23f6d1c9886, type: 3}
-  assetGroupsTemplate: {fileID: 4900000, guid: 3fc630b161953974db3cd0780a3dc3d9, type: 3}
+  sceneIDsTemplate: {fileID: 4900000, guid: 3fc630b161953974db3cd0780a3dc3d9, type: 3}
+  assetIDsTemplate: {fileID: 4900000, guid: 7aeca2e8cc103bb4cbb6fb32b63351eb, type: 3}
+  prefabIDsTemplate: {fileID: 4900000, guid: 9864571ccd0de624ca01196443f1a843, type: 3}
+  sceneIDsScript: {fileID: 11500000, guid: c81454fdc7777d64b9025dd3216af140, type: 3}
+  assetIDsScript: {fileID: 11500000, guid: b71e4e7e348c96f4486501a6e643b2ab, type: 3}
+  prefabIDsScript: {fileID: 11500000, guid: 2194c140fe6a6904988d07680058feb5, type: 3}

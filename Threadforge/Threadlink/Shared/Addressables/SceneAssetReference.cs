@@ -1,4 +1,4 @@
-namespace Threadlink.Addressables
+namespace Threadlink.Shared
 {
     using System;
     using UnityEngine.AddressableAssets;

@@ -28,7 +28,7 @@ namespace Threadlink.Vault
             if (TryGetDataField(fieldID, out var field) && field is DataField<T> castField)
             {
                 result = castField;
-                return true;
+                return result != default;
             }
 
             result = null;
@@ -40,7 +40,7 @@ namespace Threadlink.Vault
             if (TryGetDataField(fieldID, out var field) && field is T castField)
             {
                 result = castField;
-                return true;
+                return result != default;
             }
 
             result = null;
@@ -53,7 +53,7 @@ namespace Threadlink.Vault
 
             value = retrieved ? field.Value : default;
 
-            return retrieved;
+            return retrieved && value != null;
         }
 
         public virtual bool TrySet<T>(DataFields fieldID, T value)

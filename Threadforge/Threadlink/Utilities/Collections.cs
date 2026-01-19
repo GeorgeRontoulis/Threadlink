@@ -17,16 +17,15 @@ namespace Threadlink.Utilities.Collections
     public static class CollectionUtilities
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryGetLastIndex<T>(this T collection, out int index) where T : ICollection
+        public static bool IsWithinBoundsOf<T>(this uint index, T collection) where T : ICollection
         {
-            if (collection == null)
-            {
-                index = -1;
-                return false;
-            }
+            return collection != null && index < collection.Count;
+        }
 
-            index = collection.Count - 1;
-            return index.IsWithinBoundsOf(collection);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsWithinBoundsOf<T>(this ushort index, T collection) where T : ICollection
+        {
+            return collection != null && index < collection.Count;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -36,9 +35,21 @@ namespace Threadlink.Utilities.Collections
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsWithinBoundsOf<T>(this uint index, ReadOnlySpan<T> collection)
+        {
+            return collection != null && index < collection.Length;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsWithinBoundsOf<T>(this int index, ReadOnlySpan<T> span)
         {
             return span != null && index >= 0 && index < span.Length;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsWithinBoundsOf<T>(this ushort index, ReadOnlySpan<T> span)
+        {
+            return span != null && index < span.Length;
         }
 
 #if UNITY_EDITOR

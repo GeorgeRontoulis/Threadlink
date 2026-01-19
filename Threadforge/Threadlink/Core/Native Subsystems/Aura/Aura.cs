@@ -2,15 +2,15 @@ namespace Threadlink.Core.NativeSubsystems.Aura
 {
     using Chronos;
     using Core;
-    using Unity.Mathematics;
     using Cysharp.Threading.Tasks;
     using Iris;
     using Shared;
     using System;
     using System.Runtime.CompilerServices;
-    using Utilities.Mathematics;
+    using Unity.Mathematics;
     using UnityEngine;
     using UnityEngine.Audio;
+    using Utilities.Mathematics;
 
     /// <summary>
     /// Subsystem responsible for Audio Mixing during Threadlink's runtime.
@@ -201,9 +201,9 @@ namespace Threadlink.Core.NativeSubsystems.Aura
 
             AudioClip sfx = uiSFX switch
             {
-                UISFX.Cancel => Threadlink.LoadAsset<AudioClip>(config.CancelClipPointer.Group, config.CancelClipPointer.IndexInDatabase),
-                UISFX.Nagivate => Threadlink.LoadAsset<AudioClip>(config.NavClipPointer.Group, config.NavClipPointer.IndexInDatabase),
-                UISFX.Confirm => Threadlink.LoadAsset<AudioClip>(config.ConfirmClipPointer.Group, config.ConfirmClipPointer.IndexInDatabase),
+                UISFX.Cancel => Threadlink.LoadAsset<AudioClip>(config.CancelClipPointer),
+                UISFX.Nagivate => Threadlink.LoadAsset<AudioClip>(config.NavClipPointer),
+                UISFX.Confirm => Threadlink.LoadAsset<AudioClip>(config.ConfirmClipPointer),
                 _ => null,
             };
 

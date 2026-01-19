@@ -19,7 +19,6 @@ namespace Threadlink.Core.NativeSubsystems.Iris
         private static void Observe()
         {
             EventRegistry.Clear();
-            EventRegistry.TrimExcess();
         }
 
         #region Utility:

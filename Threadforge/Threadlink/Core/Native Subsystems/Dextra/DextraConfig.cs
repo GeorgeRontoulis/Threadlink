@@ -1,10 +1,10 @@
 namespace Threadlink.Core.NativeSubsystems.Dextra
 {
-    using Addressables;
     using Collections;
     using Collections.Extensions;
     using Cysharp.Threading.Tasks;
     using Scribe;
+    using Shared;
     using System;
     using System.Runtime.CompilerServices;
     using UnityEngine;
@@ -13,17 +13,16 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     [CreateAssetMenu(menuName = "Threadlink/Subsystem Dependencies/Dextra Config")]
     public sealed class DextraConfig : ScriptableObject
     {
-        [Serializable]
-        private sealed class NestedFieldTable : FieldTable<Dextra.InputDevice, GroupedAssetPointer> { }
+        [Serializable] private sealed class NestedFieldTable : FieldTable<Dextra.InputDevice, AssetIDs> { }
 
-        [SerializeField] private GroupedAssetPointer[] interfacePointers = new GroupedAssetPointer[0];
+        [SerializeField] private PrefabIDs[] interfacePointers = new PrefabIDs[0];
 
         [Space(10)]
 
         [SerializeField] private FieldTable<DextraInputControlPath, NestedFieldTable> inputIcons = new();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal bool TryGetInterfacePointers(out ReadOnlySpan<GroupedAssetPointer> result) => !(result = interfacePointers).IsEmpty;
+        internal bool TryGetInterfacePointers(out ReadOnlySpan<PrefabIDs> result) => !(result = interfacePointers).IsEmpty;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryGetInputIcon(Dextra.InputDevice device, DextraInputControlPath inputControlPath, out Sprite result)
@@ -31,7 +30,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             if (inputIcons.TryGetValue(inputControlPath, out var deviceIconMap))
             {
                 if (deviceIconMap.TryGetValue(device, out var iconPointer)
-                && Threadlink.TryGetAssetReference(iconPointer.Group, iconPointer.IndexInDatabase, out var runtimeKey))
+                && Threadlink.TryGetAssetReference(iconPointer, out var runtimeKey))
                 {
                     result = Threadlink.LoadAsset<Sprite>(runtimeKey);
                     return true;
@@ -58,10 +57,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
                 int length = interfacePointers.Length;
 
                 for (int i = 0; i < length; i++)
-                {
-                    var pointer = interfacePointers[i];
-                    Threadlink.ReleasePrefab(pointer.Group, pointer.IndexInDatabase);
-                }
+                    Threadlink.ReleasePrefab(interfacePointers[i]);
             }
         }
 
@@ -71,10 +67,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             var tasks = new UniTask[length];
 
             for (int i = 0; i < length; i++)
-            {
-                var pointer = interfacePointers[i];
-                tasks[i] = Threadlink.LoadPrefabAsync<UserInterface>(pointer.Group, pointer.IndexInDatabase);
-            }
+                tasks[i] = Threadlink.LoadPrefabAsync<UserInterface>(interfacePointers[i]);
 
             await UniTask.WhenAll(tasks);
         }

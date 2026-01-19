@@ -2,12 +2,45 @@
 {
     using Shared;
     using System;
+    using System.Runtime.CompilerServices;
     using UnityEngine;
+
+    [Serializable]
+    internal abstract class DataFieldValue<T>
+    {
+        internal abstract T Get();
+        internal abstract void Set(T input);
+    }
+
+    [Serializable]
+    internal class SerializedValue<T> : DataFieldValue<T>
+    {
+        [SerializeField] private T field = default;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal override T Get() => field;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal override void Set(T input) => field = input;
+    }
+
+    [Serializable]
+    internal class TransientValue<T> : DataFieldValue<T>
+    {
+        [field: NonSerialized]
+        private T Property { get; set; }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal override T Get() => Property;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal override void Set(T input) => Property = input;
+    }
 
     [Serializable]
     public abstract class DataField : IDiscardable
     {
-        public virtual void Discard() { }
+        public abstract void Discard();
 
         public abstract bool TryApplyValueTo(Vault targetVault, Vault.DataFields targetFieldID);
     }
@@ -17,17 +50,20 @@
     {
         public virtual T Value
         {
-            get => value;
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => value.Get();
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
-                this.value = value;
+                this.value.Set(value);
                 OnValueChanged?.Invoke(value);
             }
         }
 
         public event Action<T> OnValueChanged = null;
 
-        [SerializeField] protected T value = default;
+        [SerializeReference] internal DataFieldValue<T> value = default;
 
         public override void Discard()
         {
@@ -36,6 +72,7 @@
             OnValueChanged = null;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool TryApplyValueTo(Vault targetVault, Vault.DataFields targetFieldID)
         {
             return targetVault != null && targetVault.TrySet(targetFieldID, value);

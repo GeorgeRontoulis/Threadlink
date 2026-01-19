@@ -14,7 +14,13 @@ namespace Threadlink.Editor
         internal TextAsset UserVaultFieldsTemplate => userVaultFieldsTemplate;
         internal MonoScript VaultFieldsScript => vaultFieldsScript;
 
-        internal TextAsset AssetGroupsTemplate => assetGroupsTemplate;
+        internal TextAsset SceneIDsTemplate => sceneIDsTemplate;
+        internal TextAsset AssetIDsTemplate => assetIDsTemplate;
+        internal TextAsset PrefabIDsTemplate => prefabIDsTemplate;
+
+        internal MonoScript SceneIDsScript => sceneIDsScript;
+        internal MonoScript AssetIDsScript => assetIDsScript;
+        internal MonoScript PrefabIDsScript => prefabIDsScript;
 
         [Header("Editor Resources:")]
         [Space(10)]
@@ -31,6 +37,14 @@ namespace Threadlink.Editor
 
         [Space(10)]
 
-        [SerializeField] private TextAsset assetGroupsTemplate = null;
+        [SerializeField] private TextAsset sceneIDsTemplate = null;
+        [SerializeField] private TextAsset assetIDsTemplate = null;
+        [SerializeField] private TextAsset prefabIDsTemplate = null;
+
+        [Space(10)]
+
+        [SerializeField] private MonoScript sceneIDsScript = null;
+        [SerializeField] private MonoScript assetIDsScript = null;
+        [SerializeField] private MonoScript prefabIDsScript = null;
     }
 }
