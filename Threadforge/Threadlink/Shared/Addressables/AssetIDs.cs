@@ -5,8 +5,5 @@ namespace Threadlink.Shared
     /// <para></para>
     /// ID Markers of the assets referenced by the <see cref="UnityEngine.AddressableAssets"/> pipeline.
     /// </summary>
-    public enum AssetIDs : uint
-    {
-        
-    }
+    public enum AssetIDs : uint { }
 }

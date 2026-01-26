@@ -15,8 +15,11 @@ MonoBehaviour:
   nativeIrisEventsTemplate: {fileID: 4900000, guid: 80d7ef5e5302f3c418aaa08277cf205a, type: 3}
   userIrisEventsTemplate: {fileID: 4900000, guid: 6801d28faf4886047ac1c9650f15e809, type: 3}
   irisEventsScript: {fileID: 11500000, guid: 96b3536504e14a2429d0e42954a6470a, type: 3}
+  nativeRNGDomainsTemplate: {fileID: 4900000, guid: 7dba0e8cf61d17b419c403db9016d381, type: 3}
+  userRNGDomainsTemplate: {fileID: 4900000, guid: 5a1cc722b259b654780c78fa76d1828b, type: 3}
+  rngDomainsScript: {fileID: 11500000, guid: 382ff6cc65a77324199a0b7e4c290b37, type: 3}
   nativeVaultFieldsTemplate: {fileID: 4900000, guid: 52e7d43862e1aa547b1d3533f0459d3b, type: 3}
-  userVaultFieldsTemplate: {fileID: 4900000, guid: c843ce716275fd5408d256daffaccddf, type: 3}
+  userVaultFieldsTemplate: {fileID: 4900000, guid: 41c4c8835c1fffa45885d6996cc5a63f, type: 3}
   vaultFieldsScript: {fileID: 11500000, guid: 9aa6f0e40678c5641a29a23f6d1c9886, type: 3}
   sceneIDsTemplate: {fileID: 4900000, guid: 3fc630b161953974db3cd0780a3dc3d9, type: 3}
   assetIDsTemplate: {fileID: 4900000, guid: 7aeca2e8cc103bb4cbb6fb32b63351eb, type: 3}

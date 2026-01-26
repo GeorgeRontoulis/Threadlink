@@ -3,7 +3,8 @@
     "rootNamespace": "Threadlink.User",
     "references": [
         "GUID:f9d0bc46de640d144939543622979457",
-        "GUID:49ad3e6d2cdad5945866504c28f3cd2f"
+        "GUID:49ad3e6d2cdad5945866504c28f3cd2f",
+        "GUID:93d9b1333a3643e418f0c111a51946c0"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

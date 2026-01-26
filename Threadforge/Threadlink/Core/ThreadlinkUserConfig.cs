@@ -36,7 +36,7 @@ namespace Threadlink.Core
 
         [Space(10)]
 
-        [SerializeField] private AssetReference[] assetReferneces = new AssetReference[0];
+        [SerializeField] private AssetReference[] assetReferences = new AssetReference[0];
 
         [Space(10)]
 
@@ -52,8 +52,8 @@ namespace Threadlink.Core
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryGetAssetRefs(out ReadOnlySpan<AssetReference> result)
         {
-            result = assetReferneces;
-            return assetReferneces != null;
+            result = assetReferences;
+            return assetReferences != null;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

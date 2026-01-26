@@ -1,0 +1,10 @@
+///Use this file to define custom RNG domains for StatelessRNG as showcased below:
+///
+///UserDefinedDomain1
+///UserDefinedDomain2
+///...
+///
+/// ATTENTION: Do NOT change the order of your domain entries in any way after generating them!
+/// This is crucial to maintaining determinism across versions, or even during production.
+/// If you no longer want to use a generated domain, remove all references to it and rename it
+/// (to something like "Unused_Domain_X") in this file, then re-generate this enum.

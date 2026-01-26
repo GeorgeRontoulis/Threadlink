@@ -1,0 +1,14 @@
+{
+    "name": "Threadlink.Deterministic",
+    "rootNamespace": "Threadlink.Deterministic",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

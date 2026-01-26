@@ -10,6 +10,10 @@ namespace Threadlink.Editor
         internal TextAsset UserIrisEventsTemplate => userIrisEventsTemplate;
         internal MonoScript IrisEventsScript => irisEventsScript;
 
+        internal TextAsset NativeRNGDomainsTemplate => nativeRNGDomainsTemplate;
+        internal TextAsset UserRNGDomainsTemplate => userRNGDomainsTemplate;
+        internal MonoScript RNGDomainsScript => rngDomainsScript;
+
         internal TextAsset NativeVaultFieldsTemplate => nativeVaultFieldsTemplate;
         internal TextAsset UserVaultFieldsTemplate => userVaultFieldsTemplate;
         internal MonoScript VaultFieldsScript => vaultFieldsScript;
@@ -28,6 +32,12 @@ namespace Threadlink.Editor
         [SerializeField] private TextAsset nativeIrisEventsTemplate = null;
         [SerializeField] private TextAsset userIrisEventsTemplate = null;
         [SerializeField] private MonoScript irisEventsScript = null;
+
+        [Space(10)]
+
+        [SerializeField] private TextAsset nativeRNGDomainsTemplate = null;
+        [SerializeField] private TextAsset userRNGDomainsTemplate = null;
+        [SerializeField] private MonoScript rngDomainsScript = null;
 
         [Space(10)]
 
