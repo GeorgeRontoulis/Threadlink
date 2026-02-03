@@ -1,11 +1,11 @@
 namespace Threadlink.Editor
 {
+    using Shared;
     using System;
+    using Unity.Mathematics;
     using UnityEditor;
     using UnityEngine;
     using Utilities.Attributes;
-    using Unity.Mathematics;
-    using Threadlink.Shared;
 
     [CustomPropertyDrawer(typeof(MinMaxRangeAttribute))]
     internal sealed class MinMaxRangeDrawer : PropertyDrawer
@@ -70,33 +70,68 @@ namespace Threadlink.Editor
             }
             else if (property.propertyType is SerializedPropertyType.Generic)
             {
-                dynamic value = default;
-
                 switch (property.boxedValue)
                 {
-                    case int2 integer2:
-                        value = integer2;
-                        break;
-                    case float2 float2:
-                        value = float2;
-                        break;
-                    case ushort2 ushort2:
-                        value = ushort2;
-                        break;
-                    case byte2 byte2:
-                        value = byte2;
-                        break;
-                    default:
-                        return;
-                }
+                    case int2 int2Value:
+                        {
+                            float minValue = int2Value.x;
+                            float maxValue = int2Value.y;
 
-                var minValue = (float)value.x;
-                var maxValue = (float)value.y;
-                (minValue, maxValue) = ClampValues(minValue, maxValue, minLimit, maxLimit);
-                DrawSlider(position, property, minLimit, maxLimit, ref minValue, ref maxValue, BuildIntLabel);
-                value.x = (int)minValue;
-                value.y = (int)maxValue;
-                property.boxedValue = value;
+                            (minValue, maxValue) = ClampValues(minValue, maxValue, minLimit, maxLimit);
+                            DrawSlider(position, property, minLimit, maxLimit, ref minValue, ref maxValue, BuildIntLabel);
+
+                            property.boxedValue = new int2
+                            (
+                                (int)minValue,
+                                (int)maxValue
+                            );
+                            break;
+                        }
+
+                    case ushort2 ushort2Value:
+                        {
+                            float minValue = ushort2Value.x;
+                            float maxValue = ushort2Value.y;
+
+                            (minValue, maxValue) = ClampValues(minValue, maxValue, minLimit, maxLimit);
+                            DrawSlider(position, property, minLimit, maxLimit, ref minValue, ref maxValue, BuildIntLabel);
+
+                            property.boxedValue = new ushort2
+                            (
+                                (ushort)Mathf.RoundToInt(minValue),
+                                (ushort)Mathf.RoundToInt(maxValue)
+                            );
+                            break;
+                        }
+
+                    case byte2 byte2Value:
+                        {
+                            float minValue = byte2Value.x;
+                            float maxValue = byte2Value.y;
+
+                            (minValue, maxValue) = ClampValues(minValue, maxValue, minLimit, maxLimit);
+                            DrawSlider(position, property, minLimit, maxLimit, ref minValue, ref maxValue, BuildIntLabel);
+
+                            property.boxedValue = new byte2
+                            (
+                                (byte)Mathf.Clamp(Mathf.RoundToInt(minValue), byte.MinValue, byte.MaxValue),
+                                (byte)Mathf.Clamp(Mathf.RoundToInt(maxValue), byte.MinValue, byte.MaxValue)
+                            );
+                            break;
+                        }
+
+                    case float2 float2Value:
+                        {
+                            float minValue = float2Value.x;
+                            float maxValue = float2Value.y;
+
+                            (minValue, maxValue) = ClampValues(minValue, maxValue, minLimit, maxLimit);
+                            DrawSlider(position, property, minLimit, maxLimit, ref minValue, ref maxValue, BuildFloatLabel);
+
+                            property.boxedValue = new float2(minValue, maxValue);
+                            break;
+                        }
+                }
             }
 
             static (float, float) ClampValues(float minValue, float maxValue, float minLimit, float maxLimit)
@@ -112,7 +147,7 @@ namespace Threadlink.Editor
             ref float x, ref float y, Func<float, GUIContent> buildLabel)
             {
                 var consumedX = 0f;
-                var firstLineRect = new Rect(position) { height = position.height / 2 - VerticalSpacing };
+                var firstLineRect = new Rect(position) { height = position.height * 0.5f - VerticalSpacing };
 
                 // Field name
                 consumedX += DrawFieldName(firstLineRect, property);
@@ -163,7 +198,7 @@ namespace Threadlink.Editor
                     var label = buildLabel(value);
                     var labelSize = LabelStyle.CalcSize(label);
                     var relativePosition = (value - minLimit) / (maxLimit - minLimit);
-                    var offset = SliderHandlerWidth / 2 + (applyExtraOffset ? -labelSize.x : 0);
+                    var offset = SliderHandlerWidth / 0.5f + (applyExtraOffset ? -labelSize.x : 0);
                     var totalWidth = position.width - SliderHandlerWidth;
                     var x = position.x + relativePosition * totalWidth + offset;
                     var labelPosition = new Rect(position) { x = x, width = labelSize.x };
