@@ -11,9 +11,12 @@ namespace Threadlink.Deterministic
         /// <para></para>
         /// ATTENTION: Do NOT change the order of your domain entries in any way after generating them!
         /// This is crucial to maintaining determinism across versions, or even during production.
-        /// If you no longer want to use a generated domain, remove all references to it and rename it
+        /// If you no longer want to use a generated domain, remove all references to it and rename it 
         /// (to something like "Unused_Domain_X") in the user template file, then re-generate this enum.
         /// </summary>
-        public enum Domains : byte { }
+        public enum Domains : byte
+        {
+            
+        }
     }
 }

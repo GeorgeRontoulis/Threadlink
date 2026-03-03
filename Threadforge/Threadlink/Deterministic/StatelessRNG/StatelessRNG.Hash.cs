@@ -1,11 +1,16 @@
 namespace Threadlink.Deterministic
 {
+    using System;
+    using System.IO.Hashing;
     using System.Runtime.CompilerServices;
+    using System.Text;
 
     public static partial class StatelessRNG
     {
         /// <summary>
-        /// <see href="https://rosettacode.org/wiki/Pseudo-random_numbers/Splitmix64">SplitMix64</see>
+        /// <see href="https://rosettacode.org/wiki/Pseudo-random_numbers/Splitmix64">SplitMix64</see> for numbers.
+        /// <para></para>
+        /// <see cref="System.IO.Hashing.XxHash64"/> for <see langword="string"/>s.
         /// </summary>
         public static class Hash
         {
@@ -22,6 +27,23 @@ namespace Threadlink.Deterministic
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static ulong ForIdentity(ulong identityComponent) => Mix(identityComponent, false);
+
+            /// <summary>
+            /// Intended for entropy composition inside the domains themselves.
+            /// Hashes the given <paramref name="identityComponent"/> without applying <see cref="Seed"/>.
+            /// </summary>
+            public static ulong ForIdentity(string identityComponent)
+            {
+                identityComponent = identityComponent.Trim().ToLowerInvariant();
+
+                int byteCount = Encoding.UTF8.GetByteCount(identityComponent);
+                Span<byte> buffer = byteCount <= 256 ? stackalloc byte[byteCount] : new byte[byteCount];
+
+                Encoding.UTF8.GetBytes(identityComponent, buffer);
+
+                return XxHash64.HashToUInt64(buffer, unchecked((long)Seed));
+            }
+
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private static ulong Mix(ulong input, bool seeded)

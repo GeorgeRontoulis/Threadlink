@@ -4,44 +4,44 @@ namespace Threadlink.Deterministic
 
     public static partial class StatelessRNG
     {
-        public partial struct IdentitySource
+        public partial struct Scope
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public int Range(int min, int max)
+            public readonly int Range(int min, int max)
             {
-                return min + (int)(Next() % (uint)(max - min));
+                return min + (int)(sample % (uint)(max - min));
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public int Index(int count)
+            public readonly int Index(int count)
             {
-                return (int)(Next() % (uint)count);
+                return (int)(sample % (uint)count);
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool Boolean()
+            public readonly bool Boolean()
             {
                 // 0.5 threshold, branchless
-                return (Next() & 1UL) != 0;
+                return (sample & 1UL) != 0;
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public bool Probability(DFP probability)
+            public readonly bool Probability(DFP probability)
             {
                 return Float01() < probability;
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public DFP Float01()
+            public readonly DFP Float01()
             {
-                uint mantissa = (uint)(Next() >> 41);
+                uint mantissa = (uint)(sample >> 41);
 
                 uint raw = 0x3F800000u | mantissa;
                 return DFP.FromRaw(raw) - DFP.One;
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public DFP Range(DFP min, DFP max)
+            public readonly DFP Range(DFP min, DFP max)
             {
                 return min + (max - min) * Float01();
             }

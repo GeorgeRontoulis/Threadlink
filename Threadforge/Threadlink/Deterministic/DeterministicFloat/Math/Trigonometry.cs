@@ -166,31 +166,6 @@
             }
         }
 
-        private static readonly uint[] ATAN_HI = new uint[4]
-        {
-            0x3eed6338, // 4.6364760399e-01, /* atan(0.5)hi */
-            0x3f490fda, // 7.8539812565e-01, /* atan(1.0)hi */
-            0x3f7b985e, // 9.8279368877e-01, /* atan(1.5)hi */
-            0x3fc90fda, // 1.5707962513e+00, /* atan(inf)hi */
-        };
-
-        private static readonly uint[] ATAN_LO = new uint[4]
-        {
-            0x31ac3769, // 5.0121582440e-09, /* atan(0.5)lo */
-            0x33222168, // 3.7748947079e-08, /* atan(1.0)lo */
-            0x33140fb4, // 3.4473217170e-08, /* atan(1.5)lo */
-            0x33a22168, // 7.5497894159e-08, /* atan(inf)lo */
-        };
-
-        private static readonly uint[] A_T = new uint[5]
-        {
-            0x3eaaaaa9, // 3.3333328366e-01
-            0xbe4cca98, // -1.9999158382e-01
-            0x3e11f50d, // 1.4253635705e-01
-            0xbdda1247, // -1.0648017377e-01
-            0x3d7cac25  // 6.1687607318e-02
-        };
-
         /// <summary>
         /// Returns the arctangent of x
         /// </summary>
@@ -211,7 +186,7 @@
                 }
 
                 DFP x1p_120 = DFP.FromRaw(0x03800000); // 0x1p-120 === 2 ^ (-120)
-                z = DFP.FromRaw(ATAN_HI[3]) + x1p_120;
+                z = DFP.FromRaw(DFPBuffers.ATAN_HI[3]) + x1p_120;
                 return sign ? -z : z;
             }
 
@@ -270,14 +245,14 @@
             DFP w = z * z;
 
             /* break sum from i=0 to 10 aT[i]z**(i+1) into odd and even poly */
-            DFP s1 = z * (DFP.FromRaw(A_T[0]) + w * (DFP.FromRaw(A_T[2]) + w * DFP.FromRaw(A_T[4])));
-            DFP s2 = w * (DFP.FromRaw(A_T[1]) + w * DFP.FromRaw(A_T[3]));
+            DFP s1 = z * (DFP.FromRaw(DFPBuffers.A_T[0]) + w * (DFP.FromRaw(DFPBuffers.A_T[2]) + w * DFP.FromRaw(DFPBuffers.A_T[4])));
+            DFP s2 = w * (DFP.FromRaw(DFPBuffers.A_T[1]) + w * DFP.FromRaw(DFPBuffers.A_T[3]));
             if (id < 0)
             {
                 return x - x * (s1 + s2);
             }
 
-            z = DFP.FromRaw(ATAN_HI[id]) - ((x * (s1 + s2) - DFP.FromRaw(ATAN_LO[id])) - x);
+            z = DFP.FromRaw(DFPBuffers.ATAN_HI[id]) - ((x * (s1 + s2) - DFP.FromRaw(DFPBuffers.ATAN_LO[id])) - x);
             return sign ? -z : z;
         }
 

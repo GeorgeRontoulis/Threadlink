@@ -35,12 +35,12 @@ namespace Threadlink.Collections
             }
         }
 
-        internal override ReferenceEntry<K, V>[] Entries => entries;
+        public override ReferenceEntry<K, V>[] Entries => entries;
 
         [SerializeField] private ReferenceEntry<K, V>[] entries = new ReferenceEntry<K, V>[0];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal override bool ContainsKey(K key) => this.IndexOf(key).IsWithinBoundsOf(entries);
+        public override bool ContainsKey(K key) => this.IndexOf(key).IsWithinBoundsOf(entries);
     }
 
     [Serializable]
@@ -70,12 +70,12 @@ namespace Threadlink.Collections
             }
         }
 
-        internal override FieldEntry<K, V>[] Entries => entries;
+        public override FieldEntry<K, V>[] Entries => entries;
 
         [SerializeField] private FieldEntry<K, V>[] entries = new FieldEntry<K, V>[0];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal override bool ContainsKey(K key) => this.IndexOf(key).IsWithinBoundsOf(entries);
+        public override bool ContainsKey(K key) => this.IndexOf(key).IsWithinBoundsOf(entries);
     }
 
     [Serializable]
@@ -88,8 +88,8 @@ namespace Threadlink.Collections
         protected EqualityComparer<K> keyComparer = EqualityComparer<K>.Default;
 
         public int Count => Entries.Length;
-        internal abstract E[] Entries { get; }
-        internal abstract bool ContainsKey(K key);
+        public abstract E[] Entries { get; }
+        public abstract bool ContainsKey(K key);
 
         public IEnumerable<K> Keys
         {

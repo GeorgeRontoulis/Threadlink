@@ -10,6 +10,7 @@ namespace Threadlink.Vault
         public enum DataFields : ushort
         {
             None,
+            
         }
     }
 }

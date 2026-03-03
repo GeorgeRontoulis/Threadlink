@@ -26,6 +26,59 @@ namespace Threadlink.Deterministic
     using System.Diagnostics;
     using System.Runtime.CompilerServices;
 
+    internal static class DFPBuffers
+    {
+        internal static readonly uint[] ATAN_HI = new uint[4]
+        {
+            0x3eed6338, // 4.6364760399e-01, /* atan(0.5)hi */
+            0x3f490fda, // 7.8539812565e-01, /* atan(1.0)hi */
+            0x3f7b985e, // 9.8279368877e-01, /* atan(1.5)hi */
+            0x3fc90fda, // 1.5707962513e+00, /* atan(inf)hi */
+        };
+
+        internal static readonly uint[] ATAN_LO = new uint[4]
+        {
+            0x31ac3769, // 5.0121582440e-09, /* atan(0.5)lo */
+            0x33222168, // 3.7748947079e-08, /* atan(1.0)lo */
+            0x33140fb4, // 3.4473217170e-08, /* atan(1.5)lo */
+            0x33a22168, // 7.5497894159e-08, /* atan(inf)lo */
+        };
+
+        internal static readonly uint[] A_T = new uint[5]
+        {
+            0x3eaaaaa9, // 3.3333328366e-01
+            0xbe4cca98, // -1.9999158382e-01
+            0x3e11f50d, // 1.4253635705e-01
+            0xbdda1247, // -1.0648017377e-01
+            0x3d7cac25  // 6.1687607318e-02
+        };
+
+        internal static readonly int[] debruijn32 = new int[64]
+        {
+            32, 8,  17, -1, -1, 14, -1, -1, -1, 20, -1, -1, -1, 28, -1, 18,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0,  26, 25, 24,
+            4,  11, 23, 31, 3,  7,  10, 16, 22, 30, -1, -1, 2,  6,  13, 9,
+            -1, 15, -1, 21, -1, 29, 19, -1, -1, -1, -1, -1, 1,  27, 5,  12
+        };
+
+        internal static readonly int[] normalizeAmounts = new int[]
+        {
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 8, 8, 8, 8, 8, 8, 8, 16, 16, 16, 16, 16, 16, 16, 16, 24, 24, 24, 24, 24, 24, 24
+        };
+
+        internal static readonly sbyte[] msb = new sbyte[256]
+        {
+            -1, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+            5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+            6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+            6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+            7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7
+        };
+    }
+
     /// <summary>
     /// Internal representation is identical to IEEE binary32 floating point numbers
     /// </summary>
@@ -250,14 +303,6 @@ namespace Threadlink.Deterministic
             return FromParts(negative, exponent, (uint)u);
         }
 
-        private static readonly int[] debruijn32 = new int[64]
-        {
-            32, 8,  17, -1, -1, 14, -1, -1, -1, 20, -1, -1, -1, 28, -1, 18,
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0,  26, 25, 24,
-            4,  11, 23, 31, 3,  7,  10, 16, 22, 30, -1, -1, 2,  6,  13, 9,
-            -1, 15, -1, 21, -1, 29, 19, -1, -1, -1, -1, -1, 1,  27, 5,  12
-        };
-
         /// <summary>
         /// Returns the leading zero count of the given 32-bit integer
         /// </summary>
@@ -270,16 +315,11 @@ namespace Threadlink.Deterministic
             x |= x >> 8;
             x |= x >> 16;
 
-            return debruijn32[(uint)x * 0x8c0b2891u >> 26];
+            return DFPBuffers.debruijn32[(uint)x * 0x8c0b2891u >> 26];
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static DFP operator -(DFP f) => new(f.rawValue ^ 0x80000000);
-
-        private static readonly int[] normalizeAmounts = new int[]
-        {
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 8, 8, 8, 8, 8, 8, 8, 16, 16, 16, 16, 16, 16, 16, 16, 24, 24, 24, 24, 24, 24, 24
-        };
 
         private static DFP InternalAdd(DFP f1, DFP f2)
         {
@@ -334,7 +374,7 @@ namespace Threadlink.Deterministic
 
                 int rawExp = rawExp1 - 6;
 
-                int amount = normalizeAmounts[CLZ(absMan)];
+                int amount = DFPBuffers.normalizeAmounts[CLZ(absMan)];
                 rawExp -= amount;
                 absMan <<= amount;
 
@@ -386,7 +426,6 @@ namespace Threadlink.Deterministic
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static DFP operator -(DFP f1, DFP f2) => f1 + (-f2);
-
 
         public static DFP operator *(DFP f1, DFP f2)
         {
@@ -786,20 +825,8 @@ namespace Threadlink.Deterministic
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static DFP operator %(DFP f1, DFP f2) => DFPMath.Modulo(f1, f2);
 
-        private static readonly sbyte[] msb = new sbyte[256]
-        {
-            -1, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-            5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-            6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-            6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-            7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-            7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-            7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-            7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7
-        };
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int BitScanReverse8(int b) => msb[b];
+        private static int BitScanReverse8(int b) => DFPBuffers.msb[b];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static unsafe uint ReinterpretFloatToInt32(float f) => *(uint*)&f;
