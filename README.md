@@ -52,7 +52,7 @@ Aura manages audio, including use cases with spatial context. By utilizing `Aura
 
 Sentinel provides a unified API for interacting with external services and hardware.
 
-* Out-of-the-box integrations for Steam (`Steam.cs`) and XBOX / GDK (`GDKRuntime`, `GDKSaveProvider`, `XBLAchievement`). Playstation and Ninentdo Switch are coming soon.
+* Out-of-the-box integrations for Steam (`Steam.cs`) and XBOX / GDK (`GDKRuntime`, `GDKSaveProvider`, `XBLAchievement`). Playstation and Ninendo Switch are coming soon.
 * Environment Configuration: Manages local execution contexts and environment states via `SentinelConfig`.
 
 #### Iris (Event Bus)
