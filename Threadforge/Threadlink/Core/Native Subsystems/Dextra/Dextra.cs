@@ -117,7 +117,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
         public override void Discard()
         {
-            Iris.Unsubscribe<System.Action<Threadlink>>(Iris.Events.OnCoreDeployed, OnCoreDeployed);
+            Iris.Unsubscribe<System.Action<Threadlink>>(ThreadlinkIDs.Iris.Events.OnCoreDeployed, OnCoreDeployed);
             CurrentInputMode = InputMode.Unresponsive;
             InputDeviceDetector.onControlsChanged -= UpdateInputDevice;
             UnityEventSystem = null;
@@ -147,7 +147,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
                 UIStack.Boot();
             }
 
-            Iris.Subscribe<System.Action<Threadlink>>(Iris.Events.OnCoreDeployed, OnCoreDeployed);
+            Iris.Subscribe<System.Action<Threadlink>>(ThreadlinkIDs.Iris.Events.OnCoreDeployed, OnCoreDeployed);
             InputDeviceDetector.notificationBehavior = PlayerNotifications.InvokeCSharpEvents;
             InputDeviceDetector.onControlsChanged += UpdateInputDevice;
             CurrentInputMode = InputMode.Unresponsive;
@@ -205,7 +205,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
             if (CurrentInputDevice != oldDevice)
             {
-                Iris.Publish(Iris.Events.OnInputDeviceChanged, CurrentInputDevice);
+                Iris.Publish(ThreadlinkIDs.Iris.Events.OnInputDeviceChanged, CurrentInputDevice);
 
                 if (CurrentInputDevice is InputDevice.MouseAndKeyboard)
                 {

@@ -1,12 +1,12 @@
 namespace Threadlink.Core.NativeSubsystems.Dextra
 {
-    using Iris;
+    using Shared;
     using UnityEngine;
 
     public class InteractablesDetector3D : EntityDetector3D<CapsuleCollider, Interactable3D>
     {
-        protected internal override Iris.Events OnEntityDetectedEvent => Iris.Events.OnInteractableDetected;
-        protected internal override Iris.Events OnEntityOutOfRangeEvent => Iris.Events.OnInteractableOutOfRange;
+        protected internal override ThreadlinkIDs.Iris.Events OnEntityDetectedEvent => ThreadlinkIDs.Iris.Events.OnInteractableDetected;
+        protected internal override ThreadlinkIDs.Iris.Events OnEntityOutOfRangeEvent => ThreadlinkIDs.Iris.Events.OnInteractableOutOfRange;
 
         protected internal override void OnEntityDetected(Interactable3D entity)
         {

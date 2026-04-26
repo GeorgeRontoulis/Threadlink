@@ -14,16 +14,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: Threadlink.Editor::Threadlink.Editor.ThreadlinkEditorConfig
   nativeIrisEventsTemplate: {fileID: 4900000, guid: 80d7ef5e5302f3c418aaa08277cf205a, type: 3}
   userIrisEventsTemplate: {fileID: 4900000, guid: 6801d28faf4886047ac1c9650f15e809, type: 3}
-  irisEventsScript: {fileID: 11500000, guid: 96b3536504e14a2429d0e42954a6470a, type: 3}
+  irisEventsScript: {fileID: 11500000, guid: 3a2a36736197d10419817b2e4dbd27af, type: 3}
   nativeRNGDomainsTemplate: {fileID: 4900000, guid: 7dba0e8cf61d17b419c403db9016d381, type: 3}
   userRNGDomainsTemplate: {fileID: 4900000, guid: 5a1cc722b259b654780c78fa76d1828b, type: 3}
-  rngDomainsScript: {fileID: 11500000, guid: 382ff6cc65a77324199a0b7e4c290b37, type: 3}
+  rngDomainsScript: {fileID: 11500000, guid: ec202734d367f504893c65292b7e5082, type: 3}
   nativeVaultFieldsTemplate: {fileID: 4900000, guid: 52e7d43862e1aa547b1d3533f0459d3b, type: 3}
   userVaultFieldsTemplate: {fileID: 4900000, guid: 41c4c8835c1fffa45885d6996cc5a63f, type: 3}
-  vaultFieldsScript: {fileID: 11500000, guid: 9aa6f0e40678c5641a29a23f6d1c9886, type: 3}
+  vaultFieldsScript: {fileID: 11500000, guid: 0dcc69a8ccf62284c92f8533979eab4a, type: 3}
+  nativeNexusSpawnPointsTemplate: {fileID: 4900000, guid: 84af606ef4e3ce8489e7dbb6c4037c2c, type: 3}
+  userNexusSpawnPointsTemplate: {fileID: 4900000, guid: 7871444b7b0414a498fe80289581a058, type: 3}
+  nexusSpawnPointsScript: {fileID: 11500000, guid: 8565bacea121ef14ba62b68cc7c16d50, type: 3}
   sceneIDsTemplate: {fileID: 4900000, guid: 3fc630b161953974db3cd0780a3dc3d9, type: 3}
   assetIDsTemplate: {fileID: 4900000, guid: 7aeca2e8cc103bb4cbb6fb32b63351eb, type: 3}
   prefabIDsTemplate: {fileID: 4900000, guid: 9864571ccd0de624ca01196443f1a843, type: 3}
-  sceneIDsScript: {fileID: 11500000, guid: c81454fdc7777d64b9025dd3216af140, type: 3}
-  assetIDsScript: {fileID: 11500000, guid: b71e4e7e348c96f4486501a6e643b2ab, type: 3}
-  prefabIDsScript: {fileID: 11500000, guid: 2194c140fe6a6904988d07680058feb5, type: 3}
+  sceneIDsScript: {fileID: 11500000, guid: 2fb2452ccf0b57d4cbbabbd0403279c6, type: 3}
+  assetIDsScript: {fileID: 11500000, guid: bef95e12e31caaf4fb88e840c57801a6, type: 3}
+  prefabIDsScript: {fileID: 11500000, guid: c1a64d76aafdd9c4194455961b6eb3eb, type: 3}
+  userDomainDefinitionsFolder: {fileID: 102900000, guid: f0e7a29869355c54ebf9895a15ba7d0a, type: 3}
+  userDomainScriptsFolder: {fileID: 102900000, guid: 7428ecfef83dba748b5f643b8d6088b9, type: 3}

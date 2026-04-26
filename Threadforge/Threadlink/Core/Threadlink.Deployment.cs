@@ -46,14 +46,14 @@ namespace Threadlink.Core
         {
             Boot();
 
-            await RegisterSubsystemsAsync(Iris.Events.OnNativeSubsystemRegistration);
-            await RegisterSubsystemsAsync(Iris.Events.OnUserSubsystemRegistration);
+            await RegisterSubsystemsAsync(ThreadlinkIDs.Iris.Events.OnNativeSubsystemRegistration);
+            await RegisterSubsystemsAsync(ThreadlinkIDs.Iris.Events.OnUserSubsystemRegistration);
 
             this.Send("Core successfully deployed.").ToUnityConsole();
-            Iris.Publish(Iris.Events.OnCoreDeployed, this);
+            Iris.Publish(ThreadlinkIDs.Iris.Events.OnCoreDeployed, this);
         }
 
-        private async UniTask RegisterSubsystemsAsync(Iris.Events subsystemsRegistrationEvent)
+        private async UniTask RegisterSubsystemsAsync(ThreadlinkIDs.Iris.Events subsystemsRegistrationEvent)
         {
             static string BuildWovenSubsystemsReport(IThreadlinkSubsystem[] wovenSubsystems)
             {
@@ -88,8 +88,8 @@ namespace Threadlink.Core
 
             string type = subsystemsRegistrationEvent switch
             {
-                Iris.Events.OnNativeSubsystemRegistration => "Native",
-                Iris.Events.OnUserSubsystemRegistration => "User",
+                ThreadlinkIDs.Iris.Events.OnNativeSubsystemRegistration => "Native",
+                ThreadlinkIDs.Iris.Events.OnUserSubsystemRegistration => "User",
                 _ => string.Empty,
             };
 

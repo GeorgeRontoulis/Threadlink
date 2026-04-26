@@ -64,7 +64,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             }
         }
 
-        internal void CreateAllInterfaces(ReadOnlySpan<PrefabIDs> pointers)
+        internal void CreateAllInterfaces(ReadOnlySpan<ThreadlinkIDs.Addressables.Prefabs> pointers)
         {
             int length = pointers.Length;
 
@@ -115,7 +115,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
                     if (userInterface is ICancellableInterface cancellableInterface)
                     {
                         cancellableInterface.OnCancelled();
-                        Iris.Publish(Iris.Events.OnUICancelled, userInterface);
+                        Iris.Publish(ThreadlinkIDs.Iris.Events.OnUICancelled, userInterface);
                     }
                 }
             }
@@ -134,7 +134,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
                     newTopUI.OnResurfaced();
 
                 cancellableInterface.OnCancelled();
-                Iris.Publish(Iris.Events.OnUICancelled, topUI);
+                Iris.Publish(ThreadlinkIDs.Iris.Events.OnUICancelled, topUI);
             }
         }
 

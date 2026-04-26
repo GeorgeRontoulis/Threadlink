@@ -18,6 +18,10 @@ namespace Threadlink.Editor
         internal TextAsset UserVaultFieldsTemplate => userVaultFieldsTemplate;
         internal MonoScript VaultFieldsScript => vaultFieldsScript;
 
+        internal TextAsset NativeNexusSpawnPointsTemplate => nativeNexusSpawnPointsTemplate;
+        internal TextAsset UserNexusSpawnPointsTemplate => userNexusSpawnPointsTemplate;
+        internal MonoScript NexusSpawnPointsScript => nexusSpawnPointsScript;
+
         internal TextAsset SceneIDsTemplate => sceneIDsTemplate;
         internal TextAsset AssetIDsTemplate => assetIDsTemplate;
         internal TextAsset PrefabIDsTemplate => prefabIDsTemplate;
@@ -25,6 +29,9 @@ namespace Threadlink.Editor
         internal MonoScript SceneIDsScript => sceneIDsScript;
         internal MonoScript AssetIDsScript => assetIDsScript;
         internal MonoScript PrefabIDsScript => prefabIDsScript;
+
+        internal DefaultAsset UserDomainDefinitionsFolder => userDomainDefinitionsFolder;
+        internal DefaultAsset UserDomainScriptsFolder => userDomainScriptsFolder;
 
         [Header("Editor Resources:")]
         [Space(10)]
@@ -47,6 +54,12 @@ namespace Threadlink.Editor
 
         [Space(10)]
 
+        [SerializeField] private TextAsset nativeNexusSpawnPointsTemplate = null;
+        [SerializeField] private TextAsset userNexusSpawnPointsTemplate = null;
+        [SerializeField] private MonoScript nexusSpawnPointsScript = null;
+
+        [Space(10)]
+
         [SerializeField] private TextAsset sceneIDsTemplate = null;
         [SerializeField] private TextAsset assetIDsTemplate = null;
         [SerializeField] private TextAsset prefabIDsTemplate = null;
@@ -56,5 +69,10 @@ namespace Threadlink.Editor
         [SerializeField] private MonoScript sceneIDsScript = null;
         [SerializeField] private MonoScript assetIDsScript = null;
         [SerializeField] private MonoScript prefabIDsScript = null;
+
+        [Space(10)]
+
+        [SerializeField] private DefaultAsset userDomainDefinitionsFolder = null;
+        [SerializeField] private DefaultAsset userDomainScriptsFolder = null;
     }
 }

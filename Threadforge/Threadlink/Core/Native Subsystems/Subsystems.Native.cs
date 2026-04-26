@@ -11,7 +11,7 @@ namespace Threadlink.User
 
     internal static class NativeSubsystemsConfig
     {
-        private const Iris.Events REGISTRATION_EVENT = Iris.Events.OnNativeSubsystemRegistration;
+        private const ThreadlinkIDs.Iris.Events REGISTRATION_EVENT = ThreadlinkIDs.Iris.Events.OnNativeSubsystemRegistration;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
         private static void ListenForSubsystemRegistration()

@@ -10,7 +10,7 @@ namespace Threadlink.Editor.CodeGen
         private const string PLACEHOLDER = "{User-Defined Event IDs}";
 
         [MenuItem("Threadlink/CodeGen/Run Iris Events CodeGen")]
-        private static void RunIrisEventsCodeGen()
+        internal static void RunIrisEventsCodeGen()
         {
             if (!ThreadlinkConfigFinder.TryGetConfig(out ThreadlinkEditorConfig editorConfig))
                 return;

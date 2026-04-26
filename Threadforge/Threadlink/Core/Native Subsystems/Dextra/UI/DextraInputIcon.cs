@@ -2,10 +2,10 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 {
     using Iris;
     using Scribe;
+    using Shared;
     using System;
     using UnityEngine;
     using UnityEngine.InputSystem;
-    using UnityEngine.InputSystem.Layouts;
     using UnityEngine.UI;
 
     /// <summary>
@@ -18,7 +18,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     [RequireComponent(typeof(Image))]
     public sealed class DextraInputIcon : MonoBehaviour
     {
-        private const Iris.Events DEVICE_CHANGED_EVENT = Iris.Events.OnInputDeviceChanged;
+        private const ThreadlinkIDs.Iris.Events DEVICE_CHANGED_EVENT = ThreadlinkIDs.Iris.Events.OnInputDeviceChanged;
 
         [HideInInspector, SerializeField] private Image targetImage = null;
 

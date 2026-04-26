@@ -1,6 +1,7 @@
 namespace Threadlink.Core
 {
     using NativeSubsystems.Iris;
+    using Shared;
     using System.Runtime.CompilerServices;
     using UnityEngine;
 
@@ -12,12 +13,12 @@ namespace Threadlink.Core
     internal sealed class ThreadlinkLoop : MonoBehaviour
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Update() => Iris.Publish(Iris.Events.OnUpdate);
+        private void Update() => Iris.Publish(ThreadlinkIDs.Iris.Events.OnUpdate);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void FixedUpdate() => Iris.Publish(Iris.Events.OnFixedUpdate);
+        private void FixedUpdate() => Iris.Publish(ThreadlinkIDs.Iris.Events.OnFixedUpdate);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LateUpdate() => Iris.Publish(Iris.Events.OnLateUpdate);
+        private void LateUpdate() => Iris.Publish(ThreadlinkIDs.Iris.Events.OnLateUpdate);
     }
 }

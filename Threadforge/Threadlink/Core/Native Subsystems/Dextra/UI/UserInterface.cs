@@ -29,7 +29,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
         public override void Discard()
         {
-            Iris.Unsubscribe<Action>(Iris.Events.OnUpdate, MoveTowardsTargetAlpha);
+            Iris.Unsubscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, MoveTowardsTargetAlpha);
             canvasGroup = null;
             base.Discard();
         }
@@ -38,7 +38,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         {
             TargetAlpha = newAlpha;
             UpdatingAlpha = true;
-            Iris.Subscribe<Action>(Iris.Events.OnUpdate, MoveTowardsTargetAlpha);
+            Iris.Subscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, MoveTowardsTargetAlpha);
         }
 
         private void MoveTowardsTargetAlpha()
@@ -47,7 +47,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
             if (canvasGroup.alpha.IsSimilarTo(TargetAlpha))
             {
-                Iris.Unsubscribe<Action>(Iris.Events.OnUpdate, MoveTowardsTargetAlpha);
+                Iris.Unsubscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, MoveTowardsTargetAlpha);
                 canvasGroup.alpha = TargetAlpha;
                 UpdatingAlpha = false;
             }

@@ -8,7 +8,15 @@ namespace Threadlink.Utilities.Flags
 
     public static class EnumUtilities
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static T[] ToArray<T>() where T : Enum => (T[])Enum.GetValues(typeof(T));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsValidNonNegative<T>(this T enumValue) where T : Enum
+        {
+            long value = Convert.ToInt64(enumValue);
+            return value >= 0 && Enum.IsDefined(typeof(T), enumValue);
+        }
     }
 
     public static class FlagUtilities

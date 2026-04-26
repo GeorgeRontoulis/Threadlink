@@ -110,7 +110,7 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             void OnCoreDeployed(Threadlink core)
             {
                 OnLoadingProcessFinished();
-                Iris.Unsubscribe<Action<Threadlink>>(Iris.Events.OnCoreDeployed, OnCoreDeployed);
+                Iris.Unsubscribe<Action<Threadlink>>(ThreadlinkIDs.Iris.Events.OnCoreDeployed, OnCoreDeployed);
             }
 
             void DisconnectAllZones() => DisconnectAll();
@@ -121,9 +121,9 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             Music.volume = Atmos.volume = 0f;
             CreateAudioListener();
 
-            Iris.Subscribe<Action>(Iris.Events.OnBeforeActiveSceneUnload, DisconnectAllZones);
-            Iris.Subscribe<Action>(Iris.Events.OnLoadingProcessFinished, OnLoadingProcessFinished);
-            Iris.Subscribe<Action<Threadlink>>(Iris.Events.OnCoreDeployed, OnCoreDeployed);
+            Iris.Subscribe<Action>(ThreadlinkIDs.Iris.Events.OnBeforeActiveSceneUnload, DisconnectAllZones);
+            Iris.Subscribe<Action>(ThreadlinkIDs.Iris.Events.OnNexusLoadingFinished, OnLoadingProcessFinished);
+            Iris.Subscribe<Action<Threadlink>>(ThreadlinkIDs.Iris.Events.OnCoreDeployed, OnCoreDeployed);
         }
 
         public override bool TryLink(AuraSpatialObject entity)
@@ -132,7 +132,7 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             bool linked = base.TryLink(entity);
 
             if (previousCount <= 0 && linked)
-                Iris.Subscribe<Action>(Iris.Events.OnUpdate, CalculateSpatialInfluence);
+                Iris.Subscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, CalculateSpatialInfluence);
 
             return linked;
         }
@@ -142,14 +142,14 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             bool disconnected = base.TryDisconnect(linkID, out disconnectedObject);
 
             if (disconnected && Registry.Count <= 0)
-                Iris.Unsubscribe<Action>(Iris.Events.OnUpdate, CalculateSpatialInfluence);
+                Iris.Unsubscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, CalculateSpatialInfluence);
 
             return disconnected;
         }
 
         public override void DisconnectAll(bool trimRegistry = false)
         {
-            Iris.Unsubscribe<Action>(Iris.Events.OnUpdate, CalculateSpatialInfluence);
+            Iris.Unsubscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, CalculateSpatialInfluence);
             base.DisconnectAll(trimRegistry);
         }
 

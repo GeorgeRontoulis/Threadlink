@@ -10,35 +10,35 @@ namespace Threadlink.Core
     public sealed partial class Threadlink
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool CheckIDValidity(SceneIDs sceneID)
+        public static bool CheckIDValidity(ThreadlinkIDs.Addressables.Scenes sceneID)
         {
-            return Instance.UserConfig.TryGetSceneRefs(out var scenes) && ValidateAssetReferenceRequest(scenes, (uint)sceneID, out _);
+            return Instance.UserConfig.TryGetSceneRefs(out var scenes) && ValidateAssetReferenceRequest(scenes, (int)sceneID, out _);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool CheckIDValidity(AssetIDs assetID)
+        public static bool CheckIDValidity(ThreadlinkIDs.Addressables.Assets assetID)
         {
-            return Instance.UserConfig.TryGetAssetRefs(out var assets) && ValidateAssetReferenceRequest(assets, (uint)assetID, out _);
+            return Instance.UserConfig.TryGetAssetRefs(out var assets) && ValidateAssetReferenceRequest(assets, (int)assetID, out _);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool CheckIDValidity(PrefabIDs prefabID)
+        public static bool CheckIDValidity(ThreadlinkIDs.Addressables.Prefabs prefabID)
         {
-            return Instance.UserConfig.TryGetPrefabRefs(out var prefabs) && ValidateAssetReferenceRequest(prefabs, (uint)prefabID, out _);
+            return Instance.UserConfig.TryGetPrefabRefs(out var prefabs) && ValidateAssetReferenceRequest(prefabs, (int)prefabID, out _);
         }
 
-        private static bool ValidateAssetReferenceRequest<T>(ReadOnlySpan<T> databaseView, uint index, out T reference)
+        private static bool ValidateAssetReferenceRequest<T>(ReadOnlySpan<T> databaseView, int index, out T reference)
         where T : AssetReference
         {
             reference = null;
 
             if (!index.IsWithinBoundsOf(databaseView))
             {
-                Instance.Send("The Asset Reference Index ", index, " is invalid!").ToUnityConsole(DebugType.Error);
+                Instance.Send("The Asset Reference Index ", index, " is invalid!").ToUnityConsole(DebugType.Warning);
                 return false;
             }
 
-            var assetReference = databaseView[(int)index];
+            var assetReference = databaseView[index];
 
             if (assetReference == null)
             {

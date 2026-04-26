@@ -1,7 +1,6 @@
 namespace Threadlink.Core.NativeSubsystems.Dextra
 {
     using Collections;
-    using Collections.Extensions;
     using Cysharp.Threading.Tasks;
     using Scribe;
     using Shared;
@@ -13,16 +12,16 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     [CreateAssetMenu(menuName = "Threadlink/Subsystem Dependencies/Dextra Config")]
     public sealed class DextraConfig : ScriptableObject
     {
-        [Serializable] private sealed class NestedFieldTable : FieldTable<Dextra.InputDevice, AssetIDs> { }
+        [Serializable] private sealed class InputSpritesMap : FieldHashMap<Dextra.InputDevice, ThreadlinkIDs.Addressables.Assets> { }
 
-        [SerializeField] private PrefabIDs[] interfacePointers = new PrefabIDs[0];
+        [SerializeField] private ThreadlinkIDs.Addressables.Prefabs[] interfacePointers = Array.Empty<ThreadlinkIDs.Addressables.Prefabs>();
 
         [Space(10)]
 
-        [SerializeField] private FieldTable<DextraInputControlPath, NestedFieldTable> inputIcons = new();
+        [SerializeField] private FieldHashMap<DextraInputControlPath, InputSpritesMap> inputIcons = new();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal bool TryGetInterfacePointers(out ReadOnlySpan<PrefabIDs> result) => !(result = interfacePointers).IsEmpty;
+        internal bool TryGetInterfacePointers(out ReadOnlySpan<ThreadlinkIDs.Addressables.Prefabs> result) => !(result = interfacePointers).IsEmpty;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryGetInputIcon(Dextra.InputDevice device, DextraInputControlPath inputControlPath, out Sprite result)

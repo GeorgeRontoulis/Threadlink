@@ -2,6 +2,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 {
     using Core;
     using Iris;
+    using Shared;
     using System;
     using System.Runtime.CompilerServices;
     using UnityEngine;
@@ -69,7 +70,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
     public abstract class Interactable : LinkableBehaviour
     {
-        private const Iris.Events ON_INTERACT_EVENT = Iris.Events.OnInteract;
+        private const ThreadlinkIDs.Iris.Events ON_INTERACT_EVENT = ThreadlinkIDs.Iris.Events.OnInteract;
 
         protected internal abstract bool ActiveState { get; set; }
         public string InteractionPrompt => configuration.InteractionPrompt;

@@ -10,7 +10,7 @@ namespace Threadlink.Editor.CodeGen
         private const string PLACEHOLDER = "{User-Defined Data Field IDs}";
 
         [MenuItem("Threadlink/CodeGen/Run Vault Fields CodeGen")]
-        private static void RunVaultFieldsCodeGen()
+        internal static void RunVaultFieldsCodeGen()
         {
             if (!ThreadlinkConfigFinder.TryGetConfig(out ThreadlinkEditorConfig editorConfig))
                 return;

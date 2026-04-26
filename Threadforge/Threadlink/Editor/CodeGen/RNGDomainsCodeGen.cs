@@ -10,7 +10,7 @@ namespace Threadlink.Editor.CodeGen
         private const string PLACEHOLDER = "{User-Defined RNG Domains}";
 
         [MenuItem("Threadlink/CodeGen/Run RNG Domains CodeGen")]
-        private static void RunRNGDomainsCodeGen()
+        internal static void RunRNGDomainsCodeGen()
         {
             if (!ThreadlinkConfigFinder.TryGetConfig(out ThreadlinkEditorConfig editorConfig))
                 return;

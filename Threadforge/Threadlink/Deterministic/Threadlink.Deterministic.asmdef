@@ -1,7 +1,9 @@
 {
     "name": "Threadlink.Deterministic",
     "rootNamespace": "Threadlink.Deterministic",
-    "references": [],
+    "references": [
+        "GUID:49ad3e6d2cdad5945866504c28f3cd2f"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": true,

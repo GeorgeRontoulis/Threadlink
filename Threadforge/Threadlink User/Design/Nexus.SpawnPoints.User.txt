@@ -1,0 +1,5 @@
+///Use this file to define custom player spawn points for Nexus as showcased below:
+///
+///UserDefinedSpawnPoint1
+///UserDefinedSpawnPoint2
+///...

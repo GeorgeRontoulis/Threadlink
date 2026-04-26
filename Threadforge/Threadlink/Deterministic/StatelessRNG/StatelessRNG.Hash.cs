@@ -1,9 +1,8 @@
 namespace Threadlink.Deterministic
 {
+    using Shared;
     using System;
-    using System.IO.Hashing;
     using System.Runtime.CompilerServices;
-    using System.Text;
 
     public static partial class StatelessRNG
     {
@@ -32,30 +31,16 @@ namespace Threadlink.Deterministic
             /// Intended for entropy composition inside the domains themselves.
             /// Hashes the given <paramref name="identityComponent"/> without applying <see cref="Seed"/>.
             /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static ulong ForIdentity(string identityComponent)
             {
-                identityComponent = identityComponent.Trim().ToLowerInvariant();
-
-                int byteCount = Encoding.UTF8.GetByteCount(identityComponent);
-                Span<byte> buffer = byteCount <= 256 ? stackalloc byte[byteCount] : new byte[byteCount];
-
-                Encoding.UTF8.GetBytes(identityComponent, buffer);
-
-                return XxHash64.HashToUInt64(buffer, unchecked((long)Seed));
+                return HashFunctions.ToXxHash64(identityComponent, Convert.ToInt64(Seed));
             }
-
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private static ulong Mix(ulong input, bool seeded)
             {
-                ulong x = seeded ? input ^ Seed : input;
-
-                x ^= x >> 30;
-                x *= 0xbf58476d1ce4e5b9UL;
-                x ^= x >> 27;
-                x *= 0x94d049bb133111ebUL;
-
-                return x ^ (x >> 31);
+                return seeded ? HashFunctions.ToSplitMix64(input, Seed) : HashFunctions.ToSplitMix64(input);
             }
         }
     }

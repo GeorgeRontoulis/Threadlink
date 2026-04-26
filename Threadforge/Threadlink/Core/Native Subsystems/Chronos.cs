@@ -1,6 +1,7 @@
 namespace Threadlink.Core.NativeSubsystems.Chronos
 {
     using Iris;
+    using Shared;
     using System;
     using System.Runtime.CompilerServices;
     using UnityEngine;
@@ -46,12 +47,12 @@ namespace Threadlink.Core.NativeSubsystems.Chronos
                 if (value.IsSimilarTo(0f))
                 {
                     Time.timeScale = value;
-                    Iris.Publish(Iris.Events.OnGamePaused);
+                    Iris.Publish(ThreadlinkIDs.Iris.Events.OnGamePaused);
                 }
                 else if (value.IsSimilarTo(1f))
                 {
                     Time.timeScale = value;
-                    Iris.Publish(Iris.Events.OnGameResumed);
+                    Iris.Publish(ThreadlinkIDs.Iris.Events.OnGameResumed);
                 }
             }
         }
@@ -78,8 +79,8 @@ namespace Threadlink.Core.NativeSubsystems.Chronos
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Start()
         {
-            Iris.Subscribe<Action>(Iris.Events.OnUpdate, UpdateStandardTime);
-            Iris.Subscribe<Action>(Iris.Events.OnFixedUpdate, UpdatePhysicsTime);
+            Iris.Subscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, UpdateStandardTime);
+            Iris.Subscribe<Action>(ThreadlinkIDs.Iris.Events.OnFixedUpdate, UpdatePhysicsTime);
         }
 
         /// <summary>
@@ -88,8 +89,8 @@ namespace Threadlink.Core.NativeSubsystems.Chronos
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Stop()
         {
-            Iris.Unsubscribe<Action>(Iris.Events.OnUpdate, UpdateStandardTime);
-            Iris.Unsubscribe<Action>(Iris.Events.OnFixedUpdate, UpdatePhysicsTime);
+            Iris.Unsubscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, UpdateStandardTime);
+            Iris.Unsubscribe<Action>(ThreadlinkIDs.Iris.Events.OnFixedUpdate, UpdatePhysicsTime);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -117,7 +118,7 @@ namespace Threadlink.Core.NativeSubsystems.Chronos
             if (CountTotalPlaytime)
             {
                 TotalPlaytime += PlaytimeCountingMode is PlaytimeCountMode.Scaled ? DeltaTime : UnscaledDeltaTime;
-                Iris.Publish(Iris.Events.OnPlaytimeCountTick, TotalPlaytime);
+                Iris.Publish(ThreadlinkIDs.Iris.Events.OnPlaytimeCountTick, TotalPlaytime);
             }
         }
 

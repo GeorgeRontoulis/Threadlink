@@ -2,6 +2,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 {
     using Cysharp.Threading.Tasks;
     using Iris;
+    using Shared;
     using System.Collections.Generic;
     using System.Runtime.CompilerServices;
     using UnityEngine;
@@ -118,6 +119,6 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void OnUIElementSelected(GameObject element) => Iris.Publish(Iris.Events.OnUIElementSelected, element);
+        private void OnUIElementSelected(GameObject element) => Iris.Publish(ThreadlinkIDs.Iris.Events.OnUIElementSelected, element);
     }
 }

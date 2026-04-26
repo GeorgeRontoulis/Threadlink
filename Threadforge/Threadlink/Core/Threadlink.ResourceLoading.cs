@@ -13,7 +13,7 @@ namespace Threadlink.Core
     {
         #region Asset:
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static T LoadAsset<T>(AssetIDs assetID) where T : Object
+        public static T LoadAsset<T>(ThreadlinkIDs.Addressables.Assets assetID) where T : Object
         {
             return TryGetAssetReference(assetID, out var reference) ? reference.LoadSynchronously<T>() : null;
         }
@@ -25,7 +25,7 @@ namespace Threadlink.Core
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static async UniTask<T> LoadAssetAsync<T>(AssetIDs assetID) where T : Object
+        public static async UniTask<T> LoadAssetAsync<T>(ThreadlinkIDs.Addressables.Assets assetID) where T : Object
         {
             return TryGetAssetReference(assetID, out var reference) ? await reference.LoadAsync<T>() : null;
         }
@@ -39,7 +39,7 @@ namespace Threadlink.Core
 
         #region Prefab:
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static T LoadPrefab<T>(PrefabIDs prefabID) where T : Component
+        public static T LoadPrefab<T>(ThreadlinkIDs.Addressables.Prefabs prefabID) where T : Component
         {
             if (!TryGetPrefabReference(prefabID, out var reference))
                 return null;
@@ -61,7 +61,7 @@ namespace Threadlink.Core
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static async UniTask<T> LoadPrefabAsync<T>(PrefabIDs prefabID) where T : Component
+        public static async UniTask<T> LoadPrefabAsync<T>(ThreadlinkIDs.Addressables.Prefabs prefabID) where T : Component
         {
             if (!TryGetPrefabReference(prefabID, out var reference))
                 return null;
@@ -85,13 +85,13 @@ namespace Threadlink.Core
 
         #region Scene:
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static async UniTask<SceneInstance> LoadSceneAsync(SceneIDs sceneID, LoadSceneMode mode)
+        public static async UniTask<SceneInstance> LoadSceneAsync(ThreadlinkIDs.Addressables.Scenes sceneID, LoadSceneMode mode)
         {
             return TryGetSceneReference(sceneID, out var reference) ? await reference.LoadAsync(mode) : default;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static async UniTask<SceneInstance> UnloadSceneAsync(SceneIDs sceneID)
+        public static async UniTask<SceneInstance> UnloadSceneAsync(ThreadlinkIDs.Addressables.Scenes sceneID)
         {
             return TryGetSceneReference(sceneID, out var reference) ? await reference.UnloadAsync() : default;
         }
@@ -99,14 +99,14 @@ namespace Threadlink.Core
 
         #region Release:
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ReleaseAsset(AssetIDs assetID)
+        public static void ReleaseAsset(ThreadlinkIDs.Addressables.Assets assetID)
         {
             if (TryGetAssetReference(assetID, out var reference))
                 reference.ReleaseAsset();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ReleasePrefab(PrefabIDs prefabID)
+        public static void ReleasePrefab(ThreadlinkIDs.Addressables.Prefabs prefabID)
         {
             if (TryGetPrefabReference(prefabID, out var reference))
                 reference.ReleaseAsset();

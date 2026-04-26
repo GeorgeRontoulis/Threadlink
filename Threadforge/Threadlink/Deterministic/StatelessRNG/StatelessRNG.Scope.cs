@@ -2,6 +2,7 @@ namespace Threadlink.Deterministic
 {
     using System;
     using System.Runtime.CompilerServices;
+    using Threadlink.Shared;
 
     public static partial class StatelessRNG
     {
@@ -35,13 +36,13 @@ namespace Threadlink.Deterministic
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Scope CreateScope(Domains domain)
+        public static Scope CreateScope(ThreadlinkIDs.StatelessRNG.Domains domain)
         {
             return new(Hash.ForIdentity((byte)domain));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Scope CreateScope<C>(Domains domain, in C context) where C : unmanaged, IContext
+        public static Scope CreateScope<C>(ThreadlinkIDs.StatelessRNG.Domains domain, in C context) where C : unmanaged, IContext
         {
             return new(Hash.ForIdentity((byte)domain) ^ context.Identity);
         }

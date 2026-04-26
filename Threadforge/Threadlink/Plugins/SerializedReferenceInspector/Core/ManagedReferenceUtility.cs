@@ -9,93 +9,162 @@ using Object = UnityEngine.Object;
 
 public static class ManagedReferenceUtility
 {
-    /// Creates instance of passed type and assigns it to managed reference
     public static object AssignNewInstanceOfTypeToManagedReference(this SerializedProperty serializedProperty, Type type)
     {
         var instance = Activator.CreateInstance(type);
-        
-        serializedProperty.serializedObject.Update(); 
+
+        serializedProperty.serializedObject.Update();
         serializedProperty.managedReferenceValue = instance;
-        serializedProperty.serializedObject.ApplyModifiedProperties(); 
-        
+        serializedProperty.serializedObject.ApplyModifiedProperties();
+
         return instance;
     }
 
-    /// Sets managed reference to null
     public static void SetManagedReferenceToNull(this SerializedProperty serializedProperty)
     {
         serializedProperty.serializedObject.Update();
         serializedProperty.managedReferenceValue = null;
-        serializedProperty.serializedObject.ApplyModifiedProperties(); 
+        serializedProperty.serializedObject.ApplyModifiedProperties();
     }
 
-    /// Collects appropriate types based on managed reference field type and filters. Filters all derive
     public static IEnumerable<Type> GetAppropriateTypesForAssigningToManagedReference(this SerializedProperty property, List<Func<Type, bool>> filters = null)
     {
         var fieldType = property.GetManagedReferenceFieldType();
         return GetAppropriateTypesForAssigningToManagedReference(fieldType, filters);
     }
 
-    /// Filters derived types of field typ parameter and finds ones whose are compatible with managed reference and filters.
     public static IEnumerable<Type> GetAppropriateTypesForAssigningToManagedReference(Type fieldType, List<Func<Type, bool>> filters = null)
     {
         var appropriateTypes = new List<Type>();
+        var derivedTypes = new List<Type>();
 
-        // Get and filter all appropriate types
-        var derivedTypes = TypeCache.GetTypesDerivedFrom(fieldType);
+        // 1. Get standard derived types
+        derivedTypes.AddRange(TypeCache.GetTypesDerivedFrom(fieldType));
+
+        // 2. If the field is generic, we must also grab types that derive from the open generic definition
+        // (e.g., catching 'ConcreteRef<T> : GenericRef<T>' when the field is GenericRef<int>)
+        if (fieldType != null && fieldType.IsGenericType)
+        {
+            var openBaseType = fieldType.GetGenericTypeDefinition();
+            var openDerivedTypes = TypeCache.GetTypesDerivedFrom(openBaseType);
+            foreach (var openDerived in openDerivedTypes)
+            {
+                if (!derivedTypes.Contains(openDerived))
+                    derivedTypes.Add(openDerived);
+            }
+        }
+
         foreach (var type in derivedTypes)
         {
-            // Skips unity engine Objects (because they are not serialized by SerializeReference)
-            if (type.IsSubclassOf(typeof(Object)))
-                continue;
-            // Skip abstract classes because they should not be instantiated
-            if (type.IsAbstract)
-                continue;
-			// Skip generic classes because they can not be instantiated
+            if (type.IsSubclassOf(typeof(Object))) continue;
+            if (type.IsAbstract) continue;
+
+            Type typeToInstantiate = type;
+
+            // 3. Dynamically close open generic types
             if (type.ContainsGenericParameters)
-                continue;
-            // Skip types that has no public empty constructors (activator can not create them)    
-            if (type.IsClass && type.GetConstructor(Type.EmptyTypes) == null) // Structs still can be created (strangely)
-                continue;
-            // Filter types by provided filters if there is ones
-            if (filters != null && filters.All(f => f == null || f.Invoke(type)) == false) 
+            {
+                if (fieldType != null && fieldType.IsGenericType)
+                {
+                    try
+                    {
+                        typeToInstantiate = type.MakeGenericType(fieldType.GetGenericArguments());
+
+                        // Ensure the resulting closed type actually matches the field type
+                        if (!fieldType.IsAssignableFrom(typeToInstantiate))
+                            continue;
+                    }
+                    catch
+                    {
+                        continue; // Failsafe if generic constraints don't match
+                    }
+                }
+                else
+                {
+                    continue; // Can't close an open generic without a generic base to infer from
+                }
+            }
+
+            if (typeToInstantiate.IsClass && typeToInstantiate.GetConstructor(Type.EmptyTypes) == null)
                 continue;
 
-            appropriateTypes.Add(type);
+            if (filters != null && filters.All(f => f == null || f.Invoke(typeToInstantiate)) == false)
+                continue;
+
+            if (!appropriateTypes.Contains(typeToInstantiate))
+                appropriateTypes.Add(typeToInstantiate);
         }
 
         return appropriateTypes;
     }
-    
-    /// Gets real type of managed reference
+
     public static Type GetManagedReferenceFieldType(this SerializedProperty property)
     {
         var realPropertyType = GetRealTypeFromTypename(property.managedReferenceFieldTypename);
-        if (realPropertyType != null) 
+        if (realPropertyType != null)
             return realPropertyType;
-        
+
         Debug.LogError($"Can not get field type of managed reference : {property.managedReferenceFieldTypename}");
         return null;
     }
-    
-    /// Gets real type of managed reference's field typeName
+
     public static Type GetRealTypeFromTypename(string stringType)
     {
-        var names = GetSplitNamesFromTypename(stringType);
-        var realType = Type.GetType($"{names.ClassName}, {names.AssemblyName}");
-        return realType;
+        var (AssemblyName, ClassName) = GetSplitNamesFromTypename(stringType);
+        if (string.IsNullOrEmpty(AssemblyName) || string.IsNullOrEmpty(ClassName)) return null;
+
+        var realType = Type.GetType($"{ClassName}, {AssemblyName}");
+        if (realType != null)
+            return realType;
+
+        // Fallback for tricky assembly resolutions
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            if (assembly.GetName().Name == AssemblyName)
+            {
+                realType = assembly.GetType(ClassName);
+                if (realType != null)
+                    return realType;
+            }
+        }
+
+        return null;
     }
-    
-    /// Get assembly and class names from typeName
+
     public static (string AssemblyName, string ClassName) GetSplitNamesFromTypename(string typename)
     {
-        if (string.IsNullOrEmpty(typename))  
-            return ("","");
-        
-        var typeSplitString = typename.Split(char.Parse(" "));
-        var typeClassName = typeSplitString[1];
-        var typeAssemblyName = typeSplitString[0];
-        return (typeAssemblyName,  typeClassName); 
+        if (string.IsNullOrEmpty(typename))
+            return (string.Empty, string.Empty);
+
+        // Safely split by the FIRST space to avoid breaking on spaces inside generic brackets
+        int spaceIndex = typename.IndexOf(' ');
+        if (spaceIndex < 0)
+            return (string.Empty, string.Empty);
+
+        var typeAssemblyName = typename.Substring(0, spaceIndex);
+        var typeClassName = typename.Substring(spaceIndex + 1);
+
+        // Type.GetType demands '+' for nested classes, while Unity's string uses '/'
+        typeClassName = typeClassName.Replace('/', '+');
+
+        return (typeAssemblyName, typeClassName);
+    }
+
+    /// Recursively formats generic types for beautiful UI labels
+    public static string GetTypeName(Type type)
+    {
+        if (type == null) return "Null";
+        if (!type.IsGenericType) return type.Name.Replace('+', '.');
+
+        var typeName = type.Name.Split('`')[0];
+        var genericArgs = type.GetGenericArguments();
+        var argNames = new string[genericArgs.Length];
+        for (int i = 0; i < genericArgs.Length; i++)
+        {
+            argNames[i] = GetTypeName(genericArgs[i]);
+        }
+
+        return $"{typeName}<{string.Join(", ", argNames)}>";
     }
 }
 #endif

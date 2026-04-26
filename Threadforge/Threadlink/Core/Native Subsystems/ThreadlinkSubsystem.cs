@@ -17,7 +17,8 @@
     {
         public static Singleton Instance { get; protected set; }
 
-        public virtual int ID => GetHashCode();
+        private static readonly int TypeHash = HashFunctions.ToXxHash32(typeof(Singleton).AssemblyQualifiedName);
+        public virtual int ID => TypeHash;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual void Boot() => Instance = this as Singleton;

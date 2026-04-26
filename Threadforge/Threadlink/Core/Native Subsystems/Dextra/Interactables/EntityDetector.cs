@@ -1,6 +1,7 @@
 namespace Threadlink.Core.NativeSubsystems.Dextra
 {
     using Iris;
+    using Shared;
     using System.Runtime.CompilerServices;
     using UnityEngine;
 
@@ -114,7 +115,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     public abstract class EntityDetector : LinkableBehaviour
     {
         public abstract bool ActiveState { get; set; }
-        protected internal abstract Iris.Events OnEntityDetectedEvent { get; }
-        protected internal abstract Iris.Events OnEntityOutOfRangeEvent { get; }
+        protected internal abstract ThreadlinkIDs.Iris.Events OnEntityDetectedEvent { get; }
+        protected internal abstract ThreadlinkIDs.Iris.Events OnEntityOutOfRangeEvent { get; }
     }
 }
