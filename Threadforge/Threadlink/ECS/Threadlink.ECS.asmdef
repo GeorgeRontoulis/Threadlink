@@ -1,0 +1,19 @@
+{
+    "name": "Threadlink.ECS",
+    "rootNamespace": "",
+    "references": [
+        "GUID:e0cd26848372d4e5c891c569017e11f1",
+        "GUID:49ad3e6d2cdad5945866504c28f3cd2f",
+        "GUID:d8b63aba1907145bea998dd612889d6b",
+        "GUID:f9d0bc46de640d144939543622979457"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
