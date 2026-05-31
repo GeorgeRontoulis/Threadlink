@@ -22,7 +22,7 @@ namespace Threadlink.Vault
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual bool TryGetDataField(ThreadlinkIDs.Vault.Fields fieldID, out DataField result) => dataFields.TryGetValue(fieldID, out result);
 
-        public virtual bool TryGetDataField<T>(ThreadlinkIDs.Vault.Fields fieldID, out DataField<T> result)
+        public virtual bool TryGetGenericDataField<T>(ThreadlinkIDs.Vault.Fields fieldID, out DataField<T> result)
         {
             if (TryGetDataField(fieldID, out var field) && field is DataField<T> castField)
             {
@@ -34,7 +34,7 @@ namespace Threadlink.Vault
             return false;
         }
 
-        public virtual bool TryGetDataField<T>(ThreadlinkIDs.Vault.Fields fieldID, out T result) where T : DataField
+        public virtual bool TryGetConcreteDataField<T>(ThreadlinkIDs.Vault.Fields fieldID, out T result) where T : DataField
         {
             if (TryGetDataField(fieldID, out var field) && field is T castField)
             {
@@ -48,7 +48,7 @@ namespace Threadlink.Vault
 
         public virtual bool TryGet<T>(ThreadlinkIDs.Vault.Fields fieldID, out T value)
         {
-            bool retrieved = TryGetDataField<T>(fieldID, out var field);
+            bool retrieved = TryGetGenericDataField<T>(fieldID, out var field);
 
             value = retrieved ? field.Value : default;
 
@@ -57,11 +57,13 @@ namespace Threadlink.Vault
 
         public virtual bool TrySet<T>(ThreadlinkIDs.Vault.Fields fieldID, T value)
         {
-            bool retrieved = TryGetDataField<T>(fieldID, out var field);
+            if (TryGetGenericDataField<T>(fieldID, out var field))
+            {
+                field.Value = value;
+                return true;
+            }
 
-            if (retrieved) field.Value = value;
-
-            return retrieved;
+            return false;
         }
     }
 }

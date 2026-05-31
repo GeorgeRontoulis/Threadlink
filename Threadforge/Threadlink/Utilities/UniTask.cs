@@ -16,5 +16,16 @@ namespace Threadlink.Utilities.UniTask
             if (trim)
                 tasks.TrimExcess();
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static async UniTask AwaitAllThenClear(this HashSet<UniTask> tasks, bool trim = false)
+        {
+            await UniTask.WhenAll(tasks);
+
+            tasks.Clear();
+
+            if (trim)
+                tasks.TrimExcess();
+        }
     }
 }

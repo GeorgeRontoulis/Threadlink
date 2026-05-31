@@ -10,31 +10,31 @@ namespace Threadlink.Core
     public sealed partial class Threadlink
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool CheckIDValidity(ThreadlinkIDs.Addressables.Scenes sceneID)
+        public bool CheckIDValidity(ThreadlinkIDs.Addressables.Scenes sceneID)
         {
-            return Instance.UserConfig.TryGetSceneRefs(out var scenes) && ValidateAssetReferenceRequest(scenes, (int)sceneID, out _);
+            return UserConfig.TryGetSceneRefs(out var scenes) && ValidateAssetReferenceRequest(scenes, (int)sceneID, out _);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool CheckIDValidity(ThreadlinkIDs.Addressables.Assets assetID)
+        public bool CheckIDValidity(ThreadlinkIDs.Addressables.Assets assetID)
         {
-            return Instance.UserConfig.TryGetAssetRefs(out var assets) && ValidateAssetReferenceRequest(assets, (int)assetID, out _);
+            return UserConfig.TryGetAssetRefs(out var assets) && ValidateAssetReferenceRequest(assets, (int)assetID, out _);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool CheckIDValidity(ThreadlinkIDs.Addressables.Prefabs prefabID)
+        public bool CheckIDValidity(ThreadlinkIDs.Addressables.Prefabs prefabID)
         {
-            return Instance.UserConfig.TryGetPrefabRefs(out var prefabs) && ValidateAssetReferenceRequest(prefabs, (int)prefabID, out _);
+            return UserConfig.TryGetPrefabRefs(out var prefabs) && ValidateAssetReferenceRequest(prefabs, (int)prefabID, out _);
         }
 
-        private static bool ValidateAssetReferenceRequest<T>(ReadOnlySpan<T> databaseView, int index, out T reference)
+        private bool ValidateAssetReferenceRequest<T>(ReadOnlySpan<T> databaseView, int index, out T reference)
         where T : AssetReference
         {
             reference = null;
 
             if (!index.IsWithinBoundsOf(databaseView))
             {
-                Instance.Send("The Asset Reference Index ", index, " is invalid!").ToUnityConsole(DebugType.Warning);
+                this.Send("The Asset Reference Index ", index, " is invalid!").ToUnityConsole(DebugType.Warning);
                 return false;
             }
 
@@ -42,12 +42,12 @@ namespace Threadlink.Core
 
             if (assetReference == null)
             {
-                Instance.Send(assetReference, " at index ", index, " is NULL!").ToUnityConsole(DebugType.Error);
+                this.Send(assetReference, " at index ", index, " is NULL!").ToUnityConsole(DebugType.Error);
                 return false;
             }
             else if (!assetReference.RuntimeKeyIsValid())
             {
-                Instance.Send("RuntimeKey of ", assetReference, ", ", assetReference.RuntimeKey, " is invalid!").ToUnityConsole(DebugType.Error);
+                this.Send("RuntimeKey of ", assetReference, ", ", assetReference.RuntimeKey, " is invalid!").ToUnityConsole(DebugType.Error);
                 return false;
             }
 

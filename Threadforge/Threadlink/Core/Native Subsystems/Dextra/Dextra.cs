@@ -9,7 +9,6 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     using UnityEngine.InputSystem;
     using UnityEngine.InputSystem.DualShock;
     using UnityEngine.InputSystem.Switch;
-    using UnityEngine.InputSystem.UI;
 
     /// <summary>
     /// Threadlink's Human-Interface Interaction Subsystem.
@@ -17,16 +16,14 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     /// for both Input and UI.
     /// <para></para>
     /// The Input implementation is based on Unity's modern Input System package,
-    /// while the UI is based on Unity's standard UI package.
+    /// while the UI is based on Unity's standard UGUI package.
     /// </summary>
     public sealed partial class Dextra : ThreadlinkSubsystem<Dextra>,
     IInitializable,
     IAddressablesPreloader,
     IDependencyConsumer<EventSystem>,
-    IDependencyConsumer<InputActionAsset>,
     IDependencyConsumer<DextraConfig>
     {
-        public enum InputMode : byte { Unresponsive, Player, UI }
         public enum InputDevice : byte
         {
             MouseAndKeyboard,
@@ -35,34 +32,11 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             SwitchProController
         }
 
-        public InputMode CurrentInputMode
-        {
-            set
-            {
-                switch (value)
-                {
-                    case InputMode.Unresponsive:
-                        PlayerMap.Disable();
-                        UIMap.Disable();
-                        break;
-                    case InputMode.Player:
-                        PlayerMap.Enable();
-                        UIMap.Disable();
-                        break;
-                    case InputMode.UI:
-                        PlayerMap.Disable();
-                        UIMap.Enable();
-                        break;
-                }
-            }
-        }
-
-        internal InputDevice CurrentInputDevice { get; private set; } = InputDevice.MouseAndKeyboard;
+        public ThreadlinkIDs.Dextra.InputModes CurrentInputMode { get; private set; } = ThreadlinkIDs.Dextra.InputModes.Unresponsive;
+        public InputDevice CurrentInputDevice { get; private set; } = InputDevice.MouseAndKeyboard;
 
         private EventSystem UnityEventSystem { get; set; }
         private PlayerInput InputDeviceDetector { get; set; }
-        private InputActionMap PlayerMap { get; set; }
-        private InputActionMap UIMap { get; set; }
         private DextraConfig Config { get; set; }
 
         public bool TryConsumeDependency(EventSystem input)
@@ -72,24 +46,22 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
                 var eventSystem = Object.Instantiate(input);
 
                 eventSystem.name = input.name;
-                eventSystem.gameObject.hideFlags = HideFlags.HideInHierarchy;
+
+                if (Config.HideEventSystemInHierarchy)
+                    eventSystem.gameObject.hideFlags = HideFlags.HideInHierarchy;
+
                 Object.DontDestroyOnLoad(eventSystem);
 
-                if (eventSystem.TryGetComponent(out PlayerInput deviceDetector)
-                && eventSystem.TryGetComponent(out InputSystemUIInputModule uiInputModule))
+                if (eventSystem.TryGetComponent(out PlayerInput deviceDetector))
                 {
                     UnityEventSystem = eventSystem;
                     InputDeviceDetector = deviceDetector;
-                    UIMap = uiInputModule.actionsAsset.FindActionMap(NativeConstants.Input.UI_MAP);
                     return true;
                 }
             }
 
             return false;
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryConsumeDependency(InputActionAsset input) => (PlayerMap = input.FindActionMap(NativeConstants.Input.GAMEPLAY_MAP)) != null;
 
         public bool TryConsumeDependency(DextraConfig input)
         {
@@ -105,24 +77,25 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
         public async UniTask<bool> TryPreloadAssetsAsync()
         {
-            var loadedResources = await Threadlink.Instance.NativeConfig.LoadDextraResourcesAsync();
+            if (!Threadlink.TryGetSingleton(out var core))
+                return false;
+
+            var loadedResources = await core.NativeConfig.LoadDextraResourcesAsync();
             var config = loadedResources.Item2;
 
             await config.LoadAllUserInterfacesAsync();
 
             return TryConsumeDependency(config)
-            && TryConsumeDependency(loadedResources.Item1)
-            && TryConsumeDependency(InputSystem.actions);
+            && TryConsumeDependency(loadedResources.Item1);
         }
 
         public override void Discard()
         {
             Iris.Unsubscribe<System.Action<Threadlink>>(ThreadlinkIDs.Iris.Events.OnCoreDeployed, OnCoreDeployed);
-            CurrentInputMode = InputMode.Unresponsive;
+            CurrentInputMode = ThreadlinkIDs.Dextra.InputModes.Unresponsive;
             InputDeviceDetector.onControlsChanged -= UpdateInputDevice;
             UnityEventSystem = null;
             InputDeviceDetector = null;
-            PlayerMap = UIMap = null;
 
             if (UIStack != null)
             {
@@ -150,7 +123,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             Iris.Subscribe<System.Action<Threadlink>>(ThreadlinkIDs.Iris.Events.OnCoreDeployed, OnCoreDeployed);
             InputDeviceDetector.notificationBehavior = PlayerNotifications.InvokeCSharpEvents;
             InputDeviceDetector.onControlsChanged += UpdateInputDevice;
-            CurrentInputMode = InputMode.Unresponsive;
+            CurrentInputMode = ThreadlinkIDs.Dextra.InputModes.Unresponsive;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -171,17 +144,31 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             return Config.TryGetInputIcon(device, inputControlPath, out result);
         }
 
-        private void OnCoreDeployed(Threadlink _)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetInputMap(ThreadlinkIDs.Dextra.InputModes mode, out InputActionMap result)
         {
+            if (Config == null)
+            {
+                result = null;
+                return false;
+            }
+
+            return Config.TryGetInputMap(mode, out result);
+        }
+
+        private void OnCoreDeployed(Threadlink core)
+        {
+            if (!core.HasLinked(TypeHash))
+                return;
+
             var inputIcons = Object.FindObjectsByType<DextraInputIcon>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
 
             if (inputIcons != null)
             {
                 int length = inputIcons.Length;
+
                 for (int i = 0; i < length; i++)
-                {
                     inputIcons[i].ListenForInputDeviceChanges(true);
-                }
             }
         }
 
@@ -205,16 +192,13 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
             if (CurrentInputDevice != oldDevice)
             {
+                var allGamepads = Gamepad.all;
+                int length = allGamepads.Count;
+
+                for (int i = 0; i < length; i++)
+                    allGamepads[i].SetMotorSpeeds(0f, 0f);
+
                 Iris.Publish(ThreadlinkIDs.Iris.Events.OnInputDeviceChanged, CurrentInputDevice);
-
-                if (CurrentInputDevice is InputDevice.MouseAndKeyboard)
-                {
-                    var allGamepads = Gamepad.all;
-                    int length = allGamepads.Count;
-
-                    for (int i = 0; i < length; i++)
-                        allGamepads[i].SetMotorSpeeds(0f, 0f);
-                }
             }
         }
     }

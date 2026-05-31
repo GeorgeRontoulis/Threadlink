@@ -7,6 +7,7 @@ namespace Threadlink.User
     using Core.NativeSubsystems.Sentinel;
     using Shared;
     using System;
+    using System.Collections.Generic;
     using UnityEngine;
 
     internal static class NativeSubsystemsConfig
@@ -16,19 +17,19 @@ namespace Threadlink.User
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
         private static void ListenForSubsystemRegistration()
         {
-            Iris.Subscribe<Func<IThreadlinkSubsystem[]>>(REGISTRATION_EVENT, WeaveSubsystems);
+            Iris.Subscribe<Func<List<IThreadlinkSubsystem>>>(REGISTRATION_EVENT, WeaveSubsystems);
         }
 
-        private static IThreadlinkSubsystem[] WeaveSubsystems()
+        private static List<IThreadlinkSubsystem> WeaveSubsystems()
         {
-            var buffer = new IThreadlinkSubsystem[]
+            var buffer = new List<IThreadlinkSubsystem>(3)
             {
                 Threadlink.Weave<Sentinel>(),
                 Threadlink.Weave<Dextra>(),
                 Threadlink.Weave<Aura>(),
             };
 
-            Iris.Unsubscribe<Func<IThreadlinkSubsystem[]>>(REGISTRATION_EVENT, WeaveSubsystems);
+            Iris.Unsubscribe<Func<List<IThreadlinkSubsystem>>>(REGISTRATION_EVENT, WeaveSubsystems);
             return buffer;
         }
     }

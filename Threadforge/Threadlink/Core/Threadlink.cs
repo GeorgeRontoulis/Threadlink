@@ -5,6 +5,7 @@
     using NativeSubsystems.Iris;
     using NativeSubsystems.Scribe;
     using Shared;
+    using System;
     using System.Runtime.CompilerServices;
     using UnityEngine;
 
@@ -47,7 +48,11 @@
         /// Same as <see cref="Discard"/>.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Terminate() => Instance.Discard();
+        public static void Terminate()
+        {
+            if (TryGetSingleton(out var core))
+                core.Discard();
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void Discard()
@@ -66,7 +71,7 @@
             if (UserConfig != null && UserConfig.UpdateLoopBehaviour is UpdateLoop.Native)
             {
                 ///Start the Threadlink Update Loop.
-                Object.DontDestroyOnLoad(new GameObject(nameof(ThreadlinkLoop), typeof(ThreadlinkLoop))
+                UnityEngine.Object.DontDestroyOnLoad(new GameObject(nameof(ThreadlinkLoop), typeof(ThreadlinkLoop))
                 {
                     hideFlags = HideFlags.HideInHierarchy
                 });
@@ -87,7 +92,10 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static T Weave<T>() where T : IThreadlinkSubsystem => Instance.TryWeave(out T wovenSubsystem) ? wovenSubsystem : default;
+        public static T Weave<T>() where T : IThreadlinkSubsystem
+        {
+            return TryGetSingleton(out var core) && core.TryWeave(out T wovenSubsystem) ? wovenSubsystem : default;
+        }
 
         /// <summary>
         /// Attempt to serialize data into bytes using <see cref="MessagePack"/> and <see cref="serializerOptions"/>.
@@ -125,6 +133,28 @@
             if (input == null || input.Length <= 0)
             {
                 Scribe.Send<Threadlink>("NULL or empty byte data detected! Will not deserialize!").ToUnityConsole(DebugType.Error);
+                result = default;
+                return false;
+            }
+
+            result = MessagePackSerializer.Deserialize<T>(input, serializerOptions);
+            return true;
+        }
+
+        /// <summary>
+        /// Attempt to deserialize byte data into the desired data type using <see cref="MessagePack"/> and <see cref="serializerOptions"/>.
+        /// Any and all requirements and limitations of the serializer apply to the data you want to deserialize.
+        /// </summary>
+        /// <typeparam name="T">The type of data.</typeparam>
+        /// <param name="input">The input byte data.</param>
+        /// <param name="result">The resulting data.</param>
+        /// <returns>The deserialized data.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool TryDeserialize<T>(ReadOnlyMemory<byte> input, out T result)
+        {
+            if (input.IsEmpty)
+            {
+                Scribe.Send<Threadlink>("Empty byte data detected! Will not deserialize!").ToUnityConsole(DebugType.Error);
                 result = default;
                 return false;
             }

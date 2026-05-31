@@ -1,3 +1,4 @@
+#if !ODIN_INSPECTOR
 namespace Threadlink.Editor
 {
     using System.Collections.Generic;
@@ -340,3 +341,4 @@ namespace Threadlink.Editor
         }
     }
 }
+#endif

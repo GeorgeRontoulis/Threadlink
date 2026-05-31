@@ -4,14 +4,15 @@ namespace Threadlink.Editor.CodeGen
 
     internal static class AllCodeGens
     {
-        [MenuItem("Threadlink/CodeGen/Run All CodeGens")]
+        [MenuItem("Threadlink/Run All CodeGens")]
         private static void RunAllCodeGens()
         {
-            AddressableIDsCodeGen.RunAddressablesCodeGen();
-            IrisEventsCodeGen.RunIrisEventsCodeGen();
-            NexusSpawnPointsCodeGen.RunNexusSpawnPointsCodeGen();
-            RNGDomainsCodeGen.RunRNGDomainsCodeGen();
-            VaultFieldIDsCodeGen.RunVaultFieldsCodeGen();
+            AddressableIDsCodeGen.Run();
+            IrisEventsCodeGen.Run();
+            NexusSpawnPointsCodeGen.Run();
+            RNGDomainsCodeGen.Run();
+            VaultFieldIDsCodeGen.Run();
+            DextraInputModesCodeGen.Run();
         }
     }
 }

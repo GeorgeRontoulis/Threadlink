@@ -15,9 +15,9 @@
     public abstract class ThreadlinkSubsystem<Singleton> : IThreadlinkSubsystem<Singleton>
     where Singleton : ThreadlinkSubsystem<Singleton>
     {
-        public static Singleton Instance { get; protected set; }
+        private static Singleton Instance { get; set; }
 
-        private static readonly int TypeHash = HashFunctions.ToXxHash32(typeof(Singleton).AssemblyQualifiedName);
+        public static readonly int TypeHash = HashFunctions.ToXxHash32(typeof(Singleton).FullName);
         public virtual int ID => TypeHash;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -27,6 +27,17 @@
         public virtual void Discard()
         {
             Instance = null;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool TryGetSingleton(out Singleton result)
+        {
+            result = Instance;
+
+            if (result is Threadlink)
+                return true;
+
+            return result != null && Threadlink.Instance != null && Threadlink.Instance.HasLinked(TypeHash);
         }
     }
 

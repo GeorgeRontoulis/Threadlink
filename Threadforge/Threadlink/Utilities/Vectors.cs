@@ -7,6 +7,10 @@ namespace Threadlink.Utilities.Vectors
 
     public static class Vectors
     {
+        /// <summary>
+        /// Shorthand for (0.5, 0.5).
+        /// </summary>
+        public static readonly Vector2 Half = new(0.5f, 0.5f);
         public static readonly Vector3 XZ = new(1f, 0f, 1f);
 
         /// <summary>

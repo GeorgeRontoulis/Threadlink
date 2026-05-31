@@ -2,7 +2,9 @@ namespace Threadlink.Core
 {
     using Shared;
     using System;
+    using System.Runtime.CompilerServices;
     using UnityEngine;
+    using Utilities.Objects;
 
     /// <summary>
     /// Base class for all Threadlink-Compatible Components.
@@ -10,9 +12,23 @@ namespace Threadlink.Core
     [RequireComponent(typeof(Transform))]
     public abstract class LinkableBehaviour : MonoBehaviour, IDiscardable, IIdentifiable, INamable
     {
-        public virtual int ID => GetInstanceID();
-        public virtual string Name => name;
-        public Transform CachedTransform => cachedTransform;
+        public virtual int ID
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => GetInstanceID();
+        }
+
+        public virtual string Name
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => name;
+        }
+
+        public Transform CachedTransform
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => cachedTransform;
+        }
 
         public event Action OnDiscard = null;
 
@@ -20,10 +36,7 @@ namespace Threadlink.Core
 
         protected virtual void OnValidate()
         {
-            var self = transform;
-
-            if (cachedTransform != self)
-                cachedTransform = self;
+            this.Set(ref cachedTransform);
         }
 
         public virtual void Discard()

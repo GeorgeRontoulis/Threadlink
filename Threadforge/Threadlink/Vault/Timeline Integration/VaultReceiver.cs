@@ -13,6 +13,7 @@ namespace Threadlink.Vault
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ClearCallback() => OnMarkerReceived = null;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void OnNotify(Playable origin, INotification notification, object _)
         {
             if (notification is VaultMarker marker && origin.GetGraph().GetResolver() is PlayableDirector director)

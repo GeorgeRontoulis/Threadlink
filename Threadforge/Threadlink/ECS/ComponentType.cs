@@ -1,7 +1,7 @@
 namespace Threadlink.ECS
 {
     using System;
-    using System.Runtime.CompilerServices;
+    using Threadlink.Shared;
 
     public interface IComponent : IDisposable { }
 
@@ -9,12 +9,8 @@ namespace Threadlink.ECS
     {
         public static class Of<T> where T : unmanaged, IComponent
         {
-            public static readonly int Bit = Next();
+            public static readonly int Hash = HashFunctions.ToXxHash32(typeof(T).AssemblyQualifiedName ?? typeof(T).FullName);
+            public static int BitIndex = -1; // Assigned deterministically by ComponentRegistry at boot
         }
-
-        private static int bit;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int Next() => bit++;
     }
 }

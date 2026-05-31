@@ -4,6 +4,7 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
     using Core;
     using Cysharp.Threading.Tasks;
     using Shared;
+    using System.Runtime.CompilerServices;
     using UnityEngine;
     using UnityEngine.SceneManagement;
 
@@ -18,21 +19,30 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
             public float MusicVolume { get; }
             public float AtmosVolume { get; }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public virtual UniTask OnBeforeUnloadedAsync() => UniTask.CompletedTask;
 
             public virtual async UniTask OnFinishedLoadingAsync()
             {
+                [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 static async UniTask TransitionToAudioScenario(AudioClip music, AudioClip atmos, float musicVolume, float atmosVolume)
                 {
-                    Aura.SetGlobalVolumes(musicVolume, atmosVolume);
+                    if (Aura.TryGetSingleton(out var aura))
+                    {
+                        aura.SetGlobalVolumes(musicVolume, atmosVolume);
 
-                    await Aura.TransitionToAudioScenarioAsync(music, atmos, musicVolume, atmosVolume);
+                        await aura.TransitionToAudioScenarioAsync(music, atmos, musicVolume, atmosVolume);
+                    }
                 }
 
-                bool foundMusic = Threadlink.TryGetAssetReference(MusicClipPointer, out var musicRef);
-                bool foundAtmos = Threadlink.TryGetAssetReference(AtmosClipPointer, out var atmosRef);
+                if (!Threadlink.TryGetSingleton(out var core))
+                    return;
 
-                if (!foundMusic && !foundAtmos) return;
+                bool foundMusic = core.TryGetAssetReference(MusicClipPointer, out var musicRef);
+                bool foundAtmos = core.TryGetAssetReference(AtmosClipPointer, out var atmosRef);
+
+                if (!foundMusic && !foundAtmos)
+                    return;
 
                 if (foundMusic && !foundAtmos)
                 {

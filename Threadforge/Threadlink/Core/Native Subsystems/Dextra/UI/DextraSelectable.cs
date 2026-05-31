@@ -27,7 +27,11 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         /// </summary>
         /// <param name="eventData">The event data payload.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public virtual void OnPointerEnter(PointerEventData eventData) => Dextra.Instance.SelectUIElement(gameObject).Forget();
+        public virtual void OnPointerEnter(PointerEventData eventData)
+        {
+            if (Dextra.TryGetSingleton(out var dextra))
+                dextra.SelectUIElement(gameObject).Forget();
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual void OnSelect(BaseEventData eventData) => OnSelected?.Invoke(this);

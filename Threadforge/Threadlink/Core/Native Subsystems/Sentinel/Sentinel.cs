@@ -3,6 +3,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
     using Cysharp.Threading.Tasks;
     using Scribe;
     using Shared;
+    using System.Runtime.CompilerServices;
     using UnityEngine;
 
     /// <summary>
@@ -29,8 +30,13 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
 
         private Environment TargetEnvironment { get; set; }
 
-        public async UniTask<bool> TryPreloadAssetsAsync() => TryConsumeDependency(await Threadlink.Instance.NativeConfig.LoadSentinelConfigAsync());
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public async UniTask<bool> TryPreloadAssetsAsync()
+        {
+            return Threadlink.TryGetSingleton(out var core) && TryConsumeDependency(await core.NativeConfig.LoadSentinelConfigAsync());
+        }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryConsumeDependency(SentinelConfig input)
         {
             if (input == null)
@@ -40,6 +46,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void Boot()
         {
             base.Boot();
@@ -99,6 +106,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
             return result;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void DeleteStoredData(string folderID, string fileID)
         {
             if (EnvironmentDeployed)

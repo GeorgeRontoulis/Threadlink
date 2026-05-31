@@ -52,8 +52,8 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected internal virtual void SelectLastSelectable()
         {
-            if (LastSelectable != null)
-                Dextra.Instance.SelectUIElement(LastSelectable.gameObject).Forget();
+            if (LastSelectable != null && Dextra.TryGetSingleton(out var dextra))
+                dextra.SelectUIElement(LastSelectable.gameObject).Forget();
         }
 
         protected internal override void OnStacked()

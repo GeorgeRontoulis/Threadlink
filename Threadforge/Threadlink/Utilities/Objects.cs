@@ -25,5 +25,11 @@ namespace Threadlink.Utilities.Objects
 
             return target.TryGetComponent(out component);
         }
+
+        public static void Set<T>(this Component source, ref T target) where T : Component
+        {
+            if (source.TryGetComponent(out T retrievedComponent) && target != retrievedComponent)
+                target = retrievedComponent;
+        }
     }
 }

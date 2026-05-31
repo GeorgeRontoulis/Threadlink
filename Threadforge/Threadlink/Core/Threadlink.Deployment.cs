@@ -7,6 +7,7 @@ namespace Threadlink.Core
     using NativeSubsystems.Scribe;
     using Shared;
     using System;
+    using System.Collections.Generic;
     using System.Runtime.CompilerServices;
     using UnityEngine;
     using UnityEngine.AddressableAssets;
@@ -55,11 +56,11 @@ namespace Threadlink.Core
 
         private async UniTask RegisterSubsystemsAsync(ThreadlinkIDs.Iris.Events subsystemsRegistrationEvent)
         {
-            static string BuildWovenSubsystemsReport(IThreadlinkSubsystem[] wovenSubsystems)
+            static string BuildWovenSubsystemsReport(List<IThreadlinkSubsystem> wovenSubsystems)
             {
                 using var sb = ZString.CreateUtf8StringBuilder();
                 var newline = Environment.NewLine;
-                int length = wovenSubsystems.Length;
+                int length = wovenSubsystems.Count;
                 int lastIndex = length - 1;
                 IThreadlinkSubsystem subsystem;
 
@@ -83,8 +84,8 @@ namespace Threadlink.Core
                 return sb.ToString();
             }
 
-            var wovenSubsystems = Iris.Publish<IThreadlinkSubsystem[]>(subsystemsRegistrationEvent);
-            int subsystemCount = wovenSubsystems.Length;
+            var wovenSubsystems = Iris.Publish<List<IThreadlinkSubsystem>>(subsystemsRegistrationEvent);
+            int subsystemCount = wovenSubsystems.Count;
 
             string type = subsystemsRegistrationEvent switch
             {

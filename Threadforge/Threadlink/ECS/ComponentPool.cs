@@ -9,6 +9,7 @@ namespace Threadlink.ECS
     public interface IComponentPool : IDisposable
     {
         public bool Remove(in Entity entity);
+        public unsafe void ApplyCommand(in Entity entity, void* dataPtr);
     }
 
     public unsafe sealed class ComponentPool<T> : IComponentPool where T : unmanaged, IComponent
@@ -22,7 +23,6 @@ namespace Threadlink.ECS
         private UnsafeList<int> sparse;
         private UnsafeList<int> dense;
         private UnsafeList<T> data;
-
         private int count;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -30,7 +30,9 @@ namespace Threadlink.ECS
         {
             if (data.IsCreated)
             {
-                for (int i = 0; i < data.Length; i++)
+                int length = data.Length;
+
+                for (int i = 0; i < length; i++)
                     data.ElementAt(i).Dispose();
 
                 data.Dispose();
@@ -40,26 +42,15 @@ namespace Threadlink.ECS
             sparse.DisposeSafely();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ComponentPool(int initialCapacity)
         {
             const Allocator ALLOC = Allocator.Persistent;
-
             sparse = new UnsafeList<int>(initialCapacity, ALLOC);
             dense = new UnsafeList<int>(initialCapacity, ALLOC);
             data = new UnsafeList<T>(initialCapacity, ALLOC);
-
             count = 0;
             sparse.AddReplicate(-1, initialCapacity);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsOccupiedBy(in Entity entity)
-        {
-            int id = entity.ID;
-            if (id >= sparse.Length) return false;
-
-            int index = sparse[id];
-            return index >= 0 && index < count && dense[index] == id;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -68,13 +59,13 @@ namespace Threadlink.ECS
             int id = entity.ID;
             EnsureCapacity(entity);
 
+            if (sparse[id] >= 0)
+                return data.Ptr + sparse[id]; // Already exists
+
             int index = count++;
 
-            while (dense.Length <= index)
-                dense.AddNoResize(default);
-
-            while (data.Length <= index)
-                data.AddNoResize(default);
+            while (dense.Length <= index) dense.AddNoResize(default);
+            while (data.Length <= index) data.AddNoResize(default);
 
             dense[index] = id;
             sparse[id] = index;
@@ -86,6 +77,7 @@ namespace Threadlink.ECS
         public bool TryGetPointer(in Entity entity, out T* ptr)
         {
             int id = entity.ID;
+
             if (id >= sparse.Length)
             {
                 ptr = null;
@@ -93,6 +85,7 @@ namespace Threadlink.ECS
             }
 
             int index = sparse[id];
+
             if (index >= 0 && index < count && dense[index] == id)
             {
                 ptr = data.Ptr + index;
@@ -102,6 +95,9 @@ namespace Threadlink.ECS
             ptr = null;
             return false;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public T* GetPointerUnsafe(int entityId) => data.Ptr + sparse[entityId];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Remove(in Entity entity)
@@ -119,13 +115,25 @@ namespace Threadlink.ECS
             int last = --count;
             int lastEntity = dense[last];
 
-            // swap last element into removed slot
             dense[index] = lastEntity;
             data.Ptr[index] = data.Ptr[last];
 
             sparse[lastEntity] = index;
             sparse[id] = -1;
+
             return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ApplyCommand(in Entity entity, void* dataPtr)
+        {
+            var target = Add(entity);
+
+            if (dataPtr != null)
+            {
+                UnsafeUtility.CopyPtrToStructure(dataPtr, out T value);
+                *target = value;
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

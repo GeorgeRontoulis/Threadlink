@@ -14,10 +14,10 @@ public class SerializeReferenceMenuAttributeDrawer : PropertyDrawer
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
         EditorGUI.BeginProperty(position, label, property);
-        
+
         var typeRestrictions = SerializedReferenceUIDefaultTypeRestrictions.GetAllBuiltInTypeRestrictions(fieldInfo);
         property.ShowContextMenuForManagedReferenceOnMouseMiddleButton(position, typeRestrictions);
-        
+
         EditorGUI.PropertyField(position, property, true);
         EditorGUI.EndProperty();
     }

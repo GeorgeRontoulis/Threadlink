@@ -52,10 +52,16 @@ namespace Threadlink.Core
 
         #region Internal API:
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal async UniTask<ThreadlinkUserConfig> LoadUserConfigAsync() => await Threadlink.LoadAssetAsync<ThreadlinkUserConfig>(userConfig);
+        internal async UniTask<ThreadlinkUserConfig> LoadUserConfigAsync()
+        {
+            return await Threadlink.LoadAssetAsync<ThreadlinkUserConfig>(userConfig);
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal async UniTask<SentinelConfig> LoadSentinelConfigAsync() => await Threadlink.LoadAssetAsync<SentinelConfig>(sentinelConfig);
+        internal async UniTask<SentinelConfig> LoadSentinelConfigAsync()
+        {
+            return await Threadlink.LoadAssetAsync<SentinelConfig>(sentinelConfig);
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal async UniTask<(EventSystem, DextraConfig)> LoadDextraResourcesAsync()

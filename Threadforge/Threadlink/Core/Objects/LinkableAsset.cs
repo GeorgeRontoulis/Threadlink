@@ -3,6 +3,7 @@ namespace Threadlink.Core
     using NativeSubsystems.Scribe;
     using Shared;
     using System;
+    using System.Runtime.CompilerServices;
     using UnityEngine;
 
     /// <summary>
@@ -10,8 +11,16 @@ namespace Threadlink.Core
     /// </summary>
     public abstract class LinkableAsset : ScriptableObject, IDiscardable, IIdentifiable, INamable
     {
-        public virtual int ID => GetInstanceID();
-        public virtual string Name => name;
+        public virtual int ID
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => GetInstanceID();
+        }
+        public virtual string Name
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => name;
+        }
 
         public bool IsInstance { get; internal set; }
 
@@ -25,7 +34,8 @@ namespace Threadlink.Core
                 OnDiscard = null;
             }
 
-            if (IsInstance) Destroy(this);
+            if (IsInstance)
+                Destroy(this);
         }
 
         public static bool TryCreate<T>(string assetName, out T result) where T : LinkableAsset

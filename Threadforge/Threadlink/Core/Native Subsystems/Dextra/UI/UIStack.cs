@@ -66,6 +66,9 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
         internal void CreateAllInterfaces(ReadOnlySpan<ThreadlinkIDs.Addressables.Prefabs> pointers)
         {
+            if (!Threadlink.TryGetSingleton(out var core))
+                return;
+
             int length = pointers.Length;
 
             CreatedInterfaces = new(length);
@@ -74,7 +77,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
             for (int i = 0; i < length; i++)
             {
-                ui = Threadlink.LoadPrefab<UserInterface>(pointers[i]);
+                ui = core.LoadPrefab<UserInterface>(pointers[i]);
 
                 if (ui != null)
                 {

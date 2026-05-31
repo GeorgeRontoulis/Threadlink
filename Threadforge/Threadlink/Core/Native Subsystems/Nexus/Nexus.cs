@@ -13,7 +13,12 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
     {
         public static async UniTask LoadSceneAsync(ISceneEntry sceneEntry)
         {
-            var volumeTask = Aura.FadeAudioListenerVolumeAsync(0f);
+            if (!Threadlink.TryGetSingleton(out var core))
+                return;
+
+            bool auraExists = Aura.TryGetSingleton(out var aura);
+
+            var volumeTask = auraExists ? aura.FadeAudioListenerVolumeAsync(0f) : UniTask.CompletedTask;
             var faderTask = Iris.Publish<UniTask>(ThreadlinkIDs.Iris.Events.OnDisplayFaderAsync);
 
             await UniTask.WhenAll(volumeTask, faderTask);
@@ -29,11 +34,11 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
                 await activeScene.OnBeforeUnloadedAsync();
                 Iris.Publish(ThreadlinkIDs.Iris.Events.OnBeforeActiveSceneUnload);
 
-                await Threadlink.UnloadSceneAsync(activeScene.ScenePointer);
+                await core.UnloadSceneAsync(activeScene.ScenePointer);
                 Iris.Publish(ThreadlinkIDs.Iris.Events.OnActiveSceneFinishedUnloading);
             }
 
-            await Threadlink.LoadSceneAsync(sceneEntry.ScenePointer, sceneEntry.LoadMode);
+            await core.LoadSceneAsync(sceneEntry.ScenePointer, sceneEntry.LoadMode);
 
             Iris.Publish(ThreadlinkIDs.Iris.Events.OnNewSceneFinishedLoading, sceneEntry);
 
@@ -47,7 +52,7 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
 
             await Iris.Publish<UniTask>(ThreadlinkIDs.Iris.Events.OnHideLoadingScreenAsync);
 
-            volumeTask = Aura.FadeAudioListenerVolumeAsync(1f);
+            volumeTask = auraExists ? aura.FadeAudioListenerVolumeAsync(1f) : UniTask.CompletedTask;
             faderTask = Iris.Publish<UniTask>(ThreadlinkIDs.Iris.Events.OnHideFaderAsync);
 
             await UniTask.WhenAll(volumeTask, faderTask);

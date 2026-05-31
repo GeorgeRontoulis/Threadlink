@@ -30,6 +30,10 @@ namespace Threadlink.Vault
     [Serializable]
     internal class TransientValue<T> : DataFieldValue<T>
     {
+#if ODIN_INSPECTOR
+        [Sirenix.OdinInspector.ShowInInspector]
+        [Sirenix.OdinInspector.ReadOnly]
+#endif
         [field: NonSerialized]
         private T Property { get; set; }
 
@@ -82,7 +86,7 @@ namespace Threadlink.Vault
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool TryApplyValueTo(Vault targetVault, ThreadlinkIDs.Vault.Fields targetFieldID)
         {
-            return targetVault != null && targetVault.TrySet(targetFieldID, value);
+            return targetVault != null && targetVault.TrySet(targetFieldID, value.Get());
         }
     }
 }

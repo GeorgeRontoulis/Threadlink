@@ -47,7 +47,9 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         {
             if (listen)
             {
-                OnInputDeviceChanged(Dextra.Instance.CurrentInputDevice);
+                if (Dextra.TryGetSingleton(out var dextra))
+                    OnInputDeviceChanged(dextra.CurrentInputDevice);
+
                 Iris.Subscribe<Action<Dextra.InputDevice>>(DEVICE_CHANGED_EVENT, OnInputDeviceChanged);
             }
             else Iris.Unsubscribe<Action<Dextra.InputDevice>>(DEVICE_CHANGED_EVENT, OnInputDeviceChanged);
@@ -57,8 +59,12 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         {
             if (!string.IsNullOrEmpty(inputControlPath))
             {
-                targetImage.enabled = Dextra.Instance.TryGetInputIcon(inputDevice, inputControlPath, out var icon);
-                targetImage.sprite = icon;
+                if (Dextra.TryGetSingleton(out var dextra))
+                {
+                    targetImage.enabled = dextra.TryGetInputIcon(inputDevice, inputControlPath, out var icon);
+                    targetImage.sprite = icon;
+                }
+                else targetImage.enabled = false;
             }
             else this.Send(nameof(inputControlPath), " is unassigned!").ToUnityConsole(DebugType.Warning);
         }

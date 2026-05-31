@@ -10,7 +10,7 @@ namespace Threadlink.Editor.CodeGen
         private const string PLACEHOLDER = "{User-Defined Spawn Point IDs}";
 
         [MenuItem("Threadlink/CodeGen/Run Nexus Spawn Points CodeGen")]
-        internal static void RunNexusSpawnPointsCodeGen()
+        internal static void Run()
         {
             if (!ThreadlinkConfigFinder.TryGetConfig(out ThreadlinkEditorConfig editorConfig))
                 return;

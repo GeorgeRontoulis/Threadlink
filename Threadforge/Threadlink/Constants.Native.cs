@@ -15,6 +15,5 @@ namespace Threadlink
             public const string MKB_DEVICE = "Keyboard&Mouse";
             public const string GAMEPAD_DEVICE = "Gamepad";
         }
-
     }
 }

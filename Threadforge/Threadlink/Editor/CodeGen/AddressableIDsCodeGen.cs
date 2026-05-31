@@ -11,7 +11,7 @@ namespace Threadlink.Editor.CodeGen
         private const string PLACEHOLDER = "{User Entries}";
 
         [MenuItem("Threadlink/CodeGen/Run Addressables CodeGen")]
-        internal static void RunAddressablesCodeGen()
+        internal static void Run()
         {
             if (!ThreadlinkConfigFinder.TryGetConfig(out ThreadlinkEditorConfig editorConfig)
             || !ThreadlinkConfigFinder.TryGetConfig(out ThreadlinkUserConfig userConfig))

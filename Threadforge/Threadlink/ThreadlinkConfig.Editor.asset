@@ -15,6 +15,9 @@ MonoBehaviour:
   nativeIrisEventsTemplate: {fileID: 4900000, guid: 80d7ef5e5302f3c418aaa08277cf205a, type: 3}
   userIrisEventsTemplate: {fileID: 4900000, guid: 6801d28faf4886047ac1c9650f15e809, type: 3}
   irisEventsScript: {fileID: 11500000, guid: 3a2a36736197d10419817b2e4dbd27af, type: 3}
+  nativeDextraModesTemplate: {fileID: 4900000, guid: 95603045ed8af5647b0ba326482138d7, type: 3}
+  userDextraModesTemplate: {fileID: 4900000, guid: 8e42f2f624f94fa40aa27e0d20fee78b, type: 3}
+  dextraModesScript: {fileID: 11500000, guid: faa03bf811db2994aa53df8c2248b8f2, type: 3}
   nativeRNGDomainsTemplate: {fileID: 4900000, guid: 7dba0e8cf61d17b419c403db9016d381, type: 3}
   userRNGDomainsTemplate: {fileID: 4900000, guid: 5a1cc722b259b654780c78fa76d1828b, type: 3}
   rngDomainsScript: {fileID: 11500000, guid: ec202734d367f504893c65292b7e5082, type: 3}

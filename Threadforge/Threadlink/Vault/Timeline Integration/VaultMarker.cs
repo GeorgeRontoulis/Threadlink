@@ -4,6 +4,7 @@ namespace Threadlink.Vault
     using Shared;
     using System;
     using System.Collections.Generic;
+    using System.Runtime.CompilerServices;
     using UnityEngine;
     using UnityEngine.Playables;
     using UnityEngine.Timeline;
@@ -22,23 +23,37 @@ namespace Threadlink.Vault
 
         static readonly PropertyName ID = new("VaultMarker");
 
-        public PropertyName id => ID;
-        public NotificationFlags flags => options;
+        public PropertyName id
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => ID;
+        }
+
+        public NotificationFlags flags
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => options;
+        }
 
         [SerializeField] private NotificationFlags options = 0;
         [SerializeField] private List<Entry> configuration = new();
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryApplyConfigTo(Vault vault)
         {
-            if (vault == null) return false;
+            if (vault == null)
+                return false;
 
-            foreach (var config in configuration)
+            int count = configuration.Count;
+            for (int i = 0; i < count; i++)
             {
+                var config = configuration[i];
                 var field = config.DataField;
 
                 if (field == null) continue;
 
-                field.TryApplyValueTo(vault, config.FieldID);
+                if (!field.TryApplyValueTo(vault, config.FieldID))
+                    Debug.LogError($"COULD NOT APPLY VALUE TO {vault.name}! KEY: {config.FieldID}, VALUE: {config.DataField.GetType().Name}");
             }
 
             return true;
