@@ -8,7 +8,7 @@ namespace Threadlink.User
         private static void Register()
         {
             //User types here.
-            //WeavingFactory<MyCustomSubsystem>.OnCreate += static () => new MyCustomSubsystem();
+            //WeavingFactory.Register<MyCustomSubsystem>();
         }
     }
 }

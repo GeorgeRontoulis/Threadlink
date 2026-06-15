@@ -2,6 +2,16 @@ namespace Threadlink.Shared
 {
     using Core.NativeSubsystems.Scribe;
     using System;
+    using System.Runtime.CompilerServices;
+
+    public static class WeavingFactory
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Register<T>() where T : IThreadlinkSubsystem, new()
+        {
+            WeavingFactory<T>.OnCreate += static () => new T();
+        }
+    }
 
     public static class WeavingFactory<Object> where Object : IDiscardable, IIdentifiable
     {
