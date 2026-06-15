@@ -12,9 +12,9 @@ namespace Threadlink.Core
         private static void Register()
         {
             #region Native Subsystems:
-            WeavingFactory<Sentinel>.OnCreate += static () => new Sentinel();
-            WeavingFactory<Dextra>.OnCreate += static () => new Dextra();
-            WeavingFactory<Aura>.OnCreate += static () => new Aura();
+            WeavingFactory.Register<Sentinel>();
+            WeavingFactory.Register<Dextra>();
+            WeavingFactory.Register<Aura>();
             #endregion
         }
     }
