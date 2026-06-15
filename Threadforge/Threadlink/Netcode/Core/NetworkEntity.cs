@@ -3,30 +3,22 @@ namespace Threadlink.Netcode
     using ECS;
     using System;
     using System.Runtime.CompilerServices;
+    using UnityEngine.Scripting;
 
     /// <summary>
     /// The fundamental ECS component that links a local entity to the global network state.
     /// </summary>
+    [RuntimeComponent, Preserve]
     public struct NetworkEntity : IComponent, IEquatable<NetworkEntity>
     {
         /// <summary>
-        /// The globally unique identifier assigned by the Host.
-        /// A value below 0 indicates an invalid entity.
+        /// The GUID assigned by the Host.
+        /// A value below 0 indicates an invalid entity, while a value equal to 0 is reserved for RPCs.
         /// </summary>
         public int NetworkID;
 
-        /// <summary>
-        /// True if this local machine is responsible for simulating and broadcasting this entity's state.
-        /// False if this machine must wait for network packets to update this entity's state.
-        /// </summary>
-        public bool BelongsToHost;
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public NetworkEntity(int networkID, bool belongsToHost)
-        {
-            NetworkID = networkID;
-            BelongsToHost = belongsToHost;
-        }
+        public NetworkEntity(int networkID) => NetworkID = networkID;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly void Dispose() { }

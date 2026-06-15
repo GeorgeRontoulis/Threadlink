@@ -9,6 +9,18 @@ namespace Threadlink.Utilities.ECS
     public static class ECSUtils
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsWithinBoundsOf<T>(this int index, NativeArray<T> collection) where T : unmanaged
+        {
+            return collection.IsCreated && index >= 0 && index < collection.Length;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsWithinBoundsOf<T>(this int index, INativeList<T> collection) where T : unmanaged
+        {
+            return !collection.IsEmpty && index >= 0 && index < collection.Length;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsValid(in this Entity target)
         {
             return ECSWorld.TryGetSingleton(out var world) && world.IsValid(target);
@@ -22,6 +34,20 @@ namespace Threadlink.Utilities.ECS
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void DisposeSafely<T>(ref this UnsafeList<T> target) where T : unmanaged
+        {
+            if (target.IsCreated)
+                target.Dispose();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DisposeSafely<T>(ref this UnsafeHashSet<T> target) where T : unmanaged, IEquatable<T>
+        {
+            if (target.IsCreated)
+                target.Dispose();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DisposeSafely<T>(ref this UnsafeQueue<T> target) where T : unmanaged
         {
             if (target.IsCreated)
                 target.Dispose();
@@ -56,7 +82,7 @@ namespace Threadlink.Utilities.ECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void GuardAgainstEditorMemoryLeaks(this IDisposable target)
+        public static void PreventEditorMemoryLeaks(this IDisposable target)
         {
 #if UNITY_EDITOR
             void OnPlaymodeExited(UnityEditor.PlayModeStateChange change)

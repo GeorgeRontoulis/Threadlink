@@ -2,14 +2,18 @@ namespace Threadlink.ECS
 {
     using System;
     using System.Runtime.CompilerServices;
+    using Threadlink.Utilities.Collections;
     using Threadlink.Utilities.ECS;
     using Unity.Collections;
     using Unity.Collections.LowLevel.Unsafe;
 
     public interface IComponentPool : IDisposable
     {
+        public int Count { get; }
+        public bool Has(in Entity entity);
         public bool Remove(in Entity entity);
         public unsafe void ApplyCommand(in Entity entity, void* dataPtr);
+        public unsafe int* GetEntitiesPointer();
     }
 
     public unsafe sealed class ComponentPool<T> : IComponentPool where T : unmanaged, IComponent
@@ -51,6 +55,17 @@ namespace Threadlink.ECS
             data = new UnsafeList<T>(initialCapacity, ALLOC);
             count = 0;
             sparse.AddReplicate(-1, initialCapacity);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Has(in Entity entity)
+        {
+            int id = entity.ID;
+
+            if (id.IsWithinBoundsOf(sparse) && sparse[id] >= 0)
+                return true;
+
+            return false;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

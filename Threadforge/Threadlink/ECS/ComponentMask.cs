@@ -5,9 +5,15 @@ namespace Threadlink.ECS
     using Unity.Mathematics;
 
     [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct ComponentMask
+    public struct ComponentMask
     {
         public ulong a, b, c, d;
+
+        public readonly bool IsEmpty
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => (a | b | c | d) == 0;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Set(int bit)
@@ -65,26 +71,33 @@ namespace Threadlink.ECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Enumerator GetEnumerator()
+        public readonly bool HasAnyFrom(ComponentMask mask)
         {
-            fixed (ulong* ptr = &a)
-                return new(ptr);
+            return (a & mask.a) != 0 || (b & mask.b) != 0 || (c & mask.c) != 0 || (d & mask.d) != 0;
         }
 
-        public unsafe struct Enumerator
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly Enumerator GetEnumerator() => new(in this);
+
+        public struct Enumerator
         {
             public int Current { get; private set; }
 
-            private readonly ulong* Blocks; // pointer to a,b,c,d
+            // Storing the copies guarantees strict memory safety.
+            private readonly ulong _a, _b, _c, _d;
             private ulong currentBlock;
             private int blockIndex;
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public Enumerator(ulong* blocks)
+            public Enumerator(in ComponentMask mask)
             {
-                Blocks = blocks;
+                _a = mask.a;
+                _b = mask.b;
+                _c = mask.c;
+                _d = mask.d;
+
+                currentBlock = _a;
                 blockIndex = 0;
-                currentBlock = blocks[0];
                 Current = -1;
             }
 
@@ -95,13 +108,25 @@ namespace Threadlink.ECS
                 {
                     if (currentBlock != 0)
                     {
+                        // math.tzcnt counts the trailing zeros to find the exact bit index
                         int bit = math.tzcnt(currentBlock);
+
+                        // Clears the lowest set bit instantly without branching
                         currentBlock &= currentBlock - 1;
-                        Current = (blockIndex << 6) + bit; // baseOffset = blockIndex * 64
+
+                        Current = (blockIndex << 6) + bit;
                         return true;
                     }
 
-                    currentBlock = Blocks[++blockIndex]; // advance to next block
+                    // Move to the next block safely using a jump table
+                    blockIndex++;
+                    currentBlock = blockIndex switch
+                    {
+                        1 => _b,
+                        2 => _c,
+                        3 => _d,
+                        _ => 0
+                    };
                 }
 
                 return false;

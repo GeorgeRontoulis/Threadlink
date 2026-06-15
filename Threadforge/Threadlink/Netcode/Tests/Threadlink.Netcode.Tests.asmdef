@@ -1,0 +1,19 @@
+{
+    "name": "Threadlink.Netcode.Tests",
+    "rootNamespace": "Threadlink.Netcode.Tests",
+    "references": [
+        "GUID:a8b32603cd5f1a34dbae77d081e15c7b",
+        "GUID:f9d0bc46de640d144939543622979457"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

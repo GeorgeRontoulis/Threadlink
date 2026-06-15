@@ -2,7 +2,10 @@ namespace Threadlink.Netcode
 {
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
+    using Threadlink.ECS;
+    using UnityEngine.Scripting;
 
+    [RuntimeComponent, Preserve]
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct DeterministicTransform : INetworkedComponent
     {

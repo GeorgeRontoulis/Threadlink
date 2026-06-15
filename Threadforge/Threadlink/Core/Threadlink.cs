@@ -39,7 +39,7 @@
         /// </summary>
         public static MessagePackSerializerOptions serializerOptions = MessagePackSerializerOptions.Standard;
 
-        internal ThreadlinkNativeConfig NativeConfig { get; set; }
+        public ThreadlinkNativeConfig NativeConfig { get; set; }
         public ThreadlinkUserConfig UserConfig { get; internal set; }
 
         #region Main Lifecycle API:

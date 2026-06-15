@@ -36,6 +36,12 @@ MonoBehaviour:
     m_SubObjectType: 
     m_SubObjectGUID: 
     m_EditorAssetChanged: 0
+  netflowConfig:
+    m_AssetGUID: 41618c0a45e49c848a69c3d2a272d3f2
+    m_SubObjectName: 
+    m_SubObjectType: 
+    m_SubObjectGUID: 
+    m_EditorAssetChanged: 0
   dextraComponentsPrefab:
     m_AssetGUID: 0574e06bb8693804daf25e1e49504948
     m_SubObjectName: 

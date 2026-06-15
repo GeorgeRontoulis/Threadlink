@@ -2,13 +2,15 @@ namespace Threadlink.ECS
 {
     using System;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
     using Threadlink.Utilities.ECS;
     using Unity.Collections;
 
     /// <summary>
-    /// A zero-allocation, tightly packed array of bits. 
-    /// 8x more memory efficient than bool[].
+    /// A zero-allocation, tightly packed array of bits.
+    /// 8x more memory-efficient than bool[].
     /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
     public struct BitField : IDisposable
     {
         private NativeArray<ulong> bits;

@@ -16,7 +16,7 @@ namespace Threadlink.Editor
             {
                 const string GROUP = "Threadlink Assets";
 
-                var guids = config.NativeAssetGUIDs;
+                var guids = config.EditorOnly_NativeAssetGUIDs;
                 int length = guids.Length;
 
                 for (int i = 0; i < length; i++)

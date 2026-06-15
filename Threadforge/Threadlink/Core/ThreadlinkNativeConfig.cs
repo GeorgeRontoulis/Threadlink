@@ -14,7 +14,7 @@ namespace Threadlink.Core
     public sealed class ThreadlinkNativeConfig : ScriptableObject
     {
 #if UNITY_EDITOR
-        public string[] NativeAssetGUIDs
+        public string[] EditorOnly_NativeAssetGUIDs
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
@@ -40,6 +40,7 @@ namespace Threadlink.Core
         [SerializeField] private AssetReferenceT<SentinelConfig> sentinelConfig = null;
         [SerializeField] private AssetReferenceT<DextraConfig> dextraConfig = null;
         [SerializeField] private AssetReferenceT<AuraConfig> auraConfig = null;
+        [SerializeField] private AssetReferenceT<ExternalConfig> netflowConfig = null;
 
         [Space(10)]
 
@@ -85,6 +86,14 @@ namespace Threadlink.Core
             var prefab = await Threadlink.LoadPrefabAsync<Transform>(auraComponentsPrefab);
 
             return new(prefab, configTask.AsValueTask().Result, mixerTask.AsValueTask().Result);
+        }
+        #endregion
+
+        #region Public API:
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public async UniTask<T> LoadExternalConfigAsync<T>() where T : ExternalConfig
+        {
+            return await Threadlink.LoadAssetAsync<T>(userConfig);
         }
         #endregion
     }

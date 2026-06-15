@@ -6,6 +6,7 @@ namespace Threadlink.ECS
     using Threadlink.Utilities.ECS;
     using Unity.Collections;
     using Unity.Collections.LowLevel.Unsafe;
+    using Utilities.Collections;
 
     public unsafe sealed class ECSWorld : ThreadlinkSubsystem<ECSWorld>, IDisposable
     {
@@ -26,15 +27,22 @@ namespace Threadlink.ECS
                 int length = componentPools.Length;
 
                 for (int i = 0; i < length; i++)
-                    componentPools[i]?.Dispose();
+                {
+                    ref var pool = ref componentPools[i];
 
-                componentPools = null;
+                    if (pool != null)
+                    {
+                        pool.Dispose();
+                        pool = null;
+                    }
+                }
             }
         }
 
         public override void Discard()
         {
             Dispose();
+            componentPools = null;
             base.Discard();
         }
 
@@ -49,8 +57,24 @@ namespace Threadlink.ECS
             masks = new(1024, ALLOC_PERSIST, NativeArrayOptions.ClearMemory);
             componentPools = new IComponentPool[ComponentRegistry.ComponentCount];
 
-            this.GuardAgainstEditorMemoryLeaks();
+            this.PreventEditorMemoryLeaks();
             base.Boot();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Contains(in Entity entity)
+        {
+            if (!IsValid(entity)) return false;
+
+            return !masks.ElementAt(entity.ID).IsEmpty;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Has<T>(in Entity entity) where T : unmanaged, IComponent
+        {
+            if (!IsValid(entity)) return false;
+
+            return masks.ElementAt(entity.ID).Has(ComponentType.Of<T>.BitIndex);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -113,12 +137,13 @@ namespace Threadlink.ECS
 
             int bit = ComponentType.Of<T>.BitIndex;
 
-            if (componentPools[bit] == null)
-                componentPools[bit] = new ComponentPool<T>(masks.Length);
+            ref var pool = ref componentPools[bit];
+
+            pool ??= new ComponentPool<T>(masks.Length);
 
             masks.ElementAt(entity.ID).Set(bit);
 
-            return ((ComponentPool<T>)componentPools[bit]).Add(entity);
+            return ((ComponentPool<T>)pool).Add(entity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -139,9 +164,9 @@ namespace Threadlink.ECS
         {
             int bit = ComponentType.Of<T>.BitIndex;
 
-            if (bit >= 0 && bit < componentPools.Length && componentPools[bit] != null)
+            if (bit.IsWithinBoundsOf(componentPools) && componentPools[bit] is ComponentPool<T> compatiblePool)
             {
-                result = (ComponentPool<T>)componentPools[bit];
+                result = compatiblePool;
                 return true;
             }
 
@@ -165,7 +190,7 @@ namespace Threadlink.ECS
 
         #region Queries
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void ForEach<T1>(delegate*<Entity, T1*, void> action)
+        public unsafe void ForEach<T1>(delegate*<in Entity, T1*, void> action)
         where T1 : unmanaged, IComponent
         {
             if (!TryGetPool<T1>(out var pool1)) return;
@@ -182,7 +207,7 @@ namespace Threadlink.ECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void ForEach<T1, T2>(delegate*<Entity, T1*, T2*, void> action)
+        public unsafe void ForEach<T1, T2>(delegate*<in Entity, T1*, T2*, void> action)
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
         {
@@ -209,7 +234,7 @@ namespace Threadlink.ECS
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void ForEach<T1, T2, T3>(delegate*<Entity, T1*, T2*, T3*, void> action)
+        public unsafe void ForEach<T1, T2, T3>(delegate*<in Entity, T1*, T2*, T3*, void> action)
         where T1 : unmanaged, IComponent
         where T2 : unmanaged, IComponent
         where T3 : unmanaged, IComponent
@@ -235,8 +260,194 @@ namespace Threadlink.ECS
                 }
             }
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void ForEach<T1, T2, T3, T4>(delegate*<in Entity, T1*, T2*, T3*, T4*, void> action)
+        where T1 : unmanaged, IComponent
+        where T2 : unmanaged, IComponent
+        where T3 : unmanaged, IComponent
+        where T4 : unmanaged, IComponent
+        {
+            if (!TryGetPool<T1>(out var pool1)
+            || !TryGetPool<T2>(out var pool2)
+            || !TryGetPool<T3>(out var pool3)
+            || !TryGetPool<T4>(out var pool4))
+            {
+                return;
+            }
+
+            int c1 = pool1.Count, c2 = pool2.Count, c3 = pool3.Count, c4 = pool4.Count;
+            int minCount;
+            int* entities;
+
+            if (c1 <= c2 && c1 <= c3 && c1 <= c4) { minCount = c1; entities = pool1.GetEntitiesPointer(); }
+            else if (c2 <= c3 && c2 <= c4) { minCount = c2; entities = pool2.GetEntitiesPointer(); }
+            else if (c3 <= c4) { minCount = c3; entities = pool3.GetEntitiesPointer(); }
+            else { minCount = c4; entities = pool4.GetEntitiesPointer(); }
+
+            int bit1 = ComponentType.Of<T1>.BitIndex;
+            int bit2 = ComponentType.Of<T2>.BitIndex;
+            int bit3 = ComponentType.Of<T3>.BitIndex;
+            int bit4 = ComponentType.Of<T4>.BitIndex;
+
+            for (int i = minCount - 1; i >= 0; i--)
+            {
+                int id = entities[i];
+                ref var mask = ref masks.ElementAt(id);
+
+                if (mask.Has(bit1) && mask.Has(bit2) && mask.Has(bit3) && mask.Has(bit4))
+                {
+                    var entity = new Entity(id, generations[id]);
+                    action(entity, pool1.GetPointerUnsafe(id), pool2.GetPointerUnsafe(id),
+                           pool3.GetPointerUnsafe(id), pool4.GetPointerUnsafe(id));
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void ForEach(in ECSFilter filter, delegate*<in Entity, void> action)
+        {
+            if (filter.Include.IsEmpty || !TryGetSmallestPoolFromMask(in filter.Include, out var smallest))
+                return;
+
+            int count = smallest.Count;
+            int* entities = smallest.GetEntitiesPointer();
+
+            for (int i = count - 1; i >= 0; i--)
+            {
+                int id = entities[i];
+                ref var mask = ref masks.ElementAt(id);
+
+                if (filter.Matches(in mask))
+                    action(new Entity(id, generations[id]));
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void ForEach<T1>(in ECSFilter filter, delegate*<in Entity, T1*, void> action)
+        where T1 : unmanaged, IComponent
+        {
+            if (!TryGetPool<T1>(out var pool1))
+                return;
+
+            int count = pool1.Count;
+            int* entities = pool1.GetEntitiesPointer();
+
+            for (int i = count - 1; i >= 0; i--)
+            {
+                int id = entities[i];
+                ref var mask = ref masks.ElementAt(id);
+
+                if (filter.Matches(in mask))
+                    action(new Entity(id, generations[id]), pool1.GetPointerUnsafe(id));
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void ForEach<T1, T2>(in ECSFilter filter, delegate*<in Entity, T1*, T2*, void> action)
+        where T1 : unmanaged, IComponent
+        where T2 : unmanaged, IComponent
+        {
+            if (!TryGetPool<T1>(out var pool1) || !TryGetPool<T2>(out var pool2))
+                return;
+
+            int count = pool1.Count < pool2.Count ? pool1.Count : pool2.Count;
+            int* entities = pool1.Count < pool2.Count ? pool1.GetEntitiesPointer() : pool2.GetEntitiesPointer();
+
+            for (int i = count - 1; i >= 0; i--)
+            {
+                int id = entities[i];
+                ref var mask = ref masks.ElementAt(id);
+
+                if (filter.Matches(in mask))
+                    action(new Entity(id, generations[id]), pool1.GetPointerUnsafe(id), pool2.GetPointerUnsafe(id));
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void ForEach<T1, T2, T3>(in ECSFilter filter, delegate*<in Entity, T1*, T2*, T3*, void> action)
+        where T1 : unmanaged, IComponent
+        where T2 : unmanaged, IComponent
+        where T3 : unmanaged, IComponent
+        {
+            if (!TryGetPool<T1>(out var pool1)
+            || !TryGetPool<T2>(out var pool2)
+            || !TryGetPool<T3>(out var pool3))
+            {
+                return;
+            }
+
+            int minCount = Math.Min(pool1.Count, Math.Min(pool2.Count, pool3.Count));
+            int* entities = minCount == pool1.Count ? pool1.GetEntitiesPointer() : (minCount == pool2.Count ? pool2.GetEntitiesPointer() : pool3.GetEntitiesPointer());
+
+            for (int i = minCount - 1; i >= 0; i--)
+            {
+                int id = entities[i];
+                ref var mask = ref masks.ElementAt(id);
+
+                if (filter.Matches(in mask))
+                    action(new Entity(id, generations[id]), pool1.GetPointerUnsafe(id), pool2.GetPointerUnsafe(id), pool3.GetPointerUnsafe(id));
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void ForEach<T1, T2, T3, T4>(in ECSFilter filter, delegate*<in Entity, T1*, T2*, T3*, T4*, void> action)
+        where T1 : unmanaged, IComponent
+        where T2 : unmanaged, IComponent
+        where T3 : unmanaged, IComponent
+        where T4 : unmanaged, IComponent
+        {
+            if (!TryGetPool<T1>(out var pool1)
+            || !TryGetPool<T2>(out var pool2)
+            || !TryGetPool<T3>(out var pool3)
+            || !TryGetPool<T4>(out var pool4))
+            {
+                return;
+            }
+
+            int c1 = pool1.Count, c2 = pool2.Count, c3 = pool3.Count, c4 = pool4.Count;
+            int minCount;
+            int* entities;
+
+            if (c1 <= c2 && c1 <= c3 && c1 <= c4) { minCount = c1; entities = pool1.GetEntitiesPointer(); }
+            else if (c2 <= c3 && c2 <= c4) { minCount = c2; entities = pool2.GetEntitiesPointer(); }
+            else if (c3 <= c4) { minCount = c3; entities = pool3.GetEntitiesPointer(); }
+            else { minCount = c4; entities = pool4.GetEntitiesPointer(); }
+
+            for (int i = minCount - 1; i >= 0; i--)
+            {
+                int id = entities[i];
+                ref var mask = ref masks.ElementAt(id);
+
+                if (filter.Matches(in mask))
+                    action(new Entity(id, generations[id]), pool1.GetPointerUnsafe(id), pool2.GetPointerUnsafe(id),
+                           pool3.GetPointerUnsafe(id), pool4.GetPointerUnsafe(id));
+            }
+        }
+
         #endregion
 
         internal IComponentPool GetPoolByBitUnsafe(int bit) => componentPools[bit];
+
+        #region Helper Methods:
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryGetSmallestPoolFromMask(in ComponentMask include, out IComponentPool smallest)
+        {
+            smallest = null;
+
+            foreach (var bit in include)
+            {
+                if (bit >= componentPools.Length || componentPools[bit] == null)
+                    return false;
+
+                var pool = componentPools[bit];
+
+                if (smallest == null || pool.Count < smallest.Count)
+                    smallest = pool;
+            }
+
+            return smallest != null;
+        }
+        #endregion
     }
 }

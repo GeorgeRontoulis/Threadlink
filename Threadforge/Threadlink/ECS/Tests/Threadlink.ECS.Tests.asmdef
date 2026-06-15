@@ -1,0 +1,19 @@
+{
+    "name": "Threadlink.ECS.Tests",
+    "rootNamespace": "Threadlink.ECS.Tests",
+    "references": [
+        "GUID:f9d0bc46de640d144939543622979457",
+        "GUID:1a1b9cbdf83c8264ca75e06033af9222"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

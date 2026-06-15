@@ -10,7 +10,7 @@ namespace Threadlink.Netcode
     public sealed class NetworkTransform : UnityNetworkBridge<NetworkTransformSubsystem, DeterministicTransform>
     {
         private static readonly DFP PosAndScaleThreshold = (DFP)0.0001f;
-        private const float INTERPOLATION_SPEED = 7f;
+        private const float INTERPOLATION_SPEED = 14f;
 
         private Vector3 targetNetworkPosition = default;
         private Quaternion targetNetworkRotation = Quaternion.identity;
@@ -20,7 +20,7 @@ namespace Threadlink.Netcode
         private Quaternion lastSentRotation = Quaternion.identity;
         private Vector3 lastSentScale = default;
 
-        public override void Bind(in Entity entity, bool belongsToHost)
+        public override void Bind(in Entity entity)
         {
             targetNetworkPosition = cachedTransform.localPosition;
             targetNetworkRotation = cachedTransform.localRotation;
@@ -29,10 +29,10 @@ namespace Threadlink.Netcode
             lastSentPosition = targetNetworkPosition;
             lastSentRotation = targetNetworkRotation;
             lastSentScale = targetNetworkScale;
-            base.Bind(entity, belongsToHost);
+            base.Bind(entity);
         }
 
-        protected override bool TryGetOutgoingState(out DeterministicTransform state)
+        protected internal override bool TryGetOutgoingState(out DeterministicTransform state)
         {
             cachedTransform.GetLocalPositionAndRotation(out var pos, out var rot);
             var scale = cachedTransform.localScale;
@@ -80,11 +80,9 @@ namespace Threadlink.Netcode
         /// <see cref="UpdateTransform"/> can then be used to smoothly interpolate to the new position.
         /// This ensures smooth movement regardless of <see cref="Netrunner"/>'s Tick Rate.
         /// </summary>
-        /// <param name="entity"></param>
-        /// <param name="receivedState"></param>
-        protected override void ApplyNetworkStateToUnity(Entity entity, DeterministicTransform receivedState)
+        protected internal override void ApplyNetworkStateToUnity(in Entity entity, in DeterministicTransform receivedState)
         {
-            if (entity != linkedNetworkedEntity || (int)(receivedState.NetworkTick - lastValidNetworkTick) < 0)
+            if (entity != linkedNetworkedEntity || (int)(receivedState.NetworkTick - lastValidNetworkTick) <= 0)
                 return;
 
             lastValidNetworkTick = receivedState.NetworkTick;
@@ -97,6 +95,8 @@ namespace Threadlink.Netcode
             targetNetworkRotation.y = (float)DFP.FromRaw(receivedState.rawRotationY);
             targetNetworkRotation.z = (float)DFP.FromRaw(receivedState.rawRotationZ);
             targetNetworkRotation.w = (float)DFP.FromRaw(receivedState.rawRotationW);
+
+            targetNetworkRotation.Normalize();
 
             targetNetworkScale.x = (float)DFP.FromRaw(receivedState.rawScaleX);
             targetNetworkScale.y = (float)DFP.FromRaw(receivedState.rawScaleY);

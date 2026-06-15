@@ -1,20 +1,16 @@
 namespace Threadlink.Netcode
 {
-    using Steamworks;
     using System;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
     using Threadlink.Core;
+    using Threadlink.Core.NativeSubsystems.Scribe;
     using Threadlink.ECS;
-    using Threadlink.Utilities.Netcode;
 
     public sealed class NetworkRouter : ThreadlinkSubsystem<NetworkRouter>
     {
-        public const int RPC_NETWORKD_ID = 0;
-        public const int SYSTEMS_NETWORK_ID = int.MinValue;
+        public delegate void NetworkRouterDelegate(in Entity entity, IntPtr dataPtr, int size);
 
-        private readonly Action<Entity, ReadOnlyMemory<byte>>[] GameDispatchTable = new Action<Entity, ReadOnlyMemory<byte>>[256];
-        private readonly Action<HSteamNetConnection, ReadOnlyMemory<byte>>[] SystemsDispatchTable = new Action<HSteamNetConnection, ReadOnlyMemory<byte>>[256];
+        private readonly NetworkRouterDelegate[] GameDispatchTable = new NetworkRouterDelegate[256];
 
         public override void Discard()
         {
@@ -32,43 +28,47 @@ namespace Threadlink.Netcode
             base.Boot();
         }
 
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Register(GamePayloadHeader header, Action<Entity, ReadOnlyMemory<byte>> handler)
+        public void Register(GamePayloadHeader header, NetworkRouterDelegate handler)
         {
             GameDispatchTable[(byte)header] = handler;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Register(SystemsPayloadHeader header, Action<HSteamNetConnection, ReadOnlyMemory<byte>> handler)
+        private unsafe void RoutePayload(TransportConnectionHandle sender, IntPtr dataPtr, int size)
         {
-            SystemsDispatchTable[(byte)header] = handler;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void RoutePayload(HSteamNetConnection sender, ReadOnlyMemory<byte> payload)
-        {
-            if (!payload.IsValidNetworkPayload())
-                return;
-
-            var routingData = MemoryMarshal.Read<NetworkPayloadIdentity>(payload.Span);
-
-            //Route this as a Systems command.
-            if (routingData.NetworkID == int.MinValue)
+            if (size < sizeof(NetworkPayloadIdentity))
             {
-                SystemsDispatchTable[routingData.HeaderID]?.Invoke(sender, payload);
+                this.Send("Payload size is too small to contain a valid identity.").ToUnityConsole(DebugType.Warning);
                 return;
             }
 
-            //Route this as an RPC.
-            if (routingData.NetworkID == 0)
-            {
-                GameDispatchTable[routingData.HeaderID]?.Invoke(default, payload);
-                return;
-            }
+            var routingData = *(NetworkPayloadIdentity*)dataPtr.ToPointer();
 
-            //Standard routing for gameplay logic.
-            if (Networld.TryGetSingleton(out var networld) && networld.TryGetLocalEntity(routingData.NetworkID, out Entity targetEntity))
-                GameDispatchTable[routingData.HeaderID]?.Invoke(targetEntity, payload);
+            try
+            {
+                var header = (byte)routingData.HeaderID;
+                var nid = routingData.NetworkID;
+
+                switch (nid)
+                {
+                    case < 0:
+                        this.Send($"Payload with invalid NetworkID detected: {nid}").ToUnityConsole(DebugType.Warning);
+                        return;
+                    case 0:
+                        GameDispatchTable[header]?.Invoke(default, dataPtr, size);
+                        return;
+                    default:
+                        if (Networld.TryGetSingleton(out var networld) && networld.TryGetLocalEntity(nid, out var entity))
+                            GameDispatchTable[header]?.Invoke(entity, dataPtr, size);
+                        return;
+                }
+            }
+            catch (Exception ex)
+            {
+                this.Send($"Exception during payload routing (Header: {routingData.HeaderID}): {ex.Message}").ToUnityConsole(DebugType.Error);
+            }
         }
     }
 }

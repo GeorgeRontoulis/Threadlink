@@ -4,33 +4,38 @@ namespace Threadlink.Netcode
     using Threadlink.Core;
     using Threadlink.ECS;
     using Threadlink.Utilities.ECS;
+    using Threadlink.Utilities.Netcode;
 
-    /// <summary>
-    /// <see cref="LinkableBehaviour"/> Bridge used for Unity-Netcode communication.
-    /// </summary>
-    /// <typeparam name="NS">The networked subsystem communicating with this bridge.</typeparam>
-    /// <typeparam name="NC">The networked ECS component used as the network payload.</typeparam>
     public abstract class UnityNetworkBridge<NS, NC> : LinkableBehaviour
-    where NS : NetworkedSubsystem<NS, NC>
+    where NS : NetworkBridgeSubsystem<NS, NC>
     where NC : unmanaged, INetworkedComponent
     {
-        public bool BelongsToHost { get; protected set; }
+        public bool HasLocalAuthority
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => linkedNetworkedEntity.IsValid() && linkedNetworkedEntity.HasLocalAuthority();
+        }
 
         protected Entity linkedNetworkedEntity = default;
         protected uint lastValidNetworkTick = 0;
 
         public override void Discard()
         {
-            UnsubscribeFromNetworkLoop();
+            if (linkedNetworkedEntity.IsValid() && NetworkBridgeSubsystem<NS, NC>.TryGetSingleton(out var subsystem))
+                subsystem.UnregisterBridge(linkedNetworkedEntity);
+
+            linkedNetworkedEntity = default;
             base.Discard();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public virtual void Bind(in Entity entity, bool belongsToHost)
+        public virtual void Bind(in Entity entity)
         {
             linkedNetworkedEntity = entity;
-            BelongsToHost = belongsToHost;
-            SubscribeToNetworkLoop();
+
+            // Register directly with the authoritative subsystem
+            if (NetworkBridgeSubsystem<NS, NC>.TryGetSingleton(out var subsystem))
+                subsystem.RegisterBridge(entity, this);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -40,47 +45,7 @@ namespace Threadlink.Netcode
             return result.IsValid();
         }
 
-        protected abstract bool TryGetOutgoingState(out NC state);
-        protected abstract void ApplyNetworkStateToUnity(Entity entity, NC receivedState);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void SendUnityStateToNetwork()
-        {
-            if (!linkedNetworkedEntity.IsValid())
-                return;
-
-            if (NetworkedSubsystem<NS, NC>.TryGetSingleton(out var targetSubsystem) && TryGetOutgoingState(out NC outgoingState))
-                targetSubsystem.BroadcastState(linkedNetworkedEntity, outgoingState);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void SubscribeToNetworkLoop()
-        {
-            if (BelongsToHost)
-            {
-                if (Netrunner.TryGetSingleton(out var netrunner))
-                    netrunner.OnNetworkTick += SendUnityStateToNetwork;
-            }
-            else
-            {
-                if (NetworkedSubsystem<NS, NC>.TryGetSingleton(out var targetSubsystem))
-                    targetSubsystem.OnStateApplied += ApplyNetworkStateToUnity;
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        protected void UnsubscribeFromNetworkLoop()
-        {
-            if (BelongsToHost)
-            {
-                if (Netrunner.TryGetSingleton(out var netrunner))
-                    netrunner.OnNetworkTick -= SendUnityStateToNetwork;
-            }
-            else
-            {
-                if (NetworkedSubsystem<NS, NC>.TryGetSingleton(out var targetSubsystem))
-                    targetSubsystem.OnStateApplied -= ApplyNetworkStateToUnity;
-            }
-        }
+        protected internal abstract bool TryGetOutgoingState(out NC state);
+        protected internal abstract void ApplyNetworkStateToUnity(in Entity entity, in NC receivedState);
     }
 }
