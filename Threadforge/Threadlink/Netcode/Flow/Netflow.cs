@@ -39,7 +39,10 @@ namespace Threadlink.Netcode
         public async UniTask<bool> TryPreloadAssetsAsync()
         {
             if (Threadlink.TryGetSingleton(out var core))
-                return TryConsumeDependency(await core.NativeConfig.LoadExternalConfigAsync<NetflowConfig>());
+            {
+                const ThreadlinkIDs.Addressables.ExternalConfigs ID = ThreadlinkIDs.Addressables.ExternalConfigs.NetflowConfig;
+                return TryConsumeDependency(await core.NativeConfig.LoadExternalConfigAsync<NetflowConfig>(ID));
+            }
 
             return false;
         }

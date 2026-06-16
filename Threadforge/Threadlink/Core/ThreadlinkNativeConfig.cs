@@ -1,9 +1,11 @@
 namespace Threadlink.Core
 {
+    using Collections;
     using Cysharp.Threading.Tasks;
     using NativeSubsystems.Aura;
     using NativeSubsystems.Dextra;
     using NativeSubsystems.Sentinel;
+    using Shared;
     using System.Runtime.CompilerServices;
     using UnityEngine;
     using UnityEngine.AddressableAssets;
@@ -40,7 +42,11 @@ namespace Threadlink.Core
         [SerializeField] private AssetReferenceT<SentinelConfig> sentinelConfig = null;
         [SerializeField] private AssetReferenceT<DextraConfig> dextraConfig = null;
         [SerializeField] private AssetReferenceT<AuraConfig> auraConfig = null;
-        [SerializeField] private AssetReferenceT<ExternalConfig> netflowConfig = null;
+
+        [Space(10)]
+
+        [SerializeField]
+        private FieldHashMap<ThreadlinkIDs.Addressables.ExternalConfigs, AssetReferenceT<ExternalConfig>> externalConfigs = new();
 
         [Space(10)]
 
@@ -91,9 +97,12 @@ namespace Threadlink.Core
 
         #region Public API:
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public async UniTask<T> LoadExternalConfigAsync<T>() where T : ExternalConfig
+        public async UniTask<T> LoadExternalConfigAsync<T>(ThreadlinkIDs.Addressables.ExternalConfigs configID)
+        where T : ExternalConfig
         {
-            return await Threadlink.LoadAssetAsync<T>(userConfig);
+            if (externalConfigs.TryGetValue(configID, out var reference))
+                return await Threadlink.LoadAssetAsync<T>(reference);
+            else return null;
         }
         #endregion
     }
