@@ -7,6 +7,7 @@ namespace Threadlink.Netcode
     using Threadlink.Utilities.ECS;
     using Unity.Collections;
     using Unity.Collections.LowLevel.Unsafe;
+    using Utilities.Collections;
 
     public sealed class EntityOwnershipRegistry : ThreadlinkSubsystem<EntityOwnershipRegistry>, IDisposable
     {

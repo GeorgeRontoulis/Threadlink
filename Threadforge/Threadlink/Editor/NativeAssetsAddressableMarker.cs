@@ -3,12 +3,15 @@ namespace Threadlink.Editor
     using Core;
     using Core.NativeSubsystems.Scribe;
     using Shared;
+    using System.Collections.Generic;
     using UnityEditor;
     using UnityEditor.AddressableAssets;
     using UnityEditor.AddressableAssets.Settings;
 
     internal static class NativeAssetsAddressableMarker
     {
+        private static readonly List<string> GUIDsBuffer = new(16);
+
         [MenuItem("Threadlink/Mark Native Assets as Addressable")]
         private static void MarkNativeAssetsAsAddressable()
         {
@@ -16,11 +19,12 @@ namespace Threadlink.Editor
             {
                 const string GROUP = "Threadlink Assets";
 
-                var guids = config.EditorOnly_NativeAssetGUIDs;
-                int length = guids.Length;
+                GUIDsBuffer.Clear();
+                config.EditorOnly_GetNativeGUIDs(GUIDsBuffer);
+                int count = GUIDsBuffer.Count;
 
-                for (int i = 0; i < length; i++)
-                    MarkAddressable(guids[i], GROUP);
+                for (int i = 0; i < count; i++)
+                    MarkAddressable(GUIDsBuffer[i], GROUP);
 
                 MarkAddressable(AssetDatabase.AssetPathToGUID(NativeConstants.Addressables.NATIVE_CONFIG), GROUP);
             }

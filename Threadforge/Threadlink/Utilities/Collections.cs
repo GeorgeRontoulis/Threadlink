@@ -17,6 +17,23 @@ namespace Threadlink.Utilities.Collections
     public static class CollectionUtilities
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void PreventEditorMemoryLeaks(this IDisposable target)
+        {
+#if UNITY_EDITOR
+            void OnPlaymodeExited(PlayModeStateChange change)
+            {
+                if (change is PlayModeStateChange.ExitingPlayMode)
+                {
+                    target.Dispose();
+                    EditorApplication.playModeStateChanged -= OnPlaymodeExited;
+                }
+            }
+
+            EditorApplication.playModeStateChanged += OnPlaymodeExited;
+#endif
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsWithinBoundsOf<T>(this uint index, T collection) where T : ICollection
         {
             return collection != null && index < collection.Count;

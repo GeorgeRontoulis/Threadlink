@@ -37,6 +37,8 @@ namespace Threadlink.Shared
         #endregion
 
         #region Public API:
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Clear()
         {
             Create = null;

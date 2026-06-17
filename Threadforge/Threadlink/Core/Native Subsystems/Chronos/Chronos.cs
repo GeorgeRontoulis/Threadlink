@@ -1,16 +1,18 @@
 namespace Threadlink.Core.NativeSubsystems.Chronos
 {
+    using Cysharp.Threading.Tasks;
     using Iris;
     using Shared;
     using System;
     using System.Runtime.CompilerServices;
     using UnityEngine;
     using Utilities.Mathematics;
+    using NativeResources = Shared.ThreadlinkIDs.Addressables.NativeResources;
 
     /// <summary>
     /// Threadlink's Time Management Subsystem.
     /// </summary>
-    public static class Chronos
+    public sealed class Chronos : ThreadlinkSubsystem<Chronos>, IAddressablesPreloader, IDependencyConsumer<ChronosConfig>
     {
         #region Public API:
         public enum PlaytimeCountMode : byte { Scaled, Unscaled }
@@ -77,7 +79,7 @@ namespace Threadlink.Core.NativeSubsystems.Chronos
         /// Stop the subsystem from ticking.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Start()
+        public void Start()
         {
             Iris.Subscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, UpdateStandardTime);
             Iris.Subscribe<Action>(ThreadlinkIDs.Iris.Events.OnFixedUpdate, UpdatePhysicsTime);
@@ -87,7 +89,7 @@ namespace Threadlink.Core.NativeSubsystems.Chronos
         /// Start the subsystem's ticking.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Stop()
+        public void Stop()
         {
             Iris.Unsubscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, UpdateStandardTime);
             Iris.Unsubscribe<Action>(ThreadlinkIDs.Iris.Events.OnFixedUpdate, UpdatePhysicsTime);
@@ -98,13 +100,31 @@ namespace Threadlink.Core.NativeSubsystems.Chronos
         #endregion
 
         #region Private API:
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
-        private static void Boot()
+        private ChronosConfig Config { get; set; } = null;
+
+        public async UniTask<bool> TryPreloadAssetsAsync()
         {
-            Physics.simulationMode = SimulationMode.Script;
+            if (Threadlink.TryGetSingleton(out var core))
+            {
+                const NativeResources ID = NativeResources.ChronosConfig;
+                return TryConsumeDependency(await core.NativeConfig.LoadNativeResourceAsync<ChronosConfig>(ID));
+            }
+
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryConsumeDependency(ChronosConfig input) => (Config = input) != null;
+
+        public override void Boot()
+        {
+            if (Config.IrisPhysicsUpdate)
+                Physics.simulationMode = SimulationMode.Script;
+
             CountTotalPlaytime = true;
             TotalPlaytime = 0;
 
+            base.Boot();
             Start();
         }
 
@@ -122,10 +142,13 @@ namespace Threadlink.Core.NativeSubsystems.Chronos
             }
         }
 
-        private static void UpdatePhysicsTime()
+        private void UpdatePhysicsTime()
         {
             float fixedDeltaTime = Time.fixedDeltaTime;
-            Physics.Simulate(fixedDeltaTime);
+
+            if (Config.IrisPhysicsUpdate)
+                Physics.Simulate(fixedDeltaTime);
+
             FixedDeltaTime = fixedDeltaTime;
         }
         #endregion

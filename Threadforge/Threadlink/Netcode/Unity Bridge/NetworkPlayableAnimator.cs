@@ -14,6 +14,7 @@ namespace Threadlink.Netcode
     using UnityEngine;
     using UnityEngine.Animations;
     using UnityEngine.Playables;
+    using Utilities.Collections;
 
     [RequireComponent(typeof(Animator))]
     public sealed class NetworkPlayableAnimator : UnityNetworkBridge<NetworkAnimationSubsystem, DeterministicPlayableState>, IDisposable

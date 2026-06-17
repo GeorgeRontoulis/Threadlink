@@ -33,7 +33,11 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public async UniTask<bool> TryPreloadAssetsAsync()
         {
-            return Threadlink.TryGetSingleton(out var core) && TryConsumeDependency(await core.NativeConfig.LoadSentinelConfigAsync());
+            if (!Threadlink.TryGetSingleton(out var core))
+                return false;
+
+            const ThreadlinkIDs.Addressables.NativeResources ID = ThreadlinkIDs.Addressables.NativeResources.SentinelConfig;
+            return TryConsumeDependency(await core.NativeConfig.LoadNativeResourceAsync<SentinelConfig>(ID));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

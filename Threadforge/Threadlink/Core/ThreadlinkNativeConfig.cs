@@ -2,107 +2,47 @@ namespace Threadlink.Core
 {
     using Collections;
     using Cysharp.Threading.Tasks;
-    using NativeSubsystems.Aura;
-    using NativeSubsystems.Dextra;
-    using NativeSubsystems.Sentinel;
     using Shared;
+    using System.Collections.Generic;
     using System.Runtime.CompilerServices;
     using UnityEngine;
     using UnityEngine.AddressableAssets;
-    using UnityEngine.Audio;
-    using UnityEngine.EventSystems;
+    using NativeResources = Shared.ThreadlinkIDs.Addressables.NativeResources;
 
     [CreateAssetMenu(fileName = "ThreadlinkConfig.Native.asset", menuName = "Threadlink/Native Config")]
     public sealed class ThreadlinkNativeConfig : ScriptableObject
     {
 #if UNITY_EDITOR
-        public string[] EditorOnly_NativeAssetGUIDs
+        /// <summary>
+        /// Provides the GUIDs of all native Threadlink resources.
+        /// Does NOT clear the buffer before or after the operation!
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void EditorOnly_GetNativeGUIDs(List<string> buffer)
         {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get
-            {
-                return new string[7]
-                {
-                    userConfig.AssetGUID,
-                    sentinelConfig.AssetGUID,
-                    dextraConfig.AssetGUID,
-                    auraConfig.AssetGUID,
-                    dextraComponentsPrefab.AssetGUID,
-                    auraComponentsPrefab.AssetGUID,
-                    auraMixer.AssetGUID
-                };
-            }
+            foreach (var assetRef in nativeResources.Values)
+                buffer.Add(assetRef.AssetGUID);
         }
 #endif
-
-        [Header("Runtime Resources:")]
-        [Space(10)]
-
-        [SerializeField] private AssetReferenceT<ThreadlinkUserConfig> userConfig = null;
-        [SerializeField] private AssetReferenceT<SentinelConfig> sentinelConfig = null;
-        [SerializeField] private AssetReferenceT<DextraConfig> dextraConfig = null;
-        [SerializeField] private AssetReferenceT<AuraConfig> auraConfig = null;
-
-        [Space(10)]
-
         [SerializeField]
-        private FieldHashMap<ThreadlinkIDs.Addressables.ExternalConfigs, AssetReferenceT<ExternalConfig>> externalConfigs = new();
-
-        [Space(10)]
-
-        [SerializeField] private AssetReferenceGameObject dextraComponentsPrefab = null;
-        [SerializeField] private AssetReferenceGameObject auraComponentsPrefab = null;
-
-        [Space(10)]
-
-        [SerializeField] private AssetReferenceT<AudioMixer> auraMixer = null;
-
-        #region Internal API:
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal async UniTask<ThreadlinkUserConfig> LoadUserConfigAsync()
-        {
-            return await Threadlink.LoadAssetAsync<ThreadlinkUserConfig>(userConfig);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal async UniTask<SentinelConfig> LoadSentinelConfigAsync()
-        {
-            return await Threadlink.LoadAssetAsync<SentinelConfig>(sentinelConfig);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal async UniTask<(EventSystem, DextraConfig)> LoadDextraResourcesAsync()
-        {
-            var prefabTask = Threadlink.LoadPrefabAsync<EventSystem>(dextraComponentsPrefab).Preserve();
-            var configTask = Threadlink.LoadAssetAsync<DextraConfig>(dextraConfig).Preserve();
-
-            await UniTask.WhenAll(prefabTask, configTask);
-
-            return new(prefabTask.AsValueTask().Result, configTask.AsValueTask().Result);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal async UniTask<(Transform, AuraConfig, AudioMixer)> LoadAuraResourcesAsync()
-        {
-            var mixerTask = Threadlink.LoadAssetAsync<AudioMixer>(auraMixer).Preserve();
-            var configTask = Threadlink.LoadAssetAsync<AuraConfig>(auraConfig).Preserve();
-
-            await UniTask.WhenAll(mixerTask, configTask);
-
-            var prefab = await Threadlink.LoadPrefabAsync<Transform>(auraComponentsPrefab);
-
-            return new(prefab, configTask.AsValueTask().Result, mixerTask.AsValueTask().Result);
-        }
-        #endregion
+        private FieldHashMap<NativeResources, AssetReference> nativeResources = new();
 
         #region Public API:
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public async UniTask<T> LoadExternalConfigAsync<T>(ThreadlinkIDs.Addressables.ExternalConfigs configID)
-        where T : ExternalConfig
+        public async UniTask<T> LoadNativeResourceAsync<T>(NativeResources resourceID)
+        where T : Object
         {
-            if (externalConfigs.TryGetValue(configID, out var reference))
+            if (nativeResources.TryGetValue(resourceID, out var reference))
                 return await Threadlink.LoadAssetAsync<T>(reference);
-            else return null;
+            else
+                return null;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public async UniTask LoadNativeResourcesAsync(AddressablesRequest<NativeResources> request,
+        Dictionary<NativeResources, Object> loadedAssets)
+        {
+            await Threadlink.LoadResourcesAsync(request, nativeResources, loadedAssets);
         }
         #endregion
     }

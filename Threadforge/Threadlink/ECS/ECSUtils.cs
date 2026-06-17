@@ -80,22 +80,5 @@ namespace Threadlink.Utilities.ECS
             var length = target.Length;
             target.Resize(Math.Max(count + 1, length + length), options);
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void PreventEditorMemoryLeaks(this IDisposable target)
-        {
-#if UNITY_EDITOR
-            void OnPlaymodeExited(UnityEditor.PlayModeStateChange change)
-            {
-                if (change is UnityEditor.PlayModeStateChange.ExitingPlayMode)
-                {
-                    target.Dispose();
-                    UnityEditor.EditorApplication.playModeStateChanged -= OnPlaymodeExited;
-                }
-            }
-
-            UnityEditor.EditorApplication.playModeStateChanged += OnPlaymodeExited;
-#endif
-        }
     }
 }

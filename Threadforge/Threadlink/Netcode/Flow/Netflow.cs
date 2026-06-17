@@ -9,6 +9,7 @@ namespace Threadlink.Netcode
     using Threadlink.Utilities.Netcode;
     using Unity.Collections;
     using Unity.Collections.LowLevel.Unsafe;
+    using NativeResources = Shared.ThreadlinkIDs.Addressables.NativeResources;
 
     public sealed class Netflow : ThreadlinkSubsystem<Netflow>, IAddressablesPreloader, IDependencyConsumer<NetflowConfig>
     {
@@ -40,8 +41,8 @@ namespace Threadlink.Netcode
         {
             if (Threadlink.TryGetSingleton(out var core))
             {
-                const ThreadlinkIDs.Addressables.ExternalConfigs ID = ThreadlinkIDs.Addressables.ExternalConfigs.NetflowConfig;
-                return TryConsumeDependency(await core.NativeConfig.LoadExternalConfigAsync<NetflowConfig>(ID));
+                const NativeResources ID = NativeResources.NetflowConfig;
+                return TryConsumeDependency(await core.NativeConfig.LoadNativeResourceAsync<NetflowConfig>(ID));
             }
 
             return false;

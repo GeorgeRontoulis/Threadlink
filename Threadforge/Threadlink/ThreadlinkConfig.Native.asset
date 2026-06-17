@@ -12,54 +12,52 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fffe0b07706603d44870cc5203288474, type: 3}
   m_Name: ThreadlinkConfig.Native
   m_EditorClassIdentifier: Threadlink.Runtime::Threadlink.Core.ThreadlinkNativeConfig
-  userConfig:
-    m_AssetGUID: 061b003e96918214e8d8925cd84fc0b2
-    m_SubObjectName: 
-    m_SubObjectType: 
-    m_SubObjectGUID: 
-    m_EditorAssetChanged: 0
-  sentinelConfig:
-    m_AssetGUID: f50adf5c1dc539944bdc094ff28c9303
-    m_SubObjectName: 
-    m_SubObjectType: 
-    m_SubObjectGUID: 
-    m_EditorAssetChanged: 0
-  dextraConfig:
-    m_AssetGUID: 634af3997ab1c86419499593f6be5a7d
-    m_SubObjectName: 
-    m_SubObjectType: 
-    m_SubObjectGUID: 
-    m_EditorAssetChanged: 0
-  auraConfig:
-    m_AssetGUID: 1a1b40ba8f55c674b89fb9424596aac6
-    m_SubObjectName: 
-    m_SubObjectType: 
-    m_SubObjectGUID: 
-    m_EditorAssetChanged: 0
-  externalConfigs:
-    keys: 00000000
-    count: 1
+  nativeResources:
+    keys: 000102030405060708
+    count: 9
     values:
+    - m_AssetGUID: 061b003e96918214e8d8925cd84fc0b2
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 1
+    - m_AssetGUID: f50adf5c1dc539944bdc094ff28c9303
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 1
+    - m_AssetGUID: 634af3997ab1c86419499593f6be5a7d
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 1
+    - m_AssetGUID: 0574e06bb8693804daf25e1e49504948
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 1
+    - m_AssetGUID: 1a1b40ba8f55c674b89fb9424596aac6
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 1
+    - m_AssetGUID: b55b202805331be448521ac7235c6b8a
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 1
+    - m_AssetGUID: 2690df501d4874548813e60319b1abb0
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 1
+    - m_AssetGUID: 5beab2521031bca4ea4cf994729b8d8a
+      m_SubObjectName: 
+      m_SubObjectType: 
+      m_SubObjectGUID: 
+      m_EditorAssetChanged: 0
     - m_AssetGUID: 41618c0a45e49c848a69c3d2a272d3f2
       m_SubObjectName: 
       m_SubObjectType: 
       m_SubObjectGUID: 
       m_EditorAssetChanged: 0
-  dextraComponentsPrefab:
-    m_AssetGUID: 0574e06bb8693804daf25e1e49504948
-    m_SubObjectName: 
-    m_SubObjectType: 
-    m_SubObjectGUID: 
-    m_EditorAssetChanged: 0
-  auraComponentsPrefab:
-    m_AssetGUID: 2690df501d4874548813e60319b1abb0
-    m_SubObjectName: 
-    m_SubObjectType: 
-    m_SubObjectGUID: 
-    m_EditorAssetChanged: 0
-  auraMixer:
-    m_AssetGUID: b55b202805331be448521ac7235c6b8a
-    m_SubObjectName: 
-    m_SubObjectType: 
-    m_SubObjectGUID: 
-    m_EditorAssetChanged: 1

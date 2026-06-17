@@ -10,7 +10,11 @@ namespace Threadlink.Core.NativeSubsystems.Aura
     using Unity.Mathematics;
     using UnityEngine;
     using UnityEngine.Audio;
+    using UnityEngine.Pool;
     using Utilities.Mathematics;
+    using Utilities.Objects;
+    using NativeResources = Shared.ThreadlinkIDs.Addressables.NativeResources;
+    using UnityObject = UnityEngine.Object;
 
     /// <summary>
     /// Subsystem responsible for Audio Mixing during Threadlink's runtime.
@@ -48,11 +52,45 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             if (!Threadlink.TryGetSingleton(out var core))
                 return false;
 
-            var loadedResources = await core.NativeConfig.LoadAuraResourcesAsync();
+            var loadedResources = DictionaryPool<NativeResources, UnityObject>.Get();
+            using var request = new AddressablesRequest<NativeResources>(3, Unity.Collections.Allocator.TempJob);
+            request.Add(NativeResources.AuraComponentsPrefab);
+            request.Add(NativeResources.AuraConfig);
+            request.Add(NativeResources.AuraMixer);
 
-            return TryConsumeDependency(loadedResources.Item2)
-            && TryConsumeDependency(loadedResources.Item1)
-            && TryConsumeDependency(loadedResources.Item3);
+            bool consumedComponents = false;
+            bool consumedConfig = false;
+            bool consumedMixer = false;
+
+            try
+            {
+                await core.NativeConfig.LoadNativeResourcesAsync(request, loadedResources);
+
+                if (loadedResources.TryGetValue(NativeResources.AuraComponentsPrefab, out UnityObject prefab)
+                && prefab is GameObject components
+                && components.As(out Transform transform))
+                {
+                    consumedComponents = TryConsumeDependency(transform);
+                }
+
+                if (loadedResources.TryGetValue(NativeResources.AuraConfig, out UnityObject config)
+                && config is AuraConfig auraConfig)
+                {
+                    consumedConfig = TryConsumeDependency(auraConfig);
+                }
+
+                if (loadedResources.TryGetValue(NativeResources.AuraConfig, out UnityObject mixer)
+                && mixer is AudioMixer auraMixer)
+                {
+                    consumedMixer = TryConsumeDependency(auraMixer);
+                }
+            }
+            finally
+            {
+                DictionaryPool<NativeResources, UnityObject>.Release(loadedResources);
+            }
+
+            return consumedComponents && consumedConfig && consumedMixer;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -66,11 +104,11 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             if (input == null)
                 return false;
 
-            var components = UnityEngine.Object.Instantiate(input);
+            var components = UnityObject.Instantiate(input);
 
             components.name = input.name;
             components.gameObject.hideFlags = HideFlags.HideInHierarchy;
-            UnityEngine.Object.DontDestroyOnLoad(components.gameObject);
+            UnityObject.DontDestroyOnLoad(components.gameObject);
 
             Music = components.Find(nameof(Music)).GetComponent<AudioSource>();
             Atmos = components.Find(nameof(Atmos)).GetComponent<AudioSource>();
@@ -91,7 +129,7 @@ namespace Threadlink.Core.NativeSubsystems.Aura
                 }
                 .GetComponent<AudioListener>();
 
-                UnityEngine.Object.DontDestroyOnLoad(AudioListener.gameObject);
+                UnityObject.DontDestroyOnLoad(AudioListener.gameObject);
                 AudioListenerTransform = AudioListener.transform;
                 ReattachListenerToAura();
             }
@@ -99,7 +137,7 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             #region Callbacks:
             void OnLoadingProcessFinished()
             {
-                var spatialObjects = UnityEngine.Object.FindObjectsByType<AuraSpatialObject>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+                var spatialObjects = UnityObject.FindObjectsByType<AuraSpatialObject>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
 
                 if (spatialObjects != null)
                 {

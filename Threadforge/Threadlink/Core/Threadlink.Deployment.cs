@@ -23,7 +23,8 @@ namespace Threadlink.Core
 
             if (nativeConfig != null)
             {
-                var userConfig = await nativeConfig.LoadUserConfigAsync();
+                const ThreadlinkIDs.Addressables.NativeResources ID = ThreadlinkIDs.Addressables.NativeResources.UserConfig;
+                var userConfig = await nativeConfig.LoadNativeResourceAsync<ThreadlinkUserConfig>(ID);
 
                 if (userConfig != null)
                 {
