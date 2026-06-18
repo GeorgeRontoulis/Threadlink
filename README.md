@@ -177,12 +177,12 @@ Vault Fields and Input Modes are more forgiving, but the safe habit — **append
 
 ## D3. The Vault — Authoring Game Data
 
-The **Vault** is your primary tool. A Vault is a data asset (a ScriptableObject) that holds a set of **fields**: named, typed values. Think of it as a strongly‑typed spreadsheet row for any game entity — an enemy, a weapon, a level, an item.
+The **Vault** is your primary tool. A Vault is a polymorphic data asset (a ScriptableObject) that holds a set of **fields**: named, typed values. Think of it as a strongly‑typed spreadsheet row for any game entity — an enemy, a weapon, a level, an item.
 
 ### D3.1 Creating a Vault
 
 1. In the Project window, right‑click ▸ **Create ▸ Threadlink ▸ Vault**.
-2. Name it meaningfully (e.g. `Enemy_Goblin`, `Weapon_Longsword`).
+2. Name it meaningfully (e.g. `Vault_Enemy_Goblin`, `Vault_Weapon_Longsword`).
 3. Select it. In the Inspector you'll see its data‑fields map.
 
 ### D3.2 Adding fields
@@ -219,6 +219,8 @@ When you add a value to a field, you choose how it is *stored*. For each field y
 - **Transient** — the value exists only at runtime and is **never saved**. It always resets. Use this for scratch values the game fills in while playing (a runtime counter you don't want persisted).
 
 Rule of thumb: **author values are Serialized; runtime scratch values are Transient.**
+
+> To eliminate human error in vault authoring as the project expands, you can ensure all vault assets of a kind **always include all of their necessary data fields** by using Unity's [Asset Preset Feature](https://docs.unity3d.com/Manual/Presets.html).
 
 ### D3.4 What engineers do with your Vaults
 
