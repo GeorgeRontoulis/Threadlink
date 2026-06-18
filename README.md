@@ -1,6 +1,7 @@
 # Threadlink Framework — User Manual
 
 **Audience:** Game Designers & Engineers
+
 **Scope:** Complete reference for the Threadlink runtime, editor tooling, and authoring workflow.
 
 ---
