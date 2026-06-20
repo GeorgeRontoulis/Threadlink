@@ -6,6 +6,7 @@ namespace Threadlink.Core.NativeSubsystems.Initium
     using System.Linq;
     using System.Runtime.CompilerServices;
     using UnityEngine;
+    using UnityEngine.Pool;
     using Utilities.UniTask;
 
     /// <summary>
@@ -13,8 +14,6 @@ namespace Threadlink.Core.NativeSubsystems.Initium
     /// </summary>
     public static class Initium
     {
-        private static readonly List<UniTask> taskCache = new(1);
-
         internal static async UniTask BootAndInitUnityObjectsAsync()
         {
             const FindObjectsInactive EXCLUDE = FindObjectsInactive.Exclude;
@@ -30,25 +29,33 @@ namespace Threadlink.Core.NativeSubsystems.Initium
             if (objects == null) return;
 
             var preloaders = objects.OfType<IAddressablesPreloader>();
+            var tasks = ListPool<UniTask>.Get();
 
-            foreach (var preloader in preloaders)
-                taskCache.Add(preloader.TryPreloadAssetsAsync());
+            try
+            {
+                foreach (var preloader in preloaders)
+                    tasks.Add(preloader.TryPreloadAssetsAsync());
 
-            await taskCache.AwaitAllThenClear();
+                await tasks.AwaitAllThenClear();
 
-            var bootables = objects.OfType<IBootable>();
+                var bootables = objects.OfType<IBootable>();
 
-            foreach (var bootable in bootables)
-                taskCache.Add(BootAsync(bootable));
+                foreach (var bootable in bootables)
+                    tasks.Add(BootAsync(bootable));
 
-            await taskCache.AwaitAllThenClear();
+                await tasks.AwaitAllThenClear();
 
-            var initializables = objects.OfType<IInitializable>();
+                var initializables = objects.OfType<IInitializable>();
 
-            foreach (var initializable in initializables)
-                taskCache.Add(InitializeAsync(initializable));
+                foreach (var initializable in initializables)
+                    tasks.Add(InitializeAsync(initializable));
 
-            await taskCache.AwaitAllThenClear(true);
+                await tasks.AwaitAllThenClear(true);
+            }
+            finally
+            {
+                ListPool<UniTask>.Release(tasks);
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

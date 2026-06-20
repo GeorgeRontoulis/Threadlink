@@ -3,18 +3,20 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
     using Aura;
     using Core;
     using Cysharp.Threading.Tasks;
+    using Initium;
     using Iris;
     using Shared;
+    using UnityEngine.ResourceManagement.ResourceProviders;
 
     /// <summary>
     /// System responsible for scene and player loading during Threadlink's runtime.
     /// </summary>
     public static partial class Nexus
     {
-        public static async UniTask LoadSceneAsync(ISceneEntry sceneEntry)
+        public static async UniTask<SceneInstance> LoadSceneAsync(ISceneEntry sceneEntry)
         {
             if (!Threadlink.TryGetSingleton(out var core))
-                return;
+                return default;
 
             bool auraExists = Aura.TryGetSingleton(out var aura);
 
@@ -27,18 +29,20 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
 
             await Iris.Publish<UniTask>(ThreadlinkIDs.Iris.Events.OnHideFaderAsync);
 
-            var activeScene = Iris.Publish<ISceneEntry>(ThreadlinkIDs.Iris.Events.OnActiveSceneRequested);
+            var activeSceneEntry = Iris.Publish<ISceneEntry>(ThreadlinkIDs.Iris.Events.OnActiveSceneRequested);
 
-            if (activeScene != null)
+            if (activeSceneEntry != null)
             {
-                await activeScene.OnBeforeUnloadedAsync();
+                await activeSceneEntry.OnBeforeUnloadedAsync();
                 Iris.Publish(ThreadlinkIDs.Iris.Events.OnBeforeActiveSceneUnload);
 
-                await core.UnloadSceneAsync(activeScene.ScenePointer);
+                await core.UnloadSceneAsync(activeSceneEntry.ScenePointer);
                 Iris.Publish(ThreadlinkIDs.Iris.Events.OnActiveSceneFinishedUnloading);
             }
 
-            await core.LoadSceneAsync(sceneEntry.ScenePointer, sceneEntry.LoadMode);
+            var activeSceneInstance = await core.LoadSceneAsync(sceneEntry.ScenePointer, sceneEntry.LoadMode);
+
+            await Initium.BootAndInitUnityObjectsAsync();
 
             Iris.Publish(ThreadlinkIDs.Iris.Events.OnNewSceneFinishedLoading, sceneEntry);
 
@@ -56,6 +60,8 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
             faderTask = Iris.Publish<UniTask>(ThreadlinkIDs.Iris.Events.OnHideFaderAsync);
 
             await UniTask.WhenAll(volumeTask, faderTask);
+
+            return activeSceneInstance;
         }
     }
 }

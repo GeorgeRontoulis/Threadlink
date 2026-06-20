@@ -58,12 +58,13 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
                 }
                 else
                 {
-                    var musicTask = Threadlink.LoadAssetAsync<AudioClip>(musicRef).Preserve();
-                    var atmosTask = Threadlink.LoadAssetAsync<AudioClip>(atmosRef).Preserve();
+                    var clips = await UniTask.WhenAll
+                    (
+                        Threadlink.LoadAssetAsync<AudioClip>(musicRef),
+                        Threadlink.LoadAssetAsync<AudioClip>(atmosRef)
+                    );
 
-                    await UniTask.WhenAll(musicTask, atmosTask);
-
-                    await TransitionToAudioScenario(musicTask.AsValueTask().Result, atmosTask.AsValueTask().Result, MusicVolume, AtmosVolume);
+                    await TransitionToAudioScenario(clips.Item1, clips.Item2, MusicVolume, AtmosVolume);
                 }
             }
         }

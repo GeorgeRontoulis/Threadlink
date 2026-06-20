@@ -26,7 +26,7 @@ namespace Threadlink.Core.NativeSubsystems.Aura
     IDependencyConsumer<Transform>,
     IDependencyConsumer<AudioMixer>
     {
-        public enum UISFX : byte { Cancel, Nagivate, Confirm }
+        public enum UISFX : byte { Cancel, Navigate, Confirm }
 
         private AuraConfig Config { get; set; }
         private AudioMixer Mixer { get; set; }
@@ -79,7 +79,7 @@ namespace Threadlink.Core.NativeSubsystems.Aura
                     consumedConfig = TryConsumeDependency(auraConfig);
                 }
 
-                if (loadedResources.TryGetValue(NativeResources.AuraConfig, out UnityObject mixer)
+                if (loadedResources.TryGetValue(NativeResources.AuraMixer, out UnityObject mixer)
                 && mixer is AudioMixer auraMixer)
                 {
                     consumedMixer = TryConsumeDependency(auraMixer);
@@ -244,7 +244,7 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             AudioClip sfx = uiSFX switch
             {
                 UISFX.Cancel => core.LoadAsset<AudioClip>(Config.CancelClipPointer),
-                UISFX.Nagivate => core.LoadAsset<AudioClip>(Config.NavClipPointer),
+                UISFX.Navigate => core.LoadAsset<AudioClip>(Config.NavClipPointer),
                 UISFX.Confirm => core.LoadAsset<AudioClip>(Config.ConfirmClipPointer),
                 _ => null,
             };

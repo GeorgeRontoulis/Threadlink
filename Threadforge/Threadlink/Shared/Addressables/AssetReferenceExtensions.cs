@@ -60,6 +60,9 @@ namespace Threadlink.Shared
 
         public static async UniTask<SceneInstance> LoadAsync(this SceneAssetReference reference, LoadSceneMode mode)
         {
+            if (reference.IsValid())
+                return reference.OperationHandle.Convert<SceneInstance>().Result;
+
             _ = reference.LoadSceneAsync(mode);
 
             await reference.OperationHandle.ToUniTask();
@@ -74,6 +77,9 @@ namespace Threadlink.Shared
 
         public static async UniTask<SceneInstance> UnloadAsync(this SceneAssetReference reference)
         {
+            if (!reference.IsValid())
+                return default;
+
             _ = reference.UnLoadScene();
 
             await reference.OperationHandle.ToUniTask();
