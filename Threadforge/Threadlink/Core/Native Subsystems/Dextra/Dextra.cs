@@ -33,7 +33,6 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             SwitchProController
         }
 
-        public ThreadlinkIDs.Dextra.InputModes CurrentInputMode { get; private set; } = ThreadlinkIDs.Dextra.InputModes.Unresponsive;
         public InputDevice CurrentInputDevice { get; private set; } = InputDevice.MouseAndKeyboard;
 
         private EventSystem UnityEventSystem { get; set; }
@@ -103,7 +102,6 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         public override void Discard()
         {
             Iris.Unsubscribe<System.Action<Threadlink>>(ThreadlinkIDs.Iris.Events.OnCoreDeployed, OnCoreDeployed);
-            CurrentInputMode = ThreadlinkIDs.Dextra.InputModes.Unresponsive;
             InputDeviceDetector.onControlsChanged -= UpdateInputDevice;
             UnityEventSystem = null;
             InputDeviceDetector = null;
@@ -134,7 +132,6 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             Iris.Subscribe<System.Action<Threadlink>>(ThreadlinkIDs.Iris.Events.OnCoreDeployed, OnCoreDeployed);
             InputDeviceDetector.notificationBehavior = PlayerNotifications.InvokeCSharpEvents;
             InputDeviceDetector.onControlsChanged += UpdateInputDevice;
-            CurrentInputMode = ThreadlinkIDs.Dextra.InputModes.Unresponsive;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
