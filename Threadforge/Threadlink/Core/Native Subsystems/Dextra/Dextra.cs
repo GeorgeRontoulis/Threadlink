@@ -9,8 +9,6 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     using UnityEngine.InputSystem;
     using UnityEngine.InputSystem.DualShock;
     using UnityEngine.InputSystem.Switch;
-    using UnityEngine.Pool;
-    using Utilities.Objects;
     using NativeResources = Shared.ThreadlinkIDs.Addressables.NativeResources;
 
     /// <summary>
@@ -84,40 +82,22 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             if (!Threadlink.TryGetSingleton(out var core))
                 return false;
 
-            var loadedResources = DictionaryPool<NativeResources, Object>.Get();
-            using var request = new AddressablesRequest<NativeResources>(2, Unity.Collections.Allocator.TempJob);
-            request.Add(NativeResources.DextraConfig);
-            request.Add(NativeResources.DextraComponentsPrefab);
+            var nativeConfig = core.NativeConfig;
 
-            bool consumedConfig = false;
-            bool consumedEventSystem = false;
+            var loadedResources = await UniTask.WhenAll
+            (
+                nativeConfig.LoadNativeResourceAsync<DextraConfig>(NativeResources.DextraConfig),
+                nativeConfig.LoadNativeResourceAsync<GameObject>(NativeResources.DextraComponentsPrefab)
+            );
 
-            try
+            if (TryConsumeDependency(loadedResources.Item1))
             {
-                await core.NativeConfig.LoadNativeResourcesAsync(request, loadedResources);
+                await Config.LoadAllUserInterfacesAsync();
 
-                if (loadedResources.TryGetValue(NativeResources.DextraConfig, out var loadedConfig)
-                && loadedConfig is DextraConfig dextraConfig
-                && TryConsumeDependency(dextraConfig))
-                {
-                    await dextraConfig.LoadAllUserInterfacesAsync();
-                    consumedConfig = true;
-                }
-
-                if (loadedResources.TryGetValue(NativeResources.DextraComponentsPrefab, out var loadedPrefab)
-                && loadedPrefab is GameObject prefab
-                && prefab.As(out EventSystem loadedEventSystem)
-                && TryConsumeDependency(loadedEventSystem))
-                {
-                    consumedEventSystem = true;
-                }
-            }
-            finally
-            {
-                DictionaryPool<NativeResources, Object>.Release(loadedResources);
+                return TryConsumeDependency(loadedResources.Item2.GetComponent<EventSystem>());
             }
 
-            return consumedConfig && consumedEventSystem;
+            return false;
         }
 
         public override void Discard()

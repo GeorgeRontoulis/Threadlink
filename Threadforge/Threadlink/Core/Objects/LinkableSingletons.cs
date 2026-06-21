@@ -1,6 +1,7 @@
 namespace Threadlink.Core
 {
     using Shared;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Base class used to define a Threadlink-Compatible Component that 
@@ -10,7 +11,7 @@ namespace Threadlink.Core
     public abstract class LinkableBehaviourSingleton<T> : LinkableBehaviour, IThreadlinkSingleton<T>
     where T : LinkableBehaviour
     {
-        public static T Instance { get; protected set; }
+        protected static T Instance { get; set; }
 
         public override void Discard()
         {
@@ -19,6 +20,9 @@ namespace Threadlink.Core
         }
 
         public virtual void Boot() => Instance = this as T;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool TryGetSingleton(out T result) => (result = Instance) != null;
     }
 
     /// <summary>
@@ -29,7 +33,7 @@ namespace Threadlink.Core
     public abstract class LinkableAssetSingleton<T> : LinkableAsset, IThreadlinkSingleton<T>
     where T : LinkableAsset
     {
-        public static T Instance { get; protected set; }
+        protected static T Instance { get; set; }
 
         public override void Discard()
         {
@@ -38,5 +42,8 @@ namespace Threadlink.Core
         }
 
         public virtual void Boot() => Instance = this as T;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool TryGetSingleton(out T result) => (result = Instance) != null;
     }
 }

@@ -10,9 +10,7 @@ namespace Threadlink.Core.NativeSubsystems.Aura
     using Unity.Mathematics;
     using UnityEngine;
     using UnityEngine.Audio;
-    using UnityEngine.Pool;
     using Utilities.Mathematics;
-    using Utilities.Objects;
     using NativeResources = Shared.ThreadlinkIDs.Addressables.NativeResources;
     using UnityObject = UnityEngine.Object;
 
@@ -52,45 +50,18 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             if (!Threadlink.TryGetSingleton(out var core))
                 return false;
 
-            var loadedResources = DictionaryPool<NativeResources, UnityObject>.Get();
-            using var request = new AddressablesRequest<NativeResources>(3, Unity.Collections.Allocator.TempJob);
-            request.Add(NativeResources.AuraComponentsPrefab);
-            request.Add(NativeResources.AuraConfig);
-            request.Add(NativeResources.AuraMixer);
+            var nativeConfig = core.NativeConfig;
 
-            bool consumedComponents = false;
-            bool consumedConfig = false;
-            bool consumedMixer = false;
+            var loadedResources = await UniTask.WhenAll
+            (
+                nativeConfig.LoadNativeResourceAsync<GameObject>(NativeResources.AuraComponentsPrefab),
+                nativeConfig.LoadNativeResourceAsync<AuraConfig>(NativeResources.AuraConfig),
+                nativeConfig.LoadNativeResourceAsync<AudioMixer>(NativeResources.AuraMixer)
+            );
 
-            try
-            {
-                await core.NativeConfig.LoadNativeResourcesAsync(request, loadedResources);
-
-                if (loadedResources.TryGetValue(NativeResources.AuraComponentsPrefab, out UnityObject prefab)
-                && prefab is GameObject components
-                && components.As(out Transform transform))
-                {
-                    consumedComponents = TryConsumeDependency(transform);
-                }
-
-                if (loadedResources.TryGetValue(NativeResources.AuraConfig, out UnityObject config)
-                && config is AuraConfig auraConfig)
-                {
-                    consumedConfig = TryConsumeDependency(auraConfig);
-                }
-
-                if (loadedResources.TryGetValue(NativeResources.AuraMixer, out UnityObject mixer)
-                && mixer is AudioMixer auraMixer)
-                {
-                    consumedMixer = TryConsumeDependency(auraMixer);
-                }
-            }
-            finally
-            {
-                DictionaryPool<NativeResources, UnityObject>.Release(loadedResources);
-            }
-
-            return consumedComponents && consumedConfig && consumedMixer;
+            return TryConsumeDependency(loadedResources.Item1.transform)
+            && TryConsumeDependency(loadedResources.Item2)
+            && TryConsumeDependency(loadedResources.Item3);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -107,7 +78,7 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             var components = UnityObject.Instantiate(input);
 
             components.name = input.name;
-            components.gameObject.hideFlags = HideFlags.HideInHierarchy;
+            //components.gameObject.hideFlags = HideFlags.HideInHierarchy;
             UnityObject.DontDestroyOnLoad(components.gameObject);
 
             Music = components.Find(nameof(Music)).GetComponent<AudioSource>();
