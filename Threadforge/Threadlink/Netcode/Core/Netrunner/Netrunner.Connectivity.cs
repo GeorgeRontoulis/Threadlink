@@ -1,9 +1,9 @@
 namespace Threadlink.Netcode
 {
     using System.Runtime.CompilerServices;
-    using Threadlink.Utilities.ECS;
     using Unity.Collections;
     using Unity.Collections.LowLevel.Unsafe;
+    using Utilities.Collections;
 
     public partial class Netrunner
     {
@@ -114,7 +114,7 @@ namespace Threadlink.Netcode
                 case TransportConnectionState.Connected:
                     if (IsHost && TryRegisterConnection(connection, out int playerIndex))
                     {
-                        var payload  = new ConnectionAcceptedPayload(CurrentTick, playerIndex);
+                        var payload = new ConnectionAcceptedPayload(CurrentTick, playerIndex);
                         var identity = NetworkPayloadIdentity.ForRPC(GamePayloadHeader.ConnectionHandshake);
                         SendTo(playerIndex, in identity, in payload, NetMsgReliability.Reliable);
                         PushFlowEvent(FlowEvent.Tag.PlayerJoined, playerIndex);
@@ -125,9 +125,8 @@ namespace Threadlink.Netcode
                 case TransportConnectionState.ProblemDetected:
                     if (TryUnregisterConnection(connection, out int leavingIndex))
                     {
-                        var tag = state == TransportConnectionState.ClosedByPeer
-                            ? FlowEvent.Tag.PlayerLeft
-                            : FlowEvent.Tag.Disconnected;
+                        var tag = state is TransportConnectionState.ClosedByPeer ?
+                        FlowEvent.Tag.PlayerLeft : FlowEvent.Tag.Disconnected;
 
                         sessionFlowEventsBuffer.Push(new FlowEvent(tag, leavingIndex));
                         transport.CloseConnection(connection, endReason, endDebug, false);

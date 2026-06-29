@@ -3,7 +3,7 @@ namespace Threadlink.Netcode
     using Steamworks;
     using System.Runtime.CompilerServices;
     using Threadlink.Core.NativeSubsystems.Scribe;
-    using Threadlink.Utilities.ECS;
+    using Utilities.Collections;
 
     public partial class Netrunner
     {

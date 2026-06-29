@@ -3,8 +3,8 @@ namespace Threadlink.ECS
     using System;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
-    using Threadlink.Utilities.ECS;
     using Unity.Collections;
+    using Utilities.Collections;
 
     [StructLayout(LayoutKind.Sequential)]
     public struct RingBuffer<T> : IDisposable where T : unmanaged

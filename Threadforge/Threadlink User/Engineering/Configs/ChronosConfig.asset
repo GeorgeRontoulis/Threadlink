@@ -1,0 +1,15 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0dec626be778ae44ba4fb9ac6c5d6ec1, type: 3}
+  m_Name: ChronosConfig
+  m_EditorClassIdentifier: Threadlink.Runtime::Threadlink.Core.NativeSubsystems.Chronos.ChronosConfig
+  irisPhysicsUpdate: 1

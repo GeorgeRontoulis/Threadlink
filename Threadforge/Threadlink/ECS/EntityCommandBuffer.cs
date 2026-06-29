@@ -2,9 +2,9 @@ namespace Threadlink.ECS
 {
     using System;
     using System.Runtime.CompilerServices;
-    using Threadlink.Utilities.ECS;
     using Unity.Collections;
     using Unity.Collections.LowLevel.Unsafe;
+    using Utilities.Collections;
 
     public unsafe struct EntityCommandBuffer : IDisposable
     {

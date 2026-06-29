@@ -6,6 +6,7 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
     using Initium;
     using Iris;
     using Shared;
+    using System.Runtime.CompilerServices;
     using UnityEngine.ResourceManagement.ResourceProviders;
 
     /// <summary>
@@ -13,22 +14,54 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
     /// </summary>
     public static partial class Nexus
     {
-        public static async UniTask<SceneInstance> LoadSceneAsync(ISceneEntry sceneEntry)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static async UniTask FadeToLoadingScreenAsync()
         {
-            if (!Threadlink.TryGetSingleton(out var core))
-                return default;
+            await UniTask.WhenAll(FadeAudioAsync(0f), FadeFaderAsync(true));
 
+            await FadeLoadingScreenAsync(true);
+
+            await FadeFaderAsync(false);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static async UniTask FadeToGameplayAsync()
+        {
+            await FadeFaderAsync(true);
+
+            await FadeLoadingScreenAsync(false);
+
+            await UniTask.WhenAll(FadeAudioAsync(1f), FadeFaderAsync(false));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static async UniTask FadeAudioAsync(float targetVolume)
+        {
             bool auraExists = Aura.TryGetSingleton(out var aura);
 
-            var volumeTask = auraExists ? aura.FadeAudioListenerVolumeAsync(0f) : UniTask.CompletedTask;
-            var faderTask = Iris.Publish<UniTask>(ThreadlinkIDs.Iris.Events.OnDisplayFaderAsync);
+            await (auraExists ? aura.FadeAudioListenerVolumeAsync(targetVolume) : UniTask.CompletedTask);
+        }
 
-            await UniTask.WhenAll(volumeTask, faderTask);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static async UniTask FadeFaderAsync(bool faderVisible)
+        {
+            if (faderVisible)
+                await Iris.Publish<UniTask>(ThreadlinkIDs.Iris.Events.OnDisplayFaderAsync);
+            else
+                await Iris.Publish<UniTask>(ThreadlinkIDs.Iris.Events.OnHideFaderAsync);
+        }
 
-            await Iris.Publish<UniTask>(ThreadlinkIDs.Iris.Events.OnDisplayLoadingScreenAsync);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static async UniTask FadeLoadingScreenAsync(bool screenVisible)
+        {
+            if (screenVisible)
+                await Iris.Publish<UniTask>(ThreadlinkIDs.Iris.Events.OnDisplayLoadingScreenAsync);
+            else
+                await Iris.Publish<UniTask>(ThreadlinkIDs.Iris.Events.OnHideLoadingScreenAsync);
+        }
 
-            await Iris.Publish<UniTask>(ThreadlinkIDs.Iris.Events.OnHideFaderAsync);
-
+        public static async UniTask UnloadActiveSceneAsync()
+        {
             var activeSceneEntry = Iris.Publish<ISceneEntry>(ThreadlinkIDs.Iris.Events.OnActiveSceneRequested);
 
             if (activeSceneEntry != null)
@@ -36,30 +69,28 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
                 await activeSceneEntry.OnBeforeUnloadedAsync();
                 Iris.Publish(ThreadlinkIDs.Iris.Events.OnBeforeActiveSceneUnload);
 
-                await core.UnloadSceneAsync(activeSceneEntry.ScenePointer);
-                Iris.Publish(ThreadlinkIDs.Iris.Events.OnActiveSceneFinishedUnloading);
+                if (Threadlink.TryGetSingleton(out var core))
+                {
+                    await core.UnloadSceneAsync(activeSceneEntry.ScenePointer);
+                    Iris.Publish(ThreadlinkIDs.Iris.Events.OnActiveSceneFinishedUnloading);
+                }
             }
+        }
+
+        public static async UniTask<SceneInstance> LoadNewSceneAsync(ISceneEntry sceneEntry)
+        {
+            if (!Threadlink.TryGetSingleton(out var core))
+                return default;
 
             var activeSceneInstance = await core.LoadSceneAsync(sceneEntry.ScenePointer, sceneEntry.LoadMode);
 
-            await Initium.BootAndInitUnityObjectsAsync();
+            await Initium.BootAndInitUnityObjectsAsync(activeSceneInstance.Scene);
 
             Iris.Publish(ThreadlinkIDs.Iris.Events.OnNewSceneFinishedLoading, sceneEntry);
 
             await sceneEntry.OnFinishedLoadingAsync();
 
             Iris.Publish(ThreadlinkIDs.Iris.Events.OnNexusLoadingFinished);
-
-            await Threadlink.WaitForFramesAsync(1);
-
-            await Iris.Publish<UniTask>(ThreadlinkIDs.Iris.Events.OnDisplayFaderAsync);
-
-            await Iris.Publish<UniTask>(ThreadlinkIDs.Iris.Events.OnHideLoadingScreenAsync);
-
-            volumeTask = auraExists ? aura.FadeAudioListenerVolumeAsync(1f) : UniTask.CompletedTask;
-            faderTask = Iris.Publish<UniTask>(ThreadlinkIDs.Iris.Events.OnHideFaderAsync);
-
-            await UniTask.WhenAll(volumeTask, faderTask);
 
             return activeSceneInstance;
         }

@@ -7,6 +7,7 @@ namespace Threadlink.Core.NativeSubsystems.Initium
     using System.Runtime.CompilerServices;
     using UnityEngine;
     using UnityEngine.Pool;
+    using UnityEngine.SceneManagement;
     using Utilities.UniTask;
 
     /// <summary>
@@ -14,12 +15,27 @@ namespace Threadlink.Core.NativeSubsystems.Initium
     /// </summary>
     public static class Initium
     {
-        internal static async UniTask BootAndInitUnityObjectsAsync()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static IEnumerable<IDiscoverable> DiscoverLinkableBehaviours()
         {
             const FindObjectsInactive EXCLUDE = FindObjectsInactive.Exclude;
             const FindObjectsSortMode NONE = FindObjectsSortMode.None;
 
-            var discoverables = Object.FindObjectsByType<LinkableBehaviour>(EXCLUDE, NONE).OfType<IDiscoverable>();
+            return Object.FindObjectsByType<LinkableBehaviour>(EXCLUDE, NONE).OfType<IDiscoverable>();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static async UniTask BootAndInitUnityObjectsAsync()
+        {
+            await PreloadBootAndInitAsync(DiscoverLinkableBehaviours());
+        }
+
+        internal static async UniTask BootAndInitUnityObjectsAsync(Scene scene)
+        {
+            var discoverables = DiscoverLinkableBehaviours();
+
+            if (scene.IsValid() && scene != default)
+                discoverables = discoverables.Where(x => (x as LinkableBehaviour).gameObject.scene == scene);
 
             await PreloadBootAndInitAsync(discoverables);
         }

@@ -3,6 +3,8 @@ namespace Threadlink.Utilities.Collections
     using System;
     using System.Collections;
     using System.Runtime.CompilerServices;
+    using Unity.Collections;
+    using Unity.Collections.LowLevel.Unsafe;
 
 #if UNITY_EDITOR
     using Core;
@@ -12,6 +14,7 @@ namespace Threadlink.Utilities.Collections
     using System.Collections.Generic;
     using System.IO;
     using UnityEditor;
+    using Threadlink.Collections;
 #endif
 
     public static class CollectionUtilities
@@ -69,6 +72,67 @@ namespace Threadlink.Utilities.Collections
             return span != null && index < span.Length;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsWithinBoundsOf<T>(this int index, NativeArray<T> collection) where T : unmanaged
+        {
+            return collection.IsCreated && index >= 0 && index < collection.Length;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsWithinBoundsOf<T>(this int index, INativeList<T> collection) where T : unmanaged
+        {
+            return !collection.IsEmpty && index >= 0 && index < collection.Length;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DisposeSafely<T>(ref this UnsafeList<T> target) where T : unmanaged
+        {
+            if (target.IsCreated)
+                target.Dispose();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DisposeSafely<T>(ref this UnsafeHashSet<T> target) where T : unmanaged, IEquatable<T>
+        {
+            if (target.IsCreated)
+                target.Dispose();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DisposeSafely<T>(ref this UnsafeQueue<T> target) where T : unmanaged
+        {
+            if (target.IsCreated)
+                target.Dispose();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DisposeSafely<K, V>(ref this UnsafeHashMap<K, V> target)
+        where K : unmanaged, IEquatable<K>
+        where V : unmanaged
+        {
+            if (target.IsCreated)
+                target.Dispose();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void DisposeSafely<T>(ref this NativeArray<T> target) where T : unmanaged
+        {
+            if (target.IsCreated)
+                target.Dispose();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void EnsureSize<T>(ref this UnsafeList<T> target, int count,
+        NativeArrayOptions options = NativeArrayOptions.UninitializedMemory)
+        where T : unmanaged
+        {
+            if (!target.IsCreated)
+                return;
+
+            var length = target.Length;
+            target.Resize(Math.Max(count + 1, length + length), options);
+        }
+
 #if UNITY_EDITOR
         /// <summary>
         /// Serialize the data in this collection into a binary file, meant to be
@@ -76,7 +140,7 @@ namespace Threadlink.Utilities.Collections
         /// <para></para>
         /// The binary can then be loaded on any platform using the <see cref="UnityEngine.AddressableAssets"/> Pipeline.
         /// <para></para>
-        /// Typically used in conjunction with <see cref="global::Threadlink.Collections.FieldTable{K, V}"/> and <see cref="global::Threadlink.Collections.ReferenceTable{K, V}{K, V}"/>.
+        /// Typically used in conjunction with <see cref="FieldHashMap{TKey, TValue}"/> and <see cref="RefHashMap{TKey, TValue}"/>.
         /// <para></para>
         /// When used in an authoring context, you are responsible for converting the authoring data into its runtime equivalent.
         /// Use <see cref="Shared.IBinaryAuthor.SerializeAuthoringDataIntoBinary"/> to perform the conversion.
