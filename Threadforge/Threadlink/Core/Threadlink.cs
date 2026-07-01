@@ -29,16 +29,6 @@
         /// </summary>
         internal enum UpdateLoop : byte { Native, Custom }
 
-        /// <summary>
-        /// Uses <see cref="MessagePackSerializerOptions.Standard"/> by default.
-        /// You may customize this as you see fit. Use <see cref="Threadlink"/>'s
-        /// serialization API to make sure serialization uses these options.
-        /// <para></para>
-        /// When using <see cref="MessagePack"/> manually, make sure you pass these
-        /// or any options from your custom source into all serialization methods.
-        /// </summary>
-        public static MessagePackSerializerOptions serializerOptions = MessagePackSerializerOptions.Standard;
-
         public ThreadlinkNativeConfig NativeConfig { get; set; }
         public ThreadlinkUserConfig UserConfig { get; internal set; }
 
@@ -106,7 +96,7 @@
         /// <param name="result">The resulting byte data.</param>
         /// <returns>A byte array containing the serialized data.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TrySerialize<T>(T input, out byte[] result)
+        public static bool TrySerialize<T>(T input, out byte[] result, MessagePackSerializerOptions options = null)
         {
             if (input == null)
             {
@@ -115,7 +105,7 @@
                 return false;
             }
 
-            result = MessagePackSerializer.Serialize(input, serializerOptions);
+            result = MessagePackSerializer.Serialize(input, options ?? MessagePackSerializerOptions.Standard);
             return true;
         }
 
@@ -128,7 +118,7 @@
         /// <param name="result">The resulting data.</param>
         /// <returns>The deserialized data.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryDeserialize<T>(byte[] input, out T result)
+        public static bool TryDeserialize<T>(byte[] input, out T result, MessagePackSerializerOptions options = null)
         {
             if (input == null || input.Length <= 0)
             {
@@ -137,7 +127,7 @@
                 return false;
             }
 
-            result = MessagePackSerializer.Deserialize<T>(input, serializerOptions);
+            result = MessagePackSerializer.Deserialize<T>(input, options ?? MessagePackSerializerOptions.Standard);
             return true;
         }
 
@@ -150,7 +140,7 @@
         /// <param name="result">The resulting data.</param>
         /// <returns>The deserialized data.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool TryDeserialize<T>(ReadOnlyMemory<byte> input, out T result)
+        public static bool TryDeserialize<T>(ReadOnlyMemory<byte> input, out T result, MessagePackSerializerOptions options = null)
         {
             if (input.IsEmpty)
             {
@@ -159,7 +149,7 @@
                 return false;
             }
 
-            result = MessagePackSerializer.Deserialize<T>(input, serializerOptions);
+            result = MessagePackSerializer.Deserialize<T>(input, options ?? MessagePackSerializerOptions.Standard);
             return true;
         }
         #endregion

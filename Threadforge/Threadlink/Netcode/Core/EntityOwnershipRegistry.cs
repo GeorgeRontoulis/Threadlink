@@ -4,7 +4,6 @@ namespace Threadlink.Netcode
     using System.Runtime.CompilerServices;
     using Threadlink.Core;
     using Threadlink.ECS;
-    using Threadlink.Utilities.ECS;
     using Unity.Collections;
     using Unity.Collections.LowLevel.Unsafe;
     using Utilities.Collections;
@@ -29,6 +28,7 @@ namespace Threadlink.Netcode
             base.Boot();
             // Allocate for expected concurrent networked entities.
             entityToOwnerMap = new(4096, Allocator.Persistent);
+
             this.PreventEditorMemoryLeaks();
         }
 

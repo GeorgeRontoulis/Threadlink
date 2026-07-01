@@ -14,8 +14,9 @@ namespace Threadlink.Core
         public virtual int ID
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => GetInstanceID();
+            get => HashFunctions.ToXxHash32(Name);
         }
+
         public virtual string Name
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]

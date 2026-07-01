@@ -13,6 +13,7 @@ namespace Threadlink.Netcode
             playerIndicesMap = new(MAX_PLAYERS, Allocator.Persistent);
             availablePlayerIndices = new(Allocator.Persistent);
             sessionFlowEventsBuffer = new(64, Allocator.Persistent);
+
             this.PreventEditorMemoryLeaks();
         }
     }

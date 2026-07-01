@@ -7,9 +7,9 @@ namespace Threadlink.Core
     using Shared;
     using UnityEngine;
 
-    internal static class NativeWeavingFactory
+    internal static partial class NativeWeavingFactory
     {
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        [OnEnteringPlayMode]
         private static void Register()
         {
             #region Native Subsystems:

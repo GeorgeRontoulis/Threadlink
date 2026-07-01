@@ -11,11 +11,11 @@ namespace Threadlink.User
     using System.Collections.Generic;
     using UnityEngine;
 
-    internal static class NativeSubsystemsConfig
+    internal static partial class NativeSubsystemsConfig
     {
         private const ThreadlinkIDs.Iris.Events REGISTRATION_EVENT = ThreadlinkIDs.Iris.Events.OnNativeSubsystemRegistration;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void ListenForSubsystemRegistration()
         {
             Iris.Subscribe<Func<List<IThreadlinkSubsystem>>>(REGISTRATION_EVENT, WeaveSubsystems);

@@ -14,6 +14,7 @@ namespace Threadlink.Core
 
     public partial class Threadlink
     {
+        //We maintain the old Lifecycle API here, as there's no new equivalent for AfterSceneLoad.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static async UniTaskVoid DeployCoreAsync()
         {

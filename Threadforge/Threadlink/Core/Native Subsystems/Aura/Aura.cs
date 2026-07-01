@@ -108,7 +108,7 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             #region Callbacks:
             void OnLoadingProcessFinished()
             {
-                var spatialObjects = UnityObject.FindObjectsByType<AuraSpatialObject>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+                var spatialObjects = UnityObject.FindObjectsByType<AuraSpatialObject>(FindObjectsInactive.Exclude);
 
                 if (spatialObjects != null)
                 {

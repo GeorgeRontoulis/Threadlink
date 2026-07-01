@@ -3,12 +3,11 @@ namespace Threadlink.ECS
     using System;
     using System.Runtime.CompilerServices;
     using Threadlink.Core;
-    using Threadlink.Utilities.ECS;
     using Unity.Collections;
     using Unity.Collections.LowLevel.Unsafe;
     using Utilities.Collections;
 
-    public unsafe sealed class ECSWorld : ThreadlinkSubsystem<ECSWorld>, IDisposable
+    public unsafe sealed partial class ECSWorld : ThreadlinkSubsystem<ECSWorld>, IDisposable
     {
         private UnsafeList<int> generations = default;
         private UnsafeList<int> availableIDs = default;

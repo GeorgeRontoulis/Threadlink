@@ -1,8 +1,9 @@
 namespace Threadlink.Shared
 {
-    using Core.NativeSubsystems.Scribe;
+    using Threadlink.Core.NativeSubsystems.Scribe;
     using System;
     using System.Runtime.CompilerServices;
+    using Unity.Scripting.LifecycleManagement;
 
     public static class WeavingFactory
     {
@@ -13,7 +14,8 @@ namespace Threadlink.Shared
         }
     }
 
-    public static class WeavingFactory<Object> where Object : IDiscardable, IIdentifiable
+    [AutoStaticsCleanup]
+    public static partial class WeavingFactory<Object> where Object : IDiscardable, IIdentifiable
     {
         private const string FACTORY_NULL_MSG = "The Factory Method for this type is NULL!";
 
@@ -37,14 +39,6 @@ namespace Threadlink.Shared
         #endregion
 
         #region Public API:
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Clear()
-        {
-            Create = null;
-            CreateFrom = null;
-        }
-
         /// <summary>
         /// Attempt to create a new object of type <typeparamref name="Object"/>.
         /// </summary>

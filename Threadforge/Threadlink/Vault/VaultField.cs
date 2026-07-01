@@ -35,7 +35,7 @@ namespace Threadlink.Vault
         [Sirenix.OdinInspector.ReadOnly]
 #endif
         [field: NonSerialized]
-        private T Property { get; set; }
+        private T Property { get; set; } = default;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal override T Get() => Property;

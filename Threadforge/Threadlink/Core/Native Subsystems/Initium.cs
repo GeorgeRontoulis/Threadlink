@@ -19,9 +19,8 @@ namespace Threadlink.Core.NativeSubsystems.Initium
         private static IEnumerable<IDiscoverable> DiscoverLinkableBehaviours()
         {
             const FindObjectsInactive EXCLUDE = FindObjectsInactive.Exclude;
-            const FindObjectsSortMode NONE = FindObjectsSortMode.None;
 
-            return Object.FindObjectsByType<LinkableBehaviour>(EXCLUDE, NONE).OfType<IDiscoverable>();
+            return Object.FindObjectsByType<LinkableBehaviour>(EXCLUDE).OfType<IDiscoverable>();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

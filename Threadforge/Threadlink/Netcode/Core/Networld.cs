@@ -7,8 +7,8 @@ namespace Threadlink.Netcode
     using Threadlink.Utilities.Netcode;
     using Unity.Collections;
     using Unity.Collections.LowLevel.Unsafe;
-    using Utilities.ECS;
     using Utilities.Collections;
+    using Utilities.ECS;
 
     public sealed class Networld : ThreadlinkSubsystem<Networld>, IDisposable
     {

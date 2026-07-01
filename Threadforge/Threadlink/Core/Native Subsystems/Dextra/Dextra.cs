@@ -169,7 +169,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             if (!core.HasLinked(TypeHash))
                 return;
 
-            var inputIcons = Object.FindObjectsByType<DextraInputIcon>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            var inputIcons = Object.FindObjectsByType<DextraInputIcon>(FindObjectsInactive.Exclude);
 
             if (inputIcons != null)
             {
