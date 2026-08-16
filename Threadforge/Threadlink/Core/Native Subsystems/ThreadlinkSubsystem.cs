@@ -66,6 +66,20 @@
     where Singleton : Register<Singleton, Object>
     where Object : IIdentifiable
     {
+#if UNITY_EDITOR
+        public IEnumerable<KeyValuePair<int, IIdentifiable>> EditorOnly_Registry
+        {
+            get
+            {
+                if (Registry == null)
+                    yield break;
+
+                foreach (var pair in Registry)
+                    yield return new KeyValuePair<int, IIdentifiable>(pair.Key, pair.Value);
+            }
+        }
+#endif
+
         protected Dictionary<int, Object> Registry { get; private set; }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

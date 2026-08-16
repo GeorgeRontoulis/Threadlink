@@ -9,7 +9,7 @@ namespace Threadlink.Netcode
     using Threadlink.Utilities.Netcode;
     using Unity.Collections;
     using Unity.Collections.LowLevel.Unsafe;
-    using NativeResources = Shared.ThreadlinkIDs.Addressables.NativeResources;
+    using NativeResources = Generated.ThreadlinkIDs.Addressables.NativeResources;
 
     public sealed class Netflow : ThreadlinkSubsystem<Netflow>, IAddressablesPreloader, IDependencyConsumer<NetflowConfig>
     {

@@ -3,6 +3,7 @@ namespace Threadlink.Collections
     using System;
     using System.Collections.Generic;
     using System.Runtime.CompilerServices;
+    using Threadlink.Core.NativeSubsystems.Scribe;
     using Threadlink.Utilities.Collections;
     using UnityEngine;
 
@@ -96,14 +97,37 @@ namespace Threadlink.Collections
 
         public void OnAfterDeserialize()
         {
-            if (keys == null || keys.Length == 0)
+            keys ??= Array.Empty<TKey>();
+
+            ref var values = ref GetValuesRef();
+            values ??= Array.Empty<TValue>();
+
+            int capacity = keys.Length;
+
+            // A deserialization callback must never throw: Unity swallows the exception and
+            // leaves the object half-initialized, so every later lookup misbehaves instead of
+            // failing where the real damage was done. An asset saved mid-edit, or written by
+            // tooling that grew count without growing the arrays, arrives here inconsistent.
+            // Clamping to what the arrays can actually back keeps the map usable and reports
+            // the discrepancy once, at the point it is detectable.
+            int usable = capacity < values.Length ? capacity : values.Length;
+
+            if (count > usable)
+            {
+                this.Send("Serialized entry count (", count, ") exceeds the backing arrays (keys: ", capacity,
+                ", values: ", values.Length, "). Clamping to ", usable,
+                ". This asset was saved in an inconsistent state.").ToUnityConsole(DebugType.Warning);
+
+                count = usable;
+            }
+            else if (count < 0) count = 0;
+
+            if (capacity == 0)
             {
                 buckets = Array.Empty<int>();
                 next = Array.Empty<int>();
                 return;
             }
-
-            int capacity = keys.Length;
 
             // Minor optimization: Only allocate if the size changed
             if (buckets == null || buckets.Length != capacity)

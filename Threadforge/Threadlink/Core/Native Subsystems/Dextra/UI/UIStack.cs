@@ -1,5 +1,6 @@
 namespace Threadlink.Core.NativeSubsystems.Dextra
 {
+    using Generated;
     using Initium;
     using Iris;
     using Shared;
@@ -13,10 +14,14 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     /// </summary>
     public sealed class UIStack : IThreadlinkSingleton, IInitializable
     {
-        internal int StackedInterfacesCount => StackedInterfaces.Count;
+        internal int StackedInterfacesCount
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => StackedInterfaces.Count;
+        }
 
-        private Stack<Type> StackedInterfaces { get; set; }
-        private Dictionary<Type, UserInterface> CreatedInterfaces { get; set; }
+        private Stack<Type> StackedInterfaces { get; set; } = null;
+        private Dictionary<Type, UserInterface> CreatedInterfaces { get; set; } = null;
 
         public void Discard()
         {
@@ -82,22 +87,23 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
                 if (ui != null)
                 {
                     string originalName = ui.name;
+
                     var userInterface = UnityEngine.Object.Instantiate(ui);
+
+                    CreatedInterfaces[userInterface.GetType()] = userInterface;
 
                     userInterface.name = originalName;
                     UnityEngine.Object.DontDestroyOnLoad(userInterface.gameObject);
 
-                    userInterface.ForceCanvasGroupAlphaTo(0);
+                    userInterface.ForceCanvasGroupAlphaTo(0f);
                     userInterface.SetInteractableState(false);
-
-                    CreatedInterfaces.Add(userInterface.GetType(), userInterface);
                 }
             }
         }
 
         internal bool TryGetTopInterface(out UserInterface result)
         {
-            if (StackedInterfaces.TryPeek(out var userInterfaceID) && CreatedInterfaces.TryGetValue(userInterfaceID, out result))
+            if (StackedInterfaces.TryPeek(out var uiID) && CreatedInterfaces.TryGetValue(uiID, out result))
                 return true;
 
             result = null;
@@ -112,24 +118,35 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             foreach (var stackedUI in StackedInterfaces)
             {
                 if (CreatedInterfaces.TryGetValue(stackedUI, out var userInterface))
-                {
                     userInterface.OnPopped();
-
-                    if (userInterface is ICancellableInterface cancellableInterface)
-                    {
-                        cancellableInterface.OnCancelled();
-                        Iris.Publish(ThreadlinkIDs.Iris.Events.OnUICancelled, userInterface);
-                    }
-                }
             }
 
             StackedInterfaces.Clear();
+        }
+
+        internal void PopTopInterface()
+        {
+            if (TryGetTopInterface(out var topUI))
+            {
+                StackedInterfaces.Pop();
+                topUI.OnPopped();
+
+                if (TryGetTopInterface(out var newTopUI))
+                    newTopUI.OnResurfaced();
+            }
         }
 
         internal void Cancel()
         {
             if (TryGetTopInterface(out var topUI) && topUI is ICancellableInterface cancellableInterface)
             {
+                if (cancellableInterface.IsInSubPanel)
+                {
+                    cancellableInterface.OnSubPanelCancelled();
+                    PlayCancelSound();
+                    return;
+                }
+
                 StackedInterfaces.Pop();
                 topUI.OnPopped();
 
@@ -138,6 +155,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
                 cancellableInterface.OnCancelled();
                 Iris.Publish(ThreadlinkIDs.Iris.Events.OnUICancelled, topUI);
+                PlayCancelSound();
             }
         }
 
@@ -146,8 +164,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         {
             var type = typeof(T);
 
-            if (!IsTopInterface<T>()
-            && CreatedInterfaces.TryGetValue(type, out var target))
+            if (!IsTopInterface<T>() && CreatedInterfaces.TryGetValue(type, out var target))
             {
                 if (TryGetTopInterface(out var topUI))
                     topUI.OnCovered();
@@ -174,6 +191,13 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
                 target.OnStacked();
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void PlayCancelSound()
+        {
+            if (Aura.Aura.TryGetSingleton(out var aura))
+                aura.PlayUISFX(Aura.Aura.UISFX.Cancel);
         }
     }
 }

@@ -7,12 +7,14 @@
 /// @interwebsouce: https://gist.github.com/capnslipp/349c18283f2fea316369
 namespace Threadlink.Core.NativeSubsystems.Dextra
 {
+    using UnityEngine;
     using UnityEngine.UI;
 
     /// <summary>
     /// A concrete subclass of <see cref="Graphic"/> that just skips drawing.
     /// Useful for providing a raycast target without actually drawing anything.
     /// </summary>
+    [RequireComponent(typeof(CanvasRenderer))]
     public sealed class NonDrawingGraphic : Graphic
     {
         public override void SetMaterialDirty() { return; }

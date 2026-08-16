@@ -122,7 +122,7 @@ namespace Threadlink.Netcode
         public void StartLateUpdate()
         {
             ClipInfoBuffer ??= new(animator.runtimeAnimatorController.animationClips.Length);
-            Iris.Subscribe<Action>(Shared.ThreadlinkIDs.Iris.Events.OnLateUpdate, OnLateUpdate);
+            Iris.Subscribe<Action>(Generated.ThreadlinkIDs.Iris.Events.OnLateUpdate, OnLateUpdate);
         }
 
         private void OnLateUpdate()

@@ -13,7 +13,12 @@ MonoBehaviour:
   m_Name: DextraConfig
   m_EditorClassIdentifier: Threadlink.Runtime::Threadlink.Core.NativeSubsystems.Dextra.DextraConfig
   interfacePointers: 
+  inputMaps:
+    keys: 
+    count: 0
+    values: []
   inputIcons:
     keys: []
     count: 0
     values: []
+  hideEventSystemInHierarchy: 0

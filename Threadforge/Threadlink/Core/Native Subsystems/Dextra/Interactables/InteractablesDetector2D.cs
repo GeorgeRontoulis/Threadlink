@@ -1,6 +1,6 @@
 namespace Threadlink.Core.NativeSubsystems.Dextra
 {
-    using Shared;
+    using Generated;
     using UnityEngine;
 
     public class InteractablesDetector2D : EntityDetector2D<CapsuleCollider2D, Interactable2D>

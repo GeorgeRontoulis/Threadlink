@@ -1,0 +1,14 @@
+{
+    "name": "Threadlink.User.Generated",
+    "rootNamespace": "Threadlink.User.Generated",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

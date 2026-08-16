@@ -1,0 +1,23 @@
+{
+    "domain": "Addressables.Assets",
+    "kind": "Identity",
+    "nextOrdinal": 0,
+    "entries": [
+        {
+            "key": "Threadlink_Assets/ChronosConfig",
+            "name": "ChronosConfig",
+            "scope": "Threadlink_Assets",
+            "value": -785838479,
+            "seedOffset": 0,
+            "tombstoned": true
+        },
+        {
+            "key": "Threadlink_Assets/NetflowConfig",
+            "name": "NetflowConfig",
+            "scope": "Threadlink_Assets",
+            "value": 183124876,
+            "seedOffset": 0,
+            "tombstoned": true
+        }
+    ]
+}

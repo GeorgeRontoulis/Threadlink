@@ -2,7 +2,7 @@ namespace Threadlink.Deterministic
 {
     using System;
     using System.Runtime.CompilerServices;
-    using Threadlink.Shared;
+    using Threadlink.Generated;
 
     public static partial class StatelessRNG
     {

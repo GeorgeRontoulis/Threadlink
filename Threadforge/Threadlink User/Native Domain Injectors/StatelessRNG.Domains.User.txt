@@ -1,0 +1,5 @@
+///Use this file to define custom RNG domains for StatelessRNG as showcased below:
+///
+///UserDefinedDomain1
+///UserDefinedDomain2
+///...

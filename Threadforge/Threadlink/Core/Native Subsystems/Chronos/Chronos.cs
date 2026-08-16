@@ -1,18 +1,22 @@
 namespace Threadlink.Core.NativeSubsystems.Chronos
 {
+    ///LEAVE FULLY QUALIFIED NAMESPACES HERE FOR UNITY'S ROSLYN ANALYZERS TO INTERCEPT THEM PROPERLY IN CODEGEN.
     using Cysharp.Threading.Tasks;
-    using Iris;
-    using Shared;
+    using global::Threadlink.Core.NativeSubsystems.Iris;
+    using global::Threadlink.Generated;
+    using global::Threadlink.Shared;
+    using global::Threadlink.Utilities.Mathematics;
     using System;
     using System.Runtime.CompilerServices;
+    using Unity.Scripting.LifecycleManagement;
     using UnityEngine;
-    using Utilities.Mathematics;
-    using NativeResources = Shared.ThreadlinkIDs.Addressables.NativeResources;
+    using NativeResources = global::Threadlink.Generated.ThreadlinkIDs.Addressables.NativeResources;
 
     /// <summary>
     /// Threadlink's Time Management Subsystem.
     /// </summary>
-    public sealed class Chronos : ThreadlinkSubsystem<Chronos>, IAddressablesPreloader, IDependencyConsumer<ChronosConfig>
+    [AutoStaticsCleanup]
+    public sealed partial class Chronos : ThreadlinkSubsystem<Chronos>, IAddressablesPreloader, IDependencyConsumer<ChronosConfig>
     {
         #region Public API:
         public enum PlaytimeCountMode : byte { Scaled, Unscaled }
@@ -76,7 +80,7 @@ namespace Threadlink.Core.NativeSubsystems.Chronos
         public static PlaytimeCountMode PlaytimeCountingMode { get; set; } = PlaytimeCountMode.Scaled;
 
         /// <summary>
-        /// Stop the subsystem from ticking.
+        /// Start the subsystem from ticking.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Start()
@@ -86,7 +90,7 @@ namespace Threadlink.Core.NativeSubsystems.Chronos
         }
 
         /// <summary>
-        /// Start the subsystem's ticking.
+        /// Stop the subsystem's ticking.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Stop()

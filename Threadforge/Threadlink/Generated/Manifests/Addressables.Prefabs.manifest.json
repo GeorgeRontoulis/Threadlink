@@ -1,0 +1,15 @@
+{
+    "domain": "Addressables.Prefabs",
+    "kind": "Identity",
+    "nextOrdinal": 0,
+    "entries": [
+        {
+            "key": "Test_Assets/Cube",
+            "name": "Cube",
+            "scope": "Test_Assets",
+            "value": -1795561709,
+            "seedOffset": 0,
+            "tombstoned": true
+        }
+    ]
+}

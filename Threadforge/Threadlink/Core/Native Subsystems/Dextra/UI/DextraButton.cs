@@ -1,5 +1,6 @@
 namespace Threadlink.Core.NativeSubsystems.Dextra
 {
+    using System.Runtime.CompilerServices;
     using UnityEngine;
     using UnityEngine.Events;
     using UnityEngine.UI;
@@ -8,8 +9,13 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     [DisallowMultipleComponent]
     public class DextraButton : DextraSelectable<Button>
     {
-        protected internal UnityEvent OnClick => selectable.onClick;
+        public UnityEvent OnClick
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => selectable.onClick;
+        }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void Discard()
         {
             selectable.onClick.RemoveAllListeners();

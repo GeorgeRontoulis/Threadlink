@@ -2,6 +2,7 @@ namespace Threadlink.User
 {
     using Core;
     using Core.NativeSubsystems.Iris;
+    using Generated;
     using Shared;
     using System;
     using System.Collections.Generic;

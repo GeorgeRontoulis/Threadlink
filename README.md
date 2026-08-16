@@ -1,4 +1,4 @@
-# Threadlink Framework — User Manual
+# Threadlink Framework — Reference Manual
 
 **Audience:** Game Designers & Engineers
 
@@ -6,136 +6,157 @@
 
 ---
 
-## How to Read This Manual
+## Organisation
 
-Threadlink enforces a hard separation between **design data** and **engineering code**, and this manual mirrors that separation. It is split into two self‑contained books that share one short foundation chapter:
+Threadlink enforces a strict separation between authored data and implemented behaviour. This manual mirrors that separation across two self-contained volumes sharing a common foundation chapter.
 
-| Part | Read this if you are… | Covers |
+| Part | Audience | Contents |
 |---|---|---|
-| **Part I — Shared Foundations** | Everyone | What Threadlink is, the project layout, how the framework starts itself. |
-| **Part II — The Designer's Manual** | A designer / content author | Authoring data in Vaults, defining design IDs, audio zones, input prompts, tuning configs. No C# required. |
-| **Part III — The Engineer's Manual** | A programmer | Architecture, the boot pipeline, every subsystem's runtime API, the ECS, custom subsystems, netcode, performance. |
+| **Part I — Shared Foundations** | All | Framework purpose, project layout, deployment overview. |
+| **Part II — Designer Reference** | Content authors | Vault authoring, identifier declaration, spatial audio, input prompts, configuration tuning. Requires no C#. |
+| **Part III — Engineer Reference** | Programmers | Architecture, deployment pipeline, subsystem APIs, code generation internals, ECS, custom subsystems, netcode, performance. |
 
-The two books reference the same systems from opposite ends. Where a designer reads *"add a line to `Vault.DataFields.User.txt` and run the menu,"* the engineer reads *"here is the codegen that turns that file into the `ThreadlinkIDs.Vault.Fields` enum and here is the runtime API that consumes it."*
+Both volumes describe the same systems from opposing ends. Where the designer volume specifies *"declare the identifier in `Vault.Fields.User.txt`"*, the engineer volume specifies the domain pipeline that emits `ThreadlinkIDs.Vault.Fields`, the manifest that stabilises its value, and the runtime API that consumes it.
 
-> **Accuracy note:** Every API name, enum, menu path, file path, and asset‑menu entry in this manual is taken directly from the framework source. Method signatures are reproduced as they exist in code. Where a system is a stub or partially implemented, the feature is either experimental, or in development, and this is stated explicitly.
+> All API names, identifiers, menu paths, file paths, and asset-creation entries in this manual are drawn from framework source. Systems that are stubbed or under development are identified as such.
 
 ---
 ---
 
 # PART I — Shared Foundations
 
-## 1. What Threadlink Is
+## 1. Purpose
 
-Threadlink is a scalable, production-grade, modular runtime framework that sits on top of Unity and provides a unified backbone for games and interactive applications. It supplies:
+Threadlink is a modular runtime framework layered over Unity, providing a unified backbone for games and interactive applications. It supplies:
 
-- A **self‑deploying core** that boots before your first scene with no bootstrap GameObject to place.
-- A set of **native subsystems** — event bus, time, scenes, input/UI, audio, persistence, logging.
-- A **type‑safe ID system**: scenes, assets, events, input modes, spawn points, and data fields are all C# enums generated from plain‑text files, so there is no "stringly‑typed" lookup anywhere.
-- A designer‑facing **Vault** data container for authoring game data as assets.
-- A high‑performance unsafe **ECS**, a **deterministic math + RNG** toolkit, and a Steam‑based **netcode** module.
+- A self-deploying core requiring neither a bootstrap scene nor a scene-placed initialiser.
+- Native subsystems covering event dispatch, time, scene management, input and UI, audio, and persistence.
+- A type-safe identifier system in which scenes, assets, prefabs, events, input modes, spawn points, RNG domains, and data fields are C# enumerations generated from plain-text declarations, eliminating string-keyed lookup.
+- The **Vault**, a polymorphic data container for designer-authored game data.
+- An unsafe, pointer-based ECS, a deterministic arithmetic and RNG toolkit, and a Steam-based netcode module.
 
-Threadlink does **not** replace Unity. You still build scenes, prefabs, and components as usual. Threadlink replaces the *plumbing* — the manager singletons, the event wiring, the asset‑reference bookkeeping, and the save/load abstraction.
+Threadlink does not supersede Unity. Scenes, prefabs, and components are authored conventionally. Threadlink supersedes the intermediate infrastructure: manager singletons, event wiring, asset-reference bookkeeping, and persistence abstraction.
 
-### 1.1 The Central Idea: Data is Authored, Behavior is Coded
+### 1.1 Authored Data, Implemented Behaviour
 
-The framework draws one firm line:
+The framework maintains a single dividing line:
 
-- **Designers author data.** They create Vault assets, fill in configuration ScriptableObjects, place components in scenes, and declare IDs by typing names into text files.
-- **Engineers author behavior.** They write subsystems, implement scene logic, subscribe to events, and consume the data designers produce.
+- **Designers author data.** They create Vault assets, populate configuration ScriptableObjects, place components in scenes, and declare identifiers in text files.
+- **Engineers implement behaviour.** They author subsystems, implement scene logic, subscribe to events, and consume authored data.
 
-Neither side hard‑codes the other's concerns. A designer never edits a `.cs` file; an engineer never hard‑codes a tuning value that belongs in a Vault.
+Neither discipline encodes the other's concerns. Designers do not edit `.cs` files; engineers do not hard-code values belonging in a Vault.
+
+### 1.2 Content-Addressed Identity
+
+Generated identifier values derive from a hash of the entry name rather than from its position in a declaration list. Consequently, removing an entry cannot alter the value of any other entry, and removed entries persist as obsolete tombstones so that previously serialised references remain resolvable.
+
+This property underpins the safety of the identifier workflow. A single domain — Iris events — operates on positional allocation instead, and is identified as such at every point where the distinction is material.
 
 ## 2. Project Layout
 
-Threadlink ships as two top‑level folders. Knowing which folder you belong in is the first step.
+Threadlink occupies two top-level directories.
 
 ```
-Threadlink/                 ← THE FRAMEWORK. Do not edit. Updated as a unit.
-├── Core/                   ← The core, native subsystems, base objects, configs
-│   ├── Native Subsystems/  ← Iris, Chronos, Nexus, Dextra, Aura, Sentinel, Initium
-│   └── Objects/            ← LinkableBehaviour, LinkableAsset, weaving factory
-├── Shared/                 ← Contracts (interfaces), ThreadlinkIDs domains, Scribe
-├── Collections/            ← Serializable hash maps
-├── Utilities/              ← Extension-method libraries
-├── Vault/                  ← The Vault data container + Timeline integration
-├── ECS/                    ← Entity Component System
-├── Deterministic/          ← Deterministic float (DFP) + StatelessRNG
-├── Netcode/                ← Steam P2P networking
-├── Editor/                 ← Codegen, custom inspectors, addressable tools
-└── Plugins/                ← UniTask, ZString, MessagePack, SerializedReferenceInspector
+Threadlink/                     ← Framework. Not user-editable. Updated as a unit.
+├── Core/
+│   ├── Native Subsystems/      ← Aura, Chronos, Dextra, Iris, Nexus, Sentinel, Initium
+│   └── Objects/                ← LinkableBehaviour, LinkableAsset, weaving factory
+├── Shared/                     ← Contracts, Scribe, hashing, Addressables helpers
+├── Collections/                ← Serialisable hash maps
+├── Utilities/                  ← Extension-method libraries
+├── Vault/                      ← Data container and Timeline integration
+├── ECS/                        ← Entity component system
+├── Deterministic/              ← Deterministic fixed point (DFP) and StatelessRNG
+├── Netcode/                    ← Steam peer-to-peer networking
+├── Editor/                     ← Domain code generation, Addressables tooling, inspectors
+├── Generated/                  ← Generated output: ThreadlinkIDs enumerations and manifests
+└── Plugins/                    ← SerializedReferenceInspector
 
-Threadlink User/            ← YOUR PROJECT. This is where you work.
-├── Design/                 ← DESIGNER territory — plain-text ID definitions
+Threadlink User/                ← Project territory.
+├── Native Domain Injectors/    ← Plain-text identifier declarations
 │   ├── Dextra.InputModes.User.txt
+│   ├── Iris.Events.User.txt
 │   ├── Nexus.SpawnPoints.User.txt
-│   └── Vault.DataFields.User.txt
-└── Engineering/            ← ENGINEER territory
-    ├── Codebase/           ← User code + engineering ID definitions
+│   ├── StatelessRNG.Domains.User.txt
+│   └── Vault.Fields.User.txt
+└── Engineering/
+    ├── Codebase/               ← Project code
+    │   ├── Generated/          ← Generated output: project-defined domain enumerations
+    │   ├── Constants.User.cs
     │   ├── Subsystems.User.cs
     │   ├── WeavingFactory.User.cs
-    │   ├── Constants.User.cs
-    │   ├── Iris.Events.User.txt
-    │   ├── StatelessRNG.Domains.User.txt
     │   └── Threadlink.User.asmdef
-    └── Configs/            ← The config assets (Aura, Chronos, Dextra, Sentinel, …)
+    └── Configs/                ← Configuration assets
 ```
 
-**The golden rule of the layout:** designers live in `Threadlink User/Design/` and in the Inspector; engineers live in `Threadlink User/Engineering/`. The `Threadlink/` folder is the framework itself and is never edited by either.
+The `Threadlink/` directory constitutes the framework and is not hand-edited, `Threadlink/Generated/` included: that directory is owned exclusively by the code generator. All project authoring occurs under `Threadlink User/`.
 
-## 3. How the Framework Starts (the 30‑second version)
+### 2.1 Assembly Topology
 
-There is **no bootstrap scene and no "Threadlink" GameObject to drag in.** The core deploys itself automatically using Unity's `[RuntimeInitializeOnLoadMethod]` hooks. In order:
-
-1. Unity loads assemblies. Threadlink registers its subsystem **factories** and the Iris event bus initializes.
-2. Threadlink listens for subsystem registration.
-3. After the first scene loads, the core:
-   - initializes Addressables,
-   - loads the **Native Config** and the **User Config**,
-   - constructs itself,
-   - registers and boots all **native** subsystems, then all **user** subsystems,
-   - announces readiness via the `OnCoreDeployed` event,
-   - then boots any discoverable objects already present in the scene.
-
-Designers don't need more than this. Engineers get the exact, step‑by‑step timeline in **Part III, §2**.
-
-The only things a project *must* provide for the core to deploy are two assets, wired through Addressables:
-- a **`ThreadlinkConfig.Native.asset`** (the Native Config) at the Addressable address `Assets/Threadforge/Threadlink/ThreadlinkConfig.Native.asset`, and
-- a **`ThreadlinkConfig.User.asset`** (the User Config) referenced by the Native Config.
-
-Setting these up is a one‑time engineering task covered in **Part III, §20**.
-
----
----
-
-# PART II — THE DESIGNER'S MANUAL
-
-> You author data and IDs. You will not write or read C#. Everything here is done through text files and the Unity Inspector, plus a couple of menu commands under the **Threadlink** menu.
-
-## D1. Your Role and Mental Model
-
-As a designer you produce four kinds of things:
-
-1. **IDs** — names for spawn points, input modes, and Vault data fields. You type these into text files in `Threadlink User/Design/`, then run a menu command that turns them into safe, selectable dropdown values for engineers and for your own assets.
-2. **Vaults** — data assets that hold tunable values (health, speed, prices, flags, curves…) keyed by those IDs.
-3. **Config tuning** — adjusting the exposed values on the framework's configuration assets (audio fade speeds, UI sound effects, etc.).
-4. **Scene authoring** — placing Threadlink components such as audio zones, interactables, spawn points, and input‑prompt icons.
-
-The throughline: **you never type a name twice and you never reference anything by a raw string.** You declare a name once in a text file, regenerate, and from then on it appears as a dropdown everywhere it's needed.
-
-## D2. The ID Workflow (Your Most Important Skill)
-
-Threadlink turns plain‑text lists into C# `enum` dropdowns. As a designer you own three of these "domains":
-
-| You edit this file (in `Threadlink User/Design/`) | It becomes this dropdown | Used for |
+| Assembly | Contents | Constraints |
 |---|---|---|
-| `Dextra.InputModes.User.txt` | Input Modes | Naming control contexts (e.g. `Gameplay`, `Menu`, `Cutscene`). |
-| `Nexus.SpawnPoints.User.txt` | Spawn Points | Naming places the player/objects can spawn. |
-| `Vault.DataFields.User.txt` | Vault Fields | Naming the data fields your Vault assets can hold. |
+| `Threadlink.Generated` | `ThreadlinkIDs` enumerations | Zero references; `noEngineReferences: true`. Referenceable from any assembly, including a deterministic simulation assembly. |
+| `Threadlink.Shared` | Contracts, Scribe, hashing, Addressables helpers | — |
+| `Threadlink.Runtime` | Core, native subsystems, Vault, collections, utilities | `allowUnsafeCode: true` |
+| `Threadlink.Deterministic` | `DFP`, `StatelessRNG` | — |
+| `Threadlink.ECS` | Entity component system | — |
+| `Threadlink.Netcode` | Steam peer-to-peer networking | Opt-in |
+| `Threadlink.Editor` | Code generation and editor tooling | Editor-only |
+| `Threadlink.User` | Project code | — |
+| `Threadlink.User.Generated` | Project-defined domain enumerations | Zero references |
 
-### D2.1 How to edit a domain file
+Generated identifiers reside in namespace `Threadlink.Generated`; consuming code requires `using Threadlink.Generated;`. Isolating generated output in dedicated assemblies guarantees that neither project authoring nor third-party module installation produces a write within framework source.
 
-Open the file. You'll see comment lines starting with `///`. Add your own names below them, **one name per line**:
+## 3. Deployment Overview
+
+The core deploys through Unity's `[RuntimeInitializeOnLoadMethod]` hooks. No bootstrap scene or scene-placed initialiser is required.
+
+1. Assemblies load. Native and project subsystem factories register, and both tiers subscribe to their respective registration events.
+2. Following first scene load, the core initialises Addressables, loads the **Native Config**, and loads the **User Config** referenced by it.
+3. The core constructs itself, then registers and boots native subsystems followed by project subsystems.
+4. The core publishes `OnCoreDeployed`.
+5. Discoverable objects present in the loaded scene are booted.
+
+Deployment requires two assets addressable through the Addressables system:
+
+- **`ThreadlinkConfig.Native.asset`**, at address `Assets/Threadforge/Threadlink/ThreadlinkConfig.Native.asset`.
+- **`ThreadlinkConfig.User.asset`**, referenced by the Native Config.
+
+Configuration is detailed in **Part III, §E20**.
+
+---
+---
+
+# PART II — DESIGNER REFERENCE
+
+> This volume covers data and identifier authoring. All operations are performed through text files, the Unity Inspector, and a small set of commands under the **Threadlink** menu.
+
+## D1. Scope of the Role
+
+Designers produce four categories of artefact:
+
+1. **Identifiers** — names for spawn points, input modes, and Vault data fields, declared in text files and surfaced as Inspector dropdowns.
+2. **Vaults** — data assets holding tunable values keyed by those identifiers.
+3. **Configuration values** — exposed fields on the framework's configuration assets.
+4. **Scene authoring** — placement of Threadlink components including audio zones, interactables, and input-prompt icons.
+
+The governing principle: no name is typed twice, and nothing is referenced by raw string. An identifier is declared once and thereafter selected from a dropdown.
+
+## D2. The Identifier Workflow
+
+Threadlink compiles plain-text declaration lists into C# enumerations. The declaration files reside in **`Threadlink User/Native Domain Injectors/`**. Three are designer-owned:
+
+| File | Resulting dropdown | Purpose |
+|---|---|---|
+| `Dextra.InputModes.User.txt` | Input Modes | Control contexts (`Gameplay`, `Menu`, `Cutscene`). |
+| `Nexus.SpawnPoints.User.txt` | Spawn Points | Locations at which entities may be placed. |
+| `Vault.Fields.User.txt` | Vault Fields | Data fields available to Vault assets. |
+
+These files are termed **injectors**: each injects entries into an enumeration the framework declares. Two further injectors in the same directory are engineer-owned (`Iris.Events.User.txt`, `StatelessRNG.Domains.User.txt`).
+
+### D2.1 Declaration Syntax
+
+Each file opens with comment lines prefixed `///`. Declarations follow, one identifier per line:
 
 ```text
 ///Use this file to define custom player spawn points for Nexus as showcased below:
@@ -149,472 +170,371 @@ SecretRoom_North
 CheckpointAlpha
 ```
 
-Rules for names:
+Constraints:
+
 - One identifier per line.
-- A name must start with a letter and contain only letters, digits, and underscores. Spaces and dashes are not allowed (use `Checkpoint_Alpha`, not `Checkpoint Alpha`).
-- Lines beginning with `//` or `///` are comments and are ignored.
+- Identifiers begin with a letter and comprise letters, digits, and underscores. Any other character is substituted with an underscore during generation; declaring `Checkpoint_Alpha` directly is preferred to relying on substitution.
+- Lines prefixed `//`, including `///`, are treated as comments.
 - Blank lines are ignored.
+- Identifier comparison is case-insensitive: `Alpha` and `alpha` denote the same entry.
 
-### D2.2 Regenerating
+### D2.2 Regeneration
 
-After editing one or more domain files, run **either**:
+Saving the file is sufficient. The injector directory is monitored, generation runs automatically, and Unity recompiles. New identifiers appear in the corresponding dropdowns.
 
-- **`Threadlink ▸ Run All CodeGens`** — regenerates every domain at once (recommended), or
-- the specific command under **`Threadlink ▸ CodeGen ▸ …`** for just the one you changed (e.g. `Run Nexus Spawn Points CodeGen`).
+**`Threadlink ▸ CodeGen ▸ Run Domain CodeGen`** forces a generation pass on demand.
 
-Unity will recompile, and your new names will appear as dropdown options in the relevant Inspectors. That's it.
+### D2.3 Removal Semantics
 
-### D2.3 ⚠️ The two rules you must never break
+Entries may be removed by deleting the corresponding line. Values are content-addressed, with the following consequences:
 
-Two of these domains feed systems where **the order of entries is permanent**:
+- Removing an entry does not alter the value of any other entry.
+- The removed identifier is retained in the generated enumeration as an obsolete tombstone, preserving resolution for assets that still reference it. Code referencing it produces a compiler warning.
+- Reordering declarations has no effect; declaration order is not significant.
 
-- **Spawn Points** (`Nexus.SpawnPoints.User.txt`)
-- *(Engineering also has RNG Domains with the same rule.)*
+Iris events constitute the sole exception and fall under engineering ownership. Their values are positional array indices, so removal produces compilation failures at every subscription site rather than a tombstone. This behaviour is intentional.
 
-> **Do not reorder or delete existing entries after they've been generated and used.** Reordering silently remaps every saved reference and corrupts spawn‑point/determinism data in production. If you no longer need an entry, **do not delete it** — rename it to something obviously dead like `Unused_SpawnPoint_3` and leave it in place, then regenerate. Always **add new entries at the bottom.**
+### D2.4 Rename Semantics
 
-Vault Fields and Input Modes are more forgiving, but the safe habit — **append, don't reorder** — is worth applying everywhere.
+A rename is equivalent to a removal followed by an addition: the former identifier becomes a tombstone and the new identifier receives a distinct value. References to the former identifier require reassignment. Engineering must be notified of any rename affecting an identifier referenced in code.
 
-## D3. The Vault — Authoring Game Data
+Each generation pass emits a console summary enumerating additions, removals, and tombstones. Consulting this summary is the most direct means of detecting an unintended rename.
 
-The **Vault** is your primary tool. A Vault is a polymorphic data asset (a ScriptableObject) that holds a set of **fields**: named, typed values. Think of it as a strongly‑typed spreadsheet row for any game entity — an enemy, a weapon, a level, an item.
+## D3. The Vault
 
-### D3.1 Creating a Vault
+A **Vault** is a polymorphic data asset holding a set of named, typed **fields** — the authoring unit for any game entity: an enemy, a weapon, a level, an item.
 
-1. In the Project window, right‑click ▸ **Create ▸ Threadlink ▸ Vault**.
-2. Name it meaningfully (e.g. `Vault_Enemy_Goblin`, `Vault_Weapon_Longsword`).
-3. Select it. In the Inspector you'll see its data‑fields map.
+### D3.1 Creation
 
-### D3.2 Adding fields
+1. In the Project window, select **Create ▸ Threadlink ▸ Vault**.
+2. Assign a descriptive name (`Vault_Enemy_Goblin`, `Vault_Weapon_Longsword`).
+3. Select the asset to expose its data-field map in the Inspector.
 
-Each field has two parts:
+### D3.2 Field Composition
 
-1. **A field ID** — chosen from the **Vault Fields** dropdown (the names you declared in `Vault.DataFields.User.txt`).
-2. **A typed value** — you pick the field's *type* from a dropdown, then enter the value.
+Each field comprises two elements:
 
-The built‑in field types you can choose from:
+1. A **field identifier**, selected from the Vault Fields dropdown.
+2. A **typed value**, whose type is selected from a dropdown prior to entry.
 
-| Type name | Holds |
+Available field types:
+
+| Type | Representation |
 |---|---|
-| `Integer` | whole number (int) |
-| `Float` | decimal number |
-| `Boolean` | true / false |
-| `Double` | high‑precision decimal |
-| `Long` | large whole number |
-| `Integer2D` | a pair of whole numbers |
-| `Float2D` | a pair of decimals |
-| `Vector2D` | a 2D vector |
-| `Vector3D` | a 3D vector |
-| `Rotation` | a rotation (quaternion) |
-| `UnityGameObject` | a reference to a GameObject |
-| `LocalizedText` | a localized string *(only if the Unity Localization package is installed)* |
+| `Integer` | 32-bit integer |
+| `Float` | Single-precision floating point |
+| `Boolean` | Boolean |
+| `Double` | Double-precision floating point |
+| `Long` | 64-bit integer |
+| `Integer2D` | Integer pair (`int2`) |
+| `Float2D` | Float pair (`float2`) |
+| `Vector2D` | Two-component vector |
+| `Vector3D` | Three-component vector |
+| `Rotation` | Quaternion |
+| `UnityGameObject` | GameObject reference |
+| `LocalizedText` | Localised string; requires the Unity Localization package |
 
-> If you need a field type that isn't in this list, ask an engineer — adding new field types is a small one‑time code task on their side.
+Additional field types are introduced through a minor engineering task.
 
-### D3.3 Serialized vs. Transient fields — a critical choice
+### D3.3 Serialised and Transient Backings
 
-When you add a value to a field, you choose how it is *stored*. For each field you pick one of two backings:
+Each field is assigned one of two value backings:
 
-- **Serialized** — the value is saved with the asset and persists. Use this for authored, designed values (an enemy's base health, a weapon's damage). This is the normal choice.
-- **Transient** — the value exists only at runtime and is **never saved**. It always resets. Use this for scratch values the game fills in while playing (a runtime counter you don't want persisted).
+- **Serialised** — persisted with the asset. Appropriate for authored values such as base health or weapon damage. This is the default selection for design data.
+- **Transient** — runtime-only, never persisted, reset each session. Appropriate for scratch values populated during play.
 
-Rule of thumb: **author values are Serialized; runtime scratch values are Transient.**
+Authored values are serialised; runtime scratch values are transient.
 
-> To eliminate human error in vault authoring as the project expands, you can ensure all vault assets of a kind **always include all of their necessary data fields** by using Unity's [Asset Preset Feature](https://docs.unity3d.com/Manual/Presets.html).
+> Unity [Asset Presets](https://docs.unity3d.com/Manual/Presets.html) may be applied to guarantee that every Vault of a given class is instantiated with its complete field set.
 
-### D3.4 What engineers do with your Vaults
+### D3.4 Runtime Consumption
 
-At runtime, engineers read and write your fields by ID — for example, "get the `Float` field `MoveSpeed` from this enemy's Vault." You don't need to know the code, but it helps to know the contract: **if you rename a field ID, regenerate, and tell the engineering team**, because their code refers to the same generated names.
+Engineering reads and writes fields by identifier at runtime. Renaming a field identifier invalidates those references; engineering must be notified.
 
-## D4. Audio for Designers (Aura)
+## D4. Spatial and Interface Audio (Aura)
 
-Threadlink's audio subsystem is **Aura**. It manages three channels — **Music**, **Atmos** (ambience), and **SFX** — and supports spatial audio zones. As a designer you touch Aura in three places.
+**Aura** is the audio subsystem, managing Music, Atmos, and SFX channels and supporting spatial audio zones.
 
-### D4.1 The Aura Config (UI sounds & fade speed)
+### D4.1 Aura Configuration
 
-Open the **Aura Config** asset (in `Threadlink User/Engineering/Configs/Aura/`). The values you can safely tune:
-
-| Field | Meaning |
+| Field | Function |
 |---|---|
-| Volume Fade Speed | How fast music/ambience/listener volumes fade during transitions. Higher = snappier. |
-| Navigation Clip | The SFX played when the player moves between UI elements. |
-| Confirm Clip | The SFX for confirming/accepting in UI. |
-| Cancel Clip | The SFX for backing out/cancelling in UI. |
+| Volume Fade Speed | Rate at which music, ambience, and listener volumes transition. Higher values produce faster transitions. |
+| Navigation Clip | Effect played on UI element traversal. |
+| Confirm Clip | Effect played on UI confirmation. |
+| Cancel Clip | Effect played on UI cancellation. |
 
-The three UI clips are chosen from the **Assets** dropdown (Addressable audio assets — see D7).
+Clips are selected from the Assets dropdown; §D7 covers the procedure for populating that dropdown.
 
-### D4.2 Spatial audio zones (`AuraZone`)
+### D4.2 Audio Zones
 
-An **AuraZone** is a component you place in a scene to create a localized sound source that *ducks* the global music and ambience as the listener gets close (an inverse‑distance influence). To set one up:
+An **AuraZone** is a scene component producing a localised sound source that attenuates global music and ambience by inverse-distance influence as the listener approaches.
 
 1. Add an **AuraZone** component to a GameObject.
-2. Add an **AudioSource** to the same object and assign its clip (this is the zone's own sound). Aura automatically configures the source to loop and play on awake when you edit it.
-3. Tune the two sliders:
-   - **Radius Coefficient** (0–1) — scales the influence radius relative to the AudioSource's Max Distance.
-   - **Influence** (0–1) — how strongly this zone ducks the global music/ambience when the listener is fully inside.
+2. Add an **AudioSource** to the same GameObject and assign its clip. Aura configures the source for looping playback on awake.
+3. Configure two parameters:
+   - **Radius Coefficient** (0–1) — scales influence radius relative to the AudioSource maximum distance.
+   - **Influence** (0–1) — attenuation applied to global channels when the listener is fully within the zone.
 
-Zones are automatically discovered and linked when a scene finishes loading, and disconnected when it unloads. You just place them.
+Zones are linked automatically on scene load and disconnected on unload; placement is the only required action.
 
-### D4.3 Per‑scene audio (music & ambience)
+### D4.3 Per-Scene Audio
 
-Each scene can declare its own music and ambience tracks and their target volumes. The *wiring* of a scene to its audio is done by an engineer (via a "scene entry"), but the **choices** — which music track, which ambience, how loud — are design decisions. Communicate them as part of the scene's spec, or fill them in if the engineer exposes them on a component.
+Each scene declares music and ambience tracks with target volumes through a scene entry implemented by engineering. Track selection and volume levels are design decisions and should be communicated as part of the scene specification.
 
-## D5. Input Prompts for Designers (`DextraInputIcon`)
+## D5. Input Prompts
 
-Threadlink can display the correct button glyph for whatever device the player is currently using (keyboard/mouse, Xbox, PlayStation, or Switch Pro Controller), and swap it automatically when they change devices.
-
-To place a context‑sensitive prompt:
+Threadlink resolves the correct button glyph for the active input device and substitutes it automatically on device change.
 
 1. Add a **`DextraInputIcon`** component to a UI Image.
-2. Configure which input action / control it represents.
+2. Configure the control it represents.
 
-The mapping from *control + device → icon sprite* lives in the **Dextra Config** asset (the **Input Icons** map). Populating that map — pairing each control path with the right sprite for each device family — is shared work: a designer typically supplies and assigns the sprites; an engineer wires up the control paths. The sprites themselves are Addressable assets (see D7).
+The control-and-device to sprite mapping resides on the Dextra Config asset. Populating it is shared work: designers supply and assign sprites, engineers configure control paths. Sprites are Addressable assets; see §D7.
 
-## D6. Tuning the Config Assets
+## D6. Configuration Assets
 
-Threadlink's configs are ScriptableObjects in `Threadlink User/Engineering/Configs/`. Most of their setup is engineering, but several exposed values are fair game for designers:
-
-| Config | Designer‑tunable values |
+| Asset | Designer-tunable fields |
 |---|---|
-| **Aura Config** | Volume fade speed; UI navigate / confirm / cancel clips. |
-| **Chronos Config** | "Iris Physics Update" toggle — leave this to engineering unless told otherwise. |
-| **Dextra Config** | Input‑icon sprite assignments; UI screen list (with engineering). |
+| **Aura Config** | Volume fade speed; navigation, confirm, and cancel clips. |
+| **Dextra Config** | Input-icon sprite assignments; interface list, in conjunction with engineering. |
+| **Chronos Config** | Iris Physics Update. **Engineering-owned; do not modify.** |
 
-If you're unsure whether a value is yours to change, ask. A wrong toggle here (like the physics one) can change how the whole game ticks.
+The physics toggle alters the simulation model for the entire application. Values of uncertain ownership should be confirmed with engineering before modification.
 
 ## D7. Registering Scenes, Prefabs, and Assets
 
-Anything Threadlink loads at runtime — a scene, a prefab, an audio clip, a sprite — is referenced through Unity's **Addressables** and surfaced as a dropdown ID. The list of these references lives on the **User Config** asset (`ThreadlinkConfig.User.asset`).
+Runtime-loaded content — scenes, prefabs, audio clips, sprites — is referenced through Addressables and surfaced as a dropdown identifier. Registration is performed through a dedicated tool.
 
-As a designer you may be asked to **add entries** to one of three lists on that asset:
+1. Ensure the asset belongs to an Addressable group.
+2. Open **`Threadlink ▸ Addressables ▸ Mapping Window`**.
+3. Locate the asset within its group and enable its checkbox.
+4. Select **Apply**.
 
-- **Scene References** — scenes the game can load.
-- **Asset References** — loose assets (audio clips, sprites, data).
-- **Prefab References** — prefabs that get spawned.
+The window classifies assets by type automatically — scenes yield Scene identifiers, prefabs yield Prefab identifiers, all others yield Asset identifiers — and writes the corresponding reference into the User Config. The reference maps on the User Config are read-only in the Inspector and are owned exclusively by this window.
 
-After adding references, an engineer (or you, if comfortable) runs **`Threadlink ▸ CodeGen ▸ Run Addressables CodeGen`**. This turns each reference into a dropdown entry **named after the asset itself**. So an audio clip named `Music_BossTheme` becomes the selectable ID `Music_BossTheme`.
+Two properties govern the resulting identifier:
 
-> **Naming matters:** because the generated ID comes from the asset's name, give your Addressable assets clear, stable, code‑safe names *before* generating. Renaming an asset later means regenerating and re‑selecting it wherever it was used.
+- **The identifier derives from the asset name.** An audio clip named `Music_BossTheme` yields the identifier `Music_BossTheme`. Assets should carry stable, code-safe names prior to mapping.
+- **The Addressable group participates in identity.** Two assets named `Splash` in distinct groups coexist; the second is qualified as `GroupName_Splash`. Relocating a mapped asset to a different group alters its identifier and invalidates existing references. Group assignment should be settled before mapping.
 
-## D8. Designer Checklists & Golden Rules
+Disabling an asset's checkbox unmaps it. The identifier is retained as a tombstone.
 
-### Adding a new spawn point
-1. Add the name to `Threadlink User/Design/Nexus.SpawnPoints.User.txt` (**append at the bottom**).
-2. Run `Threadlink ▸ Run All CodeGens`.
-3. The new spawn point is now selectable wherever spawn points are chosen.
+## D8. Designer Procedures
 
-### Adding a new tunable value to an entity
-1. Add the field name to `Vault.DataFields.User.txt`; regenerate.
-2. Open the entity's Vault; add a field with that ID; choose its type; enter the value.
-3. Mark it **Serialized** (authored value) or **Transient** (runtime scratch).
+**Declaring a spawn point**
+1. Add the identifier to `Threadlink User/Native Domain Injectors/Nexus.SpawnPoints.User.txt`.
+2. Save. Generation runs automatically.
+3. The spawn point becomes selectable wherever spawn points are configured.
 
-### Adding a new input context
-1. Add the mode name to `Dextra.InputModes.User.txt`; regenerate.
-2. Hand the mode name to engineering to bind it to an input action map in the Dextra Config.
+**Adding a tunable value to an entity**
+1. Add the field identifier to `Vault.Fields.User.txt` and save.
+2. Open the entity's Vault, add a field with that identifier, select its type, and enter the value.
+3. Select the **Serialised** or **Transient** backing.
 
-### The golden rules
-- **Never reference anything by raw text.** Declare an ID, regenerate, pick from the dropdown.
-- **Append, never reorder.** Especially for spawn points. Rename dead entries instead of deleting.
-- **Regenerate after every edit** to a `.txt` domain file.
-- **Give Addressable assets clean names** before generating their IDs.
-- **Tell engineering when you rename an ID** they might reference in code.
+**Declaring an input context**
+1. Add the mode identifier to `Dextra.InputModes.User.txt` and save.
+2. Provide the identifier to engineering for binding to an input action map.
+
+**Making an asset loadable**
+1. Assign the asset to an Addressable group under a stable name.
+2. Map it through **`Threadlink ▸ Addressables ▸ Mapping Window`** and select **Apply**.
+
+### Operating Principles
+
+- Nothing is referenced by raw string. Declare an identifier, save, and select from the dropdown.
+- Removal is safe; renaming orphans existing references and requires coordination.
+- Consult the console summary emitted by each generation pass.
+- Assign stable names and final group membership to Addressable assets before mapping them.
+- Notify engineering of any identifier rename that may be referenced in code.
 
 ---
 ---
 
-# PART III — THE ENGINEER'S MANUAL
+# PART III — ENGINEER REFERENCE
 
-> This book assumes C# fluency and familiarity with Unity, Addressables, and async/await. Threadlink uses **UniTask** (not `System.Threading.Tasks`) throughout, and makes heavy use of `[RuntimeInitializeOnLoadMethod]`, generics, and (in the ECS) unsafe code.
+> This volume assumes C# proficiency and familiarity with Unity, Addressables, and asynchronous programming. Threadlink uses **UniTask** exclusively in place of `System.Threading.Tasks`, and relies on `[RuntimeInitializeOnLoadMethod]`, generic constraints, and unsafe code within the ECS.
 
-## E1. Architecture Overview
+## E1. Architecture
 
-### E1.1 Everything is a subsystem
+### E1.1 Subsystems and Static Services
 
-The unit of architecture in Threadlink is the **subsystem**: a singleton object the core owns. Subsystems derive from a small CRTP (Curiously Recurring Template Pattern) base that gives each one a type‑safe static singleton accessor.
+Threadlink distinguishes two categories of framework service.
 
-```csharp
-public abstract class ThreadlinkSubsystem<Singleton> : IThreadlinkSubsystem<Singleton>
-where Singleton : ThreadlinkSubsystem<Singleton>
-{
-    public static readonly int TypeHash = HashFunctions.ToXxHash32(typeof(Singleton).FullName);
-    public virtual int ID => TypeHash;
+**Woven subsystems** are instances the core constructs, owns, and drives through a lifecycle. They derive from `ThreadlinkSubsystem<T>` and are accessed via `T.TryGetSingleton(out var instance)`. The native set, in weave order:
 
-    public virtual void Boot()    => Instance = this as Singleton;   // register the singleton
-    public virtual void Discard() => Instance = null;               // tear it down
+| Subsystem | Responsibility |
+|---|---|
+| `Sentinel` | Environment-aware persistence IO |
+| `Chronos` | Time, timescale, playtime accumulation, optional manual physics |
+| `Dextra` | Input devices, action maps, UI stack, interactables |
+| `Aura` | Audio mixing, spatial zones, listener transform |
 
-    public static bool TryGetSingleton(out Singleton result) { /* … */ }
-}
-```
+**Static services** possess neither instance nor lifecycle and are available from assembly load:
 
-Key facts:
-- The singleton is accessed via **`TryGetSingleton(out var x)`**, not a `.Singleton` property. `TryGetSingleton` returns `false` until the subsystem has actually been linked into the running core, which protects you from touching a half‑deployed system.
-- Each subsystem's `ID` is an xxHash32 of its type name (`TypeHash`).
-- `Boot()` is where a subsystem assigns its static `Instance`; always call `base.Boot()` when you override it.
+| Service | Responsibility |
+|---|---|
+| `Iris` | Event dispatch and update-loop distribution |
+| `Nexus` | Scene loading, unloading, transition sequencing |
+| `Initium` | Preload, boot, and initialise pipeline |
+| `Scribe` | Logging |
 
-### E1.2 The three subsystem flavors
+`ECSWorld` and `Netflow` are subsystems, registered by the project rather than natively.
 
-Three layers build on the base, each adding capability:
+### E1.2 Register Hierarchy
 
-| Base class | Adds | Use when… |
+`ThreadlinkSubsystem<T>` employs the curiously recurring generic pattern to expose a type-safe static singleton per subsystem. Three specialisations extend it:
+
+| Base | Additions | Application |
 |---|---|---|
-| `ThreadlinkSubsystem<S>` | Singleton + ID only | You want a plain manager with no managed collection. |
-| `Register<S, O>` | A `Dictionary<int, O>` of `IIdentifiable` objects (`HasLinked`, `TryGetLinkedObject`) | You need to track a keyed set of objects. |
-| `Linker<S, O>` | `TryLink` / `TryDisconnect` / `DisconnectAll` | You link **existing** scene/runtime objects without owning their lifecycle. |
-| `Weaver<S, O>` | `TryWeave` / `TrySever` / `SeverAll` via a factory | You **create and own** the lifecycle of objects. |
+| `Register<S, O>` | `Dictionary<int, O>` keyed by `IIdentifiable.ID` | Lookup tables |
+| `Linker<S, O>` | `TryLink`, `TryDisconnect`, `DisconnectAll` | Tracking externally-created objects |
+| `Weaver<S, O>` | `TryWeave`, `TrySever`, `SeverAll` | Owning object lifecycles |
 
-The core itself, `Threadlink`, is a `Weaver<Threadlink, IThreadlinkSubsystem>` — it weaves subsystems. (Aura, for example, is a `Linker<Aura, AuraSpatialObject>` because it links zones it doesn't own.)
+`Threadlink` is itself a `Weaver<Threadlink, IThreadlinkSubsystem>`. `Aura` is a `Linker<Aura, AuraSpatialObject>`.
 
-### E1.3 The lifecycle contracts
-
-Objects opt into the boot pipeline by implementing these interfaces (all in `Threadlink.Shared`):
+### E1.3 Lifecycle Contracts
 
 | Interface | Member | Semantics |
 |---|---|---|
-| `IAddressablesPreloader` | `UniTask<bool> TryPreloadAssetsAsync()` | **Phase 1.** Load Addressable assets/configs this object needs. |
-| `IBootable` | `void Boot()` | **Phase 2.** "Awake." Set up internal state only — **no cross‑references**. |
-| `IInitializable` | `void Initialize()` | **Phase 3.** "Start." Wire cross‑references to other subsystems. |
-| `IDiscardable` | `void Discard()` | Teardown. Release resources and **unsubscribe from Iris**. |
-| `IDiscoverable` | *(marker)* | Makes a scene `LinkableBehaviour` auto‑discovered by the pipeline. |
+| `IAddressablesPreloader` | `UniTask<bool> TryPreloadAssetsAsync()` | Executes first. Dependency acquisition. |
+| `IBootable` | `void Boot()` | Awake equivalent. Execution order within the phase is non-deterministic; implementations must be self-contained. |
+| `IInitializable` | `void Initialize()` | Start equivalent. Cross-object references are valid. |
+| `IDiscardable` | `void Discard()` | Teardown. Unsubscription occurs here, followed by `base.Discard()`. |
+| `IDiscoverable` | Marker | Scene-placed `LinkableBehaviour` implementations are booted automatically on scene load. Inactive objects are excluded. |
+| `IDependencyConsumer<T>` | `bool TryConsumeDependency(T)` | Dependency injection point. |
 
-> **Boot and Initialize are synchronous `void` methods**, but the pipeline runs each *phase* asynchronously across all participants and **does not guarantee ordering within a phase**. Never assume another subsystem booted before you in your own `Boot()`. Cross‑reference work belongs in `Initialize()`, which runs only after every participant has finished `Boot()`.
+Boot and initialise execute as batches separated by a single-frame yield. Ordering within a batch is not guaranteed.
 
-### E1.4 The two base object classes
+### E1.4 Base Object Types
 
-| Class | Base | For |
+| Type | Domain | Discard behaviour |
 |---|---|---|
-| `LinkableBehaviour` | `MonoBehaviour` | Any Threadlink‑aware component. Provides `CachedTransform`, an `OnDiscard` event, `ID` (= `GetInstanceID()`), `Name`, and a `Discard()` that fires `OnDiscard` and destroys the GameObject. Requires a `Transform`. Static `CreateFrom<T>(name)` factory. |
-| `LinkableAsset` | `ScriptableObject` | Any Threadlink‑aware data asset. Tracks `IsInstance`, has an `OnDiscard` event, and a `Discard()` that destroys the object only if it's a runtime instance. Static `TryCreate<T>(name, out T)` factory. |
+| `LinkableBehaviour` | Scene components | Destroys the GameObject |
+| `LinkableAsset` | ScriptableObjects, including Vault | Nulls fields; does not destroy |
 
-Derive your components from `LinkableBehaviour` and your data assets from `LinkableAsset` (the Vault already does).
+Both expose `ID`, `Name`, and an `OnDiscard` event. Cleanup is implemented by overriding `Discard()`. `OnDestroy()` executes outside framework ordering and is unsuitable for Iris unsubscription.
 
-## E2. The Deployment Timeline (Exact)
+## E2. Deployment Sequence
 
-Threadlink deploys via three `[RuntimeInitializeOnLoadMethod]` stages. Understanding this order is essential for knowing when it's safe to touch what.
+| Phase | Hook | Action |
+|---|---|---|
+| 1 | `[OnEnteringPlayMode]` | `NativeWeavingFactory.Register()` registers factories for Sentinel, Chronos, Dextra, and Aura. |
+| 2 | `AfterAssembliesLoaded` | `UserSubsystemsConfig` subscribes to `OnUserSubsystemRegistration`. |
+| 3 | `BeforeSceneLoad` | `NativeSubsystemsConfig` subscribes to `OnNativeSubsystemRegistration`. |
+| 4 | `AfterSceneLoad` | `Threadlink.DeployCoreAsync()` executes. |
 
-**Stage 1 — `SubsystemRegistration`**
-- `Iris.Observe()` clears the event registry.
-- `NativeWeavingFactory.Register()` registers factory delegates (`() => new T()`) for the native subsystems: **Sentinel, Chronos, Dextra, Aura**.
-- `UserWeavingFactory.Register()` (in your code) registers factory delegates for *your* subsystems.
+`DeployCoreAsync` performs:
 
-**Stage 2 — `AfterAssembliesLoaded`**
-- `NativeSubsystemsConfig.ListenForSubsystemRegistration()` subscribes a `Func<List<IThreadlinkSubsystem>>` to the `OnNativeSubsystemRegistration` event.
-- `UserSubsystemsConfig.ListenForSubsystemRegistration()` subscribes another to `OnUserSubsystemRegistration`.
-
-**Stage 3 — `AfterSceneLoad` — `Threadlink.DeployCoreAsync()`**
 1. `await Addressables.InitializeAsync()`.
-2. Load the **Native Config** from the address `Assets/Threadforge/Threadlink/ThreadlinkConfig.Native.asset`.
-3. From it, load the **User Config** (`NativeResources.UserConfig`).
-4. Construct the core: `new Threadlink { NativeConfig = …, UserConfig = … }`.
-5. `await core.DeployAsync()`:
-   - `Boot()` — assigns the core singleton and, if the User Config's update loop is **Native**, instantiates the hidden `ThreadlinkLoop` GameObject (`DontDestroyOnLoad`).
-   - `RegisterSubsystemsAsync(OnNativeSubsystemRegistration)` — **publishes** the event, which returns the `List<IThreadlinkSubsystem>` of woven native subsystems, then runs them through the init pipeline (`Initium.PreloadBootAndInitAsync`).
-   - `RegisterSubsystemsAsync(OnUserSubsystemRegistration)` — same, for your subsystems.
-   - Logs "Core successfully deployed."
-   - Publishes **`OnCoreDeployed`** (payload: the `Threadlink` core).
-6. `Initium.BootAndInitUnityObjectsAsync().Forget()` — finds every active `LinkableBehaviour` in the loaded scene that implements `IDiscoverable` and runs them through the same Preload→Boot→Init pipeline.
+2. Loading of `ThreadlinkNativeConfig` from the address in `NativeConstants.Addressables.NATIVE_CONFIG`.
+3. Loading of `ThreadlinkUserConfig` through `NativeResources.UserConfig`.
+4. Core construction and `DeployAsync()`:
+   - `Boot()` instantiates the hidden `ThreadlinkLoop` GameObject when the update loop is configured as `Native`.
+   - `RegisterSubsystemsAsync(OnNativeSubsystemRegistration)` publishes the `Func<List<IThreadlinkSubsystem>>` event and passes the collected subsystems to `Initium.PreloadBootAndInitAsync`.
+   - The sequence repeats for `OnUserSubsystemRegistration`.
+   - `OnCoreDeployed` is published with the core as payload.
+5. `Initium.BootAndInitUnityObjectsAsync()` is dispatched as fire-and-forget for scene objects already loaded.
 
-The takeaway: **`OnCoreDeployed` is your "the framework is live" signal.** Subscribe to it to start game logic that needs all subsystems present.
+Failure to load either configuration asset aborts deployment with an error.
 
-## E3. The Initialization Pipeline (Initium)
+## E3. Initialisation Pipeline
 
-`Initium` (static, in `Threadlink.Core.NativeSubsystems.Initium`) runs any set of objects through three ordered phases. Each phase completes fully — across all participants — before the next begins; within a phase, work runs concurrently and **order is not deterministic**.
+`Initium.PreloadBootAndInitAsync<T>(IEnumerable<T>)` is the single entry point. It partitions the input by interface and executes three phases, awaiting completion of each before proceeding:
 
-```
-Phase 1  Preload     every IAddressablesPreloader.TryPreloadAssetsAsync(), awaited together
-Phase 2  Boot        every IBootable.Boot(), each followed by a 1-frame yield
-Phase 3  Initialize  every IInitializable.Initialize(), each followed by a 1-frame yield
-```
+1. `IAddressablesPreloader.TryPreloadAssetsAsync()`
+2. `IBootable.Boot()`
+3. `IInitializable.Initialize()`
 
-Public entry points you can call yourself:
+Scene objects are discovered via `Object.FindObjectsByType<LinkableBehaviour>(FindObjectsInactive.Exclude).OfType<IDiscoverable>()`. The scene-scoped overload additionally filters by `gameObject.scene`; `Nexus.LoadNewSceneAsync` invokes it so that a newly loaded scene boots only its own objects.
 
-```csharp
-// Run one object through Boot then Initialize:
-await Initium.BootAndInitAsync(entity);          // entity : IBootable, IInitializable
+No unload counterpart exists. Scene-placed objects are destroyed by Unity without `Discard()` being invoked. Objects subscribing to Iris must therefore arrange their own teardown, conventionally by subscribing to `OnBeforeActiveSceneUnload` and invoking `Discard()` from the handler.
 
-// Boot / Initialize an ordered list (sequential, 1 frame between each):
-await Initium.Boot(entities);
-await Initium.Initialize(entities);
+## E4. Iris — Event Dispatch
 
-// Fire-and-forget single calls:
-Initium.Boot(entity);
-Initium.Initialize(entity);
-```
+`Iris` is a static class backed by `object[] EventRegistry`, dimensioned at type load from the cardinality of `ThreadlinkIDs.Iris.Events`. Each slot holds a `DelegateList<T>` allocated on first subscription.
 
-A canonical subsystem implementing all three phases:
+### E4.1 Dispatch Signatures
 
 ```csharp
-public sealed class InventorySystem : ThreadlinkSubsystem<InventorySystem>,
-    IAddressablesPreloader, IBootable, IInitializable, IDiscardable
-{
-    private InventoryConfig config;
-
-    public async UniTask<bool> TryPreloadAssetsAsync()      // Phase 1
-    {
-        if (!Threadlink.TryGetSingleton(out var core)) return false;
-        config = await core.LoadAssetAsync<InventoryConfig>(ThreadlinkIDs.Addressables.Assets.InventoryConfig);
-        return config != null;
-    }
-
-    public override void Boot()                              // Phase 2 — self only
-    {
-        base.Boot();
-        // allocate internal state here
-    }
-
-    public void Initialize()                                 // Phase 3 — cross-references
-    {
-        Iris.Subscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, Tick);
-    }
-
-    public override void Discard()                           // teardown
-    {
-        Iris.Unsubscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, Tick);
-        base.Discard();
-    }
-
-    private void Tick() { /* … */ }
-}
+Iris.Publish(eventID);                          // Action
+Iris.Publish<Input>(eventID, input);            // Action<Input>
+Iris.Publish<Output>(eventID);                  // Func<Output>        — single listener
+Iris.Publish<Input, Output>(eventID, input);    // Func<Input, Output> — single listener
 ```
 
-## E4. Iris — The Event System
-
-`Iris` (static, `Threadlink.Core.NativeSubsystems.Iris`) is the framework's single event bus. **Every event in the entire framework is identified by one enum: `ThreadlinkIDs.Iris.Events`.** There are no per‑feature enums and no string topics.
-
-### E4.1 The four signatures
-
-A listener is a **delegate**, and you pass its delegate *type* as the generic argument. Iris supports exactly four shapes:
+Subscription and unsubscription state the delegate type explicitly:
 
 ```csharp
-// 1) No data:
-Iris.Subscribe<Action>(eventID, Handler);                       void Handler()
-Iris.Publish(eventID);
-
-// 2) Input only:
-Iris.Subscribe<Action<TIn>>(eventID, Handler);                  void Handler(TIn x)
-Iris.Publish<TIn>(eventID, input);
-
-// 3) Output only:
-Iris.Subscribe<Func<TOut>>(eventID, Handler);                   TOut Handler()
-TOut result = Iris.Publish<TOut>(eventID);
-
-// 4) Input and output:
-Iris.Subscribe<Func<TIn, TOut>>(eventID, Handler);              TOut Handler(TIn x)
-TOut result = Iris.Publish<TIn, TOut>(eventID, input);
+Iris.Subscribe<Action<Nexus.ISceneEntry>>(ThreadlinkIDs.Iris.Events.OnNexusLoadingFinished, OnSceneReady);
+Iris.Unsubscribe<Action<Nexus.ISceneEntry>>(ThreadlinkIDs.Iris.Events.OnNexusLoadingFinished, OnSceneReady);
 ```
 
-> **Signature discipline is on you.** Iris stores one delegate per event ID and casts on publish; a mismatch throws `InvalidCastException` at publish time. The generic type you subscribe with **must** match the type you publish with. The native events have fixed signatures (see Appendix A) that must be respected across the codebase.
+Diagnostic members: `TryGetListenerCount`, `ContainsListener<T>`, `Clear`.
 
-Subscribe/unsubscribe are idempotent: subscribing the same listener twice is a no‑op, and an event with no listeners published as a `void` event simply does nothing.
+### E4.2 Constraints
 
-### E4.2 Discipline
+- **The delegate type constitutes the contract and is not enforced across subscribers at compile time.** Subscribing `Action<Foo>` to a slot holding `Action<Bar>` logs a type mismatch and discards the subscription. Publishing under a mismatched type returns without invocation. Both failures are silent at runtime; signature agreement is a project discipline.
+- **`Func` events throw `InvalidOperationException` beyond a single listener.** They model a single provider rather than a broadcast.
+- **Dispatch iterates in reverse** (`Count - 1` to `0`), and `DelegateList.Remove` performs swap-with-last. A handler removing itself during dispatch is safe; a handler removing a different listener is not.
+- **Unsubscription belongs in `Discard()`.** A retained delegate keeps a destroyed object reachable and dispatches to stale state.
+- Dispatch to an event without listeners is a no-op.
 
-Always pair subscriptions with unsubscriptions in `Discard()`/`OnDestroy()`:
+### E4.3 Update Events
+
+`OnUpdate`, `OnFixedUpdate`, and `OnLateUpdate` are published by the hidden `ThreadlinkLoop` MonoBehaviour when the update loop is configured as `Native`. `OnLateUpdate` is the correct target for camera-relative state, as it dispatches after camera transformation.
+
+### E4.4 Declaring Events
+
+Declare the identifier in `Threadlink User/Native Domain Injectors/Iris.Events.User.txt` and save.
+
+Iris events are the framework's sole **ordinal** domain: values are dense array indices allocated in source order, native entries preceding injector entries. Values are never serialised, so removal produces compilation failure at every subscription site. Tombstoning is disabled for this domain accordingly.
+
+## E5. Subsystem Access
 
 ```csharp
-public void Initialize() => Iris.Subscribe<Action<Dextra.InputDevice>>(
-    ThreadlinkIDs.Iris.Events.OnInputDeviceChanged, OnDeviceChanged);
-
-public override void Discard()
-{
-    Iris.Unsubscribe<Action<Dextra.InputDevice>>(
-        ThreadlinkIDs.Iris.Events.OnInputDeviceChanged, OnDeviceChanged);
-    base.Discard();
-}
+if (Dextra.TryGetSingleton(out var dextra))
+    dextra.SetInputMapActive(ThreadlinkIDs.Dextra.InputModes.Gameplay, true);
 ```
 
-Utility members: `TryGetListenerCount(eventID, out int)`, `ContainsListener(eventID, listener)`, and `Discard(eventID)` (drops all listeners for an ID).
-
-### E4.3 Defining your own events
-
-Engineering owns the Iris events domain:
-
-1. Add event names to `Threadlink User/Engineering/Codebase/Iris.Events.User.txt` (one per line).
-2. Run **`Threadlink ▸ CodeGen ▸ Run Iris Events CodeGen`** (or *Run All CodeGens*).
-3. Your names appear in the `User Events` region of `ThreadlinkIDs.Iris.Events`.
-4. **You are responsible for documenting and consistently using each event's signature** — Iris won't enforce it for you.
-
-## E5. Accessing Subsystems
-
-Not every "subsystem" is a `ThreadlinkSubsystem` instance. Some are static utility classes. Know which is which:
-
-| System | Kind | How you reach it |
-|---|---|---|
-| `Iris` | static class | `Iris.Subscribe(...)`, `Iris.Publish(...)` |
-| `Scribe` | static class | `Scribe.Send<T>(...)` |
-| `Initium` | static class | `Initium.BootAndInitAsync(...)` |
-| `Nexus` | static class | `Nexus.LoadSceneAsync(...)` |
-| `Chronos` | subsystem, **static API** | `Chronos.DeltaTime`, `Chronos.TimeScale` (static members) |
-| `Sentinel` | subsystem instance | `Sentinel.TryGetSingleton(out var s)` |
-| `Dextra` | subsystem instance | `Dextra.TryGetSingleton(out var d)` |
-| `Aura` | subsystem instance | `Aura.TryGetSingleton(out var a)` |
-| `Threadlink` (core) | subsystem instance | `Threadlink.TryGetSingleton(out var core)` |
-| `ECSWorld` | subsystem instance | `ECSWorld.TryGetSingleton(out var world)` |
-
-> Chronos is unusual: it is a subsystem (it preloads its config and ticks via Iris), but its entire public surface is exposed as **static** properties for ergonomic, allocation‑free access.
+`TryGetSingleton` verifies both instance existence and continued linkage to the core, returning `false` cleanly during teardown. Subsystem references must not be cached across a scene transition without revalidation.
 
 ## E6. Scribe — Logging
-
-`Scribe` builds log strings allocation‑free (via ZString) and routes them to the Unity console. The pattern is **build → emit**:
 
 ```csharp
 using Threadlink.Core.NativeSubsystems.Scribe;
 
-// Static form — prefixes "[TypeName] - ":
-Scribe.Send<MySystem>("Player spawned at ", position).ToUnityConsole();                 // Info
-Scribe.Send<MySystem>("Low health: ", hp).ToUnityConsole(DebugType.Warning);
-Scribe.Send<MySystem>("Asset load failed: ", id).ToUnityConsole(DebugType.Error);
-
-// Extension form on any object — prefixes "[GetType().Name] - ":
-this.Send("Deployed.").ToUnityConsole();
+this.Send("Loaded ", count, " entries.").ToUnityConsole();
+Scribe.Send<MySystem>("Static context message.").ToUnityConsole(DebugType.Error);
 ```
 
-- `Send<T>(params object[])` and `this.Send(params object[])` return a `Utf8ValueStringBuilder`. Nothing is logged until you call **`.ToUnityConsole(DebugType)`**.
-- `DebugType` is `{ Info, Warning, Error }`, mapping to `Debug.Log` / `LogWarning` / `LogError`.
+`Send` accepts `params object[]` and appends each element to a ZString builder, so multi-argument invocation avoids materialising an interpolated string. The message prefix is a type name: the runtime type of the receiver for the extension form, or the supplied type argument for the static form. `DebugType` enumerates `Info`, `Warning`, and `Error`.
 
-There is no separate `Warn`/`Error` method — the level is the argument to `ToUnityConsole`.
+Scribe is the logging path throughout the framework, including editor tooling.
 
 ## E7. Chronos — Time
 
-All time values are **static** members of `Chronos`. Read time through Chronos, not Unity's `Time`, so your code respects the framework's pause semantics.
+| Member | Semantics |
+|---|---|
+| `TimeScale` | Accepts only 0 or 1. Assignment publishes `OnGamePaused` or `OnGameResumed`. |
+| `RawTimeScale` | Identical restriction; publishes nothing. |
+| `DeltaTime`, `SmoothDeltaTime`, `UnscaledDeltaTime`, `FixedDeltaTime` | Cached once per tick. |
+| `CurrentFramerate`, `CurrentTimeSinceDeployment` | Derived values. |
+| `TotalPlaytime`, `CountTotalPlaytime`, `PlaytimeCountingMode`, `ClearTotalPlaytime()` | `PlaytimeCountMode` enumerates `Scaled` and `Unscaled`. |
+| `Start()`, `Stop()` | Subscribe and unsubscribe the internal tick handlers. |
 
-```csharp
-float dt        = Chronos.DeltaTime;            // scaled
-float sdt        = Chronos.SmoothDeltaTime;       // scaled, smoothed
-float fdt        = Chronos.FixedDeltaTime;        // physics step
-float udt        = Chronos.UnscaledDeltaTime;     // ignores TimeScale (UI, pause menus)
-double fps       = Chronos.CurrentFramerate;      // 1 / DeltaTime
-float since      = Chronos.CurrentTimeSinceDeployment;
-float playtime   = Chronos.TotalPlaytime;
-```
+Playtime accumulation publishes `OnPlaytimeCountTick` with the running total each frame while `CountTotalPlaytime` is set.
 
-### E7.1 Pausing — `TimeScale` accepts only 0 or 1
+### E7.1 Manual Physics Simulation
 
-```csharp
-Chronos.TimeScale = 0f;   // pause  → publishes OnGamePaused
-Chronos.TimeScale = 1f;   // resume → publishes OnGameResumed
-```
+When `ChronosConfig.IrisPhysicsUpdate` is enabled, `Chronos.Boot()` assigns `Physics.simulationMode = SimulationMode.Script` and steps `Physics.Simulate(Time.fixedDeltaTime)` on each `OnFixedUpdate`.
 
-> **There is no slow‑motion via `TimeScale`. Manually manipulate Unity's Time.deltaTime for slow-motion mechanics. This is by design to clearly denote intent.** The setter only accepts `0` or `1`; any other value is ignored. `RawTimeScale` exists to change Unity's `Time.timeScale` (also only 0/1) **without** firing Iris events — use it when you need to suppress the pause/resume broadcast.
+The setting must remain disabled where another framework owns the simulation. The simulation mode is global state: any additional code assigning `SimulationMode.Script` and stepping independently produces double stepping. No runtime guard enforces exclusivity.
 
-### E7.2 Playtime tracking
+## E8. Nexus — Scene Management
 
-```csharp
-Chronos.CountTotalPlaytime = true;                         // on by default
-Chronos.PlaytimeCountingMode = Chronos.PlaytimeCountMode.Scaled;  // or Unscaled
-Chronos.ClearTotalPlaytime();
-```
+`Nexus` is a static class.
 
-While counting, Chronos publishes **`OnPlaytimeCountTick`** (`Action<float>`, the running total) each frame.
-
-### E7.3 Manual physics
-
-If the **Chronos Config**'s "Iris Physics Update" is enabled, Chronos sets `Physics.simulationMode = Script` and calls `Physics.Simulate()` itself each `OnFixedUpdate`. Disable this when an external framework (e.g. a deterministic simulation) must own the physics step instead.
-
-## E8. Nexus — Scenes
-
-`Nexus` (static) performs scene transitions with a built‑in audio‑fade / fader / loading‑screen pipeline. You drive it with an **`ISceneEntry`**, not a bare scene ID.
-
-### E8.1 The `Nexus.ISceneEntry` contract
+### E8.1 The `ISceneEntry` Contract
 
 ```csharp
 public interface ISceneEntry
@@ -626,202 +546,186 @@ public interface ISceneEntry
     float MusicVolume { get; }
     float AtmosVolume { get; }
 
-    UniTask OnBeforeUnloadedAsync()  => UniTask.CompletedTask;  // virtual
-    UniTask OnFinishedLoadingAsync() { /* default: transitions Aura to this scene's audio */ }
+    UniTask OnFinishedLoadingAsync();   // default: completed
+    UniTask OnBeforeUnloadedAsync();    // default: completed
 }
 ```
 
-Implement it to bind a scene to its music/ambience. The default `OnFinishedLoadingAsync` loads the declared clips and transitions Aura to them; override it to add your own post‑load setup (spawning the player, positioning the camera, etc.).
+The interface may be implemented on any type: a ScriptableObject, a struct, or an asset type belonging to another framework. Both asynchronous members carry default implementations.
 
-### E8.2 Loading
-
-```csharp
-await Nexus.LoadSceneAsync(mySceneEntry);
-```
-
-The transition, in order:
-1. Fade the audio listener to silence (if Aura is present) **and** show the fader (`OnDisplayFaderAsync`).
-2. Show the loading screen (`OnDisplayLoadingScreenAsync`).
-3. Hide the fader (`OnHideFaderAsync`).
-4. Ask which scene is active (`OnActiveSceneRequested` → `ISceneEntry`); if one exists: `OnBeforeUnloadedAsync()`, publish `OnBeforeActiveSceneUnload`, unload it, publish `OnActiveSceneFinishedUnloading`.
-5. Load the new scene; publish `OnNewSceneFinishedLoading` (payload: the entry).
-6. `await entry.OnFinishedLoadingAsync()`; publish `OnNexusLoadingFinished`.
-7. Re‑show the fader, hide the loading screen, fade audio back up, hide the fader.
-
-> **You must service the presentation events.** Nexus publishes `OnDisplayFaderAsync` / `OnHideFaderAsync` / `OnDisplayLoadingScreenAsync` / `OnHideLoadingScreenAsync` as `Func<UniTask>` and `OnActiveSceneRequested` as `Func<ISceneEntry>`. Your UI layer must subscribe to these and return real tasks/values, or transitions will not display anything. Likewise something must answer `OnActiveSceneRequested` with the currently‑loaded entry so Nexus can unload it.
-
-### E8.3 Spawn points
-
-Spawn points are identified by the generated `ThreadlinkIDs.Nexus.SpawnPoints` enum (designers author the names; see Part II). The enum is consumed by your own spawn‑resolution logic — Nexus provides the IDs and the load pipeline; you decide how an entry maps an ID to a transform.
-
-## E9. Dextra — Input & UI
-
-`Dextra` (subsystem instance) unifies input and UI atop Unity's Input System and UGUI.
-
-### E9.1 Devices
+### E8.2 Transition Sequence
 
 ```csharp
-public enum InputDevice : byte { MouseAndKeyboard, XBOXController, PSController, SwitchProController }
+await Nexus.FadeToLoadingScreenAsync();
+await Nexus.UnloadActiveSceneAsync();
+await Nexus.LoadNewSceneAsync(entry);
+await Nexus.FadeToGameplayAsync();
 ```
 
-Dextra auto‑detects the active device from the current control scheme (distinguishing DualShock, Switch Pro, and generic/Xbox pads) and, on change, zeroes all gamepad rumble and publishes **`OnInputDeviceChanged`** (`Action<Dextra.InputDevice>`). Read the current device via `dextra.CurrentInputDevice`.
+`UnloadActiveSceneAsync` obtains the current entry via `Iris.Publish<ISceneEntry>(OnActiveSceneRequested)`. The project must supply a provider for that `Func` event; without one, unloading is a no-op.
 
-### E9.2 Input modes & maps
+Event order across a complete transition:
 
-Modes are mapped to Input System action maps in the **Dextra Config**; retrieve a mode's map with:
+| Order | Event | Payload |
+|---|---|---|
+| 1 | `OnActiveSceneRequested` | returns `ISceneEntry` |
+| 2 | `OnBeforeActiveSceneUnload` | `ISceneEntry` |
+| 3 | `OnActiveSceneFinishedUnloading` | `ISceneEntry` |
+| 4 | `OnNewSceneFinishedLoading` | `ISceneEntry` |
+| 5 | `OnNexusLoadingFinished` | `ISceneEntry` |
+
+Between phases 4 and 5, `LoadNewSceneAsync` activates the loaded scene, boots its discoverables through Initium, and executes the audio transition concurrently with `OnFinishedLoadingAsync`.
+
+`FadeToLoadingScreenAsync` and `FadeToGameplayAsync` drive four `Func<UniTask>` events — `OnDisplayFaderAsync`, `OnHideFaderAsync`, `OnDisplayLoadingScreenAsync`, `OnHideLoadingScreenAsync` — in addition to Aura's listener volume fade. Each requires exactly one provider.
+
+### E8.3 Teardown Ordering
+
+Iris dispatches in reverse subscription order; objects subscribing latest are notified first. Scene-placed components boot during `LoadNewSceneAsync` and therefore execute their `OnBeforeActiveSceneUnload` handlers before subsystems that subscribed at deployment. Teardown logic must not assume the inverse ordering.
+
+## E9. Dextra — Input and UI
+
+### E9.1 Device Resolution
+
+`Dextra.InputDevice` enumerates `MouseAndKeyboard`, `Xbox`, `PlayStation`, and `Switch`. `CurrentInputDevice` updates automatically and publishes `OnInputDeviceChanged`. `TryGetInputIcon(device, controlPath, out Sprite)` resolves the corresponding glyph.
+
+### E9.2 Input Modes
 
 ```csharp
-if (dextra.TryGetInputMap(ThreadlinkIDs.Dextra.InputModes.Gameplay, out InputActionMap map))
-    map.Enable();
+dextra.SetInputMapActive(ThreadlinkIDs.Dextra.InputModes.Gameplay, true);
+dextra.TryGetInputMap(mode, out InputActionMap map);
 ```
 
-> Enabling/disabling the retrieved `InputActionMap` is done by your code.
+The mode-to-`InputActionReference` mapping resides on the Dextra Config as a `FieldHashMap`.
 
-### E9.3 The UI stack
+### E9.3 The UI Stack
 
-UI screens are types deriving from `UserInterface`. They are preloaded from the **Dextra Config**'s interface list, instantiated once (`DontDestroyOnLoad`), and managed as a stack:
+Interfaces derive from `UserInterface`, or `UserInterface<S>` for a singleton, and require a `CanvasGroup`. They are not discovered by Initium: Dextra instantiates them from `DextraConfig.interfacePointers` — Addressable prefab identifiers — marks them `DontDestroyOnLoad`, forces alpha to zero, and boots them.
+
+Introducing a stacked interface therefore requires constructing the prefab, mapping it through the Addressables Mapping Window, and adding its identifier to `interfacePointers`.
 
 ```csharp
-dextra.Stack<PauseMenu>();             // push a screen
-dextra.Stack<ConfirmDialog, string>("Quit?");  // push with stacking data
-dextra.Cancel();                       // pop the top (if it's cancellable)
-dextra.ClearStackedInterfaces();       // clear the whole stack
-bool top = dextra.IsTopInterface(myUI);
-dextra.SelectUIElement(go).Forget();   // drive EventSystem selection
+dextra.Stack<PauseMenuUI>();
+dextra.Stack<ShopUI, ShopData>(data);   // implements IStackingDataPreprocessor<ShopData>
+dextra.PopTopInterface();
+dextra.Cancel();
+dextra.ClearStackedInterfaces();
+Dextra.IsTopInterface<PauseMenuUI>();
 ```
 
-`UserInterface` screens receive lifecycle callbacks as they move through the stack: `OnStacked`, `OnCovered`, `OnResurfaced`, `OnPopped`. Optional marker interfaces refine behavior:
+Marker interfaces:
 
 | Interface | Effect |
 |---|---|
-| `ICancellableInterface` | Screen can be cancelled (back‑navigation); receives `OnCancelled()` and triggers `OnUICancelled`. |
-| `IPersistentInterface` | Stays visible when another screen stacks on top. |
-| `IInteractableInterface` / `IInteractableInterface<T>` | Screen contains selectable elements (`T : DextraSelectable`). |
-| `IStackingDataPreprocessor<T>` | Receives `Preprocess(T)` when stacked with data. |
+| `ICancellableInterface` | Receives `OnCancelled()` and `OnSubPanelCancelled()` |
+| `IPersistentInterface` | Exempt from concealment when overlaid |
+| `IInteractableInterface`, `IInteractableInterface<T>` | Declares selectable content; the generic form exposes the collection |
+| `IStackingDataPreprocessor<T>` | Preprocesses the stacking payload |
 
-### E9.4 Input icons & interactables
+Scene-placed interfaces outside the stack are not managed by it. `ClearStackedInterfaces()` does not affect them, and `DontDestroyOnLoad` instances persist across transitions. Concealment must be invoked explicitly.
 
-- **Input icons:** `dextra.TryGetInputIcon(device, controlPath, out Sprite)` resolves the right glyph; `DextraInputIcon` components in the scene are auto‑activated on `OnCoreDeployed` to listen for device changes. Control paths use the serializable `DextraInputControlPath` wrapper.
-- **Interactables:** derive from `Interactable2D` or `Interactable3D` (which derive from `Interactable : LinkableBehaviour`). They carry an `InteractableConfig` (interaction prompt + options). On detection an interactable either fires immediately (`InteractOnContact`) or subscribes its `Interact()` to the **`OnInteract`** event (`Func<bool>`), so publishing `Iris.Publish<bool>(OnInteract)` triggers the in‑range interactable. Detection is handled by `InteractablesDetector2D`/`InteractablesDetector3D`/`EntityDetector`, which publish `OnInteractableDetected` / `OnInteractableOutOfRange`.
+### E9.4 Interactables
 
-## E10. Aura — Audio (Runtime API)
+`Interactable` derives from `LinkableBehaviour` and carries an `InteractableConfig`. `EntityDetector2D` and `EntityDetector3D` are trigger-collider components publishing `OnInteractableDetected` and `OnInteractableOutOfRange`. On detection, an interactable subscribes its `Interact` method as `Func<bool>` to `OnInteract`.
 
-`Aura` is a `Linker<Aura, AuraSpatialObject>` with three sources (Music, Atmos, SFX). Access via `Aura.TryGetSingleton(out var aura)`.
+`OnInteract` is a `Func` event, so at most one interactable may be in range at any time. Overlapping active areas violate this constraint and throw.
+
+## E10. Aura — Audio
 
 ```csharp
-// Global (max) music & ambience volumes — clamped 0..1:
-aura.SetGlobalVolumes(musicVolume, atmosVolume);
-
-// Fade the audio listener (used by Nexus transitions):
+aura.DriveAudioListener(position, rotation);     // position-only and rotation-only overloads exist
+aura.PlayUISFX(Aura.UISFX.Confirm);
 await aura.FadeAudioListenerVolumeAsync(0f);
-
-// Swap the current music/ambience with a cross-fade:
-await aura.TransitionToAudioScenarioAsync(musicClip, atmosClip, musicVolume, atmosVolume);
-
-// One-shot UI SFX (clips come from the Aura Config):
-aura.PlayUISFX(Aura.UISFX.Confirm);     // also: Cancel, Navigate
-aura.PlayUISFX(Aura.UISFX.Cancel, volume: 0.8f);
-
-// Parent the audio listener to a moving owner; auto-reparents on the owner's Discard:
-aura.AttachAudioListenerTo(ownerBehaviour, ownerTransform);
+await aura.TransitionToAudioScenarioAsync(music, atmos, musicVolume, atmosVolume);
+aura.SetGlobalVolumesMax(musicVolume, atmosVolume);
+aura.TryGetMixerValue(name, out float value);
+aura.TrySetMixerValue(name, value);
+await aura.FadeAudiosourceVolumeAsync(source, target);
+aura.MoveTowardsVolume(source, target);
 ```
 
-Spatial ducking is automatic: every active `AuraSpatialObject`/`AuraZone` linked to Aura contributes an inverse‑distance influence that lowers Music/Atmos as the listener approaches. Zones are linked on `OnNexusLoadingFinished` and disconnected on `OnBeforeActiveSceneUnload`. Fades use `Chronos.UnscaledDeltaTime × VolumeFadeSpeed`.
+The AudioListener transform is driven rather than parented: some component must invoke `DriveAudioListener` each frame, conventionally a camera controller on `OnLateUpdate`. Absent a driver, the listener retains its last assigned transform. Scene transitions require particular attention, as the previous driver is destroyed before its successor exists.
 
-## E11. Sentinel — Save & Load
+`AuraZone` components link automatically through `TryLink` and disconnect on scene unload.
 
-`Sentinel` (subsystem instance) is an **environment‑aware, byte‑oriented** I/O layer. It does not serialize for you and it does not deal in typed records — it reads and writes **`byte[]`** addressed by a **folder ID** and a **file ID**. You serialize first (MessagePack via the core helpers), then write.
+## E11. Sentinel — Persistence
 
-### E11.1 Environments
+Sentinel is an environment-aware IO subsystem operating exclusively on byte arrays. Text-based schemes such as JSON are outside its scope.
 
-The save backend is a `Sentinel.Environment` chosen in the **Sentinel Config** via a `[SerializeReference]` field. Implementations:
+```csharp
+await sentinel.DeployEnvironmentAsync();
+bool written = await sentinel.TryWriteToStorageAsync(folderID, fileID, bytes);
+byte[] data = await sentinel.ReadFromStorageAsync(folderID, fileID);
+sentinel.DeleteStoredData(folderID, fileID);
+```
+
+`CurrentOperationState` enumerates `Idle`, `Deploying`, `Reading`, and `Writing`. `EnvironmentDeployed` reports readiness.
+
+The environment is a `[SerializeReference]` field on the Sentinel Config deriving from `Sentinel.Environment`:
 
 | Environment | Status |
 |---|---|
-| Steam | Implemented |
-| XBOX (incl. Microsoft Store / GDK) | Implemented (requires the GDK package → `THREADLINK_SENTINEL_XBOX`) |
-| PlayStation | **Stub** — throws `NotImplementedException` |
-| NintendoSwitch | **Stub** — throws `NotImplementedException` |
+| `Steam` | Implemented |
+| `XBOX` | Implemented via GDK, covering Microsoft Store; requires `THREADLINK_SENTINEL_XBOX` |
+| `PlayStation` | Stubbed; members declared, not implemented |
+| `NintendoSwitch` | Stubbed; members declared, not implemented |
 
-In the **Editor**, Sentinel short‑circuits to a "deployed" state and uses local paths, so you can develop save/load without a platform SDK.
-
-### E11.2 The flow
-
-```csharp
-// 0) Deploy the environment once before any I/O (no-op/auto in editor):
-await sentinel.DeployEnvironmentAsync();
-
-// 1) Serialize your data to bytes (MessagePack, via the core):
-[MessagePackObject]
-public sealed class SaveData { [Key(0)] public int Level; [Key(1)] public float Playtime; }
-
-Threadlink.TrySerialize(new SaveData { Level = 5, Playtime = 1234f }, out byte[] bytes);
-
-// 2) Write:
-bool ok = await sentinel.TryWriteToStorageAsync("profiles", "slot0", bytes);
-
-// 3) Read & deserialize:
-byte[] loaded = await sentinel.ReadFromStorageAsync("profiles", "slot0");
-if (loaded != null && Threadlink.TryDeserialize(loaded, out SaveData data)) { /* … */ }
-
-// 4) Delete:
-sentinel.DeleteStoredData("profiles", "slot0");
-```
-
-`CurrentOperationState` (`Idle`/`Deploying`/`Reading`/`Writing`) guards against overlapping operations — a read/write is rejected unless the environment is deployed and currently `Idle`. Serialization uses `Threadlink.serializerOptions` (default `MessagePackSerializerOptions.Standard`); customize that field if needed.
+Serialisation is the caller's responsibility. `Threadlink.TrySerialize<T>` and `TryDeserialize<T>` provide MessagePack wrappers.
 
 ## E12. Vault — Runtime API
 
-A `Vault` (a `LinkableAsset`) holds a `RefHashMap<ThreadlinkIDs.Vault.Fields, DataField>`. Read and write fields by ID:
-
 ```csharp
-// Strongly-typed get/set:
-if (vault.TryGet<float>(ThreadlinkIDs.Vault.Fields.MoveSpeed, out float speed)) { … }
-vault.TrySet<float>(ThreadlinkIDs.Vault.Fields.MoveSpeed, 7.5f);
-
-// Existence / field-object access:
-bool has = vault.Has(ThreadlinkIDs.Vault.Fields.MoveSpeed);
-vault.TryGetDataField(id, out DataField field);
-vault.TryGetGenericDataField<float>(id, out DataField<float> typed);   // exposes .Value + OnValueChanged
-vault.TryGetConcreteDataField<DataFields.Float>(id, out var concrete);
+vault.Has(fieldID);
+vault.TryGetDataField(fieldID, out DataField field);
+vault.TryGetGenericDataField<float>(fieldID, out DataField<float> field);
+vault.TryGetConcreteDataField<Float>(fieldID, out Float field);
+vault.TryGet<float>(fieldID, out float value);
+vault.TrySet<float>(fieldID, value);
 ```
 
-Field backing types live in `Threadlink.Vault.DataFields` (`Integer`, `Float`, `Boolean`, `Double`, `Long`, `Integer2D`, `Float2D`, `Vector2D`, `Vector3D`, `Rotation`, `UnityGameObject`, and `LocalizedText` under `THREADLINK_LOCALIZATION`). Each `DataField<T>` exposes a `Value` property and an `OnValueChanged` event. To add a new field type, declare a `[Serializable] public sealed class MyField : DataField<MyType> { }`.
+Fields are stored in a `RefHashMap<ThreadlinkIDs.Vault.Fields, DataField>`, backed by `[SerializeReference]` to permit polymorphic field types.
 
-**Timeline integration** (under `THREADLINK_TIMELINE`): `VaultMarker` is a Timeline `Marker` that pushes a configured set of field values onto a `Vault` when the playhead reaches it (via `VaultTrack`/`VaultReceiver`). `VaultMarker` is *not* a scene component for linking GameObjects to Vaults.
+`DataField<T>` exposes `Value` and an `OnValueChanged` event. The backing is either `SerializedValue<T>` or `TransientValue<T>`; the transient variant is `[NonSerialized]` and resets per session. As a Vault is a ScriptableObject, transient state persists across editor play-mode sessions unless explicitly reset.
 
-## E13. Resource Loading (Addressables)
+Under `THREADLINK_TIMELINE`, `VaultMarker`, `VaultTrack`, and `VaultReceiver` permit a Timeline to write into a Vault.
 
-The core wraps Addressables behind the generated ID enums. All enum‑ID methods are instance methods on the core (`Threadlink.TryGetSingleton(out var core)`); `AssetReference` overloads are static.
+## E13. Resource Loading
+
+Two parallel APIs exist: one keyed by generated identifier, one accepting an `AssetReference` directly.
 
 ```csharp
-// Assets (sync + async), by generated ID:
-T  a1 = core.LoadAsset<T>(ThreadlinkIDs.Addressables.Assets.SomeAsset);
-T  a2 = await core.LoadAssetAsync<T>(ThreadlinkIDs.Addressables.Assets.SomeAsset);
+core.LoadAsset<T>(ThreadlinkIDs.Addressables.Assets id);
+Threadlink.LoadAsset<T>(AssetReference reference);
+await core.LoadAssetAsync<T>(id);
+await Threadlink.LoadAssetAsync<T>(reference);
 
-// Prefabs (returns the requested component on the prefab):
-T  p1 = core.LoadPrefab<T>(ThreadlinkIDs.Addressables.Prefabs.SomePrefab);
-T  p2 = await core.LoadPrefabAsync<T>(ThreadlinkIDs.Addressables.Prefabs.SomePrefab);
+core.LoadPrefab<T>(ThreadlinkIDs.Addressables.Prefabs id);       // T : Component
+await core.LoadPrefabAsync<T>(id);
 
-// Scenes:
-SceneInstance s = await core.LoadSceneAsync(ThreadlinkIDs.Addressables.Scenes.Level01, LoadSceneMode.Single);
-await core.UnloadSceneAsync(ThreadlinkIDs.Addressables.Scenes.Level01);
+await core.LoadSceneAsync(ThreadlinkIDs.Addressables.Scenes id, LoadSceneMode mode);
+await core.UnloadSceneAsync(id);
 
-// Release:
-core.ReleaseAsset(assetID);
-core.ReleasePrefab(prefabID);
-
-// Static AssetReference overloads:
-T a3 = await Threadlink.LoadAssetAsync<T>(someAssetReference);
+core.ReleaseAsset(id);
+core.ReleasePrefab(id);
 ```
 
-The four ID groups — `ThreadlinkIDs.Addressables.Assets / Prefabs / Scenes / NativeResources` — are generated from the reference lists on the **User Config** (Assets/Prefabs/Scenes) and the **Native Config** map (NativeResources). Serialization helpers `Threadlink.TrySerialize/TryDeserialize` (MessagePack) round out the core's data API.
+Query and validation:
 
-## E14. Writing a Custom Subsystem
+```csharp
+core.TryGetAssetReference(id, out AssetReference reference);
+core.TryGetPrefabReference(id, out AssetReferenceGameObject reference);
+core.TryGetSceneReference(id, out SceneAssetReference reference);
+core.CheckIDValidity(id);
+```
 
-Registering a subsystem is a **two‑file** operation that mirrors the native setup.
+All lookups resolve through the User Config's keyed maps and validate `RuntimeKeyIsValid()`, reporting failure through Scribe.
 
-**Step 1 — Register a factory** in `Threadlink User/Engineering/Codebase/WeavingFactory.User.cs`:
+The `AssetReference` overloads exist for portable modules: a module may hold its own references without depending on the consuming project's generated `Assets` enumeration.
+
+## E14. Implementing a Subsystem
+
+Registration spans two files.
+
+**Factory registration** in `WeavingFactory.User.cs`:
 
 ```csharp
 internal static class UserWeavingFactory
@@ -829,13 +733,12 @@ internal static class UserWeavingFactory
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void Register()
     {
-        WeavingFactory.Register<InventorySystem>();   // requires a public parameterless ctor
-        WeavingFactory.Register<QuestSystem>();
+        WeavingFactory.Register<InventorySystem>();   // requires a public parameterless constructor
     }
 }
 ```
 
-**Step 2 — Weave it** in `Threadlink User/Engineering/Codebase/Subsystems.User.cs`:
+**Weaving** in `Subsystems.User.cs`:
 
 ```csharp
 private static List<IThreadlinkSubsystem> WeaveSubsystems()
@@ -843,405 +746,409 @@ private static List<IThreadlinkSubsystem> WeaveSubsystems()
     var buffer = new List<IThreadlinkSubsystem>
     {
         Threadlink.Weave<InventorySystem>(),
-        Threadlink.Weave<QuestSystem>(),
     };
-
-    // To enable the netcode module, also call:
-    // ThreadlinkNetcode.WeaveSubsystems(buffer);   // and ThreadlinkNetcode.RegisterSubsystems() in the factory above
 
     Iris.Unsubscribe<Func<List<IThreadlinkSubsystem>>>(REGISTRATION_EVENT, WeaveSubsystems);
     return buffer;
 }
 ```
 
-`Threadlink.Weave<T>()` calls the registered factory and links the instance into the core. Your subsystem then flows through the standard Preload→Boot→Init pipeline during deployment, and you reach it anywhere via `T.TryGetSingleton(out var x)`. Implement only the lifecycle interfaces you need (`IAddressablesPreloader` / `IBootable` / `IInitializable` / `IDiscardable`).
+The subsystem then traverses the preload, boot, and initialise pipeline during deployment and is accessible through `InventorySystem.TryGetSingleton(out var instance)`. Only the required lifecycle interfaces need be implemented.
 
-> `WeavingFactory.Register<T>()` and the equivalent `ThreadlinkSubsystems.Register<T>()` both register `() => new T()`. For non‑trivial construction, register a custom factory delegate via `WeavingFactory<T>.OnCreate`.
+> Non-trivial construction is accommodated by assigning a factory delegate to `WeavingFactory<T>.OnCreate` in place of `Register<T>()`.
 
-## E15. The Entity Component System (ECS)
+Enabling netcode requires invoking `ThreadlinkNetcode.WeaveSubsystems(buffer)` in the weave method, `ThreadlinkNetcode.RegisterSubsystems()` in the factory, and adding the netcode assembly to `Threadlink.User.asmdef`.
 
-Threadlink's ECS is an **unsafe, pointer‑based, zero‑GC** world for high‑throughput simulation. It is engineer‑only and entirely separate from `MonoBehaviour` gameplay. `ECSWorld` is a subsystem (`ThreadlinkSubsystem<ECSWorld>, IDisposable`) — register it like any user subsystem (the netcode module registers it for you).
+## E15. Entity Component System
+
+An unsafe, pointer-based, allocation-free world for high-throughput simulation. `ECSWorld` is a project-registered subsystem.
 
 ### E15.1 Components
 
-A component is an `unmanaged` struct implementing `IComponent` (which requires `Dispose()`), marked `[RuntimeComponent]` so the registry assigns it a deterministic bit index at boot:
-
 ```csharp
-using Threadlink.ECS;
-using Unity.Mathematics;
-
 [RuntimeComponent]
 public struct Position : IComponent { public float3 Value; public readonly void Dispose() { } }
-
-[RuntimeComponent]
-public struct Velocity : IComponent { public float3 Value; public readonly void Dispose() { } }
 ```
 
-> For IL2CPP/managed‑stripping targets, also apply `[UnityEngine.Scripting.Preserve]` to each component — `ComponentRegistry.Hydrate()` warns at boot if a `[RuntimeComponent]` is missing `[Preserve]`. Bit indices are assigned by sorting component types by hash, so they are stable across runs and machines.
+`IComponent` requires `Dispose()`. `[RuntimeComponent]` causes `ComponentRegistry.Hydrate()` to assign a bit index at boot. Indices derive from sorting component types by hash and are therefore stable across runs and machines.
 
-### E15.2 Entities & components
+> IL2CPP targets additionally require `[UnityEngine.Scripting.Preserve]`. The registry emits a warning at boot when it is absent.
+
+### E15.2 Entities
 
 ```csharp
 ECSWorld.TryGetSingleton(out var world);
 
-Entity e = world.CreateNewEntity();          // struct: { int ID; int Generation; }
-bool valid = world.IsValid(e);               // generation check guards against stale handles
-
-Position* p = world.Add<Position>(e);        // returns a pointer into dense storage
-p->Value = float3.zero;
-
-bool has = world.Has<Position>(e);
-if (world.TryGetPointer<Velocity>(e, out Velocity* v)) v->Value = new float3(1,0,0);
-
-world.Destroy(e);                            // recycles the ID with a bumped generation
+Entity entity = world.CreateNewEntity();
+Position* position = world.Add<Position>(entity);
+if (world.TryGetPointer<Velocity>(entity, out Velocity* velocity)) velocity->Value = new float3(1, 0, 0);
+bool present = world.Has<Position>(entity);
+world.Destroy(entity);
 ```
 
-`Entity` is a 8‑byte struct with an `ID` and a recycling `Generation`; destroyed IDs are reused with a new generation so stale handles fail `IsValid`.
+`Entity` carries an identifier and a recycling generation counter. Destroyed identifiers are reissued with an incremented generation, causing stale handles to fail `IsValid`.
 
-### E15.3 Iteration with function pointers
+### E15.3 Iteration
 
-Iteration uses **static function pointers** (no closures, no allocation). Provide a `static` method and pass its address:
+`ForEach` accepts function pointers rather than delegates, rendering closures impossible by construction:
 
 ```csharp
-// Iterate all entities that have BOTH components:
 world.ForEach<Position, Velocity>(&Integrate);
 
-static void Integrate(in Entity e, Position* p, Velocity* v)
-{
-    p->Value += v->Value * Chronos.DeltaTime;   // note: capture-free; read globals as needed
-}
+static void Integrate(in Entity entity, Position* position, Velocity* velocity)
+    => position->Value += velocity->Value;
 ```
 
-`ForEach` is overloaded for 1–4 components. To restrict further, compose an `ECSFilter` (a `readonly struct`, immutable fluent builder) and pass it:
+Overloads accept one through four component types, with and without an `ECSFilter`. Filters should be constructed once in `Boot()` and retained.
 
-```csharp
-var moving = new ECSFilter().With<Position>().With<Velocity>().Without<Frozen>();
-
-world.ForEach(in moving, &TouchEntity);                 // entity only
-world.ForEach<Position>(in moving, &TouchWithPosition);  // entity + Position*
-```
-
-`With<T>()`/`Without<T>()` return new filters; `Matches(in ComponentMask)` is the predicate the world applies. Filtered overloads also exist for 1–3 component payloads.
-
-### E15.4 Systems pattern & memory
-
-There is no base "system" class — a system is any object that subscribes to an Iris update event and calls `world.ForEach`:
-
-```csharp
-public sealed class MovementSystem : IBootable, IDiscardable
-{
-    private ECSFilter moving;
-    public void Boot()
-    {
-        moving = new ECSFilter().With<Position>().With<Velocity>();
-        Iris.Subscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, Tick);
-    }
-    private void Tick() => ECSWorld.TryGetSingleton(out var w); // then w.ForEach<…>(&…)
-    public void Discard() => Iris.Unsubscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, Tick);
-}
-```
-
-The world stores generations, free IDs, masks, and per‑type `ComponentPool<T>` in `UnsafeList`/native memory with `Allocator.Persistent`. `ECSWorld.Discard()` (called by the framework on teardown) disposes everything; in editor, `PreventEditorMemoryLeaks()` guards against domain‑reload leaks. An `EntityCommandBuffer` exists for deferred structural changes. Supporting tests in `ECS/Tests/` are the canonical usage reference.
+`EntityCommandBuffer` defers structural modification, permitting creation and destruction to be queued during iteration.
 
 ## E16. Deterministic Toolkit
 
-For lockstep/replay/networked determinism, never use `float` or `UnityEngine.Random` in simulation code. Threadlink provides two pieces.
+### E16.1 `DFP`
 
-### E16.1 `DFP` — deterministic floating point
+A software fixed-point type providing deterministic arithmetic, transcendental functions, and trigonometry. Required for any computation whose results must be identical across machines: networked simulation, replay, and procedural generation.
 
-`DFP` (in `Threadlink.Deterministic`) is a software `binary32` float (ported from CodesInChaos/SoftFloat) that produces **bit‑identical results on every CPU**. It's a `readonly struct` with the full operator set (`+ - * / %`, comparisons), explicit conversions to/from `float` and `int`, and constants (`DFP.Zero`, `DFP.One`, etc.).
+### E16.2 `StatelessRNG`
 
-```csharp
-using Threadlink.Deterministic;
-
-DFP speed = (DFP)5f;
-DFP dt     = (DFP)Chronos.FixedDeltaTime;
-DFP dist   = speed * dt;
-float view = (float)dist;   // convert back only for rendering/UI
-```
-
-Use `DFP` for simulation; convert to `float` only at the view boundary. Math helpers live alongside it (`Arithmetic`, `Transcendental`, `Trigonometry`).
-
-### E16.2 `StatelessRNG` — reproducible randomness
-
-`StatelessRNG` (static) is a hash‑based RNG: given the same global seed and the same inputs, it reconstructs the same stream — ideal for replays and netcode. You seed it once and sample through **scopes** keyed by a generated **domain** (engineers author domain names in `StatelessRNG.Domains.User.txt`).
+Stateless by construction: identical seed and inputs yield identical output, independent of call order or thread.
 
 ```csharp
-StatelessRNG.Boot(seed: 0xDEADBEEF);
+StatelessRNG.Boot(seed);
 
-var scope = StatelessRNG.CreateScope(ThreadlinkIDs.StatelessRNG.Domains.Loot);
-int roll      = scope.Range(1, 100);
-bool crit     = scope.Probability((DFP)0.05f);
-DFP spread     = scope.Range((DFP)(-1f), (DFP)1f);
-scope = scope.Advance();        // next deterministic state
-int idx       = scope.Index(itemCount);
+using var scope = StatelessRNG.CreateScope(ThreadlinkIDs.StatelessRNG.Domains.LootTables);
+int roll = scope.Range(1, 100);
+bool critical = scope.Probability((DFP)0.15f);
+DFP fraction = scope.Float01();
+int index = scope.Index(itemCount);
+
+var next = scope.Advance();
 ```
 
-`Scope` sampling: `Range(int,int)`, `Index(int)`, `Boolean()`, `Probability(DFP)`, `Float01()`, `Range(DFP,DFP)`, and `Advance()`. An overload `CreateScope<C>(domain, in context)` mixes a context identity into the stream. **RNG domains share the "append, never reorder" rule** — reordering breaks determinism across versions.
+`CreateScope<C>(domain, in C context)` mixes an additional `unmanaged` context structure into the scope identity, yielding independent streams per entity, per room, or per tick from a single domain.
 
-## E17. Netcode (Overview)
+Domains partition streams: systems drawing from a common seed under distinct domains do not interfere. New domains are declared in `StatelessRNG.Domains.User.txt`.
 
-> ATTENTION: The Threadlink Netcode is currently experimental and not fit for use in a production environment. While the foundation is functional, the module contains unpolished and even incorrect code for testing purposes. Do NOT use it unless it's explicitly exited its experimental phase in a future update.
+> Domain values are name hashes. Renaming a domain alters its stream, causing divergence in anything reproducing a prior sequence from a stored seed or replay. Domain names constitute part of the save format.
 
-The Netcode module is a **Steam P2P** networking layer built on the ECS, with deterministic transforms/animation, entity ownership, and a serialization pipeline. It is optional and engaged through the same two‑file registration as any user subsystem.
+## E17. Netcode
 
-To enable it:
+An opt-in Steam peer-to-peer module.
 
-```csharp
-// In UserWeavingFactory.Register():
-ThreadlinkNetcode.RegisterSubsystems();
+| Type | Responsibility |
+|---|---|
+| `Netflow` | Lobby flow subsystem: `HostLobby()`, `JoinLobby(id)`, `AutoJoinHostLobby()` |
+| `Netrunner` | Connection, session, ingress and egress, native allocation, network update loop |
+| `Networld` | Networked world state; binds ECS entities to scene players |
+| `TransportLayer`, `SteamTransportLayer` | Transport abstraction and Steam implementation |
+| `NetworkRouter`, `NetworkPayload`, `NetworkSerializer` | Message routing and wire format |
+| `HandshakeSubsystem`, `NetworkSpawningSubsystem`, `NetworkTransformSubsystem`, `NetworkAnimationSubsystem` | Feature subsystems |
+| `NetworkTransform`, `NetworkPlayableAnimator`, `NetworkClipLibrary` | Unity bridge components |
 
-// In UserSubsystemsConfig.WeaveSubsystems(buffer):
-ThreadlinkNetcode.WeaveSubsystems(buffer);
-```
+Flow providers `LocalSteamFlowProvider` and `RemoteSteamFlowProvider` implement `IFlowProvider`, permitting lobby behaviour substitution for local testing.
 
-That registers and weaves the full stack: `ECSWorld`, `Networld`, `EntityOwnershipRegistry`, `NetworkSerializer`, `Netrunner` (connectivity/session/update loop), `Netflow`, `NetworkRouter`, `HandshakeSubsystem`, `NetworkSpawningSubsystem`, `NetworkTransformSubsystem`, `NetworkClipLibrary`, and `NetworkAnimationSubsystem`. (Ensure your assembly definition references the netcode assemblies.)
+The module is experimental and under active development. Its API is not stable.
 
-Convenience surface (`ThreadlinkNetcode` / `NetcodeUtils`):
+## E18. Identifier Domains and Code Generation
 
-```csharp
-bool host = ThreadlinkNetcode.IsHost;
-ThreadlinkNetcode.TryGetLocalSteamUID(out CSteamID id);
-ThreadlinkNetcode.TryGetHostSteamUID(out ulong host);
+A single pipeline produces every enumeration under `Threadlink/Generated/` and `Threadlink User/Engineering/Codebase/Generated/`.
 
-// Entity extension methods:
-NetworkEntity ne = entity.AsNetworkEntity();
-bool mine   = entity.HasLocalAuthority();
-bool hosts  = entity.IsOwnedByHost();
-bool neutral= entity.IsNeutral();
-```
+### E18.1 Domain Kinds
 
-Because netcode depends on the ECS and `DFP`/`StatelessRNG`, build networked simulation with the deterministic toolkit (§16). Steam App ID setup and redistributable copying are handled by the editor build processor in the Steamworks integration. The deep netcode internals (transport, payload headers, flow providers) live in `Threadlink/Netcode/` and are beyond this manual's scope.
-
-## E18. ID Domains & Codegen (Engineer's View)
-
-There are **two** code generators. Know both.
-
-### E18.1 Native‑domain codegen (menu‑driven, template merge)
-
-Each built‑in domain has a **native template** (a `.txt` C# template with a placeholder, in `Editor/CodeGen/CodeGen Templates/`) and a **user template** (the `.txt` you edit). `EnumCodeGen` reads the user entries, joins them into the placeholder, formats with CSharpier, and overwrites the target generated `.cs`. References (templates + target scripts) are wired on the **`ThreadlinkConfig.Editor.asset`**.
-
-| Domain | User template | Owner | Menu item |
+| Kind | Value derivation | Removal semantics | Applies to |
 |---|---|---|---|
-| `ThreadlinkIDs.Iris.Events` | `Iris.Events.User.txt` | Engineering | `Threadlink ▸ CodeGen ▸ Run Iris Events CodeGen` |
-| `ThreadlinkIDs.StatelessRNG.Domains` | `StatelessRNG.Domains.User.txt` | Engineering | `Threadlink ▸ CodeGen ▸ Run RNG Domains CodeGen` |
-| `ThreadlinkIDs.Dextra.InputModes` | `Dextra.InputModes.User.txt` | Design | `Threadlink ▸ CodeGen ▸ Run Dextra Input Modes CodeGen` |
-| `ThreadlinkIDs.Nexus.SpawnPoints` | `Nexus.SpawnPoints.User.txt` | Design | `Threadlink ▸ CodeGen ▸ Run Nexus Spawn Points CodeGen` |
-| `ThreadlinkIDs.Vault.Fields` | `Vault.DataFields.User.txt` | Design | `Threadlink ▸ CodeGen ▸ Run Vault Fields CodeGen` |
-| `ThreadlinkIDs.Addressables.{Assets,Prefabs,Scenes}` | *(from User Config reference lists)* | Engineering | `Threadlink ▸ CodeGen ▸ Run Addressables CodeGen` |
+| **Identity** | `xxHash32` of the scope-qualified key | Retained as `[Obsolete]` tombstone with value preserved | All domains except Iris |
+| **Ordinal** | Dense index allocated in source order | Removed outright | `Iris.Events` |
 
-`Threadlink ▸ Run All CodeGens` runs every one. Generated files carry an "AUTO‑GENERATED … DO NOT EDIT MANUALLY" banner — **never hand‑edit them.**
+Identity is the default kind, guaranteeing that removal cannot shift another entry's value. Iris is ordinal because dispatch indexes `EventRegistry` with the value directly. As Iris values are never serialised, outright removal producing compilation failure is the correct failure mode.
 
-### E18.2 Custom user domains (automatic, file‑watched)
+### E18.2 Sources
 
-`ThreadlinkIDsImporter` is an `AssetPostprocessor`. Any `.txt` file you drop into the **User Domain Definitions Folder** (configured on the Editor Config) is automatically turned into an `enum` named after the file, in namespace `Threadlink.User`, written to the **User Domain Scripts Folder**. Each line becomes `Name = <xxHash32(name)>`, prefixed with `None = 0`. Spaces become nothing and dashes become underscores. No menu command needed — saving the file regenerates the enum. Use this for arbitrary game‑specific ID sets that don't belong to a built‑in domain.
+Domain entries originate from up to three sources, merged in order:
 
-## E19. Collections & Utilities
+1. **Native entries** — a framework-owned `.txt` (`Iris.Events.Native.txt`, `Addressables.NativeResources.Native.txt`).
+2. **Injectors** — files named `{DomainName}.{Injector}.txt` within the injector directory. The injector name becomes the **scope**, folded into each entry's hash key. `Iris.Events.User.txt` is the injector named `User`.
+3. **Domain definitions** — a `.txt` within the definitions directory declares an entirely new enumeration named after the file, emitted through the shared `CustomDomain.Shell.txt` into namespace `Threadlink.User`.
 
-**Serializable maps** (`Threadlink.Collections`), both deriving from `ThreadlinkHashMap<TKey,TValue>`:
+Injectors may extend domain definitions on identical terms to native domains, permitting a third-party module to supply content for a project-defined domain.
 
-| Type | Backing | Use for |
+Modules use this mechanism. A module requiring its own Iris events ships `Iris.Events.MyModule.txt`; placing it in the injector directory constitutes the entire installation procedure. Module entries are appended after project entries and cannot displace them.
+
+> A module's injector filename forms part of its data contract. Renaming `Iris.Events.Photon.txt` to `Iris.Events.PhotonQuantum.txt` alters the scope and therefore every identity-domain value that injector contributes.
+
+### E18.3 Manifests
+
+Each domain maintains a `{DomainName}.manifest.json` adjacent to its generated script, recording every entry's key, member name, scope, and value. Manifests are version-controlled artefacts and establish identity stability:
+
+- An assigned member name survives regeneration unchanged.
+- Name collisions resolve deterministically: a second entry claiming `Splash` is qualified as `GroupName_Splash`, and the incumbent is never displaced.
+- Removed entries are flagged as tombstoned rather than discarded.
+- Hash collisions are detected and rehashed under a recorded seed offset, rendering the resolution reproducible.
+
+Each pass emits an addition, removal, rename, rescope, and collision summary through Scribe.
+
+### E18.4 Shells
+
+A **shell** supplies the C# scaffolding for a generated file — namespace, documentation comment, enumeration declaration, and a `{DOMAIN_ENTRIES}` substitution token. `CustomDomain.Shell.txt` carries an additional `{DOMAIN_NAME}` token, permitting one template to serve every project-defined domain.
+
+Shells declare sentinels (`None = 0`, `Unresponsive = 0`) as literal members, and the allocator is configured to reserve those values. Shells do not declare generated entries.
+
+### E18.5 Generation Triggers and Guards
+
+An `AssetPostprocessor` monitors every native-entries file and all three directories, regenerating on any `.txt` modification. **`Threadlink ▸ CodeGen ▸ Run Domain CodeGen`** forces a pass.
+
+The pipeline enforces:
+
+- Output confinement to the configured generated directories, preventing a misconfigured domain from overwriting hand-authored source.
+- Abort on two domains resolving to the same output path.
+- Diagnostic reporting, by filename, of any injector whose prefix matches no declared domain.
+- Rejection of injectors carrying more than one segment after the domain name; `{DomainName}.{Injector}.txt` is the sole accepted form.
+- Emission of a sentinel-only enumeration, with warning, for a domain yielding zero entries.
+
+### E18.6 Addressables Mapping Window
+
+**`Threadlink ▸ Addressables ▸ Mapping Window`** enumerates every writable Addressable group with its member assets and a per-asset selection toggle. **Apply** performs:
+
+1. Emission of one injector per group per reference kind — `Addressables.Assets.{Group}.txt` and equivalents — into the Addressables injector directory.
+2. Regeneration of the three Addressables domains.
+3. Reconstruction of the User Config reference maps from the resulting manifests.
+
+Group names are sanitised into scopes: `Test Assets` yields `Test_Assets`. Two groups sanitising to an identical scope are reported by warning, as entries sharing a name across them would collide.
+
+Apply purges before rewriting, so deselection unmaps. Injector files in that directory are generated output and are not hand-edited.
+
+## E19. Collections and Utilities
+
+**Serialisable maps** in `Threadlink.Collections`, both deriving from `ThreadlinkHashMap<TKey, TValue>` — bucket-indexed, allocation-free, driven by `ISerializationCallbackReceiver`:
+
+| Type | Value backing | Application |
 |---|---|---|
-| `FieldHashMap<K,V>` | `[SerializeField]` values | Concrete value types / Unity object refs (used by configs). |
-| `RefHashMap<K,V>` | `[SerializeReference]` values | Polymorphic managed values (used by Vault for `DataField`). |
+| `FieldHashMap<K,V>` | `[SerializeField]` | Value types and Unity object references |
+| `RefHashMap<K,V>` | `[SerializeReference]` | Polymorphic managed values, including Vault's `DataField` |
 
-**Extension libraries** (`Threadlink.Utilities.*`) — representative members:
+Editor-only mutation is exposed through `EditorOnly_TryAdd`, `EditorOnly_Remove`, and the indexer. `OnAfterDeserialize` clamps a serialised entry count exceeding the backing arrays and reports the discrepancy rather than throwing from a deserialisation callback.
+
+**Extension libraries** under `Threadlink.Utilities`:
 
 ```csharp
-using Threadlink.Utilities.Mathematics;   // float.IsSimilarTo(b), float.MoveTowards(target, maxDelta)
+using Threadlink.Utilities.Mathematics;   // float.IsSimilarTo(b), MoveTowards(target, maxDelta)
 using Threadlink.Utilities.Vectors;       // Vector3.IsSimilarTo(b)
-using Threadlink.Utilities.Strings;       // string.ToAbsolutePath()
+using Threadlink.Utilities.Strings;       // string.ToAbsolutePath(), string.ToProjectRelativePath()
 using Threadlink.Utilities.UniTask;       // List<UniTask>.AwaitAllThenClear(trim)
 using Threadlink.Utilities.Collections;   // IDisposable.PreventEditorMemoryLeaks()
+using Threadlink.Utilities.Flags;         // HasFlagUnsafe
+using Threadlink.Utilities.Attributes;    // [MinMaxRange], [ReadOnly]
 ```
 
-Also under `Utilities`: `Objects`, `Flags` (bit ops like `HasFlagUnsafe`), `Attributes`, `Localization`, and `RNG`. Threadlink bundles **UniTask**, **ZString**, **MessagePack**, and the **SerializedReferenceInspector** in `Plugins/`.
+`[ReadOnly]` is a marker attribute without an associated drawer; supplying one would displace the hash-map drawer, as attribute drawers take precedence over type drawers. `ThreadlinkHashMapDrawer` reads the attribute from `fieldInfo` and renders the map without addition, removal, or reordering controls.
 
-## E20. Configuration & Project Setup
+## E20. Configuration and Project Setup
 
-A new project needs these assets created and wired once.
+### E20.1 Configuration Assets
 
-### E20.1 The config assets
-
-| Asset | Create via | Purpose |
+| Asset | Creation path | Function |
 |---|---|---|
-| **Native Config** | `Create ▸ Threadlink ▸ Native Config` | Maps `NativeResources` IDs → `AssetReference`. Must live at the Addressable address `Assets/Threadforge/Threadlink/ThreadlinkConfig.Native.asset`. |
-| **User Config** | `Create ▸ Threadlink ▸ User Config` | Update‑loop mode (`Native`/`Custom`); the Scene/Asset/Prefab reference lists; (editor) the binaries folder. |
-| **Editor Config** | `Create ▸ Threadlink ▸ Editor Config` | Codegen template/script references and the user‑domain folders. Editor‑only. |
-| **Chronos Config** | `Create ▸ Threadlink ▸ Subsystem Dependencies ▸ Chronos Config` | "Iris Physics Update" toggle. |
-| **Aura Config** | `… ▸ Aura Config` | Fade speed + UI SFX clip pointers. |
-| **Dextra Config** | `… ▸ Dextra Config` | UI screen list, input‑mode→action‑map map, input‑icon map, EventSystem hide flag. |
-| **Sentinel Config** | `… ▸ Sentinel Config` | The `[SerializeReference]` save environment. |
+| **Native Config** | `Create ▸ Threadlink ▸ Native Config` | Maps `NativeResources` identifiers to `AssetReference`. Must reside at `Assets/Threadforge/Threadlink/ThreadlinkConfig.Native.asset`. |
+| **User Config** | `Create ▸ Threadlink ▸ User Config` | Update-loop mode; scene, asset, and prefab reference maps; binaries directory. |
+| **Editor Config** | `Create ▸ Threadlink ▸ Editor Config` | Domain declarations, shells, and the generated, injector, and definition directories. |
+| **Chronos Config** | `Create ▸ Threadlink ▸ Subsystem Dependencies ▸ Chronos Config` | Iris physics toggle. |
+| **Aura Config** | `… ▸ Aura Config` | Mixer, fade rate, interface SFX pointers. |
+| **Dextra Config** | `… ▸ Dextra Config` | Interface prefab pointers, input-mode map, input-icon map, EventSystem hide flag. |
+| **Sentinel Config** | `… ▸ Sentinel Config` | The `[SerializeReference]` persistence environment. |
+| **Netflow Config** | `… ▸ Netflow Config` | Netcode flow parameters. |
 
-The `NativeResources` the Native Config must provide: `UserConfig`, `SentinelConfig`, `DextraConfig`, `DextraComponentsPrefab`, `AuraConfig`, `AuraMixer`, `AuraComponentsPrefab`, `ChronosConfig`, `NetflowConfig`.
+Additional creation paths: `Create ▸ Threadlink ▸ Vault`, `Create ▸ Threadlink ▸ Dextra ▸ Interactable Config`, `Create ▸ Threadlink ▸ Animation ▸ Animator Hash`.
 
-### E20.2 Making native assets Addressable
+The Native Config must supply the following native resources: `UserConfig`, `SentinelConfig`, `DextraConfig`, `DextraComponentsPrefab`, `AuraConfig`, `AuraComponentsPrefab`, `ChronosConfig`, `NetflowConfig`.
 
-Run **`Threadlink ▸ Mark Native Assets as Addressable`**. It reads the Native Config, marks every referenced native asset (and the Native Config itself) Addressable in the "Threadlink Assets" group, using each asset's path as its address.
+The three reference maps on the User Config are read-only in the Inspector and are owned by the Addressables Mapping Window.
 
-### E20.3 Update loop: Native vs Custom
+### E20.2 Editor Config Composition
 
-On the **User Config**, `UpdateLoopBehaviour` is:
-- **Native** (default) — Threadlink spawns the hidden `ThreadlinkLoop`, which publishes `OnUpdate`/`OnFixedUpdate`/`OnLateUpdate`.
-- **Custom** — Threadlink spawns nothing. **You** must publish those three Iris events from your own driver (e.g. when Threadlink only renders the View for a Photon Quantum simulation). Subscribe to `OnCoreDeployed` to install your loop.
+Each entry in the `nativeDomains` array declares a domain name, an output filename, a shell, optional native entries, and three flags:
 
-### E20.4 Scripting defines (auto‑activated by installed packages)
-
-| Define | Activated by | Enables |
-|---|---|---|
-| `THREADLINK_TIMELINE` | `com.unity.timeline ≥ 1.8.10` | Vault Timeline integration (`VaultMarker`/`VaultTrack`/`VaultReceiver`). |
-| `THREADLINK_LOCALIZATION` | `com.unity.localization ≥ 1.5.9` | `LocalizedText` Vault field + localization utilities. |
-| `THREADLINK_SENTINEL_XBOX` | `com.unity.microsoft.gdk ≥ 1.4.5` | The XBOX/GDK Sentinel environment & achievements. |
-| `THREADLINK_MATHEMATICS` | *(manual)* | Routes select math through `Unity.Mathematics`. |
-
-The runtime assembly (`Threadlink.Runtime.asmdef`) has `allowUnsafeCode: true` (required by the ECS) and these as `versionDefines`. Put your own code in `Threadlink User/Engineering/Codebase/` under `Threadlink.User.asmdef`.
-
-### E20.5 Binary authoring & cleanup
-
-Objects implementing `IBinaryAuthor` can serialize authoring data to `.bytes` files in the project (loaded later via Addressables; consumed at runtime through `IAsyncBinaryConsumer`). **`Threadlink ▸ Clear all Binaries`** empties the `.bytes` files in a chosen in‑project folder when you're iterating on their format.
-
-## E21. Performance Guidelines
-
-| Do | Why |
+| Flag | Semantics |
 |---|---|
-| Cache `Chronos.DeltaTime` once per tick into a local. | Avoids repeated static property reads in hot loops. |
-| Build `ECSFilter`s once (in `Boot`) and reuse. | Construction is cheap but per‑frame allocation of anything is avoidable. |
-| Use `static` methods for `ForEach` function pointers. | The ECS forbids closures by design — keep callbacks capture‑free. |
-| Log via `Scribe`, not `Debug.Log`, in hot paths. | ZString builds messages without GC. |
-| Use `UniTask`, never `System.Threading.Tasks` or coroutines, in framework code. | Mixing the two breaks the single‑threaded Unity model Threadlink assumes. |
-| Unsubscribe every Iris listener in `Discard()`. | Dangling delegates keep dead objects alive and fire stale callbacks. |
-| Keep all simulation in `DFP` + `StatelessRNG` for networked/replay code. | Hardware `float` and `UnityEngine.Random` are non‑deterministic. |
+| `ordinalValues` | Dense positional allocation. Applies to `Iris.Events` exclusively. |
+| `reserveZero` | The shell declares a sentinel at zero that the allocator must not issue. |
+| `sourcedFromAddressables` | Draws injectors from the Addressables injector directory. |
 
-## E22. Engineer Checklists
+`domainName` is the prefix injector filenames must match. No validation constrains it, so a mistyped name renders the corresponding injector unread. The orphaned-injector diagnostic addresses this case.
 
-**New subsystem**
-- [ ] `class X : ThreadlinkSubsystem<X>` (+ the lifecycle interfaces you need).
-- [ ] Public parameterless ctor (or a custom `WeavingFactory<X>.OnCreate`).
-- [ ] `WeavingFactory.Register<X>()` in `UserWeavingFactory.Register()`.
-- [ ] `Threadlink.Weave<X>()` in `UserSubsystemsConfig.WeaveSubsystems()`.
-- [ ] Subscribe in `Initialize()`, unsubscribe in `Discard()`.
+### E20.3 Addressable Registration of Native Assets
 
-**New Iris event**
-- [ ] Add to `Iris.Events.User.txt`; run the codegen.
-- [ ] Document its delegate signature; use it consistently on subscribe and publish.
+**`Threadlink ▸ Addressables ▸ Mark Native Assets as Addressable`** reads the Native Config and marks every referenced native asset, together with the Native Config itself, as Addressable within the "Threadlink Assets" group, assigning each asset's path as its address.
 
-**New ECS component**
-- [ ] `unmanaged struct : IComponent` with `Dispose()`.
-- [ ] `[RuntimeComponent]` (+ `[Preserve]` for IL2CPP).
+**`Threadlink ▸ Addressables ▸ Match Addressables to Paths`** realigns addresses that have diverged from their asset paths.
 
-**New scene**
-- [ ] Add the scene to the User Config's Scene References; run Addressables codegen.
-- [ ] Implement an `ISceneEntry` binding it to its music/ambience; override `OnFinishedLoadingAsync` for setup.
-- [ ] Ensure something services the Nexus fader/loading/`OnActiveSceneRequested` events.
+### E20.4 Update Loop Modes
+
+Configured on the User Config:
+
+- **Native** — Threadlink instantiates the hidden `ThreadlinkLoop`, publishing `OnUpdate`, `OnFixedUpdate`, and `OnLateUpdate`.
+- **Custom** — Threadlink instantiates nothing. The project publishes those events from its own driver, installed in response to `OnCoreDeployed`.
+
+Custom mode applies where Threadlink renders the view for a simulation owned by another framework.
+
+### E20.5 Scripting Defines
+
+| Define | Activation | Enables |
+|---|---|---|
+| `THREADLINK_TIMELINE` | `com.unity.timeline ≥ 1.8.10` | Vault Timeline integration |
+| `THREADLINK_LOCALIZATION` | `com.unity.localization ≥ 1.5.9` | `LocalizedText` Vault field, localisation utilities |
+| `THREADLINK_SENTINEL_XBOX` | `com.unity.microsoft.gdk ≥ 1.4.5` | XBOX/GDK Sentinel environment and achievements |
+| `ODIN_INSPECTOR` | Odin installation | Odin-drawn hash maps and inspectors |
+
+### E20.6 Binary Authoring
+
+Types implementing `IBinaryAuthor` serialise authoring data to `.bytes` files within the project, subsequently loaded through Addressables and consumed via `IAsyncBinaryConsumer`. **`Threadlink ▸ Clear all Binaries`** empties the `.bytes` files within a selected in-project directory during format iteration.
+
+### E20.7 Diagnostics
+
+**`Threadlink ▸ Registers Tracker`** inspects live register contents at runtime, reporting the objects each `Register`-derived subsystem currently holds.
+
+## E21. Performance Constraints
+
+| Practice | Rationale |
+|---|---|
+| Cache `Chronos.DeltaTime` into a local once per tick. | Eliminates repeated static property access in hot loops. |
+| Construct `ECSFilter` instances in `Boot()` and retain them. | Per-frame allocation is avoidable. |
+| Declare `ForEach` callbacks as `static` methods. | The ECS prohibits closures by construction. |
+| Log through `Scribe` rather than `Debug.Log`. | ZString composition is allocation-free, and the prefix identifies the source. |
+| Use `UniTask` exclusively; avoid `System.Threading.Tasks` and coroutines in framework code. | Mixing violates the single-threaded model the framework assumes. |
+| Unsubscribe every Iris listener in `Discard()`. | Retained delegates keep destroyed objects reachable and dispatch to stale state. |
+| Confine networked and replayed simulation to `DFP` and `StatelessRNG`. | Hardware floating point and `UnityEngine.Random` are non-deterministic. |
+| Prefer `OnLateUpdate` for camera-relative computation. | Dispatch occurs after camera transformation. |
+
+## E22. Engineering Procedures
+
+**Introducing a subsystem**
+- [ ] Declare `class X : ThreadlinkSubsystem<X>` with the required lifecycle interfaces.
+- [ ] Provide a public parameterless constructor or a `WeavingFactory<X>.OnCreate` delegate.
+- [ ] Register the factory in `UserWeavingFactory.Register()`.
+- [ ] Weave the subsystem in `UserSubsystemsConfig.WeaveSubsystems()`.
+- [ ] Subscribe in `Initialize()`; unsubscribe in `Discard()`.
+
+**Introducing an Iris event**
+- [ ] Declare it in `Iris.Events.User.txt` and save.
+- [ ] Document the delegate signature and apply it consistently; mismatches fail silently.
+
+**Introducing an ECS component**
+- [ ] Declare an `unmanaged struct : IComponent` implementing `Dispose()`.
+- [ ] Apply `[RuntimeComponent]`, and `[Preserve]` for IL2CPP targets.
+
+**Introducing a scene**
+- [ ] Map the scene through the Addressables Mapping Window.
+- [ ] Implement `ISceneEntry` binding it to its music and ambience; override `OnFinishedLoadingAsync` for setup.
+- [ ] Provide a listener for `OnActiveSceneRequested` and the four fader and loading-screen `Func` events.
+- [ ] Provide a teardown path for scene-placed `IDiscoverable` implementations; Initium boots them but does not discard them.
+
+**Introducing a stacked interface**
+- [ ] Construct the prefab with a `CanvasGroup`.
+- [ ] Map it through the Addressables Mapping Window.
+- [ ] Add its prefab identifier to `DextraConfig.interfacePointers`.
 
 ---
 ---
 
 # Appendices
 
-## Appendix A — Built‑in Iris Events
+## Appendix A — Native Iris Events
 
-All events are members of `ThreadlinkIDs.Iris.Events` (a `ushort` enum). Signatures verified from source where shown; honor them exactly.
+Values are ordinals allocated in the order listed.
 
-| Event | Publisher | Delegate signature |
+| Event | Delegate | Publisher |
 |---|---|---|
-| `OnNativeSubsystemRegistration` | core | `Func<List<IThreadlinkSubsystem>>` |
-| `OnUserSubsystemRegistration` | core | `Func<List<IThreadlinkSubsystem>>` |
-| `OnCoreDeployed` | core | `Action<Threadlink>` |
-| `OnUpdate` / `OnFixedUpdate` / `OnLateUpdate` | `ThreadlinkLoop` | `Action` |
-| `OnPlaytimeCountTick` | Chronos | `Action<float>` (running total) |
-| `OnGamePauseRequested` / `OnGameResumeRequested` | *(intended request events)* | `Action` |
-| `OnGamePaused` / `OnGameResumed` | Chronos | `Action` |
-| `OnInputDeviceChanged` | Dextra | `Action<Dextra.InputDevice>` |
-| `OnUICancelled` | Dextra UI stack | `Action<UserInterface>` |
-| `OnUIElementSelected` | Dextra | `Action<GameObject>` |
-| `OnInteract` | gameplay/detectors | `Func<bool>` |
-| `OnInteractableDetected` / `OnInteractableOutOfRange` | interactable detectors | interactable payload |
-| `OnActiveSceneRequested` | Nexus | `Func<Nexus.ISceneEntry>` |
-| `OnBeforeActiveSceneUnload` | Nexus | `Action` |
-| `OnActiveSceneFinishedUnloading` | Nexus | `Action` |
-| `OnNewSceneFinishedLoading` | Nexus | `Action<Nexus.ISceneEntry>` |
-| `OnDisplayFaderAsync` / `OnHideFaderAsync` | Nexus (serviced by UI) | `Func<UniTask>` |
-| `OnDisplayLoadingScreenAsync` / `OnHideLoadingScreenAsync` | Nexus (serviced by UI) | `Func<UniTask>` |
-| `OnNexusLoadingFinished` | Nexus | `Action` |
+| `OnNativeSubsystemRegistration` | `Func<List<IThreadlinkSubsystem>>` | Core deployment |
+| `OnUserSubsystemRegistration` | `Func<List<IThreadlinkSubsystem>>` | Core deployment |
+| `OnCoreDeployed` | `Action<Threadlink>` | Core deployment |
+| `OnUpdate` | `Action` | `ThreadlinkLoop` |
+| `OnFixedUpdate` | `Action` | `ThreadlinkLoop` |
+| `OnLateUpdate` | `Action` | `ThreadlinkLoop` |
+| `OnPlaytimeCountTick` | `Action<float>` | Chronos |
+| `OnGamePauseRequested` | `Action` | Project code |
+| `OnGameResumeRequested` | `Action` | Project code |
+| `OnGamePaused` | `Action` | Chronos |
+| `OnGameResumed` | `Action` | Chronos |
+| `OnInputDeviceChanged` | `Action<Dextra.InputDevice>` | Dextra |
+| `OnUICancelled` | `Action` | Dextra |
+| `OnUIElementSelected` | `Action<GameObject>` | Dextra |
+| `OnInteract` | `Func<bool>` | Dextra |
+| `OnInteractableDetected` | `Action<Interactable…>` | Entity detectors |
+| `OnInteractableOutOfRange` | `Action<Interactable…>` | Entity detectors |
+| `OnActiveSceneRequested` | `Func<Nexus.ISceneEntry>` | Nexus |
+| `OnBeforeActiveSceneUnload` | `Action<Nexus.ISceneEntry>` | Nexus |
+| `OnActiveSceneFinishedUnloading` | `Action<Nexus.ISceneEntry>` | Nexus |
+| `OnNewSceneFinishedLoading` | `Action<Nexus.ISceneEntry>` | Nexus |
+| `OnDisplayFaderAsync` | `Func<UniTask>` | Nexus |
+| `OnHideFaderAsync` | `Func<UniTask>` | Nexus |
+| `OnDisplayLoadingScreenAsync` | `Func<UniTask>` | Nexus |
+| `OnHideLoadingScreenAsync` | `Func<UniTask>` | Nexus |
+| `OnNexusLoadingFinished` | `Action<Nexus.ISceneEntry>` | Nexus |
 
-## Appendix B — Systems & How to Reach Them
+## Appendix B — Service Access
 
-| System | Kind | Namespace | Accessor |
-|---|---|---|---|
-| `Threadlink` | Weaver subsystem | `Threadlink.Core` | `Threadlink.TryGetSingleton(out var core)` |
-| `Iris` | static | `…NativeSubsystems.Iris` | direct |
-| `Scribe` | static | `…NativeSubsystems.Scribe` | direct |
-| `Initium` | static | `…NativeSubsystems.Initium` | direct |
-| `Nexus` | static | `…NativeSubsystems.Nexus` | direct |
-| `Chronos` | subsystem (static API) | `…NativeSubsystems.Chronos` | static members |
-| `Sentinel` | subsystem | `…NativeSubsystems.Sentinel` | `Sentinel.TryGetSingleton(out …)` |
-| `Dextra` | subsystem | `…NativeSubsystems.Dextra` | `Dextra.TryGetSingleton(out …)` |
-| `Aura` | Linker subsystem | `…NativeSubsystems.Aura` | `Aura.TryGetSingleton(out …)` |
-| `ECSWorld` | subsystem | `Threadlink.ECS` | `ECSWorld.TryGetSingleton(out …)` |
+| Service | Category | Access |
+|---|---|---|
+| `Threadlink` | Core (Weaver) | `Threadlink.TryGetSingleton(out var core)` |
+| `Iris` | Static | `Iris.Publish(...)` |
+| `Nexus` | Static | `Nexus.LoadNewSceneAsync(...)` |
+| `Initium` | Static | `Initium.BootAndInitAsync(...)` |
+| `Scribe` | Static | `this.Send(...)`, `Scribe.Send<T>(...)` |
+| `Sentinel` | Native subsystem | `Sentinel.TryGetSingleton(out var sentinel)` |
+| `Chronos` | Native subsystem | `Chronos.TimeScale`, `Chronos.DeltaTime` |
+| `Dextra` | Native subsystem | `Dextra.TryGetSingleton(out var dextra)` |
+| `Aura` | Native subsystem (Linker) | `Aura.TryGetSingleton(out var aura)` |
+| `ECSWorld` | Project subsystem | `ECSWorld.TryGetSingleton(out var world)` |
+| `Netflow` | Project subsystem | `Netflow.TryGetSingleton(out var netflow)` |
+| `Vault` | Asset | `LinkableAsset` instance |
 
-## Appendix C — ID Domains Map
+## Appendix C — Identifier Domains
 
-| Generated enum | User source | Owner | How it regenerates |
-|---|---|---|---|
-| `ThreadlinkIDs.Iris.Events` | `Iris.Events.User.txt` | Engineer | Menu / Run All |
-| `ThreadlinkIDs.StatelessRNG.Domains` | `StatelessRNG.Domains.User.txt` | Engineer | Menu / Run All |
-| `ThreadlinkIDs.Dextra.InputModes` | `Dextra.InputModes.User.txt` | Designer | Menu / Run All |
-| `ThreadlinkIDs.Nexus.SpawnPoints` | `Nexus.SpawnPoints.User.txt` | Designer | Menu / Run All |
-| `ThreadlinkIDs.Vault.Fields` | `Vault.DataFields.User.txt` | Designer | Menu / Run All |
-| `ThreadlinkIDs.Addressables.{Assets,Prefabs,Scenes}` | User Config reference lists | Engineer | Addressables codegen |
-| `ThreadlinkIDs.Addressables.NativeResources` | *(fixed, framework)* | — | n/a |
-| *Custom* `Threadlink.User.<File>` | any `.txt` in the user definitions folder | Either | Automatic on save |
+| Enumeration | Kind | Native entries | Injector | Ownership |
+|---|---|---|---|---|
+| `ThreadlinkIDs.Iris.Events` | Ordinal | `Iris.Events.Native.txt` | `Iris.Events.User.txt` | Engineering |
+| `ThreadlinkIDs.StatelessRNG.Domains` | Identity | — | `StatelessRNG.Domains.User.txt` | Engineering |
+| `ThreadlinkIDs.Dextra.InputModes` | Identity | — | `Dextra.InputModes.User.txt` | Design |
+| `ThreadlinkIDs.Nexus.SpawnPoints` | Identity | — | `Nexus.SpawnPoints.User.txt` | Design |
+| `ThreadlinkIDs.Vault.Fields` | Identity | — | `Vault.Fields.User.txt` | Design |
+| `ThreadlinkIDs.Addressables.Scenes` | Identity | — | Mapping Window | Shared |
+| `ThreadlinkIDs.Addressables.Assets` | Identity | — | Mapping Window | Shared |
+| `ThreadlinkIDs.Addressables.Prefabs` | Identity | — | Mapping Window | Shared |
+| `ThreadlinkIDs.Addressables.NativeResources` | Identity | `Addressables.NativeResources.Native.txt` | — | Framework |
 
-## Appendix D — Menu & Asset‑Creation Reference
+All reside in namespace `Threadlink.Generated`, assembly `Threadlink.Generated`.
 
-**`Threadlink ▸` menu items**
-- `Run All CodeGens`
-- `CodeGen ▸ Run Iris Events CodeGen`
-- `CodeGen ▸ Run Addressables CodeGen`
-- `CodeGen ▸ Run Nexus Spawn Points CodeGen`
-- `CodeGen ▸ Run RNG Domains CodeGen`
-- `CodeGen ▸ Run Vault Fields CodeGen`
-- `CodeGen ▸ Run Dextra Input Modes CodeGen`
-- `Mark Native Assets as Addressable`
-- `Clear all Binaries`
+## Appendix D — Menu Reference
 
-**`Create ▸ Threadlink ▸` assets**
-- `Vault`
-- `User Config`, `Native Config`, `Editor Config`
-- `Subsystem Dependencies ▸ Chronos Config | Aura Config | Dextra Config | Sentinel Config`
-
-## Appendix E — Scripting Defines
-
-| Define | Source |
+| Command | Function |
 |---|---|
-| `THREADLINK_TIMELINE` | `com.unity.timeline ≥ 1.8.10` |
-| `THREADLINK_LOCALIZATION` | `com.unity.localization ≥ 1.5.9` |
-| `THREADLINK_SENTINEL_XBOX` | `com.unity.microsoft.gdk ≥ 1.4.5` |
-| `THREADLINK_MATHEMATICS` | manual project define |
+| `Threadlink ▸ CodeGen ▸ Run Domain CodeGen` | Forces a generation pass across every domain. |
+| `Threadlink ▸ Addressables ▸ Mapping Window` | Maps Addressable assets to generated identifiers. |
+| `Threadlink ▸ Addressables ▸ Mark Native Assets as Addressable` | Registers framework assets with the Addressables system. |
+| `Threadlink ▸ Addressables ▸ Match Addressables to Paths` | Realigns addresses to asset paths. |
+| `Threadlink ▸ Clear all Binaries` | Empties `.bytes` files within a selected directory. |
+| `Threadlink ▸ Registers Tracker` | Inspects live register contents. |
 
-## Appendix F — Glossary
+## Appendix E — Terminology
 
-| Term | Meaning |
+| Term | Definition |
 |---|---|
-| **Core** | `Threadlink`, the root `Weaver` that owns all subsystems. |
-| **Subsystem** | A singleton managed by the core; reached via `TryGetSingleton`. |
-| **Weaver / Linker / Register** | The three subsystem base classes (own / link / track objects). |
-| **Weave** | Create a subsystem via its registered factory (`Threadlink.Weave<T>()`). |
-| **Discoverable** | A scene `LinkableBehaviour` with `IDiscoverable`, auto‑run through the boot pipeline. |
-| **Iris** | The single enum‑keyed event bus. |
-| **Domain** | A named ID set generated from a `.txt` file into an enum. |
-| **Vault** | A designer‑authored data asset of typed, ID‑keyed fields. |
-| **DataField** | One typed entry in a Vault; `Serialized` (saved) or `Transient` (runtime). |
-| **DFP** | Deterministic software `binary32` float for cross‑platform reproducibility. |
-| **Scope / Domain (RNG)** | A `StatelessRNG` sampling context keyed by an RNG domain. |
-| **Native vs User** | Framework‑provided vs project‑provided (subsystems, configs, ID entries). |
-| **`ISceneEntry`** | An object binding a scene to its load mode and music/ambience for Nexus. |
+| **Core** | The `Threadlink` singleton; a Weaver of subsystems. |
+| **Subsystem** | A service the core owns and drives through a lifecycle. |
+| **Weaving** | Construction and lifecycle ownership of an object. |
+| **Linking** | Tracking of an externally-constructed object. |
+| **Domain** | A generated enumeration of identifiers. |
+| **Injector** | A declaration file appending entries to an existing domain; its name supplies the entries' scope. |
+| **Domain definition** | A declaration file declaring an entirely new enumeration. |
+| **Shell** | The C# scaffolding into which a generated enumeration is emitted. |
+| **Manifest** | The JSON record of a domain's assigned member names and values. |
+| **Tombstone** | A removed entry retained as `[Obsolete]` to preserve resolution of existing references. |
+| **Scope** | The qualifier folded into an entry's hash key: an injector name or an Addressable group. |
+| **Scene entry** | An `ISceneEntry` implementation binding a scene to its load mode and audio scenario. |
+| **Discoverable** | A scene component booted automatically by Initium. |
+| **DFP** | Deterministic fixed-point numeric type. |
 
----
-
-*All APIs, enums, file paths, and menu items reflect the framework source.*
-
-*Threadlink Framework — User Manual. Developed and maintained by Threadforge.*
+*Threadlink Framework — Reference Manual. Developed and maintained by Threadforge.*
 
 *Lead Developer: George Rontoulis*

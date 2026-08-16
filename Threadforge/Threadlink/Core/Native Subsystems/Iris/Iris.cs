@@ -1,6 +1,7 @@
 namespace Threadlink.Core.NativeSubsystems.Iris
 {
-    using Shared;
+    using global::Threadlink.Core.NativeSubsystems.Scribe;
+    using global::Threadlink.Generated;
     using System;
     using System.Runtime.CompilerServices;
     using UnityEngine;
@@ -24,7 +25,7 @@ namespace Threadlink.Core.NativeSubsystems.Iris
         #region Utility:
         public static bool TryGetListenerCount(ThreadlinkIDs.Iris.Events eventID, out int listenerCount)
         {
-            var index = (ushort)eventID;
+            var index = (int)eventID;
 
             if (EventRegistry[index] is IDelegateList list)
             {
@@ -39,44 +40,42 @@ namespace Threadlink.Core.NativeSubsystems.Iris
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool ContainsListener<T>(ThreadlinkIDs.Iris.Events eventID, T listener) where T : Delegate
         {
-            return (EventRegistry[(ushort)eventID] as DelegateList<T>)?.Contains(listener) ?? false;
+            return (EventRegistry[(int)eventID] as DelegateList<T>)?.Contains(listener) ?? false;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Clear(ThreadlinkIDs.Iris.Events eventID)
         {
-            (EventRegistry[(ushort)eventID] as IClearable)?.Clear();
+            (EventRegistry[(int)eventID] as IClearable)?.Clear();
         }
         #endregion
 
         public static void Subscribe<T>(ThreadlinkIDs.Iris.Events eventID, T listener) where T : Delegate
         {
-            ref var slot = ref EventRegistry[(ushort)eventID];
+            ref var slot = ref EventRegistry[(int)eventID];
 
             slot ??= new DelegateList<T>();
 
             if (slot is not DelegateList<T> list)
             {
-                Debug.LogError($"[Iris] Type mismatch on Subscribe for event '{eventID}'. Expected DelegateList<{typeof(T).Name}>.");
+                slot.Send($"Type mismatch on Subscribe for event '{eventID}'. Expected DelegateList<{typeof(T).Name}>.").ToUnityConsole(DebugType.Error);
                 return;
             }
 
             if (!list.Contains(listener))
                 list.Add(listener);
-            else
-                Debug.LogWarning($"[Iris] Listener already subbed for event '{eventID}'!");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Unsubscribe<T>(ThreadlinkIDs.Iris.Events eventID, T listener) where T : Delegate
         {
-            (EventRegistry[(ushort)eventID] as DelegateList<T>)?.Remove(listener);
+            (EventRegistry[(int)eventID] as DelegateList<T>)?.Remove(listener);
         }
 
         #region Publishing:
         public static void Publish(ThreadlinkIDs.Iris.Events eventID)
         {
-            if (EventRegistry[(ushort)eventID] is not DelegateList<Action> list)
+            if (EventRegistry[(int)eventID] is not DelegateList<Action> list)
                 return;
 
             var slots = list.slots;
@@ -87,7 +86,7 @@ namespace Threadlink.Core.NativeSubsystems.Iris
 
         public static void Publish<Input>(ThreadlinkIDs.Iris.Events eventID, Input input)
         {
-            if (EventRegistry[(ushort)eventID] is not DelegateList<Action<Input>> list)
+            if (EventRegistry[(int)eventID] is not DelegateList<Action<Input>> list)
                 return;
 
             var slots = list.slots;
@@ -98,7 +97,7 @@ namespace Threadlink.Core.NativeSubsystems.Iris
 
         public static Output Publish<Output>(ThreadlinkIDs.Iris.Events eventID)
         {
-            if (EventRegistry[(ushort)eventID] is not DelegateList<Func<Output>> list)
+            if (EventRegistry[(int)eventID] is not DelegateList<Func<Output>> list)
                 return default;
 
             return list.Count switch
@@ -111,7 +110,7 @@ namespace Threadlink.Core.NativeSubsystems.Iris
 
         public static Output Publish<Input, Output>(ThreadlinkIDs.Iris.Events eventID, Input input)
         {
-            if (EventRegistry[(ushort)eventID] is not DelegateList<Func<Input, Output>> list)
+            if (EventRegistry[(int)eventID] is not DelegateList<Func<Input, Output>> list)
                 return default;
 
             return list.Count switch

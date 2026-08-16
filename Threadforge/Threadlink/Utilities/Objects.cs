@@ -5,6 +5,24 @@ namespace Threadlink.Utilities.Objects
 
     public static class ThreadlinkObjectUtilities
     {
+        public static bool IsPrefabAssetInProject(this Object target)
+        {
+#if UNITY_EDITOR
+            // Case 1: selected directly in the Project window (not opened in Prefab Mode)
+            if (UnityEditor.PrefabUtility.IsPartOfPrefabAsset(target))
+                return true;
+
+            // Case 2: opened in isolated Prefab Mode (double-clicked the prefab)
+            var stage = UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage();
+            if (stage != null && target is GameObject go && stage.IsPartOfPrefabContents(go))
+                return true;
+
+            return false;
+#else
+            return false;
+#endif
+        }
+
         public static T Clone<T>(this T original) where T : LinkableAsset
         {
             var copy = Object.Instantiate(original);

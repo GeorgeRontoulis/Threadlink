@@ -1,8 +1,8 @@
 namespace Threadlink.Core.NativeSubsystems.Dextra
 {
+    using Generated;
     using Iris;
     using Scribe;
-    using Shared;
     using System;
     using UnityEngine;
     using UnityEngine.InputSystem;

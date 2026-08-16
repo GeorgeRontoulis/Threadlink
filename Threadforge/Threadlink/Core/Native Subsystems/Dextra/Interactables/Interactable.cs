@@ -1,8 +1,8 @@
 namespace Threadlink.Core.NativeSubsystems.Dextra
 {
     using Core;
+    using Generated;
     using Iris;
-    using Shared;
     using System;
     using System.Runtime.CompilerServices;
     using UnityEngine;
@@ -81,9 +81,10 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
         public override void Discard()
         {
+            ActiveState = false;
             UnsubscribeFromInteraction();
             DiscardActiveArea();
-
+            configuration = null;
             base.Discard();
         }
 

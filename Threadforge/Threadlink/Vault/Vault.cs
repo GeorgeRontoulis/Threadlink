@@ -3,7 +3,7 @@ namespace Threadlink.Vault
     using Core;
     using System.Runtime.CompilerServices;
     using Threadlink.Collections;
-    using Threadlink.Shared;
+    using Threadlink.Generated;
     using UnityEngine;
 
     /// <summary>

@@ -3,10 +3,34 @@ namespace Threadlink.Utilities.Localization
 #if THREADLINK_LOCALIZATION
     using Cysharp.Threading.Tasks;
     using UnityEngine.Localization;
+    using UnityEngine.Localization.Metadata;
+    using UnityEngine.Localization.Settings;
 
     public static class LocalizationUtilities
     {
         private const string INVALID_LOCALIZED_STRING = "INVALID_LOCALIZED_STRING";
+
+        public static async UniTask<string> GetSafeCommentAsync(this LocalizedString reference, string fallback = null)
+        {
+            if (reference == null || reference.IsEmpty)
+                return string.IsNullOrEmpty(fallback) ? INVALID_LOCALIZED_STRING : fallback;
+
+            var table = await LocalizationSettings.StringDatabase.GetTableAsync(reference.TableReference).ToUniTask();
+            var entry = table.GetEntryFromReference(reference.TableEntryReference);
+
+            return entry?.GetMetadata<Comment>()?.CommentText ?? (string.IsNullOrEmpty(fallback) ? INVALID_LOCALIZED_STRING : fallback);
+        }
+
+        public static string GetSafeComment(this LocalizedString reference, string fallback = null)
+        {
+            if (reference == null || reference.IsEmpty)
+                return string.IsNullOrEmpty(fallback) ? INVALID_LOCALIZED_STRING : fallback;
+
+            var table = LocalizationSettings.StringDatabase.GetTable(reference.TableReference);
+            var entry = table.GetEntryFromReference(reference.TableEntryReference);
+
+            return entry?.GetMetadata<Comment>()?.CommentText ?? (string.IsNullOrEmpty(fallback) ? INVALID_LOCALIZED_STRING : fallback);
+        }
 
         /// <summary>
         /// Safe method that checks the validity of the <paramref name="reference"/>

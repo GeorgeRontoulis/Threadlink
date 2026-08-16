@@ -4,7 +4,7 @@ namespace Threadlink.Netcode
     using System;
     using System.Runtime.CompilerServices;
     using Threadlink.ECS;
-    using Threadlink.Shared;
+    using Threadlink.Generated;
     using UnityEngine;
 
     public partial class Netrunner

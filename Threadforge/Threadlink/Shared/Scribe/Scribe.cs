@@ -12,9 +12,9 @@ namespace Threadlink.Core.NativeSubsystems.Scribe
             using var stringBuilder = ZString.CreateUtf8StringBuilder(true);
             int length = message.Length;
 
-            stringBuilder.Append("[");
+            stringBuilder.Append("<color=cyan>[");
             stringBuilder.Append(typeof(T).Name);
-            stringBuilder.Append("] - ");
+            stringBuilder.Append("] - </color>");
 
             for (int i = 0; i < length; i++) stringBuilder.Append(message[i]);
 

@@ -6,14 +6,6 @@ namespace Threadlink.Core.NativeSubsystems.Iris
     internal interface IClearable { void Clear(); }
     internal interface IDelegateList : IClearable { int Count { get; } }
 
-    /// <summary>
-    /// A flat, array-backed list of delegates of type <typeparamref name="T"/>.
-    /// Replaces multicast delegate chaining (Delegate.Combine / Delegate.Remove),
-    /// which allocates a new delegate object on every subscription change.
-    /// <para/>
-    /// This type has no public surface — it lives entirely inside Iris as the
-    /// backing store for each event slot.
-    /// </summary>
     internal sealed class DelegateList<T> : IDelegateList where T : Delegate
     {
         public int Count

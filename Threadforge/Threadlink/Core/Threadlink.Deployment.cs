@@ -2,6 +2,7 @@ namespace Threadlink.Core
 {
     using Cysharp.Text;
     using Cysharp.Threading.Tasks;
+    using Generated;
     using NativeSubsystems.Initium;
     using NativeSubsystems.Iris;
     using NativeSubsystems.Scribe;

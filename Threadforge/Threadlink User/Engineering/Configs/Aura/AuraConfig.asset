@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 015b883037d5ca44bb0c212ccf5ce43e, type: 3}
   m_Name: AuraConfig
   m_EditorClassIdentifier: Threadlink.Runtime::Threadlink.Core.NativeSubsystems.Aura.AuraConfig
+  masterAudioMixer: {fileID: 24100000, guid: b55b202805331be448521ac7235c6b8a, type: 2}
   volumeFadeSpeed: 8
-  navigationClipPointer: -1
-  confirmClipPointer: -1
-  cancelClipPointer: -1
+  navigationClipPointer: 0
+  confirmClipPointer: 0
+  cancelClipPointer: 0

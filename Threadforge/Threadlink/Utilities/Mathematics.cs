@@ -7,6 +7,8 @@ namespace Threadlink.Utilities.Mathematics
     {
         public const float TOLERANCE_FACTOR = 1E-6f;
 
+        public static float NormalizeBetween(this float target, float min, float max) { return (target - min) / (max - min); }
+
         /// <summary>
         /// Float similarity comparison method using 1E-6f as tolerance.
         /// Uses <see cref="math"/> for the internal operations. 

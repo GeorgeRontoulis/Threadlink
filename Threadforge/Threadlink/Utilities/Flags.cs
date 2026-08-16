@@ -12,10 +12,24 @@ namespace Threadlink.Utilities.Flags
         public static T[] ToArray<T>() where T : Enum => (T[])Enum.GetValues(typeof(T));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsValidNonNegative<T>(this T enumValue) where T : Enum
+        public static bool IsValidNonNegative64<T>(this T enumValue) where T : Enum
         {
-            long value = Convert.ToInt64(enumValue);
+            var value = Convert.ToInt64(enumValue);
             return value >= 0 && Enum.IsDefined(typeof(T), enumValue);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsValidNonNegative32<T>(this T enumValue) where T : Enum
+        {
+            var value = Convert.ToInt32(enumValue);
+            return value >= 0 && Enum.IsDefined(typeof(T), enumValue);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsValidNonZero32<T>(this T enumValue) where T : Enum
+        {
+            var value = Convert.ToInt32(enumValue);
+            return value != 0 && Enum.IsDefined(typeof(T), enumValue);
         }
     }
 

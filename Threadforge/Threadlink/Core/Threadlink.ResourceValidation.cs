@@ -1,57 +1,35 @@
 namespace Threadlink.Core
 {
+    using Generated;
     using NativeSubsystems.Scribe;
-    using Shared;
-    using System;
     using System.Runtime.CompilerServices;
     using UnityEngine.AddressableAssets;
-    using Utilities.Collections;
 
     public sealed partial class Threadlink
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool CheckIDValidity(ThreadlinkIDs.Addressables.Scenes sceneID)
-        {
-            return UserConfig.TryGetSceneRefs(out var scenes) && ValidateAssetReferenceRequest(scenes, (int)sceneID, out _);
-        }
+        public bool CheckIDValidity(ThreadlinkIDs.Addressables.Scenes sceneID) => TryGetSceneReference(sceneID, out _);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool CheckIDValidity(ThreadlinkIDs.Addressables.Assets assetID)
-        {
-            return UserConfig.TryGetAssetRefs(out var assets) && ValidateAssetReferenceRequest(assets, (int)assetID, out _);
-        }
+        public bool CheckIDValidity(ThreadlinkIDs.Addressables.Assets assetID) => TryGetAssetReference(assetID, out _);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool CheckIDValidity(ThreadlinkIDs.Addressables.Prefabs prefabID)
+        public bool CheckIDValidity(ThreadlinkIDs.Addressables.Prefabs prefabID) => TryGetPrefabReference(prefabID, out _);
+
+        private bool ValidateAssetReference<TReference, TID>(TReference reference, TID id) where TReference : AssetReference
         {
-            return UserConfig.TryGetPrefabRefs(out var prefabs) && ValidateAssetReferenceRequest(prefabs, (int)prefabID, out _);
-        }
-
-        private bool ValidateAssetReferenceRequest<T>(ReadOnlySpan<T> databaseView, int index, out T reference)
-        where T : AssetReference
-        {
-            reference = null;
-
-            if (!index.IsWithinBoundsOf(databaseView))
+            if (reference == null)
             {
-                this.Send("The Asset Reference Index ", index, " is invalid!").ToUnityConsole(DebugType.Warning);
+                this.Send("No Asset Reference is mapped to ", id, "!").ToUnityConsole(DebugType.Error);
                 return false;
             }
 
-            var assetReference = databaseView[index];
-
-            if (assetReference == null)
+            if (!reference.RuntimeKeyIsValid())
             {
-                this.Send(assetReference, " at index ", index, " is NULL!").ToUnityConsole(DebugType.Error);
-                return false;
-            }
-            else if (!assetReference.RuntimeKeyIsValid())
-            {
-                this.Send("RuntimeKey of ", assetReference, ", ", assetReference.RuntimeKey, " is invalid!").ToUnityConsole(DebugType.Error);
+                this.Send("RuntimeKey of ", id, ", ", reference.RuntimeKey, " is invalid!").ToUnityConsole(DebugType.Error);
                 return false;
             }
 
-            reference = assetReference;
             return true;
         }
     }

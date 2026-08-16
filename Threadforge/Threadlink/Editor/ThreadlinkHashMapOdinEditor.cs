@@ -151,6 +151,12 @@ namespace Threadlink.Editor
                             uValues.MoveArrayElement(dragIndex, i);
                             so.ApplyModifiedProperties();
 
+                            // Reordering shifts every key between the drag source and drop
+                            // target by one position - the bucket chains still point at the
+                            // old positions, so without a rebuild a lookup could resolve to
+                            // a neighboring key's value from this point on.
+                            this.ValueEntry.SmartValue.OnAfterDeserialize();
+
                             dragIndex = i;
                             GUI.changed = true;
                             Event.current.Use();
@@ -268,8 +274,66 @@ namespace Threadlink.Editor
             uCount.intValue++;
             uKeys.arraySize = uCount.intValue;
             uValues.arraySize = uCount.intValue;
+
+            int newIndex = uCount.intValue - 1;
+
+            DetachManagedReferenceAliases(uKeys.GetArrayElementAtIndex(newIndex));
+            DetachManagedReferenceAliases(uValues.GetArrayElementAtIndex(newIndex));
+
             so.ApplyModifiedProperties();
+
+            // Rebuild the hash lookup tables against the current, post-add state immediately -
+            // ValueEntry.SmartValue is the same live TMap instance ApplyModifiedProperties just
+            // wrote the grown arrays into, so this doesn't wait on Unity's next incidental
+            // deserialize pass to make the new row findable via TryGetValue/ContainsKey.
+            this.ValueEntry.SmartValue.OnAfterDeserialize();
+
             this.Property.Tree.DelayActionUntilRepaint(() => this.Property.Tree.UpdateTree());
+        }
+
+        /// <summary>
+        /// Growing an array via SerializedProperty.arraySize duplicates the previous last
+        /// element's serialized data into the new slot. For plain fields that's just a value
+        /// copy - harmless, the new row can be edited independently afterwards. But for any
+        /// [SerializeReference] field caught up in that duplication - whether it's the array's
+        /// own element type (as in RefHashMap) or nested arbitrarily deep inside a plain value's
+        /// own fields (as in FieldHashMap, e.g. a RefList/RefArray tucked inside a serializable
+        /// class like a settings Section holding a Widgets collection) - the "copy" is actually
+        /// an alias: both slots end up pointing at the exact same managed object, so editing the
+        /// new row's nested collection silently edits the old row's too.
+        /// This walks the newly added element's entire property subtree and gives every managed
+        /// reference found a fresh, independent instance, severing any alias left by the duplication.
+        /// </summary>
+        private static void DetachManagedReferenceAliases(SerializedProperty element)
+        {
+            if (element == null) return;
+
+            DetachIfManagedReference(element);
+
+            var iterator = element.Copy();
+            var end = element.GetEndProperty();
+
+            while (iterator.NextVisible(true) && !SerializedProperty.EqualContents(iterator, end))
+                DetachIfManagedReference(iterator);
+        }
+
+        private static void DetachIfManagedReference(SerializedProperty property)
+        {
+            if (property.propertyType != SerializedPropertyType.ManagedReference) return;
+            if (property.managedReferenceValue == null) return;
+
+            var concreteType = property.managedReferenceValue.GetType();
+
+            try
+            {
+                property.managedReferenceValue = Activator.CreateInstance(concreteType);
+            }
+            catch (MissingMethodException)
+            {
+                Debug.LogWarning($"[ThreadlinkHashMap] '{concreteType.Name}' has no parameterless constructor, " +
+                                  "so a newly added row could not be safely detached from the previous row's " +
+                                  "reference. Please assign this field manually.");
+            }
         }
 
         private void DeleteRow(int index, SerializedProperty uKeys, SerializedProperty uValues,
@@ -285,6 +349,12 @@ namespace Threadlink.Editor
 
             uCount.intValue--;
             so.ApplyModifiedProperties();
+
+            // Every key at an index after the deleted one just shifted down by one, which
+            // invalidates the bucket chains built from the old positions - rebuild them
+            // against the current, post-delete state immediately.
+            this.ValueEntry.SmartValue.OnAfterDeserialize();
+
             this.Property.Tree.DelayActionUntilRepaint(() => this.Property.Tree.UpdateTree());
         }
     }

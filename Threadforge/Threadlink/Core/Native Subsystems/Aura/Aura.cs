@@ -3,15 +3,16 @@ namespace Threadlink.Core.NativeSubsystems.Aura
     using Chronos;
     using Core;
     using Cysharp.Threading.Tasks;
+    using Generated;
     using Iris;
+    using NativeSubsystems.Nexus;
     using Shared;
     using System;
     using System.Runtime.CompilerServices;
     using Unity.Mathematics;
     using UnityEngine;
-    using UnityEngine.Audio;
     using Utilities.Mathematics;
-    using NativeResources = Shared.ThreadlinkIDs.Addressables.NativeResources;
+    using NativeResources = Generated.ThreadlinkIDs.Addressables.NativeResources;
     using UnityObject = UnityEngine.Object;
 
     /// <summary>
@@ -21,29 +22,21 @@ namespace Threadlink.Core.NativeSubsystems.Aura
     public sealed class Aura : Linker<Aura, AuraSpatialObject>,
     IAddressablesPreloader,
     IDependencyConsumer<AuraConfig>,
-    IDependencyConsumer<Transform>,
-    IDependencyConsumer<AudioMixer>
+    IDependencyConsumer<Transform>
     {
         public enum UISFX : byte { Cancel, Navigate, Confirm }
 
-        private AuraConfig Config { get; set; }
-        private AudioMixer Mixer { get; set; }
+        private AuraConfig Config { get; set; } = null;
 
-        private AudioListener AudioListener { get; set; }
-        private Transform AudioListenerTransform { get; set; }
+        private AudioListener AudioListener { get; set; } = null;
+        private Transform AudioListenerTransform { get; set; } = null;
 
-        private AudioSource Music { get; set; }
-        private AudioSource Atmos { get; set; }
-        private AudioSource SFX { get; set; }
+        private AudioSource Music { get; set; } = null;
+        private AudioSource Atmos { get; set; } = null;
+        private AudioSource SFX { get; set; } = null;
 
-        private float CurrentMaxMusicVolume { get; set; }
-        private float CurrentMaxAtmosVolume { get; set; }
-
-        public override void Discard()
-        {
-            ReattachListenerToAura();
-            base.Discard();
-        }
+        private float CurrentMaxMusicVolume { get; set; } = 0f;
+        private float CurrentMaxAtmosVolume { get; set; } = 0f;
 
         public async UniTask<bool> TryPreloadAssetsAsync()
         {
@@ -55,17 +48,11 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             var loadedResources = await UniTask.WhenAll
             (
                 nativeConfig.LoadNativeResourceAsync<GameObject>(NativeResources.AuraComponentsPrefab),
-                nativeConfig.LoadNativeResourceAsync<AuraConfig>(NativeResources.AuraConfig),
-                nativeConfig.LoadNativeResourceAsync<AudioMixer>(NativeResources.AuraMixer)
+                nativeConfig.LoadNativeResourceAsync<AuraConfig>(NativeResources.AuraConfig)
             );
 
-            return TryConsumeDependency(loadedResources.Item1.transform)
-            && TryConsumeDependency(loadedResources.Item2)
-            && TryConsumeDependency(loadedResources.Item3);
+            return TryConsumeDependency(loadedResources.Item1.transform) && TryConsumeDependency(loadedResources.Item2);
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryConsumeDependency(AudioMixer input) => (Mixer = input) != null;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryConsumeDependency(AuraConfig input) => (Config = input) != null;
@@ -102,11 +89,10 @@ namespace Threadlink.Core.NativeSubsystems.Aura
 
                 UnityObject.DontDestroyOnLoad(AudioListener.gameObject);
                 AudioListenerTransform = AudioListener.transform;
-                ReattachListenerToAura();
             }
 
             #region Callbacks:
-            void OnLoadingProcessFinished()
+            void OnLoadingProcessFinished(Nexus.ISceneEntry _ = null)
             {
                 var spatialObjects = UnityObject.FindObjectsByType<AuraSpatialObject>(FindObjectsInactive.Exclude);
 
@@ -125,7 +111,7 @@ namespace Threadlink.Core.NativeSubsystems.Aura
                 Iris.Unsubscribe<Action<Threadlink>>(ThreadlinkIDs.Iris.Events.OnCoreDeployed, OnCoreDeployed);
             }
 
-            void DisconnectAllZones() => DisconnectAll();
+            void DisconnectAllZones(Nexus.ISceneEntry _) => DisconnectAll();
             #endregion
 
             base.Boot();
@@ -133,8 +119,8 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             Music.volume = Atmos.volume = 0f;
             CreateAudioListener();
 
-            Iris.Subscribe<Action>(ThreadlinkIDs.Iris.Events.OnBeforeActiveSceneUnload, DisconnectAllZones);
-            Iris.Subscribe<Action>(ThreadlinkIDs.Iris.Events.OnNexusLoadingFinished, OnLoadingProcessFinished);
+            Iris.Subscribe<Action<Nexus.ISceneEntry>>(ThreadlinkIDs.Iris.Events.OnBeforeActiveSceneUnload, DisconnectAllZones);
+            Iris.Subscribe<Action<Nexus.ISceneEntry>>(ThreadlinkIDs.Iris.Events.OnNexusLoadingFinished, OnLoadingProcessFinished);
             Iris.Subscribe<Action<Threadlink>>(ThreadlinkIDs.Iris.Events.OnCoreDeployed, OnCoreDeployed);
         }
 
@@ -165,32 +151,56 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             base.DisconnectAll(trimRegistry);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void DriveAudioListener(Vector3 worldPosition, Quaternion worldRotation)
+        {
+            AudioListenerTransform.SetPositionAndRotation(worldPosition, worldRotation);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void DriveAudioListener(Vector3 worldPosition)
+        {
+            AudioListenerTransform.position = worldPosition;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void DriveAudioListener(quaternion worldRotation)
+        {
+            AudioListenerTransform.rotation = worldRotation;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetMixerValue(string parameterName, out float result)
+        {
+            return Config.TryGetMixerValue(parameterName, out result);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TrySetMixerValue(string parameterName, float input)
+        {
+            return Config.TrySetMixerValue(parameterName, input);
+        }
+
         private void CalculateSpatialInfluence()
         {
             var listenerPos = AudioListenerTransform.position;
             float totalInfluence = 0f;
 
-            foreach (var entity in Registry.Values) totalInfluence += entity.GetSpatialInfluence(listenerPos);
+            foreach (var entity in Registry.Values)
+                totalInfluence += entity.GetSpatialInfluence(listenerPos);
 
             MoveTowardsVolume(Music, math.clamp(CurrentMaxMusicVolume - totalInfluence, 0f, 1f));
             MoveTowardsVolume(Atmos, math.clamp(CurrentMaxAtmosVolume - totalInfluence, 0f, 1f));
         }
 
-        public void AttachAudioListenerTo(LinkableBehaviour owner, Transform parent)
-        {
-            owner.OnDiscard += ReattachListenerToAura;
-            AudioListenerTransform.SetParent(parent);
-            ResetAudioListenerLocalPosition();
-        }
-
-        public void SetGlobalVolumes(float musicVolume, float atmosVolume)
+        public void SetGlobalVolumesMax(float maxMusicVolume, float maxAtmosVolume)
         {
 #if THREADLINK_MATHEMATICS
             CurrentMaxMusicVolume = Unity.Mathematics.math.clamp(musicVolume, 0f, 1f);
             CurrentMaxAtmosVolume = Unity.Mathematics.math.clamp(atmosVolume, 0f, 1f);
 #else
-            CurrentMaxMusicVolume = Mathf.Clamp01(musicVolume);
-            CurrentMaxAtmosVolume = Mathf.Clamp01(atmosVolume);
+            CurrentMaxMusicVolume = Mathf.Clamp01(maxMusicVolume);
+            CurrentMaxAtmosVolume = Mathf.Clamp01(maxAtmosVolume);
 #endif
         }
 
@@ -203,11 +213,11 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             while (!AudioListener.volume.IsSimilarTo(targetVolume))
             {
                 AudioListener.volume = AudioListener.volume.MoveTowards(targetVolume, Chronos.UnscaledDeltaTime * speed);
-                await UniTask.Yield();
+                await Threadlink.WaitForFramesAsync(1);
             }
         }
 
-        public void PlayUISFX(UISFX uiSFX, float volume = 1f)
+        public void PlayUISFX(UISFX uiSFX, bool oneShot = true, float volume = 1f)
         {
             if (!Threadlink.TryGetSingleton(out var core))
                 return;
@@ -221,7 +231,12 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             };
 
             if (sfx != null)
+            {
+                if (!oneShot)
+                    SFX.Stop();
+
                 SFX.PlayOneShot(sfx, volume);
+            }
         }
 
         public async UniTask TransitionToAudioScenarioAsync(AudioClip musicClip, AudioClip atmosClip, float musicVolume, float atmosVolume)
@@ -255,39 +270,21 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             );
         }
 
-        private async UniTask FadeAudiosourceVolumeAsync(AudioSource source, float targetVolume)
+        public async UniTask FadeAudiosourceVolumeAsync(AudioSource source, float targetVolume)
         {
             targetVolume = math.clamp(targetVolume, 0f, 1f);
 
             while (!source.volume.IsSimilarTo(targetVolume))
             {
                 MoveTowardsVolume(source, targetVolume);
-                await UniTask.Yield();
+                await Threadlink.WaitForFramesAsync(1);
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void MoveTowardsVolume(AudioSource source, float targetVolume)
+        public void MoveTowardsVolume(AudioSource source, float targetVolume)
         {
             source.volume = source.volume.MoveTowards(targetVolume, Chronos.UnscaledDeltaTime * Config.VolumeFadeSpeed);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ResetAudioListenerLocalPosition() => AudioListenerTransform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
-
-        private void ReattachListenerToAura(LinkableBehaviour owner = null)
-        {
-            ReattachListenerToAura();
-
-            if (owner != null)
-                owner.OnDiscard -= ReattachListenerToAura;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ReattachListenerToAura()
-        {
-            AudioListenerTransform.SetParent(null);
-            ResetAudioListenerLocalPosition();
         }
     }
 }

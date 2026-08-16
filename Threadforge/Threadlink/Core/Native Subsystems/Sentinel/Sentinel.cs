@@ -1,6 +1,7 @@
 namespace Threadlink.Core.NativeSubsystems.Sentinel
 {
     using Cysharp.Threading.Tasks;
+    using Generated;
     using Scribe;
     using Shared;
     using System.Runtime.CompilerServices;

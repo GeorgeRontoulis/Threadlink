@@ -9,6 +9,7 @@ namespace Threadlink.User
     using Shared;
     using System;
     using System.Collections.Generic;
+    using Generated;
     using UnityEngine;
 
     internal static partial class NativeSubsystemsConfig

@@ -1,0 +1,71 @@
+{
+    "domain": "Addressables.NativeResources",
+    "kind": "Identity",
+    "nextOrdinal": 0,
+    "entries": [
+        {
+            "key": "AuraComponentsPrefab",
+            "name": "AuraComponentsPrefab",
+            "scope": "",
+            "value": 2146611431,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "AuraConfig",
+            "name": "AuraConfig",
+            "scope": "",
+            "value": -929283280,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "ChronosConfig",
+            "name": "ChronosConfig",
+            "scope": "",
+            "value": -821716376,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "DextraComponentsPrefab",
+            "name": "DextraComponentsPrefab",
+            "scope": "",
+            "value": 1452944635,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "DextraConfig",
+            "name": "DextraConfig",
+            "scope": "",
+            "value": -1651116421,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "NetflowConfig",
+            "name": "NetflowConfig",
+            "scope": "",
+            "value": 377480392,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "SentinelConfig",
+            "name": "SentinelConfig",
+            "scope": "",
+            "value": 1492513742,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "UserConfig",
+            "name": "UserConfig",
+            "scope": "",
+            "value": -127471648,
+            "seedOffset": 0,
+            "tombstoned": false
+        }
+    ]
+}

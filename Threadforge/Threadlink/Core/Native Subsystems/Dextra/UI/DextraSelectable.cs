@@ -9,11 +9,12 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     [DisallowMultipleComponent]
     public abstract class DextraSelectable : LinkableBehaviour, ISelectHandler, IDeselectHandler, IPointerEnterHandler
     {
-        protected abstract Selectable UnitySelectable { get; }
+        public abstract Selectable UnitySelectable { get; }
 
-        protected internal event Action<DextraSelectable> OnSelected = null;
-        protected internal event Action<DextraSelectable> OnDeselected = null;
+        public event Action<DextraSelectable> OnSelected = null;
+        public event Action<DextraSelectable> OnDeselected = null;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void Discard()
         {
             OnSelected = null;
@@ -34,11 +35,21 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public virtual void OnSelect(BaseEventData eventData) => OnSelected?.Invoke(this);
+        public virtual void OnSelect(BaseEventData eventData)
+        {
+            OnSelected?.Invoke(this);
+
+            if (Dextra.TryGetSingleton(out var dextra))
+                dextra.HandleNativeSelection(gameObject).Forget();
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public virtual void OnDeselect(BaseEventData eventData) => OnDeselected?.Invoke(this);
+        public virtual void OnDeselect(BaseEventData eventData)
+        {
+            OnDeselected?.Invoke(this);
+        }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected internal bool TryGetUnitySelectable<S>(out S result) where S : Selectable
         {
             if (UnitySelectable is S convertedSelectable)
@@ -55,10 +66,21 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     [DisallowMultipleComponent]
     public abstract class DextraSelectable<T> : DextraSelectable where T : Selectable
     {
-        protected override Selectable UnitySelectable => selectable;
+        public override Selectable UnitySelectable
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => selectable;
+        }
+
+        public T GenericUnitySelectable
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => selectable;
+        }
 
         [HideInInspector, SerializeField] protected T selectable = null;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void Discard()
         {
             selectable = null;

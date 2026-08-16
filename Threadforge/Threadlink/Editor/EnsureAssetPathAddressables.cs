@@ -9,7 +9,7 @@ namespace Threadlink.Editor
         /// <summary>
         /// Sets the address of every Addressable asset to its full project‑relative path.
         /// </summary>
-        [MenuItem("Threadlink/Match Addressables to Paths")]
+        [MenuItem("Threadlink/Addressables/Match Addressables to Paths")]
         private static void Run()
         {
             var settings = AddressableAssetSettingsDefaultObject.Settings;

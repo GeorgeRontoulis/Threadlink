@@ -1,21 +1,30 @@
 namespace Threadlink.Core.NativeSubsystems.Dextra
 {
     using Cysharp.Threading.Tasks;
+    using Generated;
     using Iris;
-    using Shared;
     using System.Collections.Generic;
     using System.Runtime.CompilerServices;
     using UnityEngine;
+    using UnityEngine.InputSystem.UI;
 
     /// <summary>
     /// An interface that can be cancelled by the player, enabling them to navigate to the previous screen.
     /// </summary>
     public interface ICancellableInterface
     {
+        public bool IsInSubPanel { get; }
+
         /// <summary>
         /// Called when the interface is cancelled, i.e. closed.
         /// </summary>
         public void OnCancelled();
+
+        /// <summary>
+        /// Called when the interface exits one of its sub-panels, without closing completely.
+        /// The interface itself is responsible for managing the state of its sub-panels.
+        /// </summary>
+        public void OnSubPanelCancelled();
     }
 
     /// <summary>
@@ -48,11 +57,56 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     {
         private UIStack UIStack { get; set; }
 
+        public bool TopInterfaceIsInteractable
+        {
+            get => UIStack.TryGetTopInterface(out var ui) && ui is IInteractableInterface;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsTopInterface<T>(out Dextra dextra) where T : UserInterface
+        {
+            return TryGetSingleton(out dextra) && dextra.UIStack.IsTopInterface<T>();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsTopInterface<T>() where T : UserInterface
+        {
+            return TryGetSingleton(out var dextra) && dextra.UIStack.IsTopInterface<T>();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetUIInputModuleActive(bool active)
+        {
+            if (UnityEventSystem != null && UnityEventSystem.TryGetComponent(out InputSystemUIInputModule module))
+            {
+                if (active)
+                    module.ActivateModule();
+                else
+                    module.DeactivateModule();
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetEventSystemActive(bool active)
+        {
+            if (UnityEventSystem != null)
+                UnityEventSystem.enabled = active;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Cancel()
         {
-            ClearEventSystemSelection();
+            if (UIStack.StackedInterfacesCount > 1)
+                ClearEventSystemSelection();
+
             UIStack.Cancel();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PopTopInterface()
+        {
+            ClearEventSystemSelection();
+            UIStack.PopTopInterface();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -94,26 +148,25 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
                 return;
             }
             else if (element.Equals(UnityEventSystem.currentSelectedGameObject))
-                return;
+                return; // Already selected — native OnSelect already handled (or will handle) notification.
 
             #region Workaround against a Unity bug where the Event System misbehaves when changing selections.
             await Threadlink.WaitForFramesAsync(1);
-
             ClearEventSystemSelection();
             UnityEventSystem.gameObject.SetActive(false);
-
             await Threadlink.WaitForFramesAsync(1);
-
             UnityEventSystem.gameObject.SetActive(true);
             UnityEventSystem.SetSelectedGameObject(element);
             #endregion
+        }
 
+        internal async UniTaskVoid HandleNativeSelection(GameObject element)
+        {
             if (UIStack.TryGetTopInterface(out var ui) && ui is IInteractableInterface)
                 OnUIElementSelected(element);
             else
             {
                 await Threadlink.WaitForFramesAsync(1);
-
                 ClearEventSystemSelection();
             }
         }

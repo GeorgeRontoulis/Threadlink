@@ -32,6 +32,14 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         {
             base.Boot();
 
+            var selectables = RegisterSelectables();
+
+            if (selectables != null && selectables.Count > 0)
+                LastSelectable = selectables[0];
+        }
+
+        protected List<Selectable> RegisterSelectables()
+        {
             var selectables = Selectables;
 
             if (selectables != null)
@@ -42,8 +50,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
                     selectables[i].OnSelected += UpdateLastSelectable;
             }
 
-            if (selectables != null && selectables.Count > 0)
-                LastSelectable = selectables[0];
+            return selectables;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

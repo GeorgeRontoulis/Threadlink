@@ -1,44 +1,67 @@
 namespace Threadlink.Core.NativeSubsystems.Dextra
 {
     using Chronos;
+    using Generated;
     using Iris;
     using Shared;
     using System;
-    using Utilities.Mathematics;
+    using System.Runtime.CompilerServices;
     using UnityEngine;
+    using Utilities.Mathematics;
+    using Utilities.Objects;
 
     [RequireComponent(typeof(CanvasGroup))]
-    public abstract class UserInterface : LinkableBehaviour
+    public abstract class UserInterface : LinkableBehaviour, IBootable
     {
         public bool IsVisible => canvasGroup.alpha.IsSimilarTo(1f);
         public bool IsHidden => canvasGroup.alpha.IsSimilarTo(0f);
         public bool UpdatingAlpha { get; private set; }
         private float TargetAlpha { get; set; }
 
-        [HideInInspector, SerializeField] private CanvasGroup canvasGroup = null;
+#if ODIN_INSPECTOR
+        [Sirenix.OdinInspector.ReadOnly]
+#else
+        [HideInInspector]
+#endif
+        [SerializeField] private CanvasGroup canvasGroup = null;
+
+#if ODIN_INSPECTOR
+        [Sirenix.OdinInspector.ReadOnly]
+#else
+        [HideInInspector]
+#endif
+        [SerializeField] private Canvas canvas = null;
 
         protected override void OnValidate()
         {
             base.OnValidate();
 
-            var group = GetComponent<CanvasGroup>();
-
-            if (canvasGroup != group)
-                canvasGroup = group;
+            this.Set(ref canvasGroup);
+            this.Set(ref canvas);
         }
 
         public override void Discard()
         {
             Iris.Unsubscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, MoveTowardsTargetAlpha);
+            Iris.Unsubscribe<Action>(ThreadlinkIDs.Iris.Events.OnLateUpdate, ControlCanvas);
             canvasGroup = null;
             base.Discard();
+        }
+
+        public virtual void Boot()
+        {
+            Iris.Subscribe<Action>(ThreadlinkIDs.Iris.Events.OnLateUpdate, ControlCanvas);
         }
 
         private void UpdateAlpha(float newAlpha)
         {
             TargetAlpha = newAlpha;
-            UpdatingAlpha = true;
-            Iris.Subscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, MoveTowardsTargetAlpha);
+
+            if (!UpdatingAlpha)
+            {
+                UpdatingAlpha = true;
+                Iris.Subscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, MoveTowardsTargetAlpha);
+            }
         }
 
         private void MoveTowardsTargetAlpha()
@@ -53,7 +76,15 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             }
         }
 
-        internal void SetInteractableState(bool state)
+        private void ControlCanvas()
+        {
+            bool shouldEnable = canvasGroup.alpha > Mathf.Epsilon;
+
+            if (canvas.enabled != shouldEnable)
+                canvas.enabled = shouldEnable;
+        }
+
+        public void SetInteractableState(bool state)
         {
             canvasGroup.interactable = state;
             canvasGroup.blocksRaycasts = state;
@@ -62,7 +93,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         protected void Display() => UpdateAlpha(1f);
         protected void Hide() => UpdateAlpha(0f);
 
-        internal void ForceCanvasGroupAlphaTo(float alpha)
+        public void ForceCanvasGroupAlphaTo(float alpha)
         {
             UpdatingAlpha = true;
             TargetAlpha = alpha;
@@ -116,8 +147,19 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     public abstract class UserInterface<S> : UserInterface, IThreadlinkSingleton<S>
     where S : UserInterface<S>
     {
-        public static S Instance { get; private set; }
+        protected static S Instance { get; private set; }
 
-        public virtual void Boot() => Instance = this as S;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool TryGetSingleton(out S result)
+        {
+            result = Instance ?? null;
+            return result != null;
+        }
+
+        public override void Boot()
+        {
+            Instance = this as S;
+            base.Boot();
+        }
     }
 }

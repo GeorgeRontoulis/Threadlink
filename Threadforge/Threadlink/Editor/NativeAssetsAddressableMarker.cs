@@ -12,7 +12,7 @@ namespace Threadlink.Editor
     {
         private static readonly List<string> GUIDsBuffer = new(16);
 
-        [MenuItem("Threadlink/Mark Native Assets as Addressable")]
+        [MenuItem("Threadlink/Addressables/Mark Native Assets as Addressable")]
         private static void MarkNativeAssetsAsAddressable()
         {
             if (ThreadlinkConfigFinder.TryGetConfig(out ThreadlinkNativeConfig config))

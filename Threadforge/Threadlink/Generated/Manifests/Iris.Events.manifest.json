@@ -1,0 +1,215 @@
+{
+    "domain": "Iris.Events",
+    "kind": "Ordinal",
+    "nextOrdinal": 27,
+    "entries": [
+        {
+            "key": "OnActiveSceneFinishedUnloading",
+            "name": "OnActiveSceneFinishedUnloading",
+            "scope": "",
+            "value": 19,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnActiveSceneRequested",
+            "name": "OnActiveSceneRequested",
+            "scope": "",
+            "value": 17,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnBeforeActiveSceneUnload",
+            "name": "OnBeforeActiveSceneUnload",
+            "scope": "",
+            "value": 18,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnCoreDeployed",
+            "name": "OnCoreDeployed",
+            "scope": "",
+            "value": 2,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnDisplayFaderAsync",
+            "name": "OnDisplayFaderAsync",
+            "scope": "",
+            "value": 21,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnDisplayLoadingScreenAsync",
+            "name": "OnDisplayLoadingScreenAsync",
+            "scope": "",
+            "value": 23,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnFixedUpdate",
+            "name": "OnFixedUpdate",
+            "scope": "",
+            "value": 4,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnGamePauseRequested",
+            "name": "OnGamePauseRequested",
+            "scope": "",
+            "value": 7,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnGamePaused",
+            "name": "OnGamePaused",
+            "scope": "",
+            "value": 9,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnGameResumeRequested",
+            "name": "OnGameResumeRequested",
+            "scope": "",
+            "value": 8,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnGameResumed",
+            "name": "OnGameResumed",
+            "scope": "",
+            "value": 10,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnHideFaderAsync",
+            "name": "OnHideFaderAsync",
+            "scope": "",
+            "value": 22,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnHideLoadingScreenAsync",
+            "name": "OnHideLoadingScreenAsync",
+            "scope": "",
+            "value": 24,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnInputDeviceChanged",
+            "name": "OnInputDeviceChanged",
+            "scope": "",
+            "value": 11,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnInteract",
+            "name": "OnInteract",
+            "scope": "",
+            "value": 14,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnInteractableDetected",
+            "name": "OnInteractableDetected",
+            "scope": "",
+            "value": 15,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnInteractableOutOfRange",
+            "name": "OnInteractableOutOfRange",
+            "scope": "",
+            "value": 16,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnLateUpdate",
+            "name": "OnLateUpdate",
+            "scope": "",
+            "value": 5,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnNativeSubsystemRegistration",
+            "name": "OnNativeSubsystemRegistration",
+            "scope": "",
+            "value": 0,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnNewSceneFinishedLoading",
+            "name": "OnNewSceneFinishedLoading",
+            "scope": "",
+            "value": 20,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnNexusLoadingFinished",
+            "name": "OnNexusLoadingFinished",
+            "scope": "",
+            "value": 25,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnPlaytimeCountTick",
+            "name": "OnPlaytimeCountTick",
+            "scope": "",
+            "value": 6,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnUICancelled",
+            "name": "OnUICancelled",
+            "scope": "",
+            "value": 12,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnUIElementSelected",
+            "name": "OnUIElementSelected",
+            "scope": "",
+            "value": 13,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnUpdate",
+            "name": "OnUpdate",
+            "scope": "",
+            "value": 3,
+            "seedOffset": 0,
+            "tombstoned": false
+        },
+        {
+            "key": "OnUserSubsystemRegistration",
+            "name": "OnUserSubsystemRegistration",
+            "scope": "",
+            "value": 1,
+            "seedOffset": 0,
+            "tombstoned": false
+        }
+    ]
+}

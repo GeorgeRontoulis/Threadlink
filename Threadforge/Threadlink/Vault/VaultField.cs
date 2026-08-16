@@ -2,6 +2,7 @@ namespace Threadlink.Vault
 {
     using System;
     using System.Runtime.CompilerServices;
+    using Threadlink.Generated;
     using Threadlink.Shared;
     using UnityEngine;
 

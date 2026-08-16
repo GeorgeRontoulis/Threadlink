@@ -13,9 +13,9 @@ namespace Threadlink.Core.NativeSubsystems.Scribe
             using var stringBuilder = ZString.CreateUtf8StringBuilder(true);
             int length = message.Length;
 
-            stringBuilder.Append("[");
+            stringBuilder.Append("<color=cyan>[");
             stringBuilder.Append(source.GetType().Name);
-            stringBuilder.Append("] - ");
+            stringBuilder.Append("] - </color>");
 
             for (int i = 0; i < length; i++)
                 stringBuilder.Append(message[i]);
@@ -26,18 +26,18 @@ namespace Threadlink.Core.NativeSubsystems.Scribe
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ToUnityConsole(this Utf8ValueStringBuilder nonAllocInput, DebugType logType = DebugType.Info)
         {
-            string loggedMessage = nonAllocInput.ToString();
+            string message = nonAllocInput.ToString();
 
             switch (logType)
             {
                 case DebugType.Info:
-                    Debug.Log(loggedMessage);
+                    Debug.Log($"<color=white>{message}</color>");
                     break;
                 case DebugType.Warning:
-                    Debug.LogWarning(loggedMessage);
+                    Debug.LogWarning($"<color=yellow>{message}</color>");
                     break;
                 case DebugType.Error:
-                    Debug.LogError(loggedMessage);
+                    Debug.LogError($"<color=red>{message}</color>");
                     break;
             }
         }

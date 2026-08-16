@@ -40,4 +40,6 @@ namespace Threadlink.Utilities.Attributes
         #endregion
     }
 
+    [AttributeUsage(AttributeTargets.Field)]
+    public sealed class ReadOnlyAttribute : PropertyAttribute { }
 }

@@ -1,0 +1,11 @@
+// Native resources Threadlink loads during boot.
+// Identity domain: order is irrelevant and deleting an entry is safe.
+
+UserConfig
+SentinelConfig
+DextraConfig
+DextraComponentsPrefab
+AuraConfig
+AuraComponentsPrefab
+ChronosConfig
+NetflowConfig

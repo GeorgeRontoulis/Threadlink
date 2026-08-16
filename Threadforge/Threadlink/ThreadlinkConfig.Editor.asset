@@ -12,26 +12,73 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2eaefba841019f42a7bbb0583e7c65c, type: 3}
   m_Name: ThreadlinkConfig.Editor
   m_EditorClassIdentifier: Threadlink.Editor::Threadlink.Editor.ThreadlinkEditorConfig
-  nativeIrisEventsTemplate: {fileID: 4900000, guid: 80d7ef5e5302f3c418aaa08277cf205a, type: 3}
-  userIrisEventsTemplate: {fileID: 4900000, guid: 6801d28faf4886047ac1c9650f15e809, type: 3}
-  irisEventsScript: {fileID: 11500000, guid: 3a2a36736197d10419817b2e4dbd27af, type: 3}
-  nativeDextraModesTemplate: {fileID: 4900000, guid: 95603045ed8af5647b0ba326482138d7, type: 3}
-  userDextraModesTemplate: {fileID: 4900000, guid: 8e42f2f624f94fa40aa27e0d20fee78b, type: 3}
-  dextraModesScript: {fileID: 11500000, guid: faa03bf811db2994aa53df8c2248b8f2, type: 3}
-  nativeRNGDomainsTemplate: {fileID: 4900000, guid: 7dba0e8cf61d17b419c403db9016d381, type: 3}
-  userRNGDomainsTemplate: {fileID: 4900000, guid: 5a1cc722b259b654780c78fa76d1828b, type: 3}
-  rngDomainsScript: {fileID: 11500000, guid: ec202734d367f504893c65292b7e5082, type: 3}
-  nativeVaultFieldsTemplate: {fileID: 4900000, guid: 52e7d43862e1aa547b1d3533f0459d3b, type: 3}
-  userVaultFieldsTemplate: {fileID: 4900000, guid: 41c4c8835c1fffa45885d6996cc5a63f, type: 3}
-  vaultFieldsScript: {fileID: 11500000, guid: 0dcc69a8ccf62284c92f8533979eab4a, type: 3}
-  nativeNexusSpawnPointsTemplate: {fileID: 4900000, guid: 84af606ef4e3ce8489e7dbb6c4037c2c, type: 3}
-  userNexusSpawnPointsTemplate: {fileID: 4900000, guid: 7871444b7b0414a498fe80289581a058, type: 3}
-  nexusSpawnPointsScript: {fileID: 11500000, guid: 8565bacea121ef14ba62b68cc7c16d50, type: 3}
-  sceneIDsTemplate: {fileID: 4900000, guid: 3fc630b161953974db3cd0780a3dc3d9, type: 3}
-  assetIDsTemplate: {fileID: 4900000, guid: 7aeca2e8cc103bb4cbb6fb32b63351eb, type: 3}
-  prefabIDsTemplate: {fileID: 4900000, guid: 9864571ccd0de624ca01196443f1a843, type: 3}
-  sceneIDsScript: {fileID: 11500000, guid: 2fb2452ccf0b57d4cbbabbd0403279c6, type: 3}
-  assetIDsScript: {fileID: 11500000, guid: bef95e12e31caaf4fb88e840c57801a6, type: 3}
-  prefabIDsScript: {fileID: 11500000, guid: c1a64d76aafdd9c4194455961b6eb3eb, type: 3}
-  userDomainDefinitionsFolder: {fileID: 102900000, guid: f0e7a29869355c54ebf9895a15ba7d0a, type: 3}
-  userDomainScriptsFolder: {fileID: 102900000, guid: 7428ecfef83dba748b5f643b8d6088b9, type: 3}
+  generatedScriptsFolder: {fileID: 102900000, guid: 2e5dfb8b64efde349958a959748b666e, type: 3}
+  nativeDomains:
+  - domainName: Iris.Events
+    outputFileName: ThreadlinkIDs.Iris
+    shell: {fileID: 4900000, guid: f05d9182f95aa3b4aafc6e934b3ac7bd, type: 3}
+    nativeEntries: {fileID: 4900000, guid: 80d7ef5e5302f3c418aaa08277cf205a, type: 3}
+    ordinalValues: 1
+    reserveZero: 0
+    sourcedFromAddressables: 0
+  - domainName: Nexus.SpawnPoints
+    outputFileName: ThreadlinkIDs.Nexus
+    shell: {fileID: 4900000, guid: fef578f6e9d3e614d8bff7baae430a5c, type: 3}
+    nativeEntries: {fileID: 0}
+    ordinalValues: 0
+    reserveZero: 1
+    sourcedFromAddressables: 0
+  - domainName: Dextra.InputModes
+    outputFileName: ThreadlinkIDs.Dextra
+    shell: {fileID: 4900000, guid: 0503493edfeaf874f8aa3cdebffe45fe, type: 3}
+    nativeEntries: {fileID: 0}
+    ordinalValues: 0
+    reserveZero: 1
+    sourcedFromAddressables: 0
+  - domainName: StatelessRNG.Domains
+    outputFileName: ThreadlinkIDs.RNG
+    shell: {fileID: 4900000, guid: 5e40f8768586f5f4987cb93d7715bad3, type: 3}
+    nativeEntries: {fileID: 0}
+    ordinalValues: 0
+    reserveZero: 1
+    sourcedFromAddressables: 0
+  - domainName: Vault.Fields
+    outputFileName: ThreadlinkIDs.Vault
+    shell: {fileID: 4900000, guid: c7967cae944afc443beb2f6c63627d99, type: 3}
+    nativeEntries: {fileID: 0}
+    ordinalValues: 0
+    reserveZero: 1
+    sourcedFromAddressables: 0
+  - domainName: Addressables.Scenes
+    outputFileName: ThreadlinkIDs.Addressables.Scenes
+    shell: {fileID: 4900000, guid: dc519bf19126fc246bacbabf524dc8bf, type: 3}
+    nativeEntries: {fileID: 0}
+    ordinalValues: 0
+    reserveZero: 1
+    sourcedFromAddressables: 1
+  - domainName: Addressables.Assets
+    outputFileName: ThreadlinkIDs.Addressables.Assets
+    shell: {fileID: 4900000, guid: 6ef8da8b9456db34db4945d0b46c664b, type: 3}
+    nativeEntries: {fileID: 0}
+    ordinalValues: 0
+    reserveZero: 1
+    sourcedFromAddressables: 1
+  - domainName: Addressables.Prefabs
+    outputFileName: ThreadlinkIDs.Addressables.Prefabs
+    shell: {fileID: 4900000, guid: 94fe18fbe97cea0468257f3e00e0bcf3, type: 3}
+    nativeEntries: {fileID: 0}
+    ordinalValues: 0
+    reserveZero: 1
+    sourcedFromAddressables: 1
+  - domainName: Addressables.NativeResources
+    outputFileName: ThreadlinkIDs.Addressables.NativeResources
+    shell: {fileID: 4900000, guid: 6246ed491043846488ae341393aa1daa, type: 3}
+    nativeEntries: {fileID: 4900000, guid: f711196c761e67a45adea49dcc79f706, type: 3}
+    ordinalValues: 0
+    reserveZero: 1
+    sourcedFromAddressables: 0
+  injectorsFolder: {fileID: 102900000, guid: 860f277d38bf2ef44860fc9ce92ab521, type: 3}
+  addressablesInjectorsFolder: {fileID: 102900000, guid: 874679064465290468c09bd772ad4161, type: 3}
+  domainDefinitionsFolder: {fileID: 102900000, guid: f0e7a29869355c54ebf9895a15ba7d0a, type: 3}
+  domainDefinitionScriptsFolder: {fileID: 102900000, guid: 7428ecfef83dba748b5f643b8d6088b9, type: 3}
+  domainDefinitionShell: {fileID: 4900000, guid: 622b6f01cd600444f82524de79f6280c, type: 3}

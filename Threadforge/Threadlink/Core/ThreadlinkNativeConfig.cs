@@ -7,7 +7,7 @@ namespace Threadlink.Core
     using System.Runtime.CompilerServices;
     using UnityEngine;
     using UnityEngine.AddressableAssets;
-    using NativeResources = Shared.ThreadlinkIDs.Addressables.NativeResources;
+    using NativeResources = Generated.ThreadlinkIDs.Addressables.NativeResources;
 
     [CreateAssetMenu(fileName = "ThreadlinkConfig.Native.asset", menuName = "Threadlink/Native Config")]
     public sealed class ThreadlinkNativeConfig : ScriptableObject

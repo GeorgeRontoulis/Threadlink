@@ -63,6 +63,12 @@ namespace Threadlink.Utilities.Vectors
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsSimilarTo(this Vector2 a, Vector2 b)
+        {
+            return a.x.IsSimilarTo(b.x) && a.y.IsSimilarTo(b.y);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector3 VectorTo(this Transform start, Transform end) => end.localPosition - start.localPosition;
     }
 }

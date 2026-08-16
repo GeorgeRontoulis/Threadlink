@@ -1,88 +1,126 @@
 namespace Threadlink.Editor
 {
+    using System;
+    using System.Runtime.CompilerServices;
     using UnityEditor;
     using UnityEngine;
+
+    [Serializable]
+    internal sealed class ThreadlinkDomainAssets
+    {
+        internal string DomainName
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => domainName;
+        }
+
+        internal string OutputFileName
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => outputFileName;
+        }
+
+        internal TextAsset Shell
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => shell;
+        }
+
+        internal TextAsset NativeEntries
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => nativeEntries;
+        }
+
+        internal bool IsOrdinal
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => ordinalValues;
+        }
+
+        internal bool ReserveZero
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => reserveZero;
+        }
+
+        internal bool SourcedFromAddressables
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => sourcedFromAddressables;
+        }
+
+        [Tooltip("Injector files must be named after this, as {DomainName}.{Injector}.txt")]
+        [SerializeField] private string domainName = string.Empty;
+
+        [Tooltip("Name of the emitted script, without extension. Falls back to the domain name when empty.")]
+        [SerializeField] private string outputFileName = string.Empty;
+
+        [Space(5)]
+
+        [SerializeField] private TextAsset shell = null;
+
+        [Tooltip("Entries owned by the framework itself. Injectors are appended after these.")]
+        [SerializeField] private TextAsset nativeEntries = null;
+
+        [Space(5)]
+
+        [Tooltip("Dense positional values instead of hashes. Only correct when the value is used as an array index.")]
+        [SerializeField] private bool ordinalValues = false;
+
+        [Tooltip("Whether the shell declares a sentinel at zero that the allocator must avoid.")]
+        [SerializeField] private bool reserveZero = true;
+
+        [Tooltip("Whether this domain also draws injectors from the Addressables Injectors Folder.")]
+        [SerializeField] private bool sourcedFromAddressables = false;
+    }
 
     [CreateAssetMenu(fileName = "ThreadlinkConfig.Editor.asset", menuName = "Threadlink/Editor Config")]
     internal sealed class ThreadlinkEditorConfig : ScriptableObject
     {
-        internal TextAsset NativeIrisEventsTemplate => nativeIrisEventsTemplate;
-        internal TextAsset UserIrisEventsTemplate => userIrisEventsTemplate;
-        internal MonoScript IrisEventsScript => irisEventsScript;
+        internal ThreadlinkDomainAssets[] NativeDomains => nativeDomains;
 
-        internal TextAsset NativeDextraModesTemplate => nativeDextraModesTemplate;
-        internal TextAsset UserDextraModesTemplate => userDextraModesTemplate;
-        internal MonoScript DextraModesScript => dextraModesScript;
+        internal TextAsset DomainDefinitionShell => domainDefinitionShell;
 
-        internal TextAsset NativeRNGDomainsTemplate => nativeRNGDomainsTemplate;
-        internal TextAsset UserRNGDomainsTemplate => userRNGDomainsTemplate;
-        internal MonoScript RNGDomainsScript => rngDomainsScript;
+        internal DefaultAsset GeneratedScriptsFolder => generatedScriptsFolder;
+        internal DefaultAsset InjectorsFolder => injectorsFolder;
+        internal DefaultAsset AddressablesInjectorsFolder => addressablesInjectorsFolder;
+        internal DefaultAsset DomainDefinitionsFolder => domainDefinitionsFolder;
+        internal DefaultAsset DomainDefinitionScriptsFolder => domainDefinitionScriptsFolder;
 
-        internal TextAsset NativeVaultFieldsTemplate => nativeVaultFieldsTemplate;
-        internal TextAsset UserVaultFieldsTemplate => userVaultFieldsTemplate;
-        internal MonoScript VaultFieldsScript => vaultFieldsScript;
-
-        internal TextAsset NativeNexusSpawnPointsTemplate => nativeNexusSpawnPointsTemplate;
-        internal TextAsset UserNexusSpawnPointsTemplate => userNexusSpawnPointsTemplate;
-        internal MonoScript NexusSpawnPointsScript => nexusSpawnPointsScript;
-
-        internal TextAsset SceneIDsTemplate => sceneIDsTemplate;
-        internal TextAsset AssetIDsTemplate => assetIDsTemplate;
-        internal TextAsset PrefabIDsTemplate => prefabIDsTemplate;
-
-        internal MonoScript SceneIDsScript => sceneIDsScript;
-        internal MonoScript AssetIDsScript => assetIDsScript;
-        internal MonoScript PrefabIDsScript => prefabIDsScript;
-
-        internal DefaultAsset UserDomainDefinitionsFolder => userDomainDefinitionsFolder;
-        internal DefaultAsset UserDomainScriptsFolder => userDomainScriptsFolder;
-
-        [Header("Editor Resources:")]
+        [Header("Native Domains:")]
         [Space(10)]
 
-        [SerializeField] private TextAsset nativeIrisEventsTemplate = null;
-        [SerializeField] private TextAsset userIrisEventsTemplate = null;
-        [SerializeField] private MonoScript irisEventsScript = null;
+        [Tooltip("Every generated framework enum is written here. Nothing outside this folder is ever touched.")]
+        [SerializeField] private DefaultAsset generatedScriptsFolder = null;
 
         [Space(10)]
 
-        [SerializeField] private TextAsset nativeDextraModesTemplate = null;
-        [SerializeField] private TextAsset userDextraModesTemplate = null;
-        [SerializeField] private MonoScript dextraModesScript = null;
+        [SerializeField] private ThreadlinkDomainAssets[] nativeDomains = Array.Empty<ThreadlinkDomainAssets>();
 
+        [Header("Injectors:")]
         [Space(10)]
 
-        [SerializeField] private TextAsset nativeRNGDomainsTemplate = null;
-        [SerializeField] private TextAsset userRNGDomainsTemplate = null;
-        [SerializeField] private MonoScript rngDomainsScript = null;
+        [Tooltip("Files that append entries to an existing domain, named {DomainName}.{Injector}.txt. "
+        + "The injector name becomes the scope of every entry in the file. Both your own entries and "
+        + "any third-party module's entries live here.")]
+        [SerializeField] private DefaultAsset injectorsFolder = null;
 
+        [Tooltip("Injectors written by the Addressables Mapping Window, one per Addressable group. "
+        + "Generated output: Apply overwrites this folder, so hand edits will be lost.")]
+        [SerializeField] private DefaultAsset addressablesInjectorsFolder = null;
+
+        [Header("Domain Definitions:")]
         [Space(10)]
 
-        [SerializeField] private TextAsset nativeVaultFieldsTemplate = null;
-        [SerializeField] private TextAsset userVaultFieldsTemplate = null;
-        [SerializeField] private MonoScript vaultFieldsScript = null;
+        [Tooltip("Files that declare an entirely new enum, one file per domain. "
+        + "Injectors may extend these too, exactly as they extend native domains.")]
+        [SerializeField] private DefaultAsset domainDefinitionsFolder = null;
 
-        [Space(10)]
+        [SerializeField] private DefaultAsset domainDefinitionScriptsFolder = null;
 
-        [SerializeField] private TextAsset nativeNexusSpawnPointsTemplate = null;
-        [SerializeField] private TextAsset userNexusSpawnPointsTemplate = null;
-        [SerializeField] private MonoScript nexusSpawnPointsScript = null;
+        [Space(5)]
 
-        [Space(10)]
-
-        [SerializeField] private TextAsset sceneIDsTemplate = null;
-        [SerializeField] private TextAsset assetIDsTemplate = null;
-        [SerializeField] private TextAsset prefabIDsTemplate = null;
-
-        [Space(10)]
-
-        [SerializeField] private MonoScript sceneIDsScript = null;
-        [SerializeField] private MonoScript assetIDsScript = null;
-        [SerializeField] private MonoScript prefabIDsScript = null;
-
-        [Space(10)]
-
-        [SerializeField] private DefaultAsset userDomainDefinitionsFolder = null;
-        [SerializeField] private DefaultAsset userDomainScriptsFolder = null;
+        [SerializeField] private TextAsset domainDefinitionShell = null;
     }
 }

@@ -1,15 +1,22 @@
 namespace Threadlink.Core.NativeSubsystems.Dextra
 {
     using Cysharp.Threading.Tasks;
+    using Generated;
+    using global::Threadlink.Utilities.Collections;
     using Iris;
     using Shared;
+    using System;
     using System.Runtime.CompilerServices;
+    using System.Threading;
     using UnityEngine;
     using UnityEngine.EventSystems;
     using UnityEngine.InputSystem;
     using UnityEngine.InputSystem.DualShock;
+    using UnityEngine.InputSystem.LowLevel;
     using UnityEngine.InputSystem.Switch;
-    using NativeResources = Shared.ThreadlinkIDs.Addressables.NativeResources;
+    using UnityEngine.InputSystem.UI;
+    using UnityEngine.UI;
+    using NativeResources = Generated.ThreadlinkIDs.Addressables.NativeResources;
 
     /// <summary>
     /// Threadlink's Human-Interface Interaction Subsystem.
@@ -20,6 +27,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     /// while the UI is based on Unity's standard UGUI package.
     /// </summary>
     public sealed partial class Dextra : ThreadlinkSubsystem<Dextra>,
+    IDisposable,
     IInitializable,
     IAddressablesPreloader,
     IDependencyConsumer<EventSystem>,
@@ -35,29 +43,33 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
         public InputDevice CurrentInputDevice { get; private set; } = InputDevice.MouseAndKeyboard;
 
-        private EventSystem UnityEventSystem { get; set; }
-        private PlayerInput InputDeviceDetector { get; set; }
-        private DextraConfig Config { get; set; }
+        private EventSystem UnityEventSystem { get; set; } = null;
+        private InputSystemUIInputModule UIInputModule { get; set; } = null;
+        private DextraConfig Config { get; set; } = null;
+
+        public event Action<GameObject> OnPointerEnter = null;
+        public event Action<GameObject> OnPointerExit = null;
+
+        private CancellationTokenSource tokenSource = null;
 
         public bool TryConsumeDependency(EventSystem input)
         {
             if (input != null)
             {
-                var eventSystem = Object.Instantiate(input);
+                var eventSystem = UnityEngine.Object.Instantiate(input);
 
                 eventSystem.name = input.name;
+
+                if (eventSystem.TryGetComponent(out InputSystemUIInputModule module))
+                    UIInputModule = module;
 
                 if (Config.HideEventSystemInHierarchy)
                     eventSystem.gameObject.hideFlags = HideFlags.HideInHierarchy;
 
-                Object.DontDestroyOnLoad(eventSystem);
+                UnityEngine.Object.DontDestroyOnLoad(eventSystem);
 
-                if (eventSystem.TryGetComponent(out PlayerInput deviceDetector))
-                {
-                    UnityEventSystem = eventSystem;
-                    InputDeviceDetector = deviceDetector;
-                    return true;
-                }
+                UnityEventSystem = eventSystem;
+                return true;
             }
 
             return false;
@@ -99,12 +111,19 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             return false;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
+        {
+            StopPolling();
+            InputSystem.onEvent -= OnAnyInputEvent;
+        }
+
         public override void Discard()
         {
-            Iris.Unsubscribe<System.Action<Threadlink>>(ThreadlinkIDs.Iris.Events.OnCoreDeployed, OnCoreDeployed);
-            InputDeviceDetector.onControlsChanged -= UpdateInputDevice;
+            Dispose();
+
+            Iris.Unsubscribe<Action<Threadlink>>(ThreadlinkIDs.Iris.Events.OnCoreDeployed, OnCoreDeployed);
             UnityEventSystem = null;
-            InputDeviceDetector = null;
 
             if (UIStack != null)
             {
@@ -129,15 +148,45 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
                 UIStack.Boot();
             }
 
-            Iris.Subscribe<System.Action<Threadlink>>(ThreadlinkIDs.Iris.Events.OnCoreDeployed, OnCoreDeployed);
-            InputDeviceDetector.notificationBehavior = PlayerNotifications.InvokeCSharpEvents;
-            InputDeviceDetector.onControlsChanged += UpdateInputDevice;
+            Iris.Subscribe<Action<Threadlink>>(ThreadlinkIDs.Iris.Events.OnCoreDeployed, OnCoreDeployed);
+            InputSystem.onEvent += OnAnyInputEvent;
+            this.PreventEditorMemoryLeaks();
+            StartPolling();
+
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Initialize()
         {
             UIStack.Initialize();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetEventSystem(out EventSystem result)
+        {
+            if (UnityEventSystem != null)
+            {
+                result = UnityEventSystem;
+                return true;
+            }
+
+            result = null;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGetUIInputModule(out InputSystemUIInputModule result)
+        {
+            if (UIInputModule != null)
+            {
+                result = UIInputModule;
+                return true;
+            }
+            else if (UnityEventSystem != null && UnityEventSystem.TryGetComponent(out result))
+                return true;
+
+            result = null;
+            return false;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -152,6 +201,17 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             return Config.TryGetInputIcon(device, inputControlPath, out result);
         }
 
+        public void SetInputMapActive(ThreadlinkIDs.Dextra.InputModes mode, bool active)
+        {
+            if (TryGetInputMap(mode, out var map))
+            {
+                if (active)
+                    map.Enable();
+                else
+                    map.Disable();
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryGetInputMap(ThreadlinkIDs.Dextra.InputModes mode, out InputActionMap result)
         {
@@ -164,12 +224,88 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             return Config.TryGetInputMap(mode, out result);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void StartPolling()
+        {
+            StopPolling(); // guard against double-start
+            tokenSource = new CancellationTokenSource();
+            PollLoop(tokenSource.Token).Forget();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void StopPolling()
+        {
+            tokenSource?.Cancel();
+            tokenSource?.Dispose();
+            tokenSource = null;
+        }
+
+        private async UniTaskVoid PollLoop(CancellationToken token)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                await UniTask.NextFrame(PlayerLoopTiming.LastPostLateUpdate, token);
+                TrackPointerRaycasting();
+            }
+        }
+
+        private const int ConfirmFrames = 3; //lowest value that reliably absorbs double-firing
+
+        private GameObject _confirmedHover;
+        private bool hasPendingChange;
+        private int pendingCountdown;
+
+        public GameObject CurrentPointedObject => _confirmedHover;
+
+        private void TrackPointerRaycasting()
+        {
+            var uiModule = UIInputModule;
+            if (uiModule == null || Mouse.current == null)
+                return;
+
+            var result = uiModule.GetLastRaycastResult(Mouse.current.deviceId);
+            GameObject raw = null; // non-interactive hits: assume null
+
+            if (!result.isValid)
+            {
+                raw = null;
+            }
+            else
+            {
+                var selectable = result.gameObject.GetComponentInParent<Selectable>();
+                if (selectable != null)
+                    raw = selectable.gameObject;
+            }
+
+            if (raw == _confirmedHover)
+            {
+                hasPendingChange = false; // agrees with confirmed state — cancel any pending flip
+                return;
+            }
+
+            if (!hasPendingChange)
+            {
+                hasPendingChange = true;
+                pendingCountdown = ConfirmFrames;
+            }
+
+            if (--pendingCountdown > 0)
+                return; // disagreement not confirmed yet — absorb this poll
+
+            var leaving = _confirmedHover;
+            _confirmedHover = raw;
+            hasPendingChange = false;
+
+            if (leaving != null) OnPointerExit?.Invoke(leaving);
+            if (raw != null) OnPointerEnter?.Invoke(raw);
+        }
+
         private void OnCoreDeployed(Threadlink core)
         {
             if (!core.HasLinked(TypeHash))
                 return;
 
-            var inputIcons = Object.FindObjectsByType<DextraInputIcon>(FindObjectsInactive.Exclude);
+            var inputIcons = UnityEngine.Object.FindObjectsByType<DextraInputIcon>(FindObjectsInactive.Exclude);
 
             if (inputIcons != null)
             {
@@ -180,34 +316,39 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             }
         }
 
-        private void UpdateInputDevice(PlayerInput input)
+        private void OnAnyInputEvent(InputEventPtr eventPtr, UnityEngine.InputSystem.InputDevice device)
+        {
+            if (!eventPtr.IsA<StateEvent>() && !eventPtr.IsA<DeltaStateEvent>())
+                return;
+
+            foreach (var _ in eventPtr.EnumerateChangedControls(device, InputSystem.settings.defaultButtonPressPoint))
+            {
+                UpdateInputDevice(device);
+                break; //Just the first iteration is enough to switch to the new device.
+            }
+        }
+
+        private void UpdateInputDevice(UnityEngine.InputSystem.InputDevice device)
         {
             var oldDevice = CurrentInputDevice;
 
-            CurrentInputDevice = input.currentControlScheme switch
+            CurrentInputDevice = device switch
             {
-                NativeConstants.Input.MKB_DEVICE => InputDevice.MouseAndKeyboard,
-
-                NativeConstants.Input.GAMEPAD_DEVICE when Gamepad.current != null => Gamepad.current switch
-                {
-                    DualShockGamepad => InputDevice.PSController,
-                    SwitchProControllerHID => InputDevice.SwitchProController,
-                    _ => InputDevice.XBOXController,
-                },
-
-                _ => InputDevice.MouseAndKeyboard,
+                DualShockGamepad => InputDevice.PSController,
+                SwitchProControllerHID => InputDevice.SwitchProController,
+                Gamepad => InputDevice.XBOXController,
+                Keyboard or Mouse => InputDevice.MouseAndKeyboard,
+                _ => oldDevice,
             };
 
-            if (CurrentInputDevice != oldDevice)
-            {
-                var allGamepads = Gamepad.all;
-                int length = allGamepads.Count;
+            if (CurrentInputDevice == oldDevice) return;
 
-                for (int i = 0; i < length; i++)
-                    allGamepads[i].SetMotorSpeeds(0f, 0f);
+            var allGamepads = Gamepad.all;
+            int length = allGamepads.Count;
+            for (int i = 0; i < length; i++)
+                allGamepads[i].SetMotorSpeeds(0f, 0f);
 
-                Iris.Publish(ThreadlinkIDs.Iris.Events.OnInputDeviceChanged, CurrentInputDevice);
-            }
+            Iris.Publish(ThreadlinkIDs.Iris.Events.OnInputDeviceChanged, CurrentInputDevice);
         }
     }
 }

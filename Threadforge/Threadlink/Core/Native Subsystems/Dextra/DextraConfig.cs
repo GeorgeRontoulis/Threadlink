@@ -2,8 +2,8 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 {
     using Collections;
     using Cysharp.Threading.Tasks;
+    using Generated;
     using Scribe;
-    using Shared;
     using System;
     using System.Runtime.CompilerServices;
     using UnityEngine;

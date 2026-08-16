@@ -1,7 +1,7 @@
 #if THREADLINK_TIMELINE
 namespace Threadlink.Vault
 {
-    using Shared;
+    using Generated;
     using System;
     using System.Collections.Generic;
     using System.Runtime.CompilerServices;

@@ -2,6 +2,7 @@ namespace Threadlink.Core
 {
     using Collections;
     using Cysharp.Threading.Tasks;
+    using Generated;
     using Shared;
     using System;
     using System.Buffers;

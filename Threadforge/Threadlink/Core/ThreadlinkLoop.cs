@@ -1,7 +1,7 @@
 namespace Threadlink.Core
 {
+    using Generated;
     using NativeSubsystems.Iris;
-    using Shared;
     using System.Runtime.CompilerServices;
     using UnityEngine;
 
