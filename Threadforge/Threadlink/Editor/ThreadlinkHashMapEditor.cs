@@ -1,4 +1,3 @@
-#if !ODIN_INSPECTOR
 namespace Threadlink.Editor
 {
     using System;
@@ -530,4 +529,3 @@ namespace Threadlink.Editor
         }
     }
 }
-#endif

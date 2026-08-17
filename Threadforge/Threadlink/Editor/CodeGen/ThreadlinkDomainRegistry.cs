@@ -8,7 +8,6 @@ namespace Threadlink.Editor.CodeGen
     using Threadlink.Shared;
     using Threadlink.Utilities.Strings;
     using UnityEditor;
-    using UnityEngine;
 
     internal static class ThreadlinkDomainRegistry
     {

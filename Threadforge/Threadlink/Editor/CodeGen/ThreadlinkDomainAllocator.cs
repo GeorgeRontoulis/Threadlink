@@ -77,12 +77,11 @@ namespace Threadlink.Editor.CodeGen
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static int AllocateOrdinalValue(ThreadlinkDomainDescriptor descriptor, ThreadlinkDomainManifest manifest)
         {
-            int candidate = manifest.nextOrdinal;
+            int candidate = 0;
 
             while (descriptor.ReservedValues.Contains(candidate) || manifest.IsValueTaken(candidate, string.Empty))
                 candidate++;
 
-            manifest.nextOrdinal = candidate + 1;
             return candidate;
         }
 

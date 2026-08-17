@@ -41,7 +41,7 @@ namespace Threadlink.Core
 
         [ReadOnly]
 #if UNITY_EDITOR && ODIN_INSPECTOR
-        [Sirenix.OdinInspector.ReadOnly]
+        [Sirenix.OdinInspector.DrawWithUnity]
 #endif
         [Tooltip("Populated by the Threadlink Addressables Mapping Window. Not editable here.")]
         [SerializeField] private FieldHashMap<ThreadlinkIDs.Addressables.Assets, AssetReference> assetReferences = new();
@@ -50,7 +50,7 @@ namespace Threadlink.Core
 
         [ReadOnly]
 #if UNITY_EDITOR && ODIN_INSPECTOR
-        [Sirenix.OdinInspector.ReadOnly]
+        [Sirenix.OdinInspector.DrawWithUnity]
 #endif
         [Tooltip("Populated by the Threadlink Addressables Mapping Window. Not editable here.")]
         [SerializeField] private FieldHashMap<ThreadlinkIDs.Addressables.Prefabs, AssetReferenceGameObject> prefabReferences = new();

@@ -1,4 +1,3 @@
-#if ODIN_INSPECTOR
 namespace Threadlink.Editor
 {
     using Sirenix.OdinInspector;
@@ -7,6 +6,7 @@ namespace Threadlink.Editor
     using System;
     using System.Collections.Generic;
     using Threadlink.Collections;
+    using Threadlink.Utilities.Attributes;
     using UnityEditor;
     using UnityEngine;
 
@@ -48,6 +48,24 @@ namespace Threadlink.Editor
         }
     }
 
+    /// <summary>
+    /// Routes fields marked <see cref="HashMapDrawerMode.Native"/> to Threadlink's own
+    /// <see cref="PropertyDrawer"/> by injecting Odin's own opt-out attribute.
+    /// </summary>
+    public sealed class HashMapDrawerModeProcessor : OdinAttributeProcessor<object>
+    {
+        public override bool CanProcessSelfAttributes(InspectorProperty property)
+        {
+            return property.Info.GetAttribute<HashMapDrawerAttribute>() is HashMapDrawerAttribute attribute
+            && attribute.Mode is HashMapDrawerMode.Native;
+        }
+
+        public override void ProcessSelfAttributes(InspectorProperty property, List<Attribute> attributes)
+        {
+            attributes.Add(new DrawWithUnityAttribute());
+        }
+    }
+
     [DrawerPriority(0.0, 0.0, 1.0)]
     public class ThreadlinkHashMapOdinDrawer<TMap, TKey, TValue> : OdinValueDrawer<TMap>
         where TMap : ThreadlinkHashMap<TKey, TValue>
@@ -60,9 +78,20 @@ namespace Threadlink.Editor
 
         private int dragIndex = -1;
         private bool isDragging = false;
+        private bool readOnly = false;
+
+        protected override bool CanDrawValueProperty(InspectorProperty property)
+        {
+            var attribute = property.Info.GetAttribute<HashMapDrawerAttribute>();
+
+            return attribute == null || attribute.Mode is not HashMapDrawerMode.Native;
+        }
 
         protected override void Initialize()
         {
+            readOnly = Property.Info.GetAttribute<Utilities.Attributes.ReadOnlyAttribute>() != null
+            || Property.Info.GetAttribute<Sirenix.OdinInspector.ReadOnlyAttribute>() != null;
+
             keysProp = this.Property.Children.Get("keys");
             countProp = this.Property.Children.Get("count");
             _valuesAreUnityObjects = typeof(UnityEngine.Object).IsAssignableFrom(typeof(TValue));
@@ -127,7 +156,7 @@ namespace Threadlink.Editor
                 SirenixEditorGUI.BeginListItem();
                 var rowRect = EditorGUILayout.BeginHorizontal();
 
-                if (!isSearching)
+                if (!isSearching && !readOnly)
                 {
                     var dragRect = GUILayoutUtility.GetRect(20, 22, GUILayout.ExpandHeight(false));
                     dragRect.y += 2;
@@ -167,15 +196,25 @@ namespace Threadlink.Editor
                 }
 
                 GUILayout.BeginVertical(GUILayout.Width(140));
-                GUIHelper.PushHierarchyMode(false);
-                keyChild.Draw(GUIContent.none);
-                GUIHelper.PopHierarchyMode();
+
+                if (readOnly)
+                {
+                    GUILayout.Label(keyChild.ValueEntry?.WeakSmartValue?.ToString() ?? string.Empty);
+                }
+                else
+                {
+                    GUIHelper.PushHierarchyMode(false);
+                    keyChild.Draw(GUIContent.none);
+                    GUIHelper.PopHierarchyMode();
+                }
+
                 GUILayout.EndVertical();
 
                 SirenixEditorGUI.VerticalLineSeparator();
 
                 GUILayout.BeginVertical();
                 GUIHelper.PushLabelWidth(120);
+                EditorGUI.BeginDisabledGroup(readOnly);
 
                 if (_valuesAreUnityObjects)
                 {
@@ -228,21 +267,25 @@ namespace Threadlink.Editor
                     }
                 }
 
+                EditorGUI.EndDisabledGroup();
                 GUIHelper.PopLabelWidth();
                 GUILayout.EndVertical();
 
-                GUILayout.Space(4);
-                GUILayout.BeginVertical(GUILayout.Width(22));
-                if (SirenixEditorGUI.IconButton(EditorIcons.X))
+                if (readOnly is false)
                 {
-                    DeleteRow(i, uKeys, uValues, uCount, so);
+                    GUILayout.Space(4);
+                    GUILayout.BeginVertical(GUILayout.Width(22));
+                    if (SirenixEditorGUI.IconButton(EditorIcons.X))
+                    {
+                        DeleteRow(i, uKeys, uValues, uCount, so);
+                        GUILayout.EndVertical();
+                        GUILayout.EndHorizontal();
+                        SirenixEditorGUI.EndListItem();
+                        break;
+                    }
                     GUILayout.EndVertical();
-                    GUILayout.EndHorizontal();
-                    SirenixEditorGUI.EndListItem();
-                    break;
+                    GUILayout.Space(2);
                 }
-                GUILayout.EndVertical();
-                GUILayout.Space(2);
 
                 GUILayout.EndHorizontal();
                 SirenixEditorGUI.EndListItem();
@@ -256,15 +299,18 @@ namespace Threadlink.Editor
                 dragIndex = -1;
             }
 
-            GUILayout.Space(6f);
+            if (readOnly is false)
+            {
+                GUILayout.Space(6f);
 
-            SirenixEditorGUI.BeginToolbarBoxHeader();
-            GUILayout.BeginHorizontal();
-            GUILayout.FlexibleSpace();
-            if (SirenixEditorGUI.IconButton(EditorIcons.Plus))
-                AddRow(uKeys, uValues, uCount, so);
-            GUILayout.EndHorizontal();
-            SirenixEditorGUI.EndToolbarBoxHeader();
+                SirenixEditorGUI.BeginToolbarBoxHeader();
+                GUILayout.BeginHorizontal();
+                GUILayout.FlexibleSpace();
+                if (SirenixEditorGUI.IconButton(EditorIcons.Plus))
+                    AddRow(uKeys, uValues, uCount, so);
+                GUILayout.EndHorizontal();
+                SirenixEditorGUI.EndToolbarBoxHeader();
+            }
 
             SirenixEditorGUI.EndBox();
         }
@@ -359,4 +405,3 @@ namespace Threadlink.Editor
         }
     }
 }
-#endif

@@ -24,7 +24,6 @@ namespace Threadlink.Editor.CodeGen
     {
         public string domain;
         public string kind;
-        public int nextOrdinal;
         public List<ThreadlinkDomainManifestEntry> entries = new();
 
         [NonSerialized] private Dictionary<string, ThreadlinkDomainManifestEntry> byKey;
