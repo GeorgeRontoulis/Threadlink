@@ -1,7 +1,6 @@
 {
     "domain": "Iris.Events",
     "kind": "Ordinal",
-    "nextOrdinal": 27,
     "entries": [
         {
             "key": "OnActiveSceneFinishedUnloading",

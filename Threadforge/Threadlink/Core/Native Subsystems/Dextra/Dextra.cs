@@ -45,7 +45,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
         private EventSystem UnityEventSystem { get; set; } = null;
         private InputSystemUIInputModule UIInputModule { get; set; } = null;
-        private DextraConfig Config { get; set; } = null;
+        internal DextraConfig Config { get; set; } = null;
 
         public event Action<GameObject> OnPointerEnter = null;
         public event Action<GameObject> OnPointerExit = null;

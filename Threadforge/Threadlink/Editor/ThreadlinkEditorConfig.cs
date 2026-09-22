@@ -96,7 +96,7 @@ namespace Threadlink.Editor
 
         [Space(10)]
 
-        [SerializeField] private ThreadlinkDomainAssets[] nativeDomains = Array.Empty<ThreadlinkDomainAssets>();
+        [SerializeField] private ThreadlinkDomainAssets[] nativeDomains = new ThreadlinkDomainAssets[0];
 
         [Header("Injectors:")]
         [Space(10)]

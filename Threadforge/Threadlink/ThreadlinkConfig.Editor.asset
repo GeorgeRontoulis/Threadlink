@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2eaefba841019f42a7bbb0583e7c65c, type: 3}
   m_Name: ThreadlinkConfig.Editor
   m_EditorClassIdentifier: Threadlink.Editor::Threadlink.Editor.ThreadlinkEditorConfig
-  generatedScriptsFolder: {fileID: 102900000, guid: 2e5dfb8b64efde349958a959748b666e, type: 3}
+  generatedScriptsFolder: {fileID: 102900000, guid: 6c68ea0690e5540469c26fabca78b0a6, type: 3}
   nativeDomains:
   - domainName: Iris.Events
     outputFileName: ThreadlinkIDs.Iris

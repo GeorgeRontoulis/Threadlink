@@ -12,15 +12,32 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     [CreateAssetMenu(menuName = "Threadlink/Subsystem Dependencies/Dextra Config")]
     public sealed class DextraConfig : ScriptableObject
     {
+        [Serializable] private sealed class InputSpritesMap : FieldHashMap<Dextra.InputDevice, ThreadlinkIDs.Addressables.Assets> { }
+
+        public float UIFadeInDuration
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => uiFadeInDuration;
+        }
+
+        public float UIFadeOutDuration
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => uiFadeOutDuration;
+        }
+
         public bool HideEventSystemInHierarchy
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => hideEventSystemInHierarchy;
         }
 
-        [Serializable] private sealed class InputSpritesMap : FieldHashMap<Dextra.InputDevice, ThreadlinkIDs.Addressables.Assets> { }
+        [SerializeField] private float uiFadeInDuration = 0.25f;
+        [SerializeField] private float uiFadeOutDuration = 0.25f;
 
-        [SerializeField] private ThreadlinkIDs.Addressables.Prefabs[] interfacePointers = Array.Empty<ThreadlinkIDs.Addressables.Prefabs>();
+        [Space(10)]
+
+        [SerializeField] private ThreadlinkIDs.Addressables.Prefabs[] interfacePointers = new ThreadlinkIDs.Addressables.Prefabs[0];
 
         [Space(10)]
 

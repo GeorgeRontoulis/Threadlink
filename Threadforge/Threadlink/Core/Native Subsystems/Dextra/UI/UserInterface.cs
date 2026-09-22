@@ -16,7 +16,36 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         public bool IsVisible => canvasGroup.alpha.IsSimilarTo(1f);
         public bool IsHidden => canvasGroup.alpha.IsSimilarTo(0f);
         public bool UpdatingAlpha { get; private set; }
-        private float TargetAlpha { get; set; }
+        protected float TargetAlpha { get; set; }
+        protected float TargetFadeRate { get; set; }
+
+        private float FadeInRate
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                float duration = Dextra.TryGetSingleton(out var dextra) && dextra.Config != null
+                ?
+                dextra.Config.UIFadeInDuration
+                :
+                NativeConstants.UI.DEFAULT_FADEIN_DURATION;
+                return 1f / duration;
+            }
+        }
+
+        private float FadeOutRate
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                float duration = Dextra.TryGetSingleton(out var dextra) && dextra.Config != null
+                ?
+                dextra.Config.UIFadeOutDuration
+                :
+                NativeConstants.UI.DEFAULT_FADEOUT_DURATION;
+                return 1f / duration;
+            }
+        }
 
 #if ODIN_INSPECTOR
         [Sirenix.OdinInspector.ReadOnly]
@@ -43,14 +72,15 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         public override void Discard()
         {
             Iris.Unsubscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, MoveTowardsTargetAlpha);
-            Iris.Unsubscribe<Action>(ThreadlinkIDs.Iris.Events.OnLateUpdate, ControlCanvas);
+            Iris.Unsubscribe<Action>(ThreadlinkIDs.Iris.Events.OnLateUpdate, ControlCanvas); //No op.
             canvasGroup = null;
             base.Discard();
         }
 
         public virtual void Boot()
         {
-            Iris.Subscribe<Action>(ThreadlinkIDs.Iris.Events.OnLateUpdate, ControlCanvas);
+            if (canvas != null)
+                Iris.Subscribe<Action>(ThreadlinkIDs.Iris.Events.OnLateUpdate, ControlCanvas);
         }
 
         private void UpdateAlpha(float newAlpha)
@@ -66,7 +96,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
         private void MoveTowardsTargetAlpha()
         {
-            canvasGroup.alpha = canvasGroup.alpha.MoveTowards(TargetAlpha, 4 * Chronos.UnscaledDeltaTime);
+            canvasGroup.alpha = canvasGroup.alpha.MoveTowards(TargetAlpha, TargetFadeRate * Chronos.UnscaledDeltaTime);
 
             if (canvasGroup.alpha.IsSimilarTo(TargetAlpha))
             {
@@ -90,8 +120,17 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             canvasGroup.blocksRaycasts = state;
         }
 
-        protected void Display() => UpdateAlpha(1f);
-        protected void Hide() => UpdateAlpha(0f);
+        protected void Display()
+        {
+            TargetFadeRate = FadeInRate;
+            UpdateAlpha(1f);
+        }
+
+        protected void Hide()
+        {
+            TargetFadeRate = FadeOutRate;
+            UpdateAlpha(0f);
+        }
 
         public void ForceCanvasGroupAlphaTo(float alpha)
         {

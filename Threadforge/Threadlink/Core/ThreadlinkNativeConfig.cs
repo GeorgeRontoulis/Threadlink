@@ -23,7 +23,24 @@ namespace Threadlink.Core
             foreach (var assetRef in nativeResources.Values)
                 buffer.Add(assetRef.AssetGUID);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool EditorOnly_TryGetNativeResourceGUID(
+            NativeResources resourceID,
+            out string guid)
+        {
+            if (nativeResources.TryGetValue(resourceID, out var reference) &&
+                reference != null)
+            {
+                guid = reference.AssetGUID;
+                return !string.IsNullOrEmpty(guid);
+            }
+
+            guid = null;
+            return false;
+        }
 #endif
+
         [SerializeField]
         private FieldHashMap<NativeResources, AssetReference> nativeResources = new();
 

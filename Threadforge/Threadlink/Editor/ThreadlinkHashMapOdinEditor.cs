@@ -1,5 +1,6 @@
 namespace Threadlink.Editor
 {
+#if ODIN_INSPECTOR
     using Sirenix.OdinInspector;
     using Sirenix.OdinInspector.Editor;
     using Sirenix.Utilities.Editor;
@@ -404,4 +405,5 @@ namespace Threadlink.Editor
             this.Property.Tree.DelayActionUntilRepaint(() => this.Property.Tree.UpdateTree());
         }
     }
+#endif
 }

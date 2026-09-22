@@ -14,11 +14,22 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         public event Action<DextraSelectable> OnSelected = null;
         public event Action<DextraSelectable> OnDeselected = null;
 
+        /// <summary>
+        /// Unsubscribes every OnSelected/OnDeselected listener without tearing down the rest of this
+        /// behaviour - safe to call whenever a pooled selectable is returned, unlike Discard(), which
+        /// is a full teardown and must not run on every pool cycle.
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override void Discard()
+        public void ClearSelectionListeners()
         {
             OnSelected = null;
             OnDeselected = null;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override void Discard()
+        {
+            ClearSelectionListeners();
             base.Discard();
         }
 

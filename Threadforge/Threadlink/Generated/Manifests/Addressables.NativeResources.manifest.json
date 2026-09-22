@@ -1,7 +1,6 @@
 {
     "domain": "Addressables.NativeResources",
     "kind": "Identity",
-    "nextOrdinal": 0,
     "entries": [
         {
             "key": "AuraComponentsPrefab",
@@ -40,14 +39,6 @@
             "name": "DextraConfig",
             "scope": "",
             "value": -1651116421,
-            "seedOffset": 0,
-            "tombstoned": false
-        },
-        {
-            "key": "NetflowConfig",
-            "name": "NetflowConfig",
-            "scope": "",
-            "value": 377480392,
             "seedOffset": 0,
             "tombstoned": false
         },

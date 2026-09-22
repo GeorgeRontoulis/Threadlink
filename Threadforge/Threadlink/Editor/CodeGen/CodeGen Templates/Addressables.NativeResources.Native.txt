@@ -8,4 +8,3 @@ DextraComponentsPrefab
 AuraConfig
 AuraComponentsPrefab
 ChronosConfig
-NetflowConfig

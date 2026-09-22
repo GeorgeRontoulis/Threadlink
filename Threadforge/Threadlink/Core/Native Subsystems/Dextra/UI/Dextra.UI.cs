@@ -75,6 +75,15 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsStacked<T>() where T : UserInterface
+        {
+            return TryGetSingleton(out var dextra) && dextra.UIStack.Contains<T>();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool IsStacked<T>(T userInterface) where T : UserInterface => UIStack.Contains<T>();
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetUIInputModuleActive(bool active)
         {
             if (UnityEventSystem != null && UnityEventSystem.TryGetComponent(out InputSystemUIInputModule module))

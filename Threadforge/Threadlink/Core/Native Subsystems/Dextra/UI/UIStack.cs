@@ -1,5 +1,6 @@
 namespace Threadlink.Core.NativeSubsystems.Dextra
 {
+    using Core.NativeSubsystems.Scribe;
     using Generated;
     using Initium;
     using Iris;
@@ -113,6 +114,9 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool IsTopInterface<T>() where T : UserInterface => TryGetTopInterface(out var top) && typeof(T).Equals(top.GetType());
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal bool Contains<T>() where T : UserInterface => StackedInterfaces.Contains(typeof(T));
+
         internal void ClearStack()
         {
             foreach (var stackedUI in StackedInterfaces)
@@ -188,6 +192,8 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
                 if (target is IStackingDataPreprocessor<D> preprocessor)
                     preprocessor.Preprocess(stackingData);
+                else
+                    this.Send($"Interface {type.Name} is not a preprocessor of type {typeof(D).Name}! Preprocessing will be skipped!").ToUnityConsole(DebugType.Warning);
 
                 target.OnStacked();
             }

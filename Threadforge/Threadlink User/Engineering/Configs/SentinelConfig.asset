@@ -12,12 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65f7c573b991e0c4ea852d5af44c0ef1, type: 3}
   m_Name: SentinelConfig
   m_EditorClassIdentifier: Threadlink.Runtime::Threadlink.Core.NativeSubsystems.Sentinel.SentinelConfig
-  targetEnvironment:
-    rid: 6626630731027710091
+  distribution:
+    rid: 8698925280638271748
   references:
     version: 2
     RefIds:
-    - rid: 6626630731027710091
-      type: {class: Steam, ns: Threadlink.Core.NativeSubsystems.Sentinel, asm: Threadlink.Runtime}
-      data:
-        saveFileExtension: .SENT
+    - rid: 8698925280638271748
+      type: {class: SentinelDistributions/Local, ns: Threadlink.Core.NativeSubsystems.Sentinel, asm: Threadlink.Runtime}
+      data: 

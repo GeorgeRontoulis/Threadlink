@@ -42,4 +42,33 @@ namespace Threadlink.Utilities.Attributes
 
     [AttributeUsage(AttributeTargets.Field)]
     public sealed class ReadOnlyAttribute : PropertyAttribute { }
+
+    public enum HashMapDrawerMode : byte
+    {
+        /// <summary>
+        /// Odin's drawer when Odin is installed, the native drawer otherwise.
+        /// </summary>
+        Automatic,
+
+        /// <summary>
+        /// Threadlink's own drawer, regardless of whether Odin is installed.
+        /// </summary>
+        Native,
+
+        /// <summary>
+        /// Odin's drawer. Falls back to the native drawer when Odin is absent.
+        /// </summary>
+        Odin
+    }
+
+    /// <summary>
+    /// Selects which inspector drawer renders a <see cref="Threadlink.Collections.ThreadlinkHashMap{TKey, TValue}"/> field.
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Field)]
+    public sealed class HashMapDrawerAttribute : PropertyAttribute
+    {
+        public readonly HashMapDrawerMode Mode;
+
+        public HashMapDrawerAttribute(HashMapDrawerMode mode = HashMapDrawerMode.Automatic) => Mode = mode;
+    }
 }

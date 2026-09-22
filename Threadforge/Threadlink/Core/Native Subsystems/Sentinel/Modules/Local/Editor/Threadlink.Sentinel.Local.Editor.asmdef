@@ -1,0 +1,20 @@
+{
+    "name": "Threadlink.Sentinel.Local.Editor",
+    "rootNamespace": "Threadlink.SentinelModules.Local.Editor",
+    "references": [
+        "GUID:310d6444f1238cf44866cdde33c359e2",
+        "GUID:3340b65cea3b9ab46b877f07fb753f83",
+        "GUID:f9d0bc46de640d144939543622979457"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

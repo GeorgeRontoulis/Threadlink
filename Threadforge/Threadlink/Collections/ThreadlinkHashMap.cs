@@ -22,7 +22,7 @@ namespace Threadlink.Collections
             get => new(values, 0, count);
         }
 
-        [SerializeField] private TValue[] values = Array.Empty<TValue>();
+        [SerializeField] private TValue[] values = new TValue[0];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected override ref TValue[] GetValuesRef() => ref values;
@@ -46,7 +46,7 @@ namespace Threadlink.Collections
 #if !ODIN_INSPECTOR
         [SerializeReferenceButton]
 #endif
-        [SerializeReference] private TValue[] values = Array.Empty<TValue>();
+        [SerializeReference] private TValue[] values = new TValue[0];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected override ref TValue[] GetValuesRef() => ref values;
@@ -84,11 +84,11 @@ namespace Threadlink.Collections
             get => EqualityComparer<TKey>.Default;
         }
 
-        [SerializeField] private TKey[] keys = Array.Empty<TKey>();
+        [SerializeField] private TKey[] keys = new TKey[0];
         [SerializeField] protected int count = 0;
 
-        private int[] buckets = Array.Empty<int>();
-        private int[] next = Array.Empty<int>();
+        private int[] buckets = new int[0];
+        private int[] next = new int[0];
 
         protected abstract ref TValue[] GetValuesRef();
 
@@ -97,10 +97,10 @@ namespace Threadlink.Collections
 
         public void OnAfterDeserialize()
         {
-            keys ??= Array.Empty<TKey>();
+            keys ??= new TKey[0];
 
             ref var values = ref GetValuesRef();
-            values ??= Array.Empty<TValue>();
+            values ??= new TValue[0];
 
             int capacity = keys.Length;
 
@@ -124,8 +124,8 @@ namespace Threadlink.Collections
 
             if (capacity == 0)
             {
-                buckets = Array.Empty<int>();
-                next = Array.Empty<int>();
+                buckets = new int[0];
+                next = new int[0];
                 return;
             }
 
@@ -155,7 +155,6 @@ namespace Threadlink.Collections
         #endregion
 
         #region Editor-Only:
-#if UNITY_EDITOR
         public TValue this[TKey key]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -169,6 +168,7 @@ namespace Threadlink.Collections
                 return default;
             }
 
+#if UNITY_EDITOR
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set
             {
@@ -180,8 +180,10 @@ namespace Threadlink.Collections
                 else if (!ContainsKey(key))
                     EditorOnly_Add(key, value);
             }
+#endif
         }
 
+#if UNITY_EDITOR
         public bool EditorOnly_TryAdd(TKey key, TValue value)
         {
             if (ContainsKey(key))

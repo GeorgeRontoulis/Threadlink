@@ -148,7 +148,7 @@ namespace Threadlink.Core
 
             for (int i = 0; i < length; i++)
             {
-                if (references.TryGetValue(request[i], out var reference) && reference.OperationHandle.IsValid())
+                if (references.TryGetValue(request[i], out var reference) && reference.IsValid())
                     reference.ReleaseAsset();
             }
         }
@@ -156,14 +156,14 @@ namespace Threadlink.Core
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ReleaseAsset(ThreadlinkIDs.Addressables.Assets assetID)
         {
-            if (TryGetAssetReference(assetID, out var reference))
+            if (TryGetAssetReference(assetID, out var reference) && reference.IsValid())
                 reference.ReleaseAsset();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ReleasePrefab(ThreadlinkIDs.Addressables.Prefabs prefabID)
         {
-            if (TryGetPrefabReference(prefabID, out var reference))
+            if (TryGetPrefabReference(prefabID, out var reference) && reference.IsValid())
                 reference.ReleaseAsset();
         }
         #endregion

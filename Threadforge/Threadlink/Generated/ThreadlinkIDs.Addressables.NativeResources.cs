@@ -24,7 +24,6 @@ namespace Threadlink.Generated
                 AuraConfig = -929283280,
                 ChronosConfig = -821716376,
                 UserConfig = -127471648,
-                NetflowConfig = 377480392,
                 DextraComponentsPrefab = 1452944635,
                 SentinelConfig = 1492513742,
                 AuraComponentsPrefab = 2146611431,

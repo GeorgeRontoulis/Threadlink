@@ -42,7 +42,7 @@ namespace Threadlink.Collections
             set => collection = (T[])value;
         }
 
-        [SerializeField] private T[] collection = Array.Empty<T>();
+        [SerializeField] private T[] collection = new T[0];
     }
 
     [Serializable]
@@ -60,7 +60,7 @@ namespace Threadlink.Collections
 #if !ODIN_INSPECTOR
         [SerializeReferenceButton]
 #endif
-        [SerializeReference] private T[] collection = Array.Empty<T>();
+        [SerializeReference] private T[] collection = new T[0];
     }
 
     [Serializable]
