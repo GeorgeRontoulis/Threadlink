@@ -2,6 +2,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
 {
     using System;
     using System.Collections.Generic;
+    using System.Runtime.CompilerServices;
     using UnityEngine;
 
     public readonly struct SentinelModuleDescriptor
@@ -12,6 +13,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
 
         private Func<ISentinelPlatform> Factory { get; }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public SentinelModuleDescriptor(SentinelPlatformMarker platform, SentinelDistribution distribution,
         string moduleID, string displayName, Func<ISentinelPlatform> factory)
         {
@@ -21,6 +23,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
             Factory = factory;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ISentinelPlatform CreatePlatform() => Factory?.Invoke();
     }
 
@@ -33,12 +36,11 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
 
         public static SentinelResult Register(in SentinelModuleDescriptor descriptor)
         {
-            if (descriptor.Key.Platform is SentinelPlatformMarker.Unknown ||
-            descriptor.Key.Distribution is SentinelDistribution.None)
+            if (descriptor.Key.Platform is SentinelPlatformMarker.Unknown
+            || descriptor.Key.Distribution is SentinelDistribution.None)
             {
-                return SentinelResult.Failure(
-                    SentinelError.InvalidArgument,
-                    "Sentinel modules must register a concrete Platform / Distribution key.");
+                return SentinelResult.Failure(SentinelError.InvalidArgument,
+                "Sentinel modules must register a concrete Platform / Distribution key.");
             }
 
             if (!SentinelDistributionPolicy.IsAllowed(descriptor.Key.Platform, descriptor.Key.Distribution))
@@ -68,14 +70,15 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
             return SentinelResult.Success();
         }
 
-        internal static SentinelResult<SentinelModuleDescriptor> Resolve(SentinelPlatformMarker platform, SentinelDistribution distribution)
+        internal static SentinelResult<SentinelModuleDescriptor> Resolve(SentinelPlatformMarker platform,
+        SentinelDistribution distribution)
         {
             var key = new SentinelModuleKey(platform, distribution);
 
             return Modules.TryGetValue(key, out var module)
-                ? SentinelResult<SentinelModuleDescriptor>.Success(module)
-                : SentinelResult<SentinelModuleDescriptor>.Failure(SentinelError.Unsupported,
-                $"No installed Sentinel runtime module implements '{key}'.");
+            ? SentinelResult<SentinelModuleDescriptor>.Success(module)
+            : SentinelResult<SentinelModuleDescriptor>.Failure(SentinelError.Unsupported,
+            $"No installed Sentinel runtime module implements '{key}'.");
         }
     }
 }

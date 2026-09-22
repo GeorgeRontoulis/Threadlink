@@ -1,75 +1,57 @@
 namespace Threadlink.SentinelModules.Local
 {
-    using Core.NativeSubsystems.Sentinel;
-    using Cysharp.Threading.Tasks;
     using System;
     using System.IO;
+    using System.Runtime.CompilerServices;
+    using Core.NativeSubsystems.Sentinel;
+    using Cysharp.Threading.Tasks;
 
     internal sealed class LocalSaveService : ISaveService
     {
         private LocalSaveStore Store { get; set; }
 
-        internal LocalSaveService(string root) =>
-            Store = new LocalSaveStore(root);
+        internal LocalSaveService(string root) => Store = new LocalSaveStore(root);
 
         public async UniTask<SentinelResult<byte[]>> ReadAsync(int saveID, int fileID)
         {
             if (saveID == 0 || fileID == 0)
-            {
-                return SentinelResult<byte[]>.Failure(
-                    SentinelError.InvalidArgument,
-                    "Save and file IDs must be non-zero.");
-            }
+                return SentinelResult<byte[]>.Failure(SentinelError.InvalidArgument, "Save and file IDs must be non-zero.");
 
             var pointer = await Store.ReadPointerAsync(saveID);
 
             if (!pointer.Succeeded)
                 return SentinelResult<byte[]>.Failure(pointer.Error, pointer.Message, pointer.NativeCode);
 
-            string path = LocalSaveStore.GetFilePath(
-                Store.GetGenerationDirectory(saveID, pointer.Value),
-                fileID);
+            string path = LocalSaveStore.GetFilePath(Store.GetGenerationDirectory(saveID, pointer.Value), fileID);
 
             if (!File.Exists(path))
                 return SentinelResult<byte[]>.Failure(SentinelError.NotFound);
 
             try
             {
-                return SentinelResult<byte[]>.Success(
-                    await File.ReadAllBytesAsync(path).AsUniTask());
+                return SentinelResult<byte[]>.Success(await File.ReadAllBytesAsync(path).AsUniTask());
             }
             catch (UnauthorizedAccessException exception)
             {
-                return SentinelResult<byte[]>.Failure(
-                    SentinelError.PermissionDenied,
-                    exception.Message);
+                return SentinelResult<byte[]>.Failure(SentinelError.PermissionDenied, exception.Message);
             }
             catch (IOException exception)
             {
-                return SentinelResult<byte[]>.Failure(
-                    SentinelError.NativeFailure,
-                    exception.Message);
+                return SentinelResult<byte[]>.Failure(SentinelError.NativeFailure, exception.Message);
             }
         }
 
         public async UniTask<SentinelResult<ISaveTransaction>> BeginTransactionAsync(int saveID)
         {
             if (saveID == 0)
-            {
-                return SentinelResult<ISaveTransaction>.Failure(
-                    SentinelError.InvalidArgument,
-                    "Save ID 0 is reserved.");
-            }
+                return SentinelResult<ISaveTransaction>.Failure(SentinelError.InvalidArgument, "Save ID 0 is reserved.");
 
             var pointer = await Store.ReadRawPointerAsync(saveID);
 
             if (!pointer.Succeeded)
                 return SentinelResult<ISaveTransaction>.Failure(pointer.Error, pointer.Message, pointer.NativeCode);
 
-            ISaveTransaction transaction = new LocalSaveTransaction(
-                Store,
-                saveID,
-                pointer.Value);
+            var transaction = new LocalSaveTransaction(Store, saveID, pointer.Value);
 
             return SentinelResult<ISaveTransaction>.Success(transaction);
         }
@@ -77,13 +59,10 @@ namespace Threadlink.SentinelModules.Local
         public async UniTask<SentinelResult> DeleteSaveAsync(int saveID)
         {
             if (saveID == 0)
-            {
-                return SentinelResult.Failure(
-                    SentinelError.InvalidArgument,
-                    "Save ID 0 is reserved.");
-            }
+                return SentinelResult.Failure(SentinelError.InvalidArgument, "Save ID 0 is reserved.");
 
             var gate = Store.GetPublishLock(saveID);
+
             await gate.WaitAsync();
 
             try
@@ -106,6 +85,7 @@ namespace Threadlink.SentinelModules.Local
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Discard()
         {
             Store?.Dispose();
@@ -116,13 +96,14 @@ namespace Threadlink.SentinelModules.Local
     internal sealed class LocalSaveTransaction : ISaveTransaction
     {
         public int SaveID { get; }
-        public bool IsCommitted { get; private set; }
+        public bool IsCommitted { get; private set; } = false;
 
-        private LocalSaveStore Store { get; set; }
-        private string BasePointer { get; }
+        private LocalSaveStore Store { get; set; } = null;
+        private string BasePointer { get; } = null;
         private System.Collections.Generic.Dictionary<int, byte[]> Writes { get; set; } = new();
         private System.Collections.Generic.HashSet<int> Deletes { get; set; } = new();
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal LocalSaveTransaction(LocalSaveStore store, int saveID, string basePointer)
         {
             Store = store;
@@ -144,29 +125,22 @@ namespace Threadlink.SentinelModules.Local
             if (string.IsNullOrEmpty(BasePointer) || BasePointer == LocalSaveStore.DELETED)
                 return SentinelResult<byte[]>.Failure(SentinelError.NotFound);
 
-            string path = LocalSaveStore.GetFilePath(
-                Store.GetGenerationDirectory(SaveID, BasePointer),
-                fileID);
+            string path = LocalSaveStore.GetFilePath(Store.GetGenerationDirectory(SaveID, BasePointer), fileID);
 
             if (!File.Exists(path))
                 return SentinelResult<byte[]>.Failure(SentinelError.NotFound);
 
             try
             {
-                return SentinelResult<byte[]>.Success(
-                    await File.ReadAllBytesAsync(path).AsUniTask());
+                return SentinelResult<byte[]>.Success(await File.ReadAllBytesAsync(path).AsUniTask());
             }
             catch (UnauthorizedAccessException exception)
             {
-                return SentinelResult<byte[]>.Failure(
-                    SentinelError.PermissionDenied,
-                    exception.Message);
+                return SentinelResult<byte[]>.Failure(SentinelError.PermissionDenied, exception.Message);
             }
             catch (IOException exception)
             {
-                return SentinelResult<byte[]>.Failure(
-                    SentinelError.NativeFailure,
-                    exception.Message);
+                return SentinelResult<byte[]>.Failure(SentinelError.NativeFailure, exception.Message);
             }
         }
 
@@ -177,9 +151,7 @@ namespace Threadlink.SentinelModules.Local
 
             if (data == null)
             {
-                return UniTask.FromResult(SentinelResult.Failure(
-                    SentinelError.InvalidArgument,
-                    "Cannot write null save data."));
+                return UniTask.FromResult(SentinelResult.Failure(SentinelError.InvalidArgument, "Cannot write null save data."));
             }
 
             Deletes.Remove(fileID);
@@ -202,15 +174,11 @@ namespace Threadlink.SentinelModules.Local
         public async UniTask<SentinelResult> CommitAsync()
         {
             if (IsCommitted)
-            {
-                return SentinelResult.Failure(
-                    SentinelError.Conflict,
-                    "This save transaction has already been committed.");
-            }
+                return SentinelResult.Failure(SentinelError.Conflict, "This save transaction has already been committed.");
 
-            string generation = Guid.NewGuid().ToString("N");
-            string staging = Store.GetStagingDirectory(SaveID, generation);
-            string publishedGeneration = Store.GetGenerationDirectory(SaveID, generation);
+            var generation = Guid.NewGuid().ToString("N");
+            var staging = Store.GetStagingDirectory(SaveID, generation);
+            var publishedGeneration = Store.GetGenerationDirectory(SaveID, generation);
 
             try
             {
@@ -218,21 +186,14 @@ namespace Threadlink.SentinelModules.Local
 
                 if (!string.IsNullOrEmpty(BasePointer) && BasePointer != LocalSaveStore.DELETED)
                 {
-                    string baseGeneration = Store.GetGenerationDirectory(SaveID, BasePointer);
+                    var baseGeneration = Store.GetGenerationDirectory(SaveID, BasePointer);
 
                     if (!Directory.Exists(baseGeneration))
-                    {
-                        return SentinelResult.Failure(
-                            SentinelError.CorruptData,
-                            $"Base save generation '{BasePointer}' is missing.");
-                    }
+                        return SentinelResult.Failure(SentinelError.CorruptData, $"Base save generation '{BasePointer}' is missing.");
 
                     LocalSaveStore.CopyDirectory(baseGeneration, staging);
                 }
-                else
-                {
-                    Directory.CreateDirectory(staging);
-                }
+                else Directory.CreateDirectory(staging);
 
                 foreach (var pair in Writes)
                 {
@@ -252,6 +213,7 @@ namespace Threadlink.SentinelModules.Local
                 Directory.Move(staging, publishedGeneration);
 
                 var gate = Store.GetPublishLock(SaveID);
+
                 await gate.WaitAsync();
 
                 try
@@ -263,11 +225,7 @@ namespace Threadlink.SentinelModules.Local
                         return current.Untyped();
 
                     if (!string.Equals(current.Value, BasePointer, StringComparison.Ordinal))
-                    {
-                        return SentinelResult.Failure(
-                            SentinelError.Conflict,
-                            "The save changed after this transaction began.");
-                    }
+                        return SentinelResult.Failure(SentinelError.Conflict, "The save changed after this transaction began.");
 
                     // The only mutation of published state:
                     // atomically point readers at the fully prepared immutable generation.
@@ -287,23 +245,16 @@ namespace Threadlink.SentinelModules.Local
                     gate.Release();
 
                     if (!IsCommitted)
-                    {
-                        // Safe to remove: this generation was never published.
                         LocalSaveStore.TryDeleteDirectory(publishedGeneration);
-                    }
                 }
             }
             catch (UnauthorizedAccessException exception)
             {
-                return SentinelResult.Failure(
-                    SentinelError.PermissionDenied,
-                    exception.Message);
+                return SentinelResult.Failure(SentinelError.PermissionDenied, exception.Message);
             }
             catch (IOException exception)
             {
-                return SentinelResult.Failure(
-                    SentinelError.NativeFailure,
-                    exception.Message);
+                return SentinelResult.Failure(SentinelError.NativeFailure, exception.Message);
             }
             finally
             {
@@ -311,6 +262,7 @@ namespace Threadlink.SentinelModules.Local
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Discard()
         {
             Writes?.Clear();
@@ -325,17 +277,13 @@ namespace Threadlink.SentinelModules.Local
         {
             if (IsCommitted)
             {
-                failure = SentinelResult.Failure(
-                    SentinelError.Conflict,
-                    "This save transaction has already been committed.");
+                failure = SentinelResult.Failure(SentinelError.Conflict, "This save transaction has already been committed.");
                 return false;
             }
 
             if (fileID == 0)
             {
-                failure = SentinelResult.Failure(
-                    SentinelError.InvalidArgument,
-                    "File ID 0 is reserved.");
+                failure = SentinelResult.Failure(SentinelError.InvalidArgument, "File ID 0 is reserved.");
                 return false;
             }
 

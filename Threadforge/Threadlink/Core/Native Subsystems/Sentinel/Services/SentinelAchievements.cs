@@ -11,7 +11,10 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
         public SentinelAchievementState(int achievementID, double progress)
         {
             AchievementID = achievementID;
-            Progress = progress < 0d ? 0d : progress > 1d ? 1d : progress;
+            Progress =
+                progress < 0d ? 0d
+                : progress > 1d ? 1d
+                : progress;
         }
     }
 

@@ -1,6 +1,7 @@
 namespace Threadlink.Core.NativeSubsystems.Sentinel
 {
     using System;
+    using System.Runtime.CompilerServices;
     using UnityEngine;
 
     public enum SentinelPlatformMarker : byte
@@ -21,7 +22,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
         VisionOS,
 
         WindowsStore,
-        WebGL
+        WebGL,
     }
 
     public enum SentinelDistribution : byte
@@ -47,7 +48,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
         MacAppStore,
         AppleAppStore,
         GooglePlay,
-        AmazonAppstore
+        AmazonAppstore,
     }
 
     public readonly struct SentinelModuleKey : IEquatable<SentinelModuleKey>
@@ -55,22 +56,35 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
         public SentinelPlatformMarker Platform { get; }
         public SentinelDistribution Distribution { get; }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public SentinelModuleKey(SentinelPlatformMarker platform, SentinelDistribution distribution)
         {
             Platform = platform;
             Distribution = distribution;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(SentinelModuleKey other) => Platform == other.Platform && Distribution == other.Distribution;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object obj) => obj is SentinelModuleKey other && Equals(other);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode() => ((int)Platform * 397) ^ (int)Distribution;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override string ToString() => $"{Platform} / {Distribution}";
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator ==(SentinelModuleKey left, SentinelModuleKey right) => left.Equals(right);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(SentinelModuleKey left, SentinelModuleKey right) => !left.Equals(right);
     }
 
     public static class SentinelRuntimePlatformResolver
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static SentinelPlatformMarker Resolve()
         {
             return Application.platform switch
@@ -105,7 +119,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
                 RuntimePlatform.OSXEditor => SentinelPlatformMarker.MacOS,
                 RuntimePlatform.LinuxEditor => SentinelPlatformMarker.Linux,
 
-                _ => SentinelPlatformMarker.Unknown
+                _ => SentinelPlatformMarker.Unknown,
             };
         }
     }
@@ -118,53 +132,49 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
             SentinelDistribution.Steam,
             SentinelDistribution.MicrosoftStore,
             SentinelDistribution.Epic,
-            SentinelDistribution.GOG
+            SentinelDistribution.GOG,
         };
 
         private static readonly SentinelDistribution[] MacOS =
         {
             SentinelDistribution.Local,
             SentinelDistribution.Steam,
-            SentinelDistribution.MacAppStore
+            SentinelDistribution.MacAppStore,
         };
 
         private static readonly SentinelDistribution[] Linux =
         {
             SentinelDistribution.Local,
             SentinelDistribution.Steam,
-            SentinelDistribution.GOG
+            SentinelDistribution.GOG,
         };
 
         private static readonly SentinelDistribution[] Android =
         {
             SentinelDistribution.Local,
             SentinelDistribution.GooglePlay,
-            SentinelDistribution.AmazonAppstore
+            SentinelDistribution.AmazonAppstore,
         };
 
         private static readonly SentinelDistribution[] IOS =
         {
             SentinelDistribution.Local,
-            SentinelDistribution.AppleAppStore
+            SentinelDistribution.AppleAppStore,
         };
 
-        private static readonly SentinelDistribution[] Native =
-        {
-            SentinelDistribution.Native
-        };
+        private static readonly SentinelDistribution[] Native = { SentinelDistribution.Native };
 
         private static readonly SentinelDistribution[] WindowsStore =
         {
-            SentinelDistribution.MicrosoftStore
+            SentinelDistribution.MicrosoftStore,
         };
 
-        private static readonly SentinelDistribution[] WebGL =
-        {
-            SentinelDistribution.Local
-        };
+        private static readonly SentinelDistribution[] WebGL = { SentinelDistribution.Local };
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool RequiresChoice(SentinelPlatformMarker platform) => GetAllowed(platform).Length > 1;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static SentinelDistribution GetDefault(SentinelPlatformMarker platform)
         {
             var allowed = GetAllowed(platform);
@@ -184,6 +194,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
             return false;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static SentinelDistribution[] GetAllowed(SentinelPlatformMarker platform)
         {
             return platform switch
@@ -204,7 +215,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
                 SentinelPlatformMarker.WindowsStore => WindowsStore,
                 SentinelPlatformMarker.WebGL => WebGL,
 
-                _ => Array.Empty<SentinelDistribution>()
+                _ => Array.Empty<SentinelDistribution>(),
             };
         }
     }

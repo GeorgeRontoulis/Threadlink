@@ -2,6 +2,7 @@ namespace Threadlink.SentinelModules.Local.Editor
 {
     using Core.NativeSubsystems.Sentinel;
     using System.Collections.Generic;
+    using System.Runtime.CompilerServices;
     using Threadlink.Editor.Sentinel;
 
     public sealed class LocalSentinelBuildModule : ISentinelBuildModule
@@ -9,15 +10,13 @@ namespace Threadlink.SentinelModules.Local.Editor
         public string ModuleID => LocalSentinelModuleInfo.ModuleID;
         public string DisplayName => LocalSentinelModuleInfo.DisplayName;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Implements(in SentinelModuleKey key)
         {
             if (key.Distribution is not SentinelDistribution.Local)
                 return false;
 
-            return key.Platform is
-            SentinelPlatformMarker.Windows or
-            SentinelPlatformMarker.MacOS or
-            SentinelPlatformMarker.Linux;
+            return key.Platform is SentinelPlatformMarker.Windows or SentinelPlatformMarker.MacOS or SentinelPlatformMarker.Linux;
         }
 
         public void ConfigureBuild(in SentinelBuildContext context, List<SentinelBuildDiagnostic> diagnostics)
@@ -25,6 +24,7 @@ namespace Threadlink.SentinelModules.Local.Editor
             // Local is configuration-free.
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ValidateBuild(in SentinelBuildContext context, List<SentinelBuildDiagnostic> diagnostics)
         {
             diagnostics.Add(SentinelBuildDiagnostic.Info("Local Sentinel requires no platform SDK or storefront configuration."));

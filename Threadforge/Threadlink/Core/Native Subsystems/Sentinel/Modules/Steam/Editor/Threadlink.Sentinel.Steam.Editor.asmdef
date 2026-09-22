@@ -1,0 +1,21 @@
+{
+    "name": "Threadlink.Sentinel.Steam.Editor",
+    "rootNamespace": "Threadlink.SentinelModules.Steam.Editor",
+    "references": [
+        "GUID:f9d0bc46de640d144939543622979457",
+        "GUID:3340b65cea3b9ab46b877f07fb753f83",
+        "GUID:2ef9caf00d675f44395f64cb0b5dcf52",
+        "GUID:49ad3e6d2cdad5945866504c28f3cd2f"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

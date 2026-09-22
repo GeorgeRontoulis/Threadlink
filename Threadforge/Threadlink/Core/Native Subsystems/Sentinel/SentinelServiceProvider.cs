@@ -49,9 +49,9 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
 
         public bool TryGetService<T>(out T service) where T : class, ISentinelService
         {
-            if (Services != null &&
-                Services.TryGetValue(typeof(T), out var candidate) &&
-                candidate is T typed)
+            if (Services != null
+            && Services.TryGetValue(typeof(T), out var candidate)
+            && candidate is T typed)
             {
                 service = typed;
                 return true;

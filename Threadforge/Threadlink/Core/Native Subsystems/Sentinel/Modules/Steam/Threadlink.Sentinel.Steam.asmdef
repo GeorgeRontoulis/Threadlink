@@ -1,0 +1,35 @@
+{
+    "name": "Threadlink.Sentinel.Steam",
+    "rootNamespace": "Threadlink.SentinelModules.Steam",
+    "references": [
+        "GUID:f9d0bc46de640d144939543622979457",
+        "GUID:49ad3e6d2cdad5945866504c28f3cd2f",
+        "GUID:70861b490a0786b4290f811fdb927a2a",
+        "GUID:2ef9caf00d675f44395f64cb0b5dcf52",
+        "GUID:65086abe46e4eb54dbc5d72e2e14082c",
+        "com.rlabrecque.steamworks.net"
+    ],
+    "includePlatforms": [
+        "Editor",
+        "LinuxStandalone64",
+        "macOSStandalone",
+        "WindowsStandalone32",
+        "WindowsStandalone64"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "STEAMWORKS_NET"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.rlabrecque.steamworks.net",
+            "expression": "2025.165.0",
+            "define": "THREADLINK_STEAMWORKS_NET_165"
+        }
+    ],
+    "noEngineReferences": false
+}

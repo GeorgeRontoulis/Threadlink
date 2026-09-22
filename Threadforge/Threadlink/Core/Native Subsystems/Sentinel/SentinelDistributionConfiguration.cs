@@ -1,6 +1,7 @@
 namespace Threadlink.Core.NativeSubsystems.Sentinel
 {
     using System;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Serialized deployment-distribution choice for targets where Unity's BuildTarget
@@ -15,6 +16,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
     {
         public abstract SentinelDistribution Distribution { get; }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public virtual bool Supports(SentinelPlatformMarker platform) => SentinelDistributionPolicy.IsAllowed(platform, Distribution);
     }
 
@@ -27,64 +29,55 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
         [Serializable]
         public sealed class Local : SentinelDistributionConfiguration
         {
-            public override SentinelDistribution Distribution =>
-                SentinelDistribution.Local;
+            public override SentinelDistribution Distribution => SentinelDistribution.Local;
         }
 
         [Serializable]
         public sealed class Steam : SentinelDistributionConfiguration
         {
-            public override SentinelDistribution Distribution =>
-                SentinelDistribution.Steam;
+            public override SentinelDistribution Distribution => SentinelDistribution.Steam;
         }
 
         [Serializable]
         public sealed class MicrosoftStore : SentinelDistributionConfiguration
         {
-            public override SentinelDistribution Distribution =>
-                SentinelDistribution.MicrosoftStore;
+            public override SentinelDistribution Distribution => SentinelDistribution.MicrosoftStore;
         }
 
         [Serializable]
         public sealed class Epic : SentinelDistributionConfiguration
         {
-            public override SentinelDistribution Distribution =>
-                SentinelDistribution.Epic;
+            public override SentinelDistribution Distribution => SentinelDistribution.Epic;
         }
 
         [Serializable]
         public sealed class GOG : SentinelDistributionConfiguration
         {
-            public override SentinelDistribution Distribution =>
-                SentinelDistribution.GOG;
+            public override SentinelDistribution Distribution => SentinelDistribution.GOG;
         }
 
         [Serializable]
         public sealed class MacAppStore : SentinelDistributionConfiguration
         {
-            public override SentinelDistribution Distribution =>
-                SentinelDistribution.MacAppStore;
+            public override SentinelDistribution Distribution => SentinelDistribution.MacAppStore;
         }
 
         [Serializable]
         public sealed class AppleAppStore : SentinelDistributionConfiguration
         {
-            public override SentinelDistribution Distribution =>
-                SentinelDistribution.AppleAppStore;
+            public override SentinelDistribution Distribution => SentinelDistribution.AppleAppStore;
         }
 
         [Serializable]
         public sealed class GooglePlay : SentinelDistributionConfiguration
         {
-            public override SentinelDistribution Distribution =>
-                SentinelDistribution.GooglePlay;
+            public override SentinelDistribution Distribution => SentinelDistribution.GooglePlay;
         }
 
         [Serializable]
         public sealed class AmazonAppstore : SentinelDistributionConfiguration
         {
-            public override SentinelDistribution Distribution =>
-                SentinelDistribution.AmazonAppstore;
+            public override SentinelDistribution Distribution => SentinelDistribution.AmazonAppstore;
         }
     }
 }

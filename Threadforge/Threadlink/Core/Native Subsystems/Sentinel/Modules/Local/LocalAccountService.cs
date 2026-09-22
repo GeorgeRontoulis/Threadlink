@@ -4,35 +4,51 @@ namespace Threadlink.SentinelModules.Local
     using Cysharp.Threading.Tasks;
     using System;
     using System.Collections.Generic;
+    using System.Runtime.CompilerServices;
 
     internal sealed class LocalAccountService : IAccountService
     {
-        public IReadOnlyList<ISentinelAccount> Accounts => AccountsBuffer;
-        public ISentinelAccount PrimaryAccount => Account;
+        public IReadOnlyList<ISentinelAccount> Accounts
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => AccountsBuffer;
+        }
 
-        public event Action<ISentinelAccount> AccountAdded;
-        public event Action<ISentinelAccount> AccountRemoved;
-        public event Action<ISentinelAccount> PrimaryAccountChanged;
+        public ISentinelAccount PrimaryAccount
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => Account;
+        }
 
-        private LocalAccount Account { get; }
-        private ISentinelAccount[] AccountsBuffer { get; }
+        public event Action<ISentinelAccount> AccountAdded = null;
+        public event Action<ISentinelAccount> AccountRemoved = null;
+        public event Action<ISentinelAccount> PrimaryAccountChanged = null;
 
+        private LocalAccount Account { get; } = null;
+        private ISentinelAccount[] AccountsBuffer { get; } = null;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal LocalAccountService(string accountID, string displayName, string saveRoot)
         {
-            Account = new LocalAccount(accountID, displayName, saveRoot);
+            Account = new(accountID, displayName, saveRoot);
             AccountsBuffer = new ISentinelAccount[] { Account };
         }
 
-        public UniTask<SentinelResult> RefreshAsync() =>
-            UniTask.FromResult(SentinelResult.Success());
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public UniTask<SentinelResult> RefreshAsync() => UniTask.FromResult(SentinelResult.Success());
 
-        public UniTask<SentinelResult<ISentinelAccount>> GetPrimaryAccountAsync(bool allowUI = true) =>
-            UniTask.FromResult(SentinelResult<ISentinelAccount>.Success(Account));
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public UniTask<SentinelResult<ISentinelAccount>> GetPrimaryAccountAsync(bool allowUI = true)
+        {
+            return UniTask.FromResult(SentinelResult<ISentinelAccount>.Success(Account));
+        }
 
-        public UniTask<SentinelResult<ISentinelAccount>> PickAccountAsync() =>
-            UniTask.FromResult(SentinelResult<ISentinelAccount>.Failure(
-                SentinelError.Unsupported,
-                "The Local Sentinel module exposes one implicit account."));
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public UniTask<SentinelResult<ISentinelAccount>> PickAccountAsync()
+        {
+            return UniTask.FromResult(SentinelResult<ISentinelAccount>.Failure(SentinelError.Unsupported,
+            "The Local Sentinel module exposes one implicit account."));
+        }
 
         public void Discard()
         {
@@ -45,8 +61,8 @@ namespace Threadlink.SentinelModules.Local
 
     internal sealed class LocalAccount : SentinelAccount
     {
-        internal LocalAccount(string id, string displayName, string saveRoot)
-            : base(id, displayName, SentinelAccountState.SignedIn, true)
+        internal LocalAccount(string id, string displayName, string saveRoot) :
+        base(id, displayName, SentinelAccountState.SignedIn, true)
         {
             RegisterService<ISaveService>(new LocalSaveService(saveRoot));
             RegisterService<IAchievementService>(new LocalAchievementService());

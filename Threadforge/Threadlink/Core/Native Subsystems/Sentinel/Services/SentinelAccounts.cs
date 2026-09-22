@@ -1,9 +1,9 @@
 namespace Threadlink.Core.NativeSubsystems.Sentinel
 {
-    using Cysharp.Threading.Tasks;
-    using Shared;
     using System;
     using System.Collections.Generic;
+    using Cysharp.Threading.Tasks;
+    using Shared;
 
     public enum SentinelAccountState : byte
     {
@@ -11,7 +11,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
         SignedOut,
         SigningIn,
         SignedIn,
-        Suspended
+        Suspended,
     }
 
     public interface ISentinelAccount : ISentinelServiceProvider, IDiscardable
@@ -33,7 +33,8 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
             string id,
             string displayName,
             SentinelAccountState state = SentinelAccountState.SignedIn,
-            bool isPrimary = false)
+            bool isPrimary = false
+        )
         {
             ID = id;
             DisplayName = displayName;

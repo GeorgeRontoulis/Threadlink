@@ -11,7 +11,10 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
     ///
     /// Targets with one valid distribution ignore this field and resolve automatically.
     /// </summary>
-    [CreateAssetMenu(fileName = "SentinelConfig.asset", menuName = "Threadlink/Subsystem Dependencies/Sentinel Config")]
+    [CreateAssetMenu(
+        fileName = "SentinelConfig.asset",
+        menuName = "Threadlink/Subsystem Dependencies/Sentinel Config"
+    )]
     public sealed class SentinelConfig : ScriptableObject
     {
 #if !ODIN_INSPECTOR

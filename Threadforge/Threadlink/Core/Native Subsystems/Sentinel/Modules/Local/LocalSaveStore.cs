@@ -5,6 +5,7 @@ namespace Threadlink.SentinelModules.Local
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Runtime.CompilerServices;
     using System.Text;
     using System.Threading;
 
@@ -25,7 +26,7 @@ namespace Threadlink.SentinelModules.Local
     {
         internal const string DELETED = "@deleted";
 
-        private string Root { get; set; }
+        private string Root { get; set; } = null;
         private Dictionary<int, SemaphoreSlim> PublishLocks { get; set; } = new();
 
         internal LocalSaveStore(string root) => Root = root;
@@ -44,41 +45,37 @@ namespace Threadlink.SentinelModules.Local
             }
         }
 
-        internal string GetSaveDirectory(int saveID) =>
-            Path.Combine(Root, saveID.ToString());
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal string GetSaveDirectory(int saveID) => Path.Combine(Root, saveID.ToString());
 
-        internal string GetGenerationRoot(int saveID) =>
-            Path.Combine(GetSaveDirectory(saveID), "generations");
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal string GetGenerationRoot(int saveID) => Path.Combine(GetSaveDirectory(saveID), "generations");
 
-        internal string GetGenerationDirectory(int saveID, string generation) =>
-            Path.Combine(GetGenerationRoot(saveID), generation);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal string GetGenerationDirectory(int saveID, string generation) => Path.Combine(GetGenerationRoot(saveID), generation);
 
-        internal string GetPointerPath(int saveID) =>
-            Path.Combine(GetSaveDirectory(saveID), "current.ptr");
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal string GetPointerPath(int saveID) => Path.Combine(GetSaveDirectory(saveID), "current.ptr");
 
-        internal string GetStagingDirectory(int saveID, string generation) =>
-            Path.Combine(Root, ".staging", saveID + "-" + generation);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal string GetStagingDirectory(int saveID, string generation) => Path.Combine(Root, ".staging", saveID + "-" + generation);
 
-        internal static string GetFilePath(string generationDirectory, int fileID) =>
-            Path.Combine(generationDirectory, fileID + ".sent");
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static string GetFilePath(string generationDirectory, int fileID) => Path.Combine(generationDirectory, fileID + ".sent");
 
         internal async UniTask<SentinelResult<string>> ReadPointerAsync(int saveID)
         {
-            string pointer = GetPointerPath(saveID);
+            var pointer = GetPointerPath(saveID);
 
             if (!File.Exists(pointer))
                 return SentinelResult<string>.Failure(SentinelError.NotFound);
 
             try
             {
-                string value = await File.ReadAllTextAsync(pointer).AsUniTask();
+                var value = await File.ReadAllTextAsync(pointer).AsUniTask();
 
                 if (string.IsNullOrWhiteSpace(value))
-                {
-                    return SentinelResult<string>.Failure(
-                        SentinelError.CorruptData,
-                        "The save generation pointer is empty.");
-                }
+                    return SentinelResult<string>.Failure(SentinelError.CorruptData, "The save generation pointer is empty.");
 
                 value = value.Trim();
 
@@ -89,56 +86,40 @@ namespace Threadlink.SentinelModules.Local
             }
             catch (UnauthorizedAccessException exception)
             {
-                return SentinelResult<string>.Failure(
-                    SentinelError.PermissionDenied,
-                    exception.Message);
+                return SentinelResult<string>.Failure(SentinelError.PermissionDenied, exception.Message);
             }
             catch (IOException exception)
             {
-                return SentinelResult<string>.Failure(
-                    SentinelError.NativeFailure,
-                    exception.Message);
+                return SentinelResult<string>.Failure(SentinelError.NativeFailure, exception.Message);
             }
         }
 
         internal async UniTask<SentinelResult<string>> ReadRawPointerAsync(int saveID)
         {
-            string pointer = GetPointerPath(saveID);
+            var pointer = GetPointerPath(saveID);
 
             if (!File.Exists(pointer))
                 return SentinelResult<string>.Success(null);
 
             try
             {
-                string value = (await File.ReadAllTextAsync(pointer).AsUniTask()).Trim();
+                var value = (await File.ReadAllTextAsync(pointer).AsUniTask()).Trim();
 
                 if (string.IsNullOrEmpty(value))
-                {
-                    return SentinelResult<string>.Failure(
-                        SentinelError.CorruptData,
-                        "The existing save generation pointer is empty.");
-                }
+                    return SentinelResult<string>.Failure(SentinelError.CorruptData, "The existing save generation pointer is empty.");
 
                 if (value != DELETED && !Directory.Exists(GetGenerationDirectory(saveID, value)))
-                {
-                    return SentinelResult<string>.Failure(
-                        SentinelError.CorruptData,
-                        $"The published save generation '{value}' is missing.");
-                }
+                    return SentinelResult<string>.Failure(SentinelError.CorruptData, $"The published save generation '{value}' is missing.");
 
                 return SentinelResult<string>.Success(value);
             }
             catch (UnauthorizedAccessException exception)
             {
-                return SentinelResult<string>.Failure(
-                    SentinelError.PermissionDenied,
-                    exception.Message);
+                return SentinelResult<string>.Failure(SentinelError.PermissionDenied, exception.Message);
             }
             catch (IOException exception)
             {
-                return SentinelResult<string>.Failure(
-                    SentinelError.NativeFailure,
-                    exception.Message);
+                return SentinelResult<string>.Failure(SentinelError.NativeFailure, exception.Message);
             }
         }
 
@@ -151,6 +132,7 @@ namespace Threadlink.SentinelModules.Local
             try
             {
                 Directory.CreateDirectory(saveDirectory);
+
                 await WriteDurableTextAsync(temp, value);
 
                 if (File.Exists(pointer))
@@ -170,21 +152,16 @@ namespace Threadlink.SentinelModules.Local
             }
             catch (PlatformNotSupportedException exception)
             {
-                return SentinelResult.Failure(
-                    SentinelError.Unsupported,
-                    "The local filesystem does not support atomic save publication: " + exception.Message);
+                return SentinelResult.Failure(SentinelError.Unsupported,
+                "The local filesystem does not support atomic save publication: " + exception.Message);
             }
             catch (UnauthorizedAccessException exception)
             {
-                return SentinelResult.Failure(
-                    SentinelError.PermissionDenied,
-                    exception.Message);
+                return SentinelResult.Failure(SentinelError.PermissionDenied, exception.Message);
             }
             catch (IOException exception)
             {
-                return SentinelResult.Failure(
-                    SentinelError.NativeFailure,
-                    exception.Message);
+                return SentinelResult.Failure(SentinelError.NativeFailure, exception.Message);
             }
             finally
             {
@@ -196,13 +173,7 @@ namespace Threadlink.SentinelModules.Local
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path));
 
-            using var stream = new FileStream(
-                path,
-                FileMode.CreateNew,
-                FileAccess.Write,
-                FileShare.None,
-                4096,
-                true);
+            using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, true);
 
             await stream.WriteAsync(data, 0, data.Length).AsUniTask();
             await stream.FlushAsync().AsUniTask();
@@ -211,15 +182,9 @@ namespace Threadlink.SentinelModules.Local
 
         private static async UniTask WriteDurableTextAsync(string path, string value)
         {
-            byte[] data = Encoding.UTF8.GetBytes(value);
+            var data = Encoding.UTF8.GetBytes(value);
 
-            using var stream = new FileStream(
-                path,
-                FileMode.CreateNew,
-                FileAccess.Write,
-                FileShare.None,
-                4096,
-                true);
+            using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 4096, true);
 
             await stream.WriteAsync(data, 0, data.Length).AsUniTask();
             await stream.FlushAsync().AsUniTask();
@@ -230,22 +195,18 @@ namespace Threadlink.SentinelModules.Local
         {
             Directory.CreateDirectory(destination);
 
-            foreach (string directory in Directory.GetDirectories(source, "*", SearchOption.AllDirectories))
+            foreach (var directory in Directory.GetDirectories(source, "*", SearchOption.AllDirectories))
             {
-                string relative = directory.Substring(source.Length).TrimStart(
-                    Path.DirectorySeparatorChar,
-                    Path.AltDirectorySeparatorChar);
+                var relative = directory[source.Length..].TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
                 Directory.CreateDirectory(Path.Combine(destination, relative));
             }
 
             foreach (string file in Directory.GetFiles(source, "*", SearchOption.AllDirectories))
             {
-                string relative = file.Substring(source.Length).TrimStart(
-                    Path.DirectorySeparatorChar,
-                    Path.AltDirectorySeparatorChar);
+                var relative = file[source.Length..].TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                var target = Path.Combine(destination, relative);
 
-                string target = Path.Combine(destination, relative);
                 Directory.CreateDirectory(Path.GetDirectoryName(target));
                 File.Copy(file, target, false);
             }

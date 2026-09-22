@@ -1,5 +1,7 @@
 namespace Threadlink.Core.NativeSubsystems.Sentinel
 {
+    using System.Runtime.CompilerServices;
+
     public enum SentinelError : byte
     {
         None = 0,
@@ -16,7 +18,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
         CorruptData,
         AccountUnavailable,
         NativeFailure,
-        Unknown
+        Unknown,
     }
 
     public readonly struct SentinelResult
@@ -26,6 +28,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
         public string Message { get; }
         public long NativeCode { get; }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private SentinelResult(bool succeeded, SentinelError error, string message, long nativeCode)
         {
             Succeeded = succeeded;
@@ -34,12 +37,11 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
             NativeCode = nativeCode;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static SentinelResult Success() => new(true, SentinelError.None, null, 0);
 
-        public static SentinelResult Failure(
-            SentinelError error,
-            string message = null,
-            long nativeCode = 0)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static SentinelResult Failure(SentinelError error, string message = null, long nativeCode = 0)
         {
             if (error is SentinelError.None)
                 error = SentinelError.Unknown;
@@ -52,9 +54,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
             if (Succeeded)
                 return "Success";
 
-            return string.IsNullOrEmpty(Message)
-                ? $"{Error} ({NativeCode})"
-                : $"{Error} ({NativeCode}): {Message}";
+            return string.IsNullOrEmpty(Message) ? $"{Error} ({NativeCode})" : $"{Error} ({NativeCode}): {Message}";
         }
     }
 
@@ -66,6 +66,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
         public long NativeCode { get; }
         public T Value { get; }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private SentinelResult(bool succeeded, T value, SentinelError error, string message, long nativeCode)
         {
             Succeeded = succeeded;
@@ -75,13 +76,11 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
             NativeCode = nativeCode;
         }
 
-        public static SentinelResult<T> Success(T value) =>
-            new(true, value, SentinelError.None, null, 0);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static SentinelResult<T> Success(T value) => new(true, value, SentinelError.None, null, 0);
 
-        public static SentinelResult<T> Failure(
-            SentinelError error,
-            string message = null,
-            long nativeCode = 0)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static SentinelResult<T> Failure(SentinelError error, string message = null, long nativeCode = 0)
         {
             if (error is SentinelError.None)
                 error = SentinelError.Unknown;
@@ -89,14 +88,10 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
             return new(false, default, error, message, nativeCode);
         }
 
-        public SentinelResult Untyped() =>
-            Succeeded
-                ? SentinelResult.Success()
-                : SentinelResult.Failure(Error, Message, NativeCode);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public SentinelResult Untyped() => Succeeded ? SentinelResult.Success() : SentinelResult.Failure(Error, Message, NativeCode);
 
-        public override string ToString() =>
-            Succeeded
-                ? $"Success: {Value}"
-                : SentinelResult.Failure(Error, Message, NativeCode).ToString();
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override string ToString() => Succeeded ? $"Success: {Value}" : SentinelResult.Failure(Error, Message, NativeCode).ToString();
     }
 }

@@ -3,6 +3,7 @@ namespace Threadlink.SentinelModules.Local
     using Core.NativeSubsystems.Sentinel;
     using Cysharp.Threading.Tasks;
     using System.Collections.Generic;
+    using System.Runtime.CompilerServices;
 
     internal sealed class LocalAchievementService : IAchievementService
     {
@@ -12,27 +13,20 @@ namespace Threadlink.SentinelModules.Local
         {
             if (achievementID == 0)
             {
-                return UniTask.FromResult(
-                    SentinelResult<SentinelAchievementState>.Failure(
-                        SentinelError.InvalidArgument,
-                        "Achievement ID 0 is reserved."));
+                return UniTask.FromResult(SentinelResult<SentinelAchievementState>.Failure(SentinelError.InvalidArgument,
+                "Achievement ID 0 is reserved."));
             }
 
-            Progress.TryGetValue(achievementID, out double progress);
+            Progress.TryGetValue(achievementID, out var progress);
 
-            return UniTask.FromResult(
-                SentinelResult<SentinelAchievementState>.Success(
-                    new SentinelAchievementState(achievementID, progress)));
+            return UniTask.FromResult(SentinelResult<SentinelAchievementState>.Success(
+            new SentinelAchievementState(achievementID, progress)));
         }
 
         public UniTask<SentinelResult> SetProgressAsync(int achievementID, double progress)
         {
             if (achievementID == 0)
-            {
-                return UniTask.FromResult(SentinelResult.Failure(
-                    SentinelError.InvalidArgument,
-                    "Achievement ID 0 is reserved."));
-            }
+                return UniTask.FromResult(SentinelResult.Failure(SentinelError.InvalidArgument, "Achievement ID 0 is reserved."));
 
             progress = progress < 0d ? 0d : progress > 1d ? 1d : progress;
 
@@ -43,9 +37,10 @@ namespace Threadlink.SentinelModules.Local
             return UniTask.FromResult(SentinelResult.Success());
         }
 
-        public UniTask<SentinelResult> UnlockAsync(int achievementID) =>
-            SetProgressAsync(achievementID, 1d);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public UniTask<SentinelResult> UnlockAsync(int achievementID) => SetProgressAsync(achievementID, 1d);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Discard()
         {
             Progress?.Clear();

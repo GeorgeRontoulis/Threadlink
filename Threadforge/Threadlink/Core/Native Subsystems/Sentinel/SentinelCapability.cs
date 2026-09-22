@@ -1,6 +1,7 @@
 namespace Threadlink.Core.NativeSubsystems.Sentinel
 {
     using System;
+    using System.Runtime.CompilerServices;
 
     [Flags]
     public enum SentinelCapability : ulong
@@ -26,12 +27,15 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
         Friends = 1UL << 35,
         Entitlements = 1UL << 36,
         Commerce = 1UL << 37,
-        Invites = 1UL << 38
+        Invites = 1UL << 38,
     }
 
     public static class SentinelCapabilityExtensions
     {
-        public static bool Has(this SentinelCapability capabilities, SentinelCapability capability) =>
-            (capabilities & capability) == capability;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool Has(this SentinelCapability capabilities, SentinelCapability capability)
+        {
+            return (capabilities & capability) == capability;
+        }
     }
 }
