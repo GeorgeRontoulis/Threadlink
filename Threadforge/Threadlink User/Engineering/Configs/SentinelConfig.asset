@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: SentinelConfig
   m_EditorClassIdentifier: Threadlink.Runtime::Threadlink.Core.NativeSubsystems.Sentinel.SentinelConfig
   distribution:
-    rid: 8698925280638271748
+    rid: 8698925286919503948
   references:
     version: 2
     RefIds:
-    - rid: 8698925280638271748
+    - rid: 8698925286919503948
       type: {class: SentinelDistributions/Local, ns: Threadlink.Core.NativeSubsystems.Sentinel, asm: Threadlink.Runtime}
       data: 

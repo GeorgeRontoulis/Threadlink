@@ -36,11 +36,6 @@
             "name": "com.unity.localization",
             "expression": "1.5.9",
             "define": "THREADLINK_LOCALIZATION"
-        },
-        {
-            "name": "com.unity.microsoft.gdk",
-            "expression": "1.4.5",
-            "define": "THREADLINK_SENTINEL_XBOX"
         }
     ],
     "noEngineReferences": false

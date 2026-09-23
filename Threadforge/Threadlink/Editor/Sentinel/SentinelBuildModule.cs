@@ -2,6 +2,7 @@ namespace Threadlink.Editor.Sentinel
 {
     using Core.NativeSubsystems.Sentinel;
     using System.Collections.Generic;
+    using System.Runtime.CompilerServices;
     using UnityEditor.Build.Reporting;
 
     public enum SentinelBuildDiagnosticSeverity : byte
@@ -16,22 +17,21 @@ namespace Threadlink.Editor.Sentinel
         public SentinelBuildDiagnosticSeverity Severity { get; }
         public string Message { get; }
 
-        public SentinelBuildDiagnostic(
-            SentinelBuildDiagnosticSeverity severity,
-            string message)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public SentinelBuildDiagnostic(SentinelBuildDiagnosticSeverity severity, string message)
         {
             Severity = severity;
             Message = message;
         }
 
-        public static SentinelBuildDiagnostic Info(string message) =>
-            new(SentinelBuildDiagnosticSeverity.Info, message);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static SentinelBuildDiagnostic Info(string message) => new(SentinelBuildDiagnosticSeverity.Info, message);
 
-        public static SentinelBuildDiagnostic Warning(string message) =>
-            new(SentinelBuildDiagnosticSeverity.Warning, message);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static SentinelBuildDiagnostic Warning(string message) => new(SentinelBuildDiagnosticSeverity.Warning, message);
 
-        public static SentinelBuildDiagnostic Error(string message) =>
-            new(SentinelBuildDiagnosticSeverity.Error, message);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static SentinelBuildDiagnostic Error(string message) => new(SentinelBuildDiagnosticSeverity.Error, message);
     }
 
     public readonly struct SentinelBuildContext
@@ -39,26 +39,25 @@ namespace Threadlink.Editor.Sentinel
         public BuildReport Report { get; }
         public SentinelModuleKey Key { get; }
 
-        public string OutputPath => Report.summary.outputPath;
+        public string OutputPath
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => Report.summary.outputPath;
+        }
 
-        internal SentinelBuildContext(
-            BuildReport report,
-            SentinelModuleKey key)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal SentinelBuildContext(BuildReport report, SentinelModuleKey key)
         {
             Report = report;
             Key = key;
         }
 
-        public T GetSubtarget<T>() where T : System.Enum =>
-            Report.summary.GetSubtarget<T>();
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public T GetSubtarget<T>() where T : System.Enum => Report.summary.GetSubtarget<T>();
     }
 
     /// <summary>
     /// Editor-side integration for one or more exact Sentinel module keys.
-    ///
-    /// There is no ranking and no fallback competition here. Build selection first
-    /// resolves the exact Platform / Distribution key, then requires exactly one
-    /// installed build module to claim that key.
     /// </summary>
     public interface ISentinelBuildModule
     {
@@ -66,13 +65,7 @@ namespace Threadlink.Editor.Sentinel
         string DisplayName { get; }
 
         bool Implements(in SentinelModuleKey key);
-
-        void ConfigureBuild(
-            in SentinelBuildContext context,
-            List<SentinelBuildDiagnostic> diagnostics);
-
-        void ValidateBuild(
-            in SentinelBuildContext context,
-            List<SentinelBuildDiagnostic> diagnostics);
+        void ConfigureBuild(in SentinelBuildContext context, List<SentinelBuildDiagnostic> diagnostics);
+        void ValidateBuild(in SentinelBuildContext context, List<SentinelBuildDiagnostic> diagnostics);
     }
 }

@@ -43,33 +43,45 @@ namespace Threadlink.Core.NativeSubsystems.Initium
         {
             if (objects == null) return;
 
-            var preloaders = objects.OfType<IAddressablesPreloader>();
-            var tasks = ListPool<UniTask>.Get();
-
-            try
             {
+                var preloaders = objects.OfType<IAddressablesPreloader>();
+                using var _ = ListPool<UniTask<bool>>.Get(out var preloadingTasks);
+
                 foreach (var preloader in preloaders)
-                    tasks.Add(preloader.TryPreloadAssetsAsync());
+                    preloadingTasks.Add(preloader.TryPreloadAssetsAsync());
 
-                await tasks.AwaitAllThenClear();
+                var preloadingResults = await UniTask.WhenAll(preloadingTasks);
 
+                if (preloadingResults != null)
+                {
+                    int length = preloadingResults.Length;
+
+                    for (int i = 0; i < length; i++)
+                    {
+                        if (!preloadingResults[i])
+                        {
+                            var msg = $"Preloader {preloaders.ElementAt(i).GetType().Name} failed to load its dependencies!";
+                            throw new System.InvalidOperationException(msg);
+                        }
+                    }
+                }
+            }
+
+            {
+                using var _ = ListPool<UniTask>.Get(out var initTasks);
                 var bootables = objects.OfType<IBootable>();
 
                 foreach (var bootable in bootables)
-                    tasks.Add(BootAsync(bootable));
+                    initTasks.Add(BootAsync(bootable));
 
-                await tasks.AwaitAllThenClear();
+                await initTasks.AwaitAllThenClear();
 
                 var initializables = objects.OfType<IInitializable>();
 
                 foreach (var initializable in initializables)
-                    tasks.Add(InitializeAsync(initializable));
+                    initTasks.Add(InitializeAsync(initializable));
 
-                await tasks.AwaitAllThenClear(true);
-            }
-            finally
-            {
-                ListPool<UniTask>.Release(tasks);
+                await initTasks.AwaitAllThenClear(true);
             }
         }
 

@@ -2,12 +2,10 @@
 {
     using Cysharp.Threading.Tasks;
     using MessagePack;
-    using NativeSubsystems.Iris;
     using NativeSubsystems.Scribe;
     using Shared;
     using System;
     using System.Runtime.CompilerServices;
-    using UnityEngine;
 
     /// <summary>
     /// The Core. Controls all aspects of the runtime, managing subsystems at the lowest level.
@@ -15,13 +13,12 @@
     public sealed partial class Threadlink : Weaver<Threadlink, IThreadlinkSubsystem>
     {
         /// <summary>
-        /// <see cref="Native"/> = Instantiate the native <see cref="ThreadlinkLoop"/> 
-        /// <see cref="GameObject"/> to start receiving update callbacks through <see cref="Iris"/>.
+        /// <see cref="Native"/> = Inject Threadlink's update dispatch points
+        /// directly into Unity's PlayerLoop.
         /// <para></para>
-        /// <see cref="Custom"/> = Use your own logic to instantiate a custom update loop 
-        /// <see cref="MonoBehaviour"/> that will publish <see cref="Iris"/>' update events.
-        /// Subscribe to <see cref="Iris.Events.OnCoreDeployed"/> to get a callback when
-        /// the core is deployed, then set up your update loop there.
+        /// <see cref="Custom"/> = Threadlink does not install update callbacks.
+        /// The project is responsible for publishing Iris' OnUpdate,
+        /// OnFixedUpdate and OnLateUpdate events.
         /// <para></para>
         /// This is useful when using Threadlink alongside another framework.
         /// For example, in the context of <see href="https://doc.photonengine.com/quantum/current/quantum-intro">Photon Quantum</see>,
@@ -47,6 +44,8 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override void Discard()
         {
+            ThreadlinkPlayerLoop.Uninstall();
+
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.ExitPlaymode();
 #else
@@ -59,13 +58,7 @@
             base.Boot();
 
             if (UserConfig != null && UserConfig.UpdateLoopBehaviour is UpdateLoop.Native)
-            {
-                ///Start the Threadlink Update Loop.
-                UnityEngine.Object.DontDestroyOnLoad(new GameObject(nameof(ThreadlinkLoop), typeof(ThreadlinkLoop))
-                {
-                    hideFlags = HideFlags.HideInHierarchy
-                });
-            }
+                ThreadlinkPlayerLoop.Install();
         }
         #endregion
 
