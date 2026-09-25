@@ -1,10 +1,10 @@
 namespace Threadlink.SentinelModules.Steam
 {
-    using System;
-    using System.Collections.Generic;
     using Core.NativeSubsystems.Sentinel;
     using Cysharp.Threading.Tasks;
     using Steamworks;
+    using System;
+    using System.Collections.Generic;
 
     internal sealed class SteamMultiplayerService : IMultiplayerService
     {
@@ -35,12 +35,8 @@ namespace Threadlink.SentinelModules.Steam
 
                 if (count < 0)
                 {
-                    return UniTask.FromResult(
-                        SentinelResult<IReadOnlyList<SentinelFriend>>.Failure(
-                            SentinelError.NativeFailure,
-                            "Steam returned an invalid friend count."
-                        )
-                    );
+                    return UniTask.FromResult(SentinelResult<IReadOnlyList<SentinelFriend>>.Failure(SentinelError.NativeFailure,
+                    "Steam returned an invalid friend count."));
                 }
 
                 var result = new List<SentinelFriend>(count);
@@ -58,92 +54,61 @@ namespace Threadlink.SentinelModules.Steam
 
                     if (SteamFriends.GetFriendGamePlayed(friendID, out var gameInfo))
                     {
-                        playingThisGame =
-                            gameInfo.m_gameID.IsValid()
-                            && gameInfo.m_gameID.AppID().m_AppId == AppID;
+                        playingThisGame = gameInfo.m_gameID.IsValid() && gameInfo.m_gameID.AppID().m_AppId == AppID;
                     }
 
                     var connect = SteamFriends.GetFriendRichPresence(friendID, "connect");
-                    var joinable =
-                        playingThisGame
-                        && SteamJoinPayloadCodec.TryDecode(connect, out var joinPayload);
 
-                    result.Add(
-                        new SentinelFriend(
+                    result.Add
+                    (
+                        new SentinelFriend
+                        (
                             friendID.ToString(),
                             SteamFriends.GetFriendPersonaName(friendID),
                             MapPresence(SteamFriends.GetFriendPersonaState(friendID)),
                             playingThisGame,
-                            joinable,
-                            joinable ? joinPayload : null
+                            playingThisGame,
+                            SteamJoinPayloadCodec.TryDecode(connect, out var joinPayload) ? joinPayload : null
                         )
                     );
                 }
 
-                return UniTask.FromResult(
-                    SentinelResult<IReadOnlyList<SentinelFriend>>.Success(result)
-                );
+                return UniTask.FromResult(SentinelResult<IReadOnlyList<SentinelFriend>>.Success(result));
             }
             catch (Exception exception)
             {
-                return UniTask.FromResult(
-                    SentinelResult<IReadOnlyList<SentinelFriend>>.Failure(
-                        SentinelError.NativeFailure,
-                        $"Steam friend enumeration failed: {exception.Message}"
-                    )
-                );
+                return UniTask.FromResult(SentinelResult<IReadOnlyList<SentinelFriend>>.Failure(
+                SentinelError.NativeFailure, $"Steam friend enumeration failed: {exception.Message}"));
             }
         }
 
         public UniTask<SentinelResult> SetSessionPresenceAsync(SentinelSessionPresence session)
         {
-            if (
-                !SteamJoinPayloadCodec.TryEncode(
-                    session.JoinPayload,
-                    out var connect,
-                    out var error
-                )
-            )
-            {
-                return UniTask.FromResult(
-                    SentinelResult.Failure(SentinelError.InvalidArgument, error)
-                );
-            }
+            if (!SteamJoinPayloadCodec.TryEncode(session.JoinPayload, out var connect, out var error))
+                return UniTask.FromResult(SentinelResult.Failure(SentinelError.InvalidArgument, error));
 
             if (!SteamFriends.SetRichPresence("connect", connect))
             {
-                return UniTask.FromResult(
-                    SentinelResult.Failure(
-                        SentinelError.NativeFailure,
-                        "Steam rejected the joinable session's 'connect' rich-presence value."
-                    )
-                );
+                return UniTask.FromResult(SentinelResult.Failure(SentinelError.NativeFailure,
+                "Steam rejected the joinable session's 'connect' rich-presence value."));
             }
 
-            if (
-                !SetOptionalPresence("status", session.Status, out error)
-                || !SetOptionalPresence("steam_player_group", session.GroupID, out error)
-            )
+            if (!SetOptionalPresence("status", session.Status, out error)
+            || !SetOptionalPresence("steam_player_group", session.GroupID, out error))
             {
                 ClearOwnedPresence();
 
-                return UniTask.FromResult(
-                    SentinelResult.Failure(SentinelError.NativeFailure, error)
-                );
+                return UniTask.FromResult(SentinelResult.Failure(SentinelError.NativeFailure, error));
             }
 
-            var groupSize =
-                !string.IsNullOrEmpty(session.GroupID) && session.GroupSize > 0
-                    ? session.GroupSize.ToString()
-                    : string.Empty;
+            var groupSize = !string.IsNullOrEmpty(session.GroupID)
+            && session.GroupSize > 0 ? session.GroupSize.ToString() : string.Empty;
 
             if (!SetOptionalPresence("steam_player_group_size", groupSize, out error))
             {
                 ClearOwnedPresence();
 
-                return UniTask.FromResult(
-                    SentinelResult.Failure(SentinelError.NativeFailure, error)
-                );
+                return UniTask.FromResult(SentinelResult.Failure(SentinelError.NativeFailure, error));
             }
 
             CurrentConnectString = connect;
@@ -152,13 +117,10 @@ namespace Threadlink.SentinelModules.Steam
 
         public UniTask<SentinelResult> ClearSessionPresenceAsync()
         {
-            return UniTask.FromResult(
-                ClearOwnedPresence()
-                    ? SentinelResult.Success()
-                    : SentinelResult.Failure(
-                        SentinelError.NativeFailure,
-                        "Steam rejected one or more Sentinel-owned rich-presence clears."
-                    )
+            return UniTask.FromResult
+            (
+                ClearOwnedPresence() ? SentinelResult.Success() : SentinelResult.Failure(SentinelError.NativeFailure,
+                "Steam rejected one or more Sentinel-owned rich-presence clears.")
             );
         }
 
@@ -166,57 +128,35 @@ namespace Threadlink.SentinelModules.Steam
         {
             if (string.IsNullOrEmpty(CurrentConnectString))
             {
-                return UniTask.FromResult(
-                    SentinelResult.Failure(
-                        SentinelError.Conflict,
-                        "No joinable Sentinel session is currently published."
-                    )
-                );
+                return UniTask.FromResult(SentinelResult.Failure(SentinelError.Conflict,
+                "No joinable Sentinel session is currently published."));
             }
 
             if (!ulong.TryParse(friendID, out var rawID))
             {
-                return UniTask.FromResult(
-                    SentinelResult.Failure(
-                        SentinelError.InvalidArgument,
-                        $"'{friendID}' is not a valid Steam ID."
-                    )
-                );
+                return UniTask.FromResult(SentinelResult.Failure(SentinelError.InvalidArgument,
+                $"'{friendID}' is not a valid Steam ID."));
             }
 
             var steamID = new CSteamID(rawID);
 
             if (!steamID.IsValid())
             {
-                return UniTask.FromResult(
-                    SentinelResult.Failure(
-                        SentinelError.InvalidArgument,
-                        $"'{friendID}' is not a valid Steam user ID."
-                    )
-                );
+                return UniTask.FromResult(SentinelResult.Failure(
+                SentinelError.InvalidArgument, $"'{friendID}' is not a valid Steam user ID."));
             }
 
-            if (
-                SteamFriends.GetFriendRelationship(steamID)
-                is not EFriendRelationship.k_EFriendRelationshipFriend
-            )
+            if (SteamFriends.GetFriendRelationship(steamID) is not EFriendRelationship.k_EFriendRelationshipFriend)
             {
-                return UniTask.FromResult(
-                    SentinelResult.Failure(
-                        SentinelError.PermissionDenied,
-                        $"Steam user {friendID} is not an immediate friend of the current account."
-                    )
-                );
+                return UniTask.FromResult(SentinelResult.Failure(SentinelError.PermissionDenied,
+                $"Steam user {friendID} is not an immediate friend of the current account."));
             }
 
-            return UniTask.FromResult(
-                SteamFriends.InviteUserToGame(steamID, CurrentConnectString)
-                    ? SentinelResult.Success()
-                    : SentinelResult.Failure(
-                        SentinelError.NativeFailure,
-                        $"Steam could not send an invite to {friendID}."
-                    )
-            );
+            return UniTask.FromResult(SteamFriends.InviteUserToGame(steamID, CurrentConnectString)
+            ?
+            SentinelResult.Success()
+            :
+            SentinelResult.Failure(SentinelError.NativeFailure, $"Steam could not send an invite to {friendID}."));
         }
 
         public bool TryDequeueJoinRequest(out SentinelJoinRequest request)

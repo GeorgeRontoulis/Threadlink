@@ -1,10 +1,10 @@
 namespace Threadlink.SentinelModules.Steam
 {
-    using System;
-    using System.Threading;
     using Core.NativeSubsystems.Sentinel;
     using Cysharp.Threading.Tasks;
     using Steamworks;
+    using System;
+    using System.Threading;
     using UnityEngine;
 
     internal sealed class SteamAchievementService : IAchievementService
@@ -56,7 +56,7 @@ namespace Threadlink.SentinelModules.Steam
 
             if (binding.HasProgressStat)
             {
-                if (!SteamUserStats.GetStat(binding.ProgressStatAPIName, out var current))
+                if (!SteamUserStats.GetStat(binding.ProgressStatAPIName, out int current))
                 {
                     return UniTask.FromResult(
                         SentinelResult<SentinelAchievementState>.Failure(
@@ -69,11 +69,7 @@ namespace Threadlink.SentinelModules.Steam
                 progress = Clamp01((double)current / binding.ProgressMaximum);
             }
 
-            return UniTask.FromResult(
-                SentinelResult<SentinelAchievementState>.Success(
-                    new SentinelAchievementState(achievementID, progress)
-                )
-            );
+            return UniTask.FromResult(SentinelResult<SentinelAchievementState>.Success(new(achievementID, progress)));
         }
 
         public async UniTask<SentinelResult> SetProgressAsync(int achievementID, double progress)
@@ -106,7 +102,7 @@ namespace Threadlink.SentinelModules.Steam
             if (unlocked)
                 return SentinelResult.Success();
 
-            if (!SteamUserStats.GetStat(binding.ProgressStatAPIName, out var existing))
+            if (!SteamUserStats.GetStat(binding.ProgressStatAPIName, out int existing))
             {
                 return SentinelResult.Failure(
                     SentinelError.NativeFailure,
