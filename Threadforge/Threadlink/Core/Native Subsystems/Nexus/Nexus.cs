@@ -4,15 +4,21 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
     using Core;
     using Cysharp.Threading.Tasks;
     using Generated;
-    using Initium;
     using Iris;
     using System.Runtime.CompilerServices;
     using UnityEngine;
-    using UnityEngine.ResourceManagement.ResourceProviders;
-    using UnityEngine.SceneManagement;
 
     /// <summary>
-    /// System responsible for scene and player loading during Threadlink's runtime.
+    /// Scene management: one workflow for one scene or many.
+    /// <list type="bullet">
+    /// <item><b>Residency</b> (<see cref="HoldAsync"/>, <see cref="SceneHold.Release()"/>): a scene is loaded while
+    /// anything holds it. Loading boots its objects before anyone gets it; unloading discards every one of them first.</item>
+    /// <item><b>Presentation</b> (<see cref="PresentAsync"/>, <see cref="Presented"/>): the resident scene the local player
+    /// sees and hears. Presenting holds the scene, and lets go of the one presented before.</item>
+    /// <item><b>Transitions</b> (<see cref="TransitionAsync"/>): presentation behind the fader and loading screen, the
+    /// single-scene workflow in one call.</item>
+    /// </list>
+    /// Scenes load additively beside the persistent scene the game starts in.
     /// </summary>
     public static partial class Nexus
     {
@@ -62,47 +68,7 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
                 await Iris.Publish<UniTask>(ThreadlinkIDs.Iris.Events.OnHideLoadingScreenAsync);
         }
 
-        public static async UniTask UnloadActiveSceneAsync()
-        {
-            var activeSceneEntry = Iris.Publish<ISceneEntry>(ThreadlinkIDs.Iris.Events.OnActiveSceneRequested);
-
-            if (activeSceneEntry != null)
-            {
-                await activeSceneEntry.OnBeforeUnloadedAsync();
-                Iris.Publish(ThreadlinkIDs.Iris.Events.OnBeforeActiveSceneUnload, activeSceneEntry);
-
-                if (Threadlink.TryGetSingleton(out var core))
-                {
-                    await core.UnloadSceneAsync(activeSceneEntry.ScenePointer);
-                    Iris.Publish(ThreadlinkIDs.Iris.Events.OnActiveSceneFinishedUnloading, activeSceneEntry);
-                }
-            }
-        }
-
-        public static async UniTask<SceneInstance> LoadNewSceneAsync<T>(T sceneEntry) where T : ISceneEntry
-        {
-            if (!Threadlink.TryGetSingleton(out var core))
-                return default;
-
-            var activeSceneInstance = await core.LoadSceneAsync(sceneEntry.ScenePointer, sceneEntry.LoadMode);
-
-            SceneManager.SetActiveScene(activeSceneInstance.Scene);
-
-            await Initium.BootAndInitUnityObjectsAsync(activeSceneInstance.Scene);
-
-            Iris.Publish(ThreadlinkIDs.Iris.Events.OnNewSceneFinishedLoading, sceneEntry as ISceneEntry);
-
-            var audioTransitionTask = TransitionAudioAsync(sceneEntry);
-            var onFinishedLoadingTask = sceneEntry.OnFinishedLoadingAsync();
-
-            await UniTask.WhenAll(audioTransitionTask, onFinishedLoadingTask);
-
-            Iris.Publish(ThreadlinkIDs.Iris.Events.OnNexusLoadingFinished, sceneEntry as ISceneEntry);
-
-            return activeSceneInstance;
-        }
-
-        private static async UniTask TransitionAudioAsync<T>(T entry) where T : ISceneEntry
+        private static async UniTask TransitionAudioAsync(ISceneEntry entry)
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             static async UniTask TransitionToAudioScenario(AudioClip music, AudioClip atmos, float musicVolume, float atmosVolume)

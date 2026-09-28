@@ -93,7 +93,17 @@ namespace Threadlink.Core
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public async UniTask<SceneInstance> LoadSceneAsync(ThreadlinkIDs.Addressables.Scenes sceneID, LoadSceneMode mode)
         {
-            return TryGetSceneReference(sceneID, out var reference) ? await reference.LoadAsync(mode) : default;
+            return await LoadSceneAsync(sceneID, new LoadSceneParameters(mode));
+        }
+
+        /// <summary>
+        /// Load or get the already loaded scene of <paramref name="sceneID"/>.
+        /// Use a <see cref="LocalPhysicsMode"/> in <paramref name="parameters"/> to give the scene its own physics scene.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public async UniTask<SceneInstance> LoadSceneAsync(ThreadlinkIDs.Addressables.Scenes sceneID, LoadSceneParameters parameters)
+        {
+            return TryGetSceneReference(sceneID, out var reference) ? await reference.LoadAsync(parameters) : default;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

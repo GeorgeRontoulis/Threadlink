@@ -122,7 +122,6 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         {
             Dispose();
 
-            Iris.Unsubscribe<Action<Threadlink>>(ThreadlinkIDs.Iris.Events.OnCoreDeployed, OnCoreDeployed);
             UnityEventSystem = null;
 
             if (UIStack != null)
@@ -148,7 +147,6 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
                 UIStack.Boot();
             }
 
-            Iris.Subscribe<Action<Threadlink>>(ThreadlinkIDs.Iris.Events.OnCoreDeployed, OnCoreDeployed);
             InputSystem.onEvent += OnAnyInputEvent;
             this.PreventEditorMemoryLeaks();
             StartPolling();
@@ -298,22 +296,6 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
             if (leaving != null) OnPointerExit?.Invoke(leaving);
             if (raw != null) OnPointerEnter?.Invoke(raw);
-        }
-
-        private void OnCoreDeployed(Threadlink core)
-        {
-            if (!core.HasLinked(TypeHash))
-                return;
-
-            var inputIcons = UnityEngine.Object.FindObjectsByType<DextraInputIcon>(FindObjectsInactive.Exclude);
-
-            if (inputIcons != null)
-            {
-                int length = inputIcons.Length;
-
-                for (int i = 0; i < length; i++)
-                    inputIcons[i].ListenForInputDeviceChanges(true);
-            }
         }
 
         private void OnAnyInputEvent(InputEventPtr eventPtr, UnityEngine.InputSystem.InputDevice device)

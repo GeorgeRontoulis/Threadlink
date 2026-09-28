@@ -14,15 +14,32 @@ namespace Threadlink.Editor.CodeGen
         internal static void WriteText(string projectRelativePath, string contents)
         {
             EnsureParentFolder(projectRelativePath);
-            File.WriteAllText(projectRelativePath.ToAbsolutePath(), contents);
+            string path = projectRelativePath.ToAbsolutePath();
+
+            if (File.Exists(path) && File.ReadAllText(path) == contents)
+                return;
+
+            // Replace one complete file, never truncate the live injector or manifest before its replacement is ready.
+            string temporary = path + ".writing~";
+            try
+            {
+                File.WriteAllText(temporary, contents);
+                if (File.Exists(path))
+                    File.Replace(temporary, path, null);
+                else
+                    File.Move(temporary, path);
+            }
+            finally
+            {
+                if (File.Exists(temporary))
+                    File.Delete(temporary);
+            }
             AssetDatabase.ImportAsset(projectRelativePath, ImportAssetOptions.ForceUpdate);
         }
 
         internal static void WriteLines(string projectRelativePath, IEnumerable<string> lines)
         {
-            EnsureParentFolder(projectRelativePath);
-            File.WriteAllLines(projectRelativePath.ToAbsolutePath(), lines);
-            AssetDatabase.ImportAsset(projectRelativePath, ImportAssetOptions.ForceUpdate);
+            WriteText(projectRelativePath, string.Join(System.Environment.NewLine, lines) + System.Environment.NewLine);
         }
 
         internal static void DeleteAssets(List<string> projectRelativePaths)

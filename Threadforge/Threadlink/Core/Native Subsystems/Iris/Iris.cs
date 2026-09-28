@@ -11,7 +11,21 @@ namespace Threadlink.Core.NativeSubsystems.Iris
     /// </summary>
     public static partial class Iris
     {
-        private static readonly object[] EventRegistry = new object[Enum.GetValues(typeof(ThreadlinkIDs.Iris.Events)).Length];
+        /// <summary>
+        /// Listeners by event value. The code generator keeps an event's value when other events are removed, so values
+        /// can have gaps: the registry spans the highest value, not the count.
+        /// </summary>
+        private static readonly object[] EventRegistry = new object[RegistrySize()];
+
+        private static int RegistrySize()
+        {
+            int highest = -1;
+
+            foreach (int value in Enum.GetValues(typeof(ThreadlinkIDs.Iris.Events)))
+                highest = Math.Max(highest, value);
+
+            return highest + 1;
+        }
 
         [OnExitingPlayMode]
         private static void Reset()

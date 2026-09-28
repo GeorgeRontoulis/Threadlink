@@ -49,7 +49,7 @@
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.ExitPlaymode();
 #else
-            Application.Quit();
+            UnityEngine.Application.Quit();
 #endif
         }
 
@@ -59,6 +59,10 @@
 
             if (UserConfig != null && UserConfig.UpdateLoopBehaviour is UpdateLoop.Native)
                 ThreadlinkPlayerLoop.Install();
+
+            // Shutdown discards every woven subsystem (Threadlink.Shutdown.cs).
+            UnityEngine.Application.quitting -= OnApplicationQuitting;
+            UnityEngine.Application.quitting += OnApplicationQuitting;
         }
         #endregion
 

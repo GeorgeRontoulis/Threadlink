@@ -4,12 +4,18 @@ namespace Threadlink.Shared
     using Core.NativeSubsystems.Scribe;
     using System;
     using System.Collections.Generic;
+    using Unity.Scripting.LifecycleManagement;
     using UnityEditor;
     using UnityEngine;
 
     public static class ThreadlinkConfigFinder
     {
         private const string ERROR_MSG = "User Config not found. Please create one via the Create Asset menu.";
+
+        /// <summary>
+        /// Config assets, found once per domain and kept across Play Mode sessions on purpose.
+        /// </summary>
+        [NoAutoStaticsCleanup]
         private static readonly Dictionary<Type, ScriptableObject> CachedConfigs = new(1);
 
         public static bool TryGetConfig<T>(out T result) where T : ScriptableObject

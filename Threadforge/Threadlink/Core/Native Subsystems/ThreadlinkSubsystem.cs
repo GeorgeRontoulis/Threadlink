@@ -1,8 +1,9 @@
 ﻿namespace Threadlink.Core
 {
-    using Shared;
+    using global::Threadlink.Shared;
     using System.Collections.Generic;
     using System.Runtime.CompilerServices;
+    using Unity.Scripting.LifecycleManagement;
 
     /// <summary>
     /// Base class allowing for the creation of a Subsystem which can be
@@ -12,9 +13,14 @@
     /// to enforce type safety for their exposed static singletons.
     /// </summary>
     /// <typeparam name="Singleton">The singleton type of the subsystem.</typeparam>
-    public abstract class ThreadlinkSubsystem<Singleton> : IThreadlinkSubsystem<Singleton>
+    public abstract partial class ThreadlinkSubsystem<Singleton> : IThreadlinkSubsystem<Singleton>
     where Singleton : ThreadlinkSubsystem<Singleton>
     {
+        /// <summary>
+        /// Reset when Play Mode starts or ends without a domain reload, so no session sees the previous one's subsystem.
+        /// The core's own instance outlives <see cref="Threadlink"/>'s shutdown otherwise.
+        /// </summary>
+        [AutoStaticsCleanup]
         private static Singleton Instance { get; set; }
 
         public static readonly int TypeHash = HashFunctions.ToXxHash32(typeof(Singleton).FullName);

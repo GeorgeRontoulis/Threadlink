@@ -19,6 +19,11 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
         AccountUnavailable,
         NativeFailure,
         Unknown,
+
+        /// <summary>
+        /// A platform that was Ready went away, for example the Steam client shutting down.
+        /// </summary>
+        PlatformLost,
     }
 
     public readonly struct SentinelResult

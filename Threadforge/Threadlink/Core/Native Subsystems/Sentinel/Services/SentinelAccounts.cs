@@ -52,6 +52,12 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
         event Action<ISentinelAccount> AccountRemoved;
         event Action<ISentinelAccount> PrimaryAccountChanged;
 
+        /// <summary>
+        /// An account's <see cref="ISentinelAccount.State"/> changed, for example from <c>SignedIn</c> to <c>Suspended</c>
+        /// when the platform loses its connection to its servers.
+        /// </summary>
+        event Action<ISentinelAccount> AccountStateChanged;
+
         UniTask<SentinelResult> RefreshAsync();
         UniTask<SentinelResult<ISentinelAccount>> GetPrimaryAccountAsync(bool allowUI = true);
         UniTask<SentinelResult<ISentinelAccount>> PickAccountAsync();

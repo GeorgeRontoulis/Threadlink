@@ -20,9 +20,11 @@ namespace Threadlink.SentinelModules.Local
             get => Account;
         }
 
-        public event Action<ISentinelAccount> AccountAdded = null;
-        public event Action<ISentinelAccount> AccountRemoved = null;
-        public event Action<ISentinelAccount> PrimaryAccountChanged = null;
+        // One implicit account that never changes, so these never fire.
+        public event Action<ISentinelAccount> AccountAdded { add { } remove { } }
+        public event Action<ISentinelAccount> AccountRemoved { add { } remove { } }
+        public event Action<ISentinelAccount> PrimaryAccountChanged { add { } remove { } }
+        public event Action<ISentinelAccount> AccountStateChanged { add { } remove { } }
 
         private LocalAccount Account { get; } = null;
         private ISentinelAccount[] AccountsBuffer { get; } = null;
@@ -53,9 +55,6 @@ namespace Threadlink.SentinelModules.Local
         public void Discard()
         {
             Account?.Discard();
-            AccountAdded = null;
-            AccountRemoved = null;
-            PrimaryAccountChanged = null;
         }
     }
 

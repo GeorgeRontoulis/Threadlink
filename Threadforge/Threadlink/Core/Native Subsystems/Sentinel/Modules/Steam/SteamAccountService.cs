@@ -11,22 +11,38 @@ namespace Threadlink.SentinelModules.Steam
         public IReadOnlyList<ISentinelAccount> Accounts => AccountsBuffer;
         public ISentinelAccount PrimaryAccount => Account;
 
-        public event Action<ISentinelAccount> AccountAdded;
-        public event Action<ISentinelAccount> AccountRemoved;
-        public event Action<ISentinelAccount> PrimaryAccountChanged;
+        // One account, the one signed into the Steam client, so these never fire.
+        public event Action<ISentinelAccount> AccountAdded { add { } remove { } }
+        public event Action<ISentinelAccount> AccountRemoved { add { } remove { } }
+        public event Action<ISentinelAccount> PrimaryAccountChanged { add { } remove { } }
+
+        /// <summary>
+        /// Raised when the Steam client connects to or disconnects from Steam's servers: offline mode, or a lost
+        /// connection, suspends the account; reconnecting signs it back in.
+        /// </summary>
+        public event Action<ISentinelAccount> AccountStateChanged;
 
         private SteamAccount Account { get; }
         private ISentinelAccount[] AccountsBuffer { get; }
+
+        // Dispatched by SteamAPI.RunCallbacks, which Sentinel pumps every frame.
+        private Callback<SteamServersConnected_t> ConnectedCallback { get; set; }
+        private Callback<SteamServersDisconnected_t> DisconnectedCallback { get; set; }
+        private Callback<SteamServerConnectFailure_t> ConnectFailureCallback { get; set; }
 
         internal SteamAccountService(CSteamID steamID, string displayName, uint appID)
         {
             Account = new SteamAccount(steamID, displayName, appID);
             AccountsBuffer = new ISentinelAccount[] { Account };
+
+            ConnectedCallback = Callback<SteamServersConnected_t>.Create(_ => OnConnectionChanged());
+            DisconnectedCallback = Callback<SteamServersDisconnected_t>.Create(_ => OnConnectionChanged());
+            ConnectFailureCallback = Callback<SteamServerConnectFailure_t>.Create(_ => OnConnectionChanged());
         }
 
         public UniTask<SentinelResult> RefreshAsync()
         {
-            Account.RefreshIdentity();
+            Refresh();
 
             return UniTask.FromResult(
                 Account.State is SentinelAccountState.SignedOut
@@ -40,7 +56,7 @@ namespace Threadlink.SentinelModules.Steam
 
         public UniTask<SentinelResult<ISentinelAccount>> GetPrimaryAccountAsync(bool allowUI = true)
         {
-            Account.RefreshIdentity();
+            Refresh();
 
             return UniTask.FromResult(
                 Account.State is SentinelAccountState.SignedOut
@@ -62,10 +78,31 @@ namespace Threadlink.SentinelModules.Steam
 
         public void Discard()
         {
+            ConnectedCallback?.Dispose();
+            DisconnectedCallback?.Dispose();
+            ConnectFailureCallback?.Dispose();
+
+            ConnectedCallback = null;
+            DisconnectedCallback = null;
+            ConnectFailureCallback = null;
+            AccountStateChanged = null;
+
             Account?.Discard();
-            AccountAdded = null;
-            AccountRemoved = null;
-            PrimaryAccountChanged = null;
+        }
+
+        private void OnConnectionChanged() => Refresh();
+
+        /// <summary>
+        /// Read the account's state from the Steam client, and report a change.
+        /// </summary>
+        private void Refresh()
+        {
+            var previous = Account.State;
+
+            Account.RefreshIdentity();
+
+            if (Account.State != previous)
+                AccountStateChanged?.Invoke(Account);
         }
     }
 

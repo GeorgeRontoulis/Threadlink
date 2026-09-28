@@ -6,11 +6,13 @@ namespace Threadlink.Core.NativeSubsystems.Aura
     using Generated;
     using Iris;
     using NativeSubsystems.Nexus;
+    using Scribe;
     using Shared;
     using System;
     using System.Runtime.CompilerServices;
     using Unity.Mathematics;
     using UnityEngine;
+    using UnityEngine.SceneManagement;
     using Utilities.Mathematics;
     using NativeResources = Generated.ThreadlinkIDs.Addressables.NativeResources;
     using UnityObject = UnityEngine.Object;
@@ -91,37 +93,58 @@ namespace Threadlink.Core.NativeSubsystems.Aura
                 AudioListenerTransform = AudioListener.transform;
             }
 
-            #region Callbacks:
-            void OnLoadingProcessFinished(Nexus.ISceneEntry _ = null)
-            {
-                var spatialObjects = UnityObject.FindObjectsByType<AuraSpatialObject>(FindObjectsInactive.Exclude);
-
-                if (spatialObjects != null)
-                {
-                    int length = spatialObjects.Length;
-
-                    for (int i = 0; i < length; i++)
-                        TryLink(spatialObjects[i]);
-                }
-            }
-
-            void OnCoreDeployed(Threadlink core)
-            {
-                OnLoadingProcessFinished();
-                Iris.Unsubscribe<Action<Threadlink>>(ThreadlinkIDs.Iris.Events.OnCoreDeployed, OnCoreDeployed);
-            }
-
-            void DisconnectAllZones(Nexus.ISceneEntry _) => DisconnectAll();
-            #endregion
-
             base.Boot();
 
             Music.volume = Atmos.volume = 0f;
             CreateAudioListener();
 
-            Iris.Subscribe<Action<Nexus.ISceneEntry>>(ThreadlinkIDs.Iris.Events.OnBeforeActiveSceneUnload, DisconnectAllZones);
-            Iris.Subscribe<Action<Nexus.ISceneEntry>>(ThreadlinkIDs.Iris.Events.OnNexusLoadingFinished, OnLoadingProcessFinished);
+            // Aura links; it never tears down. A spatial object unlinks itself when discarded, and Nexus discards every one
+            // in a scene before unloading it.
+            Iris.Subscribe<Action<Nexus.ISceneEntry>>(ThreadlinkIDs.Iris.Events.OnScenePresented, LinkPresentedSceneObjects);
             Iris.Subscribe<Action<Threadlink>>(ThreadlinkIDs.Iris.Events.OnCoreDeployed, OnCoreDeployed);
+        }
+
+        public override void Discard()
+        {
+            Iris.Unsubscribe<Action<Nexus.ISceneEntry>>(ThreadlinkIDs.Iris.Events.OnScenePresented, LinkPresentedSceneObjects);
+            Iris.Unsubscribe<Action<Threadlink>>(ThreadlinkIDs.Iris.Events.OnCoreDeployed, OnCoreDeployed);
+
+            // Whatever is still linked belongs to no scene Nexus unloaded, such as the persistent scene.
+            DisconnectAll(true);
+            base.Discard();
+        }
+
+        #region Linking:
+        private void OnCoreDeployed(Threadlink core)
+        {
+            Iris.Unsubscribe<Action<Threadlink>>(ThreadlinkIDs.Iris.Events.OnCoreDeployed, OnCoreDeployed);
+            LinkPresentedSceneObjects();
+        }
+
+        /// <summary>
+        /// Only the presented (active) scene is audible: the spatial objects of the scene presented before are disconnected,
+        /// and those of the presented one linked. Spatial objects of other resident scenes, such as scenes kept loaded for
+        /// remote players, are never linked.
+        /// </summary>
+        private void LinkPresentedSceneObjects(Nexus.ISceneEntry _ = null)
+        {
+            DisconnectAll();
+
+            var presentedScene = SceneManager.GetActiveScene();
+            var spatialObjects = UnityObject.FindObjectsByType<AuraSpatialObject>(FindObjectsInactive.Exclude);
+
+            if (spatialObjects != null)
+            {
+                int length = spatialObjects.Length;
+
+                for (int i = 0; i < length; i++)
+                {
+                    var spatialObject = spatialObjects[i];
+
+                    if (spatialObject.gameObject.scene == presentedScene)
+                        TryLink(spatialObject);
+                }
+            }
         }
 
         public override bool TryLink(AuraSpatialObject entity)
@@ -129,8 +152,19 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             int previousCount = Registry.Count;
             bool linked = base.TryLink(entity);
 
-            if (previousCount <= 0 && linked)
-                Iris.Subscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, CalculateSpatialInfluence);
+            if (linked)
+            {
+                if (previousCount <= 0)
+                    Iris.Subscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, CalculateSpatialInfluence);
+            }
+            else if (TryGetLinkedObject<AuraSpatialObject>(entity.ID, out var incumbent) && incumbent != entity)
+            {
+                this.Send(
+                    "Spatial object '", entity.Name, "' was not linked, as '", incumbent.Name,
+                    "' shares its ID. Spatial object names must be unique within a scene."
+                )
+                .ToUnityConsole(DebugType.Warning);
+            }
 
             return linked;
         }
@@ -150,6 +184,7 @@ namespace Threadlink.Core.NativeSubsystems.Aura
             Iris.Unsubscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, CalculateSpatialInfluence);
             base.DisconnectAll(trimRegistry);
         }
+        #endregion
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void DriveAudioListener(Vector3 worldPosition, Quaternion worldRotation)

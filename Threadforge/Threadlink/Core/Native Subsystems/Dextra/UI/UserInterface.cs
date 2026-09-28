@@ -1,14 +1,17 @@
 namespace Threadlink.Core.NativeSubsystems.Dextra
 {
-    using Chronos;
-    using Generated;
-    using Iris;
-    using Shared;
+    using global::Threadlink.Core.NativeSubsystems.Chronos;
+    using global::Threadlink.Core.NativeSubsystems.Initium;
+    using global::Threadlink.Core.NativeSubsystems.Iris;
+    using global::Threadlink.Generated;
+    using global::Threadlink.Shared;
+    using global::Threadlink.Utilities.Mathematics;
+    using global::Threadlink.Utilities.Objects;
     using System;
+    using System.Collections.Generic;
     using System.Runtime.CompilerServices;
+    using Unity.Scripting.LifecycleManagement;
     using UnityEngine;
-    using Utilities.Mathematics;
-    using Utilities.Objects;
 
     [RequireComponent(typeof(CanvasGroup))]
     public abstract class UserInterface : LinkableBehaviour, IBootable
@@ -61,6 +64,12 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 #endif
         [SerializeField] private Canvas canvas = null;
 
+        /// <summary>
+        /// The input icons in this interface, found when it boots: it boots and discards them, as
+        /// <see cref="InteractableUserInterface{Singleton, Selectable}"/> discards its selectables.
+        /// </summary>
+        private List<DextraInputIcon> InputIcons { get; } = new(0);
+
         protected override void OnValidate()
         {
             base.OnValidate();
@@ -73,6 +82,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         {
             Iris.Unsubscribe<Action>(ThreadlinkIDs.Iris.Events.OnUpdate, MoveTowardsTargetAlpha);
             Iris.Unsubscribe<Action>(ThreadlinkIDs.Iris.Events.OnLateUpdate, ControlCanvas); //No op.
+            DiscardInputIcons();
             canvasGroup = null;
             base.Discard();
         }
@@ -81,6 +91,31 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         {
             if (canvas != null)
                 Iris.Subscribe<Action>(ThreadlinkIDs.Iris.Events.OnLateUpdate, ControlCanvas);
+
+            BootInputIcons();
+        }
+
+        private void BootInputIcons()
+        {
+            GetComponentsInChildren(true, InputIcons);
+
+            int count = InputIcons.Count;
+
+            for (int i = 0; i < count; i++)
+                Initium.Boot(InputIcons[i]);
+        }
+
+        private void DiscardInputIcons()
+        {
+            int count = InputIcons.Count;
+
+            for (int i = 0; i < count; i++)
+            {
+                if (InputIcons[i] != null)
+                    InputIcons[i].Discard();
+            }
+
+            InputIcons.Clear();
         }
 
         private void UpdateAlpha(float newAlpha)
@@ -183,9 +218,14 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
         }
     }
 
-    public abstract class UserInterface<S> : UserInterface, IThreadlinkSingleton<S>
+    public abstract partial class UserInterface<S> : UserInterface, IThreadlinkSingleton<S>
     where S : UserInterface<S>
     {
+        /// <summary>
+        /// Reset when Play Mode starts or ends without a domain reload: interfaces are destroyed with Play Mode, and
+        /// nothing discards them first.
+        /// </summary>
+        [AutoStaticsCleanup]
         protected static S Instance { get; private set; }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

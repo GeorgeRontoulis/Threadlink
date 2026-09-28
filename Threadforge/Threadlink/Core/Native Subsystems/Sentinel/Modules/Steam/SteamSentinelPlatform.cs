@@ -28,6 +28,7 @@ namespace Threadlink.SentinelModules.Steam
         }
 
         private SteamApiSession ApiSession { get; set; }
+        private Callback<SteamShutdown_t> ShutdownCallback { get; set; }
         private bool CloudEnabled { get; set; }
 
         public override UniTask<SentinelResult> InitializeAsync()
@@ -78,6 +79,16 @@ namespace Threadlink.SentinelModules.Steam
                     );
                 }
 
+                // The Steam client is exiting: Steam expects games to close with it, and the API stops working.
+                ShutdownCallback = Callback<SteamShutdown_t>.Create(_ =>
+                    ReportLost(
+                        SentinelResult.Failure(
+                            SentinelError.PlatformLost,
+                            "The Steam client is shutting down."
+                        )
+                    )
+                );
+
                 return UniTask.FromResult(SentinelResult.Success());
             }
             catch (System.Exception exception)
@@ -95,6 +106,9 @@ namespace Threadlink.SentinelModules.Steam
 
         public override void Discard()
         {
+            ShutdownCallback?.Dispose();
+            ShutdownCallback = null;
+
             // Account-scoped services may still use Steam during disposal.
             base.Discard();
             SafeDisposeApi();

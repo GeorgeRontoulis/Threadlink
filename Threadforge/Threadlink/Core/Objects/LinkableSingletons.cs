@@ -1,16 +1,22 @@
 namespace Threadlink.Core
 {
-    using Shared;
+    using global::Threadlink.Shared;
     using System.Runtime.CompilerServices;
+    using Unity.Scripting.LifecycleManagement;
 
     /// <summary>
-    /// Base class used to define a Threadlink-Compatible Component that 
+    /// Base class used to define a Threadlink-Compatible Component that
     /// only lives as a singular instance during Threadlink's runtime.
     /// </summary>
     /// <typeparam name="T">The singleton type.</typeparam>
-    public abstract class LinkableBehaviourSingleton<T> : LinkableBehaviour, IThreadlinkSingleton<T>
+    public abstract partial class LinkableBehaviourSingleton<T> : LinkableBehaviour, IThreadlinkSingleton<T>
     where T : LinkableBehaviour
     {
+        /// <summary>
+        /// Reset when Play Mode starts or ends without a domain reload: a scene object is destroyed with Play Mode
+        /// whether or not it was discarded.
+        /// </summary>
+        [AutoStaticsCleanup]
         protected static T Instance { get; set; }
 
         public override void Discard()
@@ -30,9 +36,13 @@ namespace Threadlink.Core
     /// only lives as a singular instance during Threadlink's runtime.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public abstract class LinkableAssetSingleton<T> : LinkableAsset, IThreadlinkSingleton<T>
+    public abstract partial class LinkableAssetSingleton<T> : LinkableAsset, IThreadlinkSingleton<T>
     where T : LinkableAsset
     {
+        /// <summary>
+        /// Reset when Play Mode starts or ends without a domain reload, so no session sees the previous one's instance.
+        /// </summary>
+        [AutoStaticsCleanup]
         protected static T Instance { get; set; }
 
         public override void Discard()

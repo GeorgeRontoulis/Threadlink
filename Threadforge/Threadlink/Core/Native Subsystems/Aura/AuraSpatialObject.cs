@@ -37,9 +37,22 @@ namespace Threadlink.Core.NativeSubsystems.Aura
 
         public override void Discard()
         {
-            if (source.isPlaying) source.Stop();
-            source.clip = null;
-            source = null;
+            // Unlink before destruction, so that Aura never evaluates a destroyed object. Nexus discards every spatial
+            // object in a scene before unloading it, so this is all the teardown Aura's links need.
+            if (Aura.TryGetSingleton(out var aura)
+            && aura.TryGetLinkedObject<AuraSpatialObject>(ID, out var linkedObject)
+            && linkedObject == this)
+            {
+                aura.TryDisconnect<AuraSpatialObject>(ID, out _);
+            }
+
+            if (source != null)
+            {
+                if (source.isPlaying) source.Stop();
+                source.clip = null;
+                source = null;
+            }
+
             base.Discard();
         }
 

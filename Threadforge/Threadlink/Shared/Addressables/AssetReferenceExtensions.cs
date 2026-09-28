@@ -58,38 +58,79 @@ namespace Threadlink.Shared
             return (T)reference.Asset;
         }
 
-        public static async UniTask<SceneInstance> LoadAsync(this SceneAssetReference reference, LoadSceneMode mode)
+        /// <summary>
+        /// Asynchronously load or get the already loaded scene at the specified <paramref name="reference"/>.
+        /// </summary>
+        /// <param name="reference">The reference.</param>
+        /// <param name="mode">The load mode of the scene.</param>
+        /// <returns>The loaded scene instance.</returns>
+        public static UniTask<SceneInstance> LoadAsync(this SceneAssetReference reference, LoadSceneMode mode)
         {
-            if (reference.IsValid())
-                return reference.OperationHandle.Convert<SceneInstance>().Result;
+            return reference.LoadAsync(new LoadSceneParameters(mode));
+        }
 
-            _ = reference.LoadSceneAsync(mode);
+        /// <summary>
+        /// Asynchronously load or get the already loaded scene at the specified <paramref name="reference"/>.
+        /// A scene that is already loaded is returned as is, regardless of <paramref name="parameters"/>.
+        /// </summary>
+        /// <param name="reference">The reference.</param>
+        /// <param name="parameters">The load mode and local physics mode of the scene.</param>
+        /// <returns>The loaded scene instance.</returns>
+        public static async UniTask<SceneInstance> LoadAsync(this SceneAssetReference reference, LoadSceneParameters parameters)
+        {
+            var operation = reference.SceneOperation;
 
-            await reference.OperationHandle.ToUniTask();
+            if (!operation.IsValid())
+                operation = reference.LoadSceneAsync(parameters);
 
-            if (reference.OperationHandle.Status is AsyncOperationStatus.Succeeded)
-                return reference.OperationHandle.Convert<SceneInstance>().Result;
-            else
+            if (await TryCompleteAsync(operation))
+                return operation.Result;
+
+            if (reference.SceneOperation.Equals(operation))
                 reference.ReleaseAsset();
 
+            Scribe.Send<SceneAssetReference>("Failed to load scene from reference: ", reference.RuntimeKey).ToUnityConsole(DebugType.Error);
             return default;
         }
 
+        /// <summary>
+        /// Asynchronously unload the scene loaded through the specified <paramref name="reference"/>.
+        /// Completes once the scene has been unloaded.
+        /// </summary>
+        /// <param name="reference">The reference.</param>
+        /// <returns>The unloaded scene instance.</returns>
         public static async UniTask<SceneInstance> UnloadAsync(this SceneAssetReference reference)
         {
-            if (!reference.IsValid())
+            if (!reference.SceneOperation.IsValid())
                 return default;
 
-            _ = reference.UnLoadScene();
+            var operation = reference.UnloadSceneAsync(false);
+            bool unloaded = await TryCompleteAsync(operation);
+            var result = unloaded ? operation.Result : default;
 
-            await reference.OperationHandle.ToUniTask();
+            Addressables.Release(operation);
 
-            if (reference.OperationHandle.Status is AsyncOperationStatus.Succeeded)
-                return reference.OperationHandle.Convert<SceneInstance>().Result;
-            else
-                reference.ReleaseAsset();
+            if (!unloaded)
+                Scribe.Send<SceneAssetReference>("Failed to unload scene from reference: ", reference.RuntimeKey).ToUnityConsole(DebugType.Error);
 
-            return default;
+            return result;
+        }
+
+        private static async UniTask<bool> TryCompleteAsync<T>(AsyncOperationHandle<T> operation)
+        {
+            if (!operation.IsValid())
+                return false;
+
+            try
+            {
+                await operation.ToUniTask();
+            }
+            catch
+            {
+                // Addressables reports the failure itself; the operation status below is authoritative.
+            }
+
+            return operation.IsValid() && operation.Status is AsyncOperationStatus.Succeeded;
         }
     }
 }

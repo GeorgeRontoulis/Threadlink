@@ -43,10 +43,15 @@ namespace Threadlink.SentinelModules.Steam
                 );
 
 #if !UNITY_EDITOR
+                // Launched by Steam, the SteamAppId variable is set and this returns false. A release build started
+                // outside Steam has only the App ID its build recorded, and Steam relaunches it.
+                uint restartAppID = developmentAppID;
+                bool hasRestartAppID = hasDevelopmentAppID || SteamReleaseAppID.TryResolve(out restartAppID);
+
                 if (
                     SteamSentinelSettings.RestartAppIfNecessary
-                    && hasDevelopmentAppID
-                    && SteamAPI.RestartAppIfNecessary(new AppId_t(developmentAppID))
+                    && hasRestartAppID
+                    && SteamAPI.RestartAppIfNecessary(new AppId_t(restartAppID))
                 )
                 {
                     Application.Quit();

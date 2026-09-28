@@ -3,6 +3,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     using Generated;
     using Iris;
     using Scribe;
+    using Shared;
     using System;
     using UnityEngine;
     using UnityEngine.InputSystem;
@@ -14,9 +15,13 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     /// <see cref="InputActionReference"/>. The configuration for these
     /// icons lives in the <see cref="DextraConfig"/> asset and is loaded at runtime
     /// through the <see cref="UnityEngine.AddressableAssets"/> Pipeline.
+    /// <para/>
+    /// An icon follows the input device from <see cref="Boot"/> until it is discarded, by whoever owns it: the
+    /// <see cref="UserInterface"/> it is part of in one of Dextra's interfaces, and otherwise the developer's code. Like
+    /// every framework type it is not discoverable, so Initium never manages it.
     /// </summary>
     [RequireComponent(typeof(Image))]
-    public sealed class DextraInputIcon : MonoBehaviour
+    public sealed class DextraInputIcon : LinkableBehaviour, IBootable
     {
         private const ThreadlinkIDs.Iris.Events DEVICE_CHANGED_EVENT = ThreadlinkIDs.Iris.Events.OnInputDeviceChanged;
 
@@ -24,8 +29,10 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
         [SerializeField] private DextraInputControlPath inputControlPath = null;
 
-        private void OnValidate()
+        protected override void OnValidate()
         {
+            base.OnValidate();
+
             var image = GetComponent<Image>();
 
             if (targetImage != image)
@@ -38,21 +45,19 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             }
         }
 
-        private void OnDestroy()
+        public void Boot()
         {
-            ListenForInputDeviceChanges(false);
+            if (Dextra.TryGetSingleton(out var dextra))
+                OnInputDeviceChanged(dextra.CurrentInputDevice);
+
+            Iris.Subscribe<Action<Dextra.InputDevice>>(DEVICE_CHANGED_EVENT, OnInputDeviceChanged);
         }
 
-        internal void ListenForInputDeviceChanges(bool listen)
+        public override void Discard()
         {
-            if (listen)
-            {
-                if (Dextra.TryGetSingleton(out var dextra))
-                    OnInputDeviceChanged(dextra.CurrentInputDevice);
-
-                Iris.Subscribe<Action<Dextra.InputDevice>>(DEVICE_CHANGED_EVENT, OnInputDeviceChanged);
-            }
-            else Iris.Unsubscribe<Action<Dextra.InputDevice>>(DEVICE_CHANGED_EVENT, OnInputDeviceChanged);
+            Iris.Unsubscribe<Action<Dextra.InputDevice>>(DEVICE_CHANGED_EVENT, OnInputDeviceChanged);
+            targetImage = null;
+            base.Discard();
         }
 
         private void OnInputDeviceChanged(Dextra.InputDevice inputDevice)
