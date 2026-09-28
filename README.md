@@ -4,8 +4,6 @@
 
 **Scope:** Complete reference for the Threadlink runtime, editor tooling, and authoring workflow.
 
-**Repository state:** Updated against `main` at commit `14ede9b` (2026-09-23, “Various improvements”), including the preceding package restructuring/Sentinel overhaul.
-
 ---
 
 ## Organisation
