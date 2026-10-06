@@ -84,7 +84,11 @@ namespace Threadlink.SentinelModules.Steam
 
         public UniTask<SentinelResult> SetSessionPresenceAsync(SentinelSessionPresence session)
         {
-            if (!SteamJoinPayloadCodec.TryEncode(session.JoinPayload, out var connect, out var error))
+            // A non-joinable presence still carries status and group information.
+            string connect = string.Empty;
+            string error = null;
+            if (!string.IsNullOrEmpty(session.JoinPayload)
+                && !SteamJoinPayloadCodec.TryEncode(session.JoinPayload, out connect, out error))
                 return UniTask.FromResult(SentinelResult.Failure(SentinelError.InvalidArgument, error));
 
             if (!SteamFriends.SetRichPresence("connect", connect))
@@ -132,6 +136,18 @@ namespace Threadlink.SentinelModules.Steam
                 "No joinable Sentinel session is currently published."));
             }
 
+            return InviteEncoded(friendID, CurrentConnectString);
+        }
+
+        public UniTask<SentinelResult> InviteFriendAsync(string friendID, string joinPayload)
+        {
+            if (!SteamJoinPayloadCodec.TryEncode(joinPayload, out var connect, out var error))
+                return UniTask.FromResult(SentinelResult.Failure(SentinelError.InvalidArgument, error));
+            return InviteEncoded(friendID, connect);
+        }
+
+        private UniTask<SentinelResult> InviteEncoded(string friendID, string connect)
+        {
             if (!ulong.TryParse(friendID, out var rawID))
             {
                 return UniTask.FromResult(SentinelResult.Failure(SentinelError.InvalidArgument,
@@ -152,7 +168,7 @@ namespace Threadlink.SentinelModules.Steam
                 $"Steam user {friendID} is not an immediate friend of the current account."));
             }
 
-            return UniTask.FromResult(SteamFriends.InviteUserToGame(steamID, CurrentConnectString)
+            return UniTask.FromResult(SteamFriends.InviteUserToGame(steamID, connect)
             ?
             SentinelResult.Success()
             :

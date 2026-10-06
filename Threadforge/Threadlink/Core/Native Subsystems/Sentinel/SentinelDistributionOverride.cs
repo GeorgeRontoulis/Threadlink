@@ -1,5 +1,7 @@
 namespace Threadlink.Core.NativeSubsystems.Sentinel
 {
+    using Cysharp.Text;
+
     ///LEAVE FULLY QUALIFIED NAMESPACES HERE FOR UNITY'S ROSLYN ANALYZERS TO INTERCEPT THEM PROPERLY IN CODEGEN.
     using global::Threadlink.Core.NativeSubsystems.Scribe;
     using System;
@@ -44,21 +46,24 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
             if (Requested is not SentinelDistribution.None)
             {
                 distribution = Requested;
-                source = nameof(SentinelDistributionOverride) + "." + nameof(Requested);
+                source = ZString.Join(string.Empty, nameof(SentinelDistributionOverride), ".", nameof(Requested));
                 return true;
             }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (TryParse(ReadCommandLineArgument(), COMMAND_LINE_ARGUMENT, out distribution))
+#if UNITY_EDITOR
+            if (UnityEngine.Debug.isDebugBuild)
             {
-                source = COMMAND_LINE_ARGUMENT;
-                return true;
-            }
+                if (TryParse(ReadCommandLineArgument(), COMMAND_LINE_ARGUMENT, out distribution))
+                {
+                    source = COMMAND_LINE_ARGUMENT;
+                    return true;
+                }
 
-            if (TryParse(Environment.GetEnvironmentVariable(ENVIRONMENT_VARIABLE), ENVIRONMENT_VARIABLE, out distribution))
-            {
-                source = ENVIRONMENT_VARIABLE;
-                return true;
+                if (TryParse(Environment.GetEnvironmentVariable(ENVIRONMENT_VARIABLE), ENVIRONMENT_VARIABLE, out distribution))
+                {
+                    source = ENVIRONMENT_VARIABLE;
+                    return true;
+                }
             }
 #endif
 
@@ -67,9 +72,12 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
             return false;
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR
         private static string ReadCommandLineArgument()
         {
+            if (!UnityEngine.Debug.isDebugBuild)
+                return null;
+
             var arguments = Environment.GetCommandLineArgs();
             int lastIndex = arguments.Length - 1;
 
@@ -97,7 +105,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
             }
 
             Scribe.Send<Sentinel>("Ignoring unknown distribution '", value, "' requested by ", source, ".")
-                .ToUnityConsole(DebugType.Warning);
+            .ToUnityConsole(DebugType.Warning);
 
             distribution = SentinelDistribution.None;
             return false;

@@ -188,6 +188,13 @@ namespace Threadlink.Deterministic
         public static FP operator *(FP a, FP b) => new(Multiply(a.RawValue, b.RawValue));
 
         /// <summary>
+        /// The exact 128-bit product truncated toward zero, saturated like <c>*</c>: never larger in magnitude than the exact
+        /// product. Conservative geometry needs it, such as advancing a body along its path, where rounding to nearest
+        /// could carry it one raw unit past the point it may reach.
+        /// </summary>
+        public static FP MultiplyTowardZero(FP a, FP b) => new(MultiplyTruncated(a.RawValue, b.RawValue));
+
+        /// <summary>
         /// Rounded to nearest and saturated. Dividing by zero saturates toward the dividend's sign; zero divided by
         /// zero is zero.
         /// </summary>
@@ -221,6 +228,19 @@ namespace Threadlink.Deterministic
                 return negative ? long.MinValue : long.MaxValue;
 
             long magnitude = (long)((high << 32) | (rounded >> 32));
+            return negative ? -magnitude : magnitude;
+        }
+
+        /// <summary>Bits 32 to 95 of the exact product, truncated toward zero and saturated.</summary>
+        internal static long MultiplyTruncated(long a, long b)
+        {
+            bool negative = (a ^ b) < 0;
+            ulong high = MultiplyHigh(Magnitude(a), Magnitude(b), out ulong low);
+
+            if (high >= 1UL << 31)
+                return negative ? long.MinValue : long.MaxValue;
+
+            long magnitude = (long)((high << 32) | (low >> 32));
             return negative ? -magnitude : magnitude;
         }
 
@@ -468,22 +488,8 @@ namespace Threadlink.Deterministic
         }
 
         /// <summary>Leading zero bits of <paramref name="value"/>, 64 for zero.</summary>
-        internal static int LeadingZeroCount(ulong value)
-        {
-            if (value == 0UL)
-                return 64;
-
-            int count = 0;
-
-            if (value >> 32 == 0UL) { count += 32; value <<= 32; }
-            if (value >> 48 == 0UL) { count += 16; value <<= 16; }
-            if (value >> 56 == 0UL) { count += 8; value <<= 8; }
-            if (value >> 60 == 0UL) { count += 4; value <<= 4; }
-            if (value >> 62 == 0UL) { count += 2; value <<= 2; }
-            if (value >> 63 == 0UL) { count += 1; }
-
-            return count;
-        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static int LeadingZeroCount(ulong value) => Bits.LeadingZeroCount(value);
 
         /// <summary>
         /// round(√(<paramref name="high"/> × 2^64 + <paramref name="low"/>)): the root of a 128-bit integer, rounded to nearest.

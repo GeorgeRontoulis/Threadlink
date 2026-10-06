@@ -20,7 +20,8 @@ namespace Threadlink.Shared
             if (reference.Asset is T loadedAsset)
                 return loadedAsset;
 
-            reference.LoadAssetAsync<T>().WaitForCompletion();
+            if (!reference.OperationHandle.IsValid()) _ = reference.LoadAssetAsync<T>();
+            reference.OperationHandle.WaitForCompletion();
 
             if (reference.OperationHandle.Status is not AsyncOperationStatus.Succeeded)
             {
@@ -43,19 +44,26 @@ namespace Threadlink.Shared
             if (reference.Asset is T loadedAsset)
                 return loadedAsset;
 
-            _ = reference.LoadAssetAsync<T>();
-
-            await reference.OperationHandle.ToUniTask();
-
-            if (reference.OperationHandle.Status is not AsyncOperationStatus.Succeeded)
+            // Asset is null while a load is pending. Reuse that operation instead of issuing a second load on the
+            // same reference when another consumer (or a replacement session) asks for it before completion.
+            var operation = reference.OperationHandle;
+            if (!operation.IsValid())
             {
-                reference.ReleaseAsset();
+                _ = reference.LoadAssetAsync<T>();
+                operation = reference.OperationHandle;
+            }
+            try { await operation.ToUniTask(); }
+            catch { /* The operation's status below reports failure without abandoning other consumers. */ }
+
+            if (!operation.IsValid() || operation.Status is not AsyncOperationStatus.Succeeded)
+            {
+                if (reference.OperationHandle.Equals(operation)) reference.ReleaseAsset();
 
                 Scribe.Send<T>("Failed to load resource from address: ", reference.RuntimeKey).ToUnityConsole(DebugType.Error);
                 return default;
             }
 
-            return (T)reference.Asset;
+            return operation.Result as T;
         }
 
         /// <summary>
@@ -108,7 +116,7 @@ namespace Threadlink.Shared
             bool unloaded = await TryCompleteAsync(operation);
             var result = unloaded ? operation.Result : default;
 
-            Addressables.Release(operation);
+            if (operation.IsValid()) Addressables.Release(operation);
 
             if (!unloaded)
                 Scribe.Send<SceneAssetReference>("Failed to unload scene from reference: ", reference.RuntimeKey).ToUnityConsole(DebugType.Error);

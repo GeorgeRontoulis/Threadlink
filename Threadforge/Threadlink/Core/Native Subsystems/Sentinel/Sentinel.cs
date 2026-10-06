@@ -1,11 +1,12 @@
 namespace Threadlink.Core.NativeSubsystems.Sentinel
 {
-    using System.Runtime.CompilerServices;
     using Cysharp.Threading.Tasks;
     using Generated;
     using Iris;
     using Scribe;
     using Shared;
+    using System.Runtime.CompilerServices;
+    using UnityEngine;
     using NativeResources = Generated.ThreadlinkIDs.Addressables.NativeResources;
 
     /// <summary>
@@ -119,14 +120,15 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
             }
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR
         /// <summary>
         /// Development only: act as if the Ready platform had just been lost, through the same path a
         /// module's report takes. For tests of what the game does when, for example, Steam closes.
         /// </summary>
         public void SimulatePlatformLoss()
         {
-            OnPlatformLost(SentinelResult.Failure(SentinelError.PlatformLost, "Simulated platform loss."));
+            if (Debug.isDebugBuild)
+                OnPlatformLost(SentinelResult.Failure(SentinelError.PlatformLost, "Simulated platform loss."));
         }
 #endif
 

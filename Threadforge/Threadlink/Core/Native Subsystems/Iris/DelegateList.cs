@@ -16,29 +16,52 @@ namespace Threadlink.Core.NativeSubsystems.Iris
 
         internal T[] slots = new T[2];
         private int count;
+        private int extent;
+        private int dispatchDepth;
+
+        // Dispatch captures an upper bound. Tombstones keep removals stable through nested publications;
+        // additions are visible to a nested publication, but never to the publication already in progress.
+        internal int BeginDispatch() { dispatchDepth++; return extent; }
+        internal void EndDispatch()
+        {
+            if (--dispatchDepth != 0) return;
+            int written = 0;
+            for (int i = 0; i < extent; i++)
+                if (slots[i] != null) slots[written++] = slots[i];
+            Array.Clear(slots, written, extent - written);
+            extent = written;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void Add(T d)
         {
+            if (d == null) throw new ArgumentNullException(nameof(d));
             int length = slots.Length;
 
-            if (count == length)
+            if (extent == length)
                 Array.Resize(ref slots, Math.Max(2, length + length));
 
-            slots[count++] = d;
+            slots[extent++] = d;
+            count++;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool Remove(T d)
         {
-            for (int i = 0; i < count; i++)
+            if (d == null) return false;
+            for (int i = 0; i < extent; i++)
             {
                 ref var slot = ref slots[i];
 
                 if (slot == d)
                 {
-                    slot = slots[--count];
-                    slots[count] = null;
+                    slot = null;
+                    count--;
+                    if (dispatchDepth == 0)
+                    {
+                        Array.Copy(slots, i + 1, slots, i, extent - i - 1);
+                        slots[--extent] = null;
+                    }
                     return true;
                 }
             }
@@ -49,7 +72,8 @@ namespace Threadlink.Core.NativeSubsystems.Iris
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal bool Contains(T d)
         {
-            for (int i = 0; i < count; i++)
+            if (d == null) return false;
+            for (int i = 0; i < extent; i++)
                 if (slots[i] == d) return true;
 
             return false;
@@ -58,8 +82,9 @@ namespace Threadlink.Core.NativeSubsystems.Iris
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
         {
-            Array.Clear(slots, 0, count);
+            Array.Clear(slots, 0, extent);
             count = 0;
+            if (dispatchDepth == 0) extent = 0;
         }
     }
 }

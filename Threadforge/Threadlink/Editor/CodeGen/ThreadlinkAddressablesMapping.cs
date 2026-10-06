@@ -1,5 +1,6 @@
 namespace Threadlink.Editor.CodeGen
 {
+    using System;
     using System.Collections.Generic;
     using Threadlink.Core.NativeSubsystems.Scribe;
     using UnityEngine;
@@ -10,6 +11,14 @@ namespace Threadlink.Editor.CodeGen
     /// </summary>
     public static class ThreadlinkAddressablesMapping
     {
+        /// <summary>Reapply the current mappings without changing identifiers or clearing manifest history.</summary>
+        public static bool Apply()
+        {
+            var mapping = new AddressableMapping();
+            mapping.Reload();
+            return mapping.Apply();
+        }
+
         /// <summary>
         /// Whether the Addressable entry at <paramref name="assetPath"/> is mapped to a generated ID.
         /// </summary>
@@ -20,6 +29,33 @@ namespace Threadlink.Editor.CodeGen
 
             mapping.Reload();
             return mapping.TryFindRow(assetPath, out var row) && row.Mapped;
+        }
+
+        /// <summary>
+        /// Return the paths that are not mapped, in input order. Like <see cref="IsMapped"/>, a missing entry or an entry
+        /// in a read-only group is unmapped. Reloads the groups once and indexes their mapped paths, so querying many
+        /// assets costs O(entries + paths) instead of reloading and scanning the groups for every path.
+        /// </summary>
+        /// <param name="assetPaths">Project-relative asset paths. Duplicate paths are preserved.</param>
+        public static List<string> FindUnmapped(IEnumerable<string> assetPaths)
+        {
+            var mapping = new AddressableMapping();
+            mapping.Reload();
+
+            var mappedPaths = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (var group in mapping.Groups)
+                foreach (var row in group.Rows)
+                    if (row.Mapped)
+                        mappedPaths.Add(row.AssetPath);
+
+            var unmapped = new List<string>();
+
+            foreach (string path in assetPaths)
+                if (!mappedPaths.Contains(path))
+                    unmapped.Add(path);
+
+            return unmapped;
         }
 
         /// <summary>

@@ -30,40 +30,33 @@ namespace Threadlink.Deterministic
 
         public static void SetSeed(ulong seed) => Seed = seed;
 
+        /// <summary>
+        /// The source of the process-wide <see cref="Seed"/>, for code that belongs to the one world the process plays.
+        /// A world that can share its process with another (a networked simulation, a test) keeps its own
+        /// <see cref="Source"/> instead.
+        /// </summary>
+        public static Source Global => new(Seed);
+
         #region Streams:
         /// <summary>The stream for <paramref name="domain"/> alone.</summary>
-        public static Stream CreateStream(ThreadlinkIDs.StatelessRNG.Domains domain) => new(Start(domain));
+        public static Stream CreateStream(ThreadlinkIDs.StatelessRNG.Domains domain) => Global.CreateStream(domain);
 
         /// <summary>The stream for <paramref name="domain"/> and one identity part, such as an entity's id.</summary>
-        public static Stream CreateStream(ThreadlinkIDs.StatelessRNG.Domains domain, ulong a) => new(Fold(Start(domain), a));
+        public static Stream CreateStream(ThreadlinkIDs.StatelessRNG.Domains domain, ulong a) => Global.CreateStream(domain, a);
 
         /// <summary>The stream for <paramref name="domain"/> and two identity parts, in this order: an entity and a tick.</summary>
-        public static Stream CreateStream(ThreadlinkIDs.StatelessRNG.Domains domain, ulong a, ulong b) => new(Fold(Fold(Start(domain), a), b));
+        public static Stream CreateStream(ThreadlinkIDs.StatelessRNG.Domains domain, ulong a, ulong b) => Global.CreateStream(domain, a, b);
 
         /// <summary>The stream for <paramref name="domain"/> and three identity parts, in this order: a cell's x, y and a day.</summary>
-        public static Stream CreateStream(ThreadlinkIDs.StatelessRNG.Domains domain, ulong a, ulong b, ulong c)
-        {
-            return new(Fold(Fold(Fold(Start(domain), a), b), c));
-        }
+        public static Stream CreateStream(ThreadlinkIDs.StatelessRNG.Domains domain, ulong a, ulong b, ulong c) => Global.CreateStream(domain, a, b, c);
 
         /// <summary>The stream for <paramref name="domain"/> and any number of identity parts, in order: <c>stackalloc ulong[] { … }</c> allocates nothing.</summary>
-        public static Stream CreateStream(ThreadlinkIDs.StatelessRNG.Domains domain, ReadOnlySpan<ulong> parts)
-        {
-            ulong key = Start(domain);
-
-            for (int i = 0; i < parts.Length; i++)
-                key = Fold(key, parts[i]);
-
-            return new(key);
-        }
+        public static Stream CreateStream(ThreadlinkIDs.StatelessRNG.Domains domain, ReadOnlySpan<ulong> parts) => Global.CreateStream(domain, parts);
 
         /// <summary>The stream for <paramref name="domain"/> and a context's parts, which it adds in its own order.</summary>
         public static Stream CreateStream<TContext>(ThreadlinkIDs.StatelessRNG.Domains domain, in TContext context) where TContext : struct, IContext
         {
-            var identity = new Identity(Start(domain));
-
-            context.Compose(ref identity);
-            return new(identity.Key);
+            return Global.CreateStream(domain, in context);
         }
 
         /// <summary>
@@ -93,9 +86,6 @@ namespace Threadlink.Deterministic
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static ulong Fold(ulong key, ulong part) => Mix(key ^ Mix(unchecked(part + GAMMA)));
-
-        /// <summary>The seed, then the domain's full 32-bit id.</summary>
-        private static ulong Start(ThreadlinkIDs.StatelessRNG.Domains domain) => Fold(Mix(unchecked(Seed + GAMMA)), unchecked((uint)domain));
         #endregion
     }
 }

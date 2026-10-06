@@ -41,6 +41,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
 
     public readonly struct SentinelSessionPresence
     {
+        /// <summary>Opaque public join payload. Null or empty makes presence non-joinable.</summary>
         public string JoinPayload { get; }
         public string Status { get; }
         public string GroupID { get; }
@@ -83,6 +84,8 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
         UniTask<SentinelResult> SetSessionPresenceAsync(SentinelSessionPresence session);
         UniTask<SentinelResult> ClearSessionPresenceAsync();
         UniTask<SentinelResult> InviteFriendAsync(string friendID);
+        /// <summary>Send a private opaque join payload to one friend without publishing it in presence.</summary>
+        UniTask<SentinelResult> InviteFriendAsync(string friendID, string joinPayload);
         bool TryDequeueJoinRequest(out SentinelJoinRequest request);
     }
 }

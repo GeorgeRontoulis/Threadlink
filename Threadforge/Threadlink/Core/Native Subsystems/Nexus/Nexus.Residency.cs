@@ -21,6 +21,7 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
             Loading,
             Resident,
             Unloading,
+            UnloadFailed,
         }
 
         /// <summary>One scene's residency: its state, its holds, and the operation in flight.</summary>
@@ -31,6 +32,7 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
             public SceneState State { get; set; }
             public int Holds { get; set; }
             public Scene Scene { get; set; }
+            public bool Discarded { get; set; }
 
             /// <summary>Completes once the load does, true if the scene is resident: every holder waiting on it shares it.</summary>
             public UniTaskCompletionSource<bool> Loaded { get; } = new();
@@ -82,6 +84,12 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
                     await record.Unloaded.Task;
                     continue;
                 }
+                else if (record.State is SceneState.UnloadFailed)
+                {
+                    await UnloadAsync(record);
+                    if (IsCurrent(record) && record.State is SceneState.UnloadFailed) return null;
+                    continue;
+                }
 
                 record.Holds++;
                 CancelPendingUnload(record);
@@ -125,7 +133,7 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
                 return;
 
             // Still loading: the load ends by unloading it, since nothing holds it any more.
-            if (record.State is not SceneState.Resident)
+            if (record.State is not SceneState.Resident and not SceneState.UnloadFailed)
                 return;
 
             if (delaySeconds > 0f)
@@ -211,7 +219,7 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
         /// </summary>
         private static async UniTask UnloadAsync(SceneRecord record)
         {
-            if (record.State is not SceneState.Resident)
+            if (record.State is not SceneState.Resident and not SceneState.UnloadFailed)
                 return;
 
             record.State = SceneState.Unloading;
@@ -231,8 +239,15 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
 
                 Publish(ThreadlinkIDs.Iris.Events.OnSceneUnloading, record.Entry);
 
-                if (record.Scene.IsValid() && record.Scene.isLoaded)
-                    Initium.DiscardSceneObjects(record.Scene);
+                if (!record.Discarded && record.Scene.IsValid() && record.Scene.isLoaded)
+                {
+                    record.Discarded = true;
+                    try { Initium.DiscardSceneObjects(record.Scene); }
+                    catch (Exception exception)
+                    {
+                        Scribe.Send<Threadlink>("Scene discard failed: ", exception.ToString()).ToUnityConsole(DebugType.Error);
+                    }
+                }
 
                 if (Threadlink.TryGetSingleton(out var core))
                     await core.UnloadSceneAsync(record.Pointer);
@@ -243,8 +258,12 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
             }
             finally
             {
-                if (IsCurrent(record))
-                    Records.Remove(record.Pointer);
+                // A failed unload remains owned and may be retried by a later hold/release or shutdown.
+                if (!record.Scene.IsValid() || !record.Scene.isLoaded)
+                {
+                    if (IsCurrent(record)) Records.Remove(record.Pointer);
+                }
+                else record.State = SceneState.UnloadFailed;
 
                 record.Unloaded.TrySetResult();
             }
@@ -264,7 +283,12 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
             {
                 if (record.Scene.IsValid() && record.Scene.isLoaded)
                 {
-                    Initium.DiscardSceneObjects(record.Scene);
+                    record.Discarded = true;
+                    try { Initium.DiscardSceneObjects(record.Scene); }
+                    catch (Exception exception)
+                    {
+                        Scribe.Send<Threadlink>("Scene discard failed: ", exception.ToString()).ToUnityConsole(DebugType.Error);
+                    }
 
                     if (Threadlink.TryGetSingleton(out var core))
                         await core.UnloadSceneAsync(record.Pointer);
@@ -276,8 +300,12 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
             }
             finally
             {
-                if (IsCurrent(record))
-                    Records.Remove(record.Pointer);
+                // A failed unload remains owned and may be retried by a later hold/release or shutdown.
+                if (!record.Scene.IsValid() || !record.Scene.isLoaded)
+                {
+                    if (IsCurrent(record)) Records.Remove(record.Pointer);
+                }
+                else record.State = SceneState.UnloadFailed;
 
                 record.Unloaded.TrySetResult();
             }
@@ -323,7 +351,7 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
             {
                 record.Holds = 0;
 
-                if (record.State is SceneState.Resident)
+                if (record.State is SceneState.Resident or SceneState.UnloadFailed)
                     UnloadAsync(record).Forget();
             }
 

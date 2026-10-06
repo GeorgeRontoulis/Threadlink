@@ -92,10 +92,12 @@ namespace Threadlink.Core.NativeSubsystems.Iris
             if (EventRegistry[(int)eventID] is not DelegateList<Action> list)
                 return;
 
-            var slots = list.slots;
-
-            for (int i = list.Count - 1; i >= 0; i--)
-                slots[i].Invoke();
+            int bound = list.BeginDispatch();
+            try
+            {
+                for (int i = bound - 1; i >= 0; i--) list.slots[i]?.Invoke();
+            }
+            finally { list.EndDispatch(); }
         }
 
         public static void Publish<Input>(ThreadlinkIDs.Iris.Events eventID, Input input)
@@ -103,10 +105,12 @@ namespace Threadlink.Core.NativeSubsystems.Iris
             if (EventRegistry[(int)eventID] is not DelegateList<Action<Input>> list)
                 return;
 
-            var slots = list.slots;
-
-            for (int i = list.Count - 1; i >= 0; i--)
-                slots[i].Invoke(input);
+            int bound = list.BeginDispatch();
+            try
+            {
+                for (int i = bound - 1; i >= 0; i--) list.slots[i]?.Invoke(input);
+            }
+            finally { list.EndDispatch(); }
         }
 
         public static Output Publish<Output>(ThreadlinkIDs.Iris.Events eventID)

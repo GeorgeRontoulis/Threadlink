@@ -110,10 +110,21 @@ namespace Threadlink.Shared
             if (!SceneOperation.IsValid())
                 return default;
 
-            var unloadOperation = Addressables.UnloadSceneAsync(SceneOperation, autoReleaseHandle);
+            var loadedOperation = SceneOperation;
+            var unloadOperation = Addressables.UnloadSceneAsync(loadedOperation, autoReleaseHandle);
 
-            SceneOperation = default;
-            SetHeld(false);
+            // A failed unload leaves a live scene. Keep its load handle so Nexus can retry instead of forgetting it.
+            unloadOperation.Completed += _ =>
+            {
+                if (!SceneOperation.Equals(loadedOperation)) return;
+                if (loadedOperation.IsValid())
+                {
+                    var scene = loadedOperation.Result.Scene;
+                    if (scene.IsValid() && scene.isLoaded) return;
+                }
+                SceneOperation = default;
+                SetHeld(false);
+            };
 
             return unloadOperation;
         }

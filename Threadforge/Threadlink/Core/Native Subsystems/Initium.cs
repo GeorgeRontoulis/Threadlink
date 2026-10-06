@@ -107,7 +107,14 @@ namespace Threadlink.Core.NativeSubsystems.Initium
             for (int i = discoverables.Count - 1; i >= 0; i--)
             {
                 if (discoverables[i] is LinkableBehaviour behaviour && behaviour != null)
-                    behaviour.Discard();
+                {
+                    try { behaviour.Discard(); }
+                    catch (System.Exception exception)
+                    {
+                        Scribe.Send<Threadlink>("Discard of ", behaviour.GetType().Name, " failed: ", exception.ToString())
+                            .ToUnityConsole(DebugType.Error);
+                    }
+                }
             }
         }
 

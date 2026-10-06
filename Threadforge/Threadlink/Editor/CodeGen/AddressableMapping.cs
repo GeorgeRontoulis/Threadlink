@@ -146,6 +146,17 @@ namespace Threadlink.Editor.CodeGen
         /// </summary>
         internal bool Apply(bool resetManifests = false)
         {
+            var scopes = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var group in Groups)
+            {
+                if (!scopes.Add(group.Scope))
+                {
+                    this.Send("Addressable groups share the generated scope '", group.Scope,
+                        "'. Rename one before applying. Nothing was written.").ToUnityConsole(DebugType.Error);
+                    return false;
+                }
+            }
+
             if (!ThreadlinkConfigFinder.TryGetConfig(out ThreadlinkEditorConfig editorConfig)
             || !ThreadlinkConfigFinder.TryGetConfig(out ThreadlinkUserConfig userConfig))
             {
@@ -302,6 +313,9 @@ namespace Threadlink.Editor.CodeGen
             var sceneValues = LoadManifestValues(SCENES_DOMAIN);
             var prefabValues = LoadManifestValues(PREFABS_DOMAIN);
             var assetValues = LoadManifestValues(ASSETS_DOMAIN);
+            var assetManifest = LoadManifest(ASSETS_DOMAIN, out var assetDescriptor);
+            var liveAssetByGuid = new Dictionary<string, int>(StringComparer.Ordinal);
+            bool stamped = false;
 
             int groupCount = Groups.Count;
 
@@ -338,13 +352,65 @@ namespace Threadlink.Editor.CodeGen
 
                         default:
                             if (assetValues.TryGetValue(key, out int assetValue))
-                                userConfig.EditorOnly_TryAddAssetReference((ThreadlinkIDs.Addressables.Assets)assetValue, new AssetReference(row.Guid));
+                            {
+                                var assetID = (ThreadlinkIDs.Addressables.Assets)assetValue;
+
+                                userConfig.EditorOnly_TryAddAssetReference(assetID, new AssetReference(row.Guid));
+                                userConfig.EditorOnly_TryAddAssetType(assetID, AssetDatabase.GetMainAssetTypeAtPath(row.AssetPath));
+                                liveAssetByGuid[row.Guid] = assetValue;
+
+                                // Remember which asset the ID is, so the ID still finds it once a rename tombstones it.
+                                if (assetManifest != null && assetManifest.TryGetByKey(key, out var record) && record.guid != row.Guid)
+                                {
+                                    record.guid = row.Guid;
+                                    stamped = true;
+                                }
+                            }
                             else
                                 ReportMissingManifestEntry(ASSETS_DOMAIN, key);
                             break;
                     }
                 }
             }
+
+            // A renamed or moved asset gets a new ID and its old one becomes a tombstone that still names its GUID: the old
+            // ID is an alias of the new, so data saved with it keeps meaning the same asset.
+            if (assetManifest != null)
+            {
+                int aliases = 0;
+
+                foreach (var entry in assetManifest.entries)
+                {
+                    if (entry.tombstoned && string.IsNullOrEmpty(entry.guid) is false
+                    && liveAssetByGuid.TryGetValue(entry.guid, out int current) && current != entry.value
+                    && userConfig.EditorOnly_TryAddAssetAlias((ThreadlinkIDs.Addressables.Assets)entry.value, (ThreadlinkIDs.Addressables.Assets)current))
+                    {
+                        aliases++;
+                    }
+                }
+
+                if (stamped)
+                    assetManifest.Save(assetDescriptor);
+
+                if (aliases > 0)
+                    Scribe.Send<ThreadlinkUserConfig>("Renamed assets: ", aliases, " old ID(s) resolve to their asset's current ID.").ToUnityConsole();
+            }
+        }
+
+        private ThreadlinkDomainManifest LoadManifest(string domainName, out ThreadlinkDomainDescriptor descriptor)
+        {
+            int count = descriptors.Count;
+
+            for (int i = 0; i < count; i++)
+            {
+                descriptor = descriptors[i];
+
+                if (string.Equals(descriptor.DomainName, domainName, StringComparison.Ordinal))
+                    return ThreadlinkDomainManifest.LoadOrCreate(descriptor);
+            }
+
+            descriptor = null;
+            return null;
         }
 
         private Dictionary<string, int> LoadManifestValues(string domainName)

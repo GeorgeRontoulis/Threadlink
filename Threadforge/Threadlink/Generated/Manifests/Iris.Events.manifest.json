@@ -8,7 +8,8 @@
             "scope": "",
             "value": 2,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnDisplayFaderAsync",
@@ -16,7 +17,8 @@
             "scope": "",
             "value": 19,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnDisplayLoadingScreenAsync",
@@ -24,7 +26,8 @@
             "scope": "",
             "value": 21,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnFixedUpdate",
@@ -32,7 +35,8 @@
             "scope": "",
             "value": 4,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnGamePauseRequested",
@@ -40,7 +44,8 @@
             "scope": "",
             "value": 7,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnGamePaused",
@@ -48,7 +53,8 @@
             "scope": "",
             "value": 9,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnGameResumeRequested",
@@ -56,7 +62,8 @@
             "scope": "",
             "value": 8,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnGameResumed",
@@ -64,7 +71,8 @@
             "scope": "",
             "value": 10,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnHideFaderAsync",
@@ -72,7 +80,8 @@
             "scope": "",
             "value": 20,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnHideLoadingScreenAsync",
@@ -80,7 +89,8 @@
             "scope": "",
             "value": 22,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnInputDeviceChanged",
@@ -88,7 +98,8 @@
             "scope": "",
             "value": 11,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnInteract",
@@ -96,7 +107,8 @@
             "scope": "",
             "value": 14,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnInteractableDetected",
@@ -104,7 +116,8 @@
             "scope": "",
             "value": 15,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnInteractableOutOfRange",
@@ -112,7 +125,8 @@
             "scope": "",
             "value": 16,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnLateUpdate",
@@ -120,7 +134,8 @@
             "scope": "",
             "value": 5,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnNativeSubsystemRegistration",
@@ -128,7 +143,8 @@
             "scope": "",
             "value": 0,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnPlaytimeCountTick",
@@ -136,7 +152,8 @@
             "scope": "",
             "value": 6,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnSceneLoaded",
@@ -144,7 +161,8 @@
             "scope": "",
             "value": 24,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnScenePresented",
@@ -152,7 +170,8 @@
             "scope": "",
             "value": 23,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnSceneResident",
@@ -160,7 +179,8 @@
             "scope": "",
             "value": 17,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnSceneUnloaded",
@@ -168,7 +188,8 @@
             "scope": "",
             "value": 25,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnSceneUnloading",
@@ -176,7 +197,8 @@
             "scope": "",
             "value": 18,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnSentinelStateChanged",
@@ -184,7 +206,8 @@
             "scope": "",
             "value": 26,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnUICancelled",
@@ -192,7 +215,8 @@
             "scope": "",
             "value": 12,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnUIElementSelected",
@@ -200,7 +224,8 @@
             "scope": "",
             "value": 13,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnUpdate",
@@ -208,7 +233,8 @@
             "scope": "",
             "value": 3,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         },
         {
             "key": "OnUserSubsystemRegistration",
@@ -216,7 +242,8 @@
             "scope": "",
             "value": 1,
             "seedOffset": 0,
-            "tombstoned": false
+            "tombstoned": false,
+            "guid": ""
         }
     ]
 }

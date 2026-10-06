@@ -19,6 +19,10 @@ namespace Threadlink.Core
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static async UniTaskVoid DeployCoreAsync()
         {
+#if UNITY_EDITOR
+            if (ThreadlinkEditorDeployment.Suppressed)
+                return;
+#endif
             await Addressables.InitializeAsync().ToUniTask(); //This should never fail.
 
             var nativeConfig = await Addressables.LoadAssetAsync<ThreadlinkNativeConfig>(NativeConstants.Addressables.NATIVE_CONFIG).ToUniTask();

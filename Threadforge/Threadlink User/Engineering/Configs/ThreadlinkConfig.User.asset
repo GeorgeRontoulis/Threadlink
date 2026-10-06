@@ -19,7 +19,7 @@ MonoBehaviour:
     count: 0
     values: []
   assetReferences:
-    keys: 00000000000000000000000000000000
+    keys: 00000000000000000000000000000000i
     count: 0
     values:
     - m_AssetGUID: 
@@ -42,8 +42,16 @@ MonoBehaviour:
       m_SubObjectType: 
       m_SubObjectGUID: 
       m_EditorAssetChanged: 0
+  assetTypes:
+    keys: 
+    count: 0
+    values: []
+  assetAliases:
+    keys: 
+    count: 0
+    values: 
   prefabReferences:
-    keys: 00000000000000000000000000000000
+    keys: 00000000000000000000000000000000i
     count: 0
     values:
     - m_AssetGUID: 

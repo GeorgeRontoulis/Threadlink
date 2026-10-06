@@ -43,7 +43,7 @@ namespace Threadlink.Core
             Application.quitting -= OnApplicationQuitting;
 
             // First the scenes still held, whose objects are discarded while the subsystems they registered with still
-            // exist, as in any unload (Nexus, D42); then the subsystems.
+            // exist, as in any unload, then the subsystems.
             NativeSubsystems.Nexus.Nexus.ReleaseAll();
 
             if (TryGetSingleton(out var core))

@@ -26,18 +26,24 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
         public void Discard()
         {
-            StackedInterfaces.Clear();
-            StackedInterfaces.TrimExcess();
-            StackedInterfaces = null;
+            if (StackedInterfaces != null)
+            {
+                StackedInterfaces.Clear();
+                StackedInterfaces.TrimExcess();
+                StackedInterfaces = null;
+            }
 
-            var interfaces = CreatedInterfaces.Values;
+            if (CreatedInterfaces != null)
+            {
+                var interfaces = CreatedInterfaces.Values;
 
-            foreach (var ui in interfaces)
-                ui.Discard();
+                foreach (var ui in interfaces)
+                    ui.Discard();
 
-            CreatedInterfaces.Clear();
-            CreatedInterfaces.TrimExcess();
-            CreatedInterfaces = null;
+                CreatedInterfaces.Clear();
+                CreatedInterfaces.TrimExcess();
+                CreatedInterfaces = null;
+            }
         }
 
         public void Boot()

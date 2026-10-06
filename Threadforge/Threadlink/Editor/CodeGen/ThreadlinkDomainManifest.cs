@@ -17,6 +17,9 @@ namespace Threadlink.Editor.CodeGen
         public int value;
         public int seedOffset;
         public bool tombstoned;
+        /// <summary>The Addressables entry's asset GUID, for mapped assets: a renamed asset's tombstone keeps it, which is
+        /// how its old ID is found to mean the same asset.</summary>
+        public string guid;
     }
 
     [Serializable]
