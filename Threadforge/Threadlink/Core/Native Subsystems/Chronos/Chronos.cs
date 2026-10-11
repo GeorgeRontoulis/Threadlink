@@ -16,6 +16,7 @@ namespace Threadlink.Core.NativeSubsystems.Chronos
     /// Threadlink's Time Management Subsystem.
     /// </summary>
     [AutoStaticsCleanup]
+    [Monitored(Description = "Tracks time: delta times, time scale, pausing and playtime.", Order = -1999)]
     public sealed partial class Chronos : ThreadlinkSubsystem<Chronos>, IAddressablesPreloader, IDependencyConsumer<ChronosConfig>
     {
         #region Public API:
@@ -154,6 +155,35 @@ namespace Threadlink.Core.NativeSubsystems.Chronos
                 Physics.Simulate(fixedDeltaTime);
 
             FixedDeltaTime = fixedDeltaTime;
+        }
+        #endregion
+
+        #region Monitoring:
+        public override void Report(MonitorReport report)
+        {
+            report.Summary(DeltaTime > 0f ? Mathf.RoundToInt(1f / DeltaTime) + " fps" : "—");
+
+            if (!report.Detailed)
+                return;
+
+            report.Section("Time")
+                .Field("Frame rate", DeltaTime > 0f ? 1f / DeltaTime : 0f, MonitorTone.Normal, "0")
+                .Field("Delta time (ms)", DeltaTime * 1000f, MonitorTone.Normal, "0.00")
+                .Field("Smooth delta (ms)", SmoothDeltaTime * 1000f, MonitorTone.Normal, "0.00")
+                .Field("Unscaled delta (ms)", UnscaledDeltaTime * 1000f, MonitorTone.Normal, "0.00")
+                .Field("Fixed delta (ms)", FixedDeltaTime * 1000f, MonitorTone.Normal, "0.00")
+                .Field("Time scale", TimeScale, TimeScale <= 0f ? MonitorTone.Caution : MonitorTone.Normal);
+
+            report.Section("Playtime")
+                .Field("Total", FormatSeconds(TotalPlaytime))
+                .Field("Counting", CountTotalPlaytime ? PlaytimeCountingMode.ToString() : "Paused")
+                .Field("Since deployment", FormatSeconds(CurrentTimeSinceDeployment));
+        }
+
+        private static string FormatSeconds(float seconds)
+        {
+            var span = TimeSpan.FromSeconds(Mathf.Max(0f, seconds));
+            return span.TotalHours >= 1d ? span.ToString(@"h\:mm\:ss") : span.ToString(@"m\:ss");
         }
         #endregion
     }

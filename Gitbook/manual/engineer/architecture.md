@@ -38,7 +38,7 @@ A `Weaver` creates objects through `WeavingFactory<T>`: `TryWeave<T>(out T)` thr
 
 `Threadlink` is itself a `Weaver<Threadlink, IThreadlinkSubsystem>`. `Aura` is a `Linker<Aura, AuraSpatialObject>`.
 
-In the Editor, every register also implements `IEditorOnlyRegister`, which exposes its contents (`EditorOnly_Count`, `EditorOnly_ObjectType`, `EditorOnly_Registry`) to tools such as the [Runtime Monitor](editor-tooling.md#runtime-monitor). It is not compiled into builds.
+Every subsystem is `IMonitorable`: it can report its state to the [Runtime Monitor](editor-tooling.md#runtime-monitor), and registers report their linked objects by default (see [Monitoring](monitoring.md)). The core lists its woven subsystems, in weave order, as `WovenSubsystems`.
 
 ## Lifecycle contracts
 

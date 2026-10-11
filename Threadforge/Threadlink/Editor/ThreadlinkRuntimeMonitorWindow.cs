@@ -1,59 +1,82 @@
 namespace Threadlink.Editor
 {
-    using Core;
-    using Core.NativeSubsystems.Aura;
-    using Core.NativeSubsystems.Chronos;
-    using Core.NativeSubsystems.Dextra;
-    using Core.NativeSubsystems.Iris;
-    using Core.NativeSubsystems.Nexus;
-    using Core.NativeSubsystems.Sentinel;
-    using Generated;
-    using Shared;
+    // Types whose names match a namespace are always referenced through an alias or global::, never a namespace import:
+    // inside Threadlink.Editor, a bare name such as Sentinel resolves to the Threadlink.Editor.Sentinel namespace first.
     using System;
     using System.Collections.Generic;
-    using System.Text.RegularExpressions;
+    using System.Reflection;
     using Unity.Profiling;
     using UnityEditor;
     using UnityEngine;
     using UnityEngine.Profiling;
-    using UnityEngine.SceneManagement;
+    using DebugType = global::Threadlink.Core.NativeSubsystems.Scribe.DebugType;
+    using HashFunctions = global::Threadlink.Shared.HashFunctions;
+    using IAddressablesPreloader = global::Threadlink.Shared.IAddressablesPreloader;
+    using IInitializable = global::Threadlink.Shared.IInitializable;
+    using IMonitorable = global::Threadlink.Shared.IMonitorable;
+    using IThreadlinkSubsystem = global::Threadlink.Shared.IThreadlinkSubsystem;
+    using MonitoredAttribute = global::Threadlink.Shared.MonitoredAttribute;
+    using MonitorLineKind = global::Threadlink.Shared.MonitorLineKind;
+    using MonitorRegistry = global::Threadlink.Shared.MonitorRegistry;
+    using MonitorReport = global::Threadlink.Shared.MonitorReport;
+    using MonitorTone = global::Threadlink.Shared.MonitorTone;
+    using ScribeService = global::Threadlink.Core.NativeSubsystems.Scribe.Scribe;
     using Theme = ThreadlinkEditorTheme;
+    using ThreadlinkCore = global::Threadlink.Core.Threadlink;
     using UnityObject = UnityEngine.Object;
 
     /// <summary>
-    /// A live view of Threadlink's runtime: the core and everything around it as a radial graph, the selected node's
-    /// state, and frame, memory and rendering metrics against a frame budget. Replaces the Registers Tracker.
+    /// A live view of Threadlink's runtime: the core, every woven subsystem and every monitored service as a radial
+    /// graph, the selected node's report, and frame, memory and rendering metrics against a frame budget.
+    /// <para></para>
+    /// The window knows no subsystem or service by name. Nodes come from the core's woven subsystems, from static
+    /// methods marked <see cref="MonitoredAttribute"/>, and from <see cref="MonitorRegistry"/>; their content comes from
+    /// <see cref="IMonitorable.Report"/>.
     /// </summary>
     internal sealed class ThreadlinkRuntimeMonitorWindow : EditorWindow
     {
         #region Model:
-        private enum NodeKind : byte { Core, Woven, Service }
+        private enum NodeKind : byte { Core, Subsystem, Service }
         private enum RuntimeState : byte { Offline, Waiting, Deploying, Live }
 
         private sealed class Node
         {
             public string Key;
             public string Label;
+            public string Subtitle;
+            public string Description;
             public NodeKind Kind;
             public Type Type;
-            public IThreadlinkSubsystem Subsystem;
+            public IMonitorable Source;
+            public Action<MonitorReport> StaticReport;
             public bool Live;
             public bool Alert;
             public string Caption;
             public Vector2 Centre;
             public float Radius;
             public int Index;
+
+            public bool CanReport => Live && (Source != null || StaticReport != null);
         }
 
-        private const string CoreKey = "Threadlink";
-        private const string IrisKey = "Iris", NexusKey = "Nexus", InitiumKey = "Initium", ScribeKey = "Scribe";
-        private static readonly string[] ServiceKeys = { IrisKey, NexusKey, InitiumKey, ScribeKey };
-        private static readonly Type[] NativeWoven = { typeof(Sentinel), typeof(Chronos), typeof(Dextra), typeof(Aura) };
+        /// <summary>A static service: a static <c>Report(MonitorReport)</c> method marked <see cref="MonitoredAttribute"/>.</summary>
+        private sealed class ServiceInfo
+        {
+            public string Key;
+            public string Name;
+            public string Description;
+            public int Order;
+            public Type DeclaringType;
+            public Action<MonitorReport> Report;
+        }
+
+        private const string CoreKey = "core";
+        private const double ModelInterval = 0.1d;
+        private const double DetailInterval = 0.25d;
         private static readonly int[] TargetFrameRates = { 0, 30, 60, 90, 120, 144, 240 };
 
-        private static List<Type> declaredUserSubsystems;
-        private static ThreadlinkIDs.Iris.Events[] irisEvents;
-        private static readonly Regex RichText = new("<.*?>", RegexOptions.Compiled);
+        private static List<ServiceInfo> services;
+        private static List<Type> declaredSubsystems;
         #endregion
 
         #region Palette and layout:
@@ -89,8 +112,15 @@ namespace Threadlink.Editor
         private readonly List<Node> nodes = new(16);
         private readonly Dictionary<string, Node> nodeCache = new(16);
         private Node coreNode;
-        private Threadlink core;
+        private ThreadlinkCore core;
         private RuntimeState state;
+        private bool wasPlaying;
+
+        private readonly MonitorReport summaryReport = new();
+        private readonly MonitorReport detailReport = new();
+        private string detailKey;
+        private string detailError;
+        private double lastModelRefresh = -1d, lastDetailRefresh = -1d;
 
         private double lastSample, lastRepaint;
         private string hoveredKey, pendingKey;
@@ -103,25 +133,9 @@ namespace Threadlink.Editor
         private readonly float[] history = new float[HistoryLength];
         private int historyCount;
 
-        // Console activity, captured on any thread.
-        private readonly object logLock = new();
-        private readonly Queue<(LogType Type, string Text)> recentMessages = new(8);
-        private int logCount, warningCount, errorCount;
-        private volatile bool capturing;
-        private (int Logs, int Warnings, int Errors) scribeCounts;
-        private (LogType Type, string Text)[] scribeSnapshot;
-
-        // Per-node data refreshed with the graph.
-        private readonly List<(string Event, int Count)> irisListeners = new(32);
-        private int irisTotal;
-        private readonly List<(string Scene, int Count)> discoverables = new(8);
-        private double lastDiscoverableScan = -10d;
-
         private readonly Vector3[] segment = new Vector3[2];
         private readonly Vector3[] arrow = new Vector3[3];
         private readonly Vector3[] spark = new Vector3[HistoryLength];
-        private readonly List<IThreadlinkSubsystem> weaveOrder = new(16);
-        private readonly List<KeyValuePair<int, IIdentifiable>> registryBuffer = new(64);
 
         private GUIStyle nodeStyle, coreStyle, coreCaptionStyle, captionStyle, headerStyle, chipStyle, legendStyle;
         private GUIStyle titleStyle, subtitleStyle, sectionStyle, keyStyle, valueStyle, noteStyle;
@@ -150,19 +164,16 @@ namespace Threadlink.Editor
             triangles = ProfilerRecorder.StartNew(ProfilerCategory.Render, "Triangles Count");
             systemMemory = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "System Used Memory");
 
-            capturing = EditorApplication.isPlayingOrWillChangePlaymode;
             gcBaseline = GC.CollectionCount(0);
 
             EditorApplication.update += Tick;
             EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
-            Application.logMessageReceivedThreaded += OnLogMessage;
         }
 
         private void OnDisable()
         {
             EditorApplication.update -= Tick;
             EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
-            Application.logMessageReceivedThreaded -= OnLogMessage;
 
             mainThread.Dispose();
             gcAllocInFrame.Dispose();
@@ -175,28 +186,15 @@ namespace Threadlink.Editor
 
         private void OnPlayModeStateChanged(PlayModeStateChange change)
         {
-            switch (change)
+            if (change == PlayModeStateChange.ExitingEditMode)
             {
-                // Before the domain reloads, if it does, so the session's first messages are counted.
-                case PlayModeStateChange.ExitingEditMode:
-                    lock (logLock)
-                    {
-                        logCount = warningCount = errorCount = 0;
-                        recentMessages.Clear();
-                    }
-
-                    fps = mainThreadMs = gcPerFrame = 0f;
-                    historyCount = 0;
-                    lastFrameTime = 0d;
-                    gcBaseline = GC.CollectionCount(0);
-                    capturing = true;
-                    break;
-
-                case PlayModeStateChange.ExitingPlayMode:
-                    capturing = false;
-                    break;
+                fps = mainThreadMs = gcPerFrame = 0f;
+                historyCount = 0;
+                lastFrameTime = 0d;
+                gcBaseline = GC.CollectionCount(0);
             }
 
+            lastModelRefresh = lastDetailRefresh = -1d;
             Repaint();
         }
 
@@ -264,41 +262,79 @@ namespace Threadlink.Editor
 
             return sum / count;
         }
+        #endregion
 
-        private void OnLogMessage(string condition, string stackTrace, LogType type)
+        #region Discovery:
+        /// <summary>Every static method marked <see cref="MonitoredAttribute"/>, in order, then by name.</summary>
+        private static List<ServiceInfo> Services()
         {
-            if (!capturing)
-                return;
+            if (services != null)
+                return services;
 
-            lock (logLock)
+            services = new List<ServiceInfo>();
+
+            foreach (var method in TypeCache.GetMethodsWithAttribute<MonitoredAttribute>())
             {
-                switch (type)
+                var attribute = method.GetCustomAttribute<MonitoredAttribute>(false);
+                var parameters = method.GetParameters();
+                var declaringType = method.DeclaringType;
+
+                if (!method.IsStatic || method.ReturnType != typeof(void) || parameters.Length != 1
+                || parameters[0].ParameterType != typeof(MonitorReport) || declaringType == null || method.ContainsGenericParameters)
                 {
-                    case LogType.Warning: warningCount++; break;
-                    case LogType.Error:
-                    case LogType.Exception:
-                    case LogType.Assert: errorCount++; break;
-                    default: logCount++; break;
+                    ScribeService.ToUnityConsole(ScribeService.Send<ThreadlinkRuntimeMonitorWindow>(
+                        declaringType?.FullName, ".", method.Name,
+                        " is marked [Monitored] but is not a static void Report(MonitorReport) method, so it is ignored."), DebugType.Warning);
+                    continue;
                 }
 
-                // Scribe prefixes every message with the sender's name in cyan.
-                if (condition == null || !condition.StartsWith("<color=cyan>[", StringComparison.Ordinal))
-                    return;
+                string name = string.IsNullOrEmpty(attribute.Name) ? declaringType.Name : attribute.Name;
 
-                string text = RichText.Replace(condition, string.Empty);
-                int newline = text.IndexOf('\n');
-
-                if (newline >= 0)
-                    text = text.Substring(0, newline);
-
-                if (text.Length > 180)
-                    text = text.Substring(0, 180) + "…";
-
-                if (recentMessages.Count >= 6)
-                    recentMessages.Dequeue();
-
-                recentMessages.Enqueue((type, text));
+                services.Add(new ServiceInfo
+                {
+                    Key = "service:" + declaringType.FullName + "." + method.Name,
+                    Name = name,
+                    Description = attribute.Description,
+                    Order = attribute.Order,
+                    DeclaringType = declaringType,
+                    Report = (Action<MonitorReport>)Delegate.CreateDelegate(typeof(Action<MonitorReport>), method),
+                });
             }
+
+            services.Sort((a, b) => a.Order != b.Order ? a.Order.CompareTo(b.Order) : string.CompareOrdinal(a.Name, b.Name));
+            return services;
+        }
+
+        /// <summary>Every concrete subsystem type in the project, shown before deployment in attribute order, then by name.</summary>
+        private static List<Type> DeclaredSubsystems()
+        {
+            if (declaredSubsystems != null)
+                return declaredSubsystems;
+
+            declaredSubsystems = new List<Type>();
+
+            foreach (var type in TypeCache.GetTypesDerivedFrom<IThreadlinkSubsystem>())
+            {
+                if (!type.IsAbstract && !type.IsInterface && !type.ContainsGenericParameters && type != typeof(ThreadlinkCore))
+                    declaredSubsystems.Add(type);
+            }
+
+            declaredSubsystems.Sort((a, b) =>
+            {
+                int orderA = OrderOf(a), orderB = OrderOf(b);
+                return orderA != orderB ? orderA.CompareTo(orderB) : string.CompareOrdinal(a.Name, b.Name);
+            });
+
+            return declaredSubsystems;
+        }
+
+        private static MonitoredAttribute AttributeOf(Type type) => type?.GetCustomAttribute<MonitoredAttribute>(false);
+
+        private static int OrderOf(Type type) => AttributeOf(type)?.Order ?? 0;
+
+        private static bool IsFrameworkType(Type type)
+        {
+            return type != null && (type.Assembly == typeof(ThreadlinkCore).Assembly || type.Assembly == typeof(MonitorReport).Assembly);
         }
         #endregion
 
@@ -309,63 +345,127 @@ namespace Threadlink.Editor
 
             if (!EditorApplication.isPlaying)
                 state = RuntimeState.Offline;
-            else if (!Threadlink.TryGetSingleton(out core))
+            else if (!ThreadlinkCore.TryGetSingleton(out core))
                 state = RuntimeState.Waiting;
             else
                 state = core.IsDeployed ? RuntimeState.Live : RuntimeState.Deploying;
 
             nodes.Clear();
-            weaveOrder.Clear();
 
-            coreNode = GetNode(CoreKey, "Threadlink", NodeKind.Core, typeof(Threadlink));
+            coreNode = GetNode(CoreKey, "Threadlink", NodeKind.Core);
+            coreNode.Type = typeof(ThreadlinkCore);
+            coreNode.Source = core;
+            coreNode.StaticReport = null;
             coreNode.Live = core != null;
-            coreNode.Subsystem = core;
+            coreNode.Subtitle = "Core  ·  " + Kind(typeof(ThreadlinkCore));
+            coreNode.Description = "Threadlink deploys once the first scene has loaded in Play Mode. Click any node to see what it does and, once running, its live state.";
+
+            AddSubsystemNodes();
+            AddServiceNodes();
+            AddRegisteredNodes();
+
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                nodes[i].Index = i;
+                Summarise(nodes[i]);
+            }
+
+            Summarise(coreNode);
+        }
+
+        private void AddSubsystemNodes()
+        {
+            bool woven = false;
 
             if (core != null)
             {
-                foreach (var subsystem in core.EditorOnly_WeaveOrder)
+                foreach (var subsystem in core.WovenSubsystems)
                 {
                     if (subsystem == null)
                         continue;
 
-                    weaveOrder.Add(subsystem);
-
-                    var type = subsystem.GetType();
-                    var node = GetNode(type.FullName, type.Name, NodeKind.Woven, type);
-
-                    node.Subsystem = subsystem;
+                    var node = SubsystemNode(subsystem.GetType());
+                    node.Source = subsystem as IMonitorable;
                     node.Live = IsLinked(subsystem);
                     nodes.Add(node);
+                    woven = true;
                 }
             }
 
-            // Before deployment, show the native subsystems and the user subsystems declared in the project.
-            if (nodes.Count == 0)
+            // Before deployment, every subsystem declared in the project.
+            if (!woven)
             {
-                foreach (var type in NativeWoven)
-                    nodes.Add(GetIdleNode(type));
-
-                foreach (var type in DeclaredUserSubsystems())
-                    nodes.Add(GetIdleNode(type));
+                foreach (var type in DeclaredSubsystems())
+                {
+                    var node = SubsystemNode(type);
+                    node.Source = null;
+                    node.Live = false;
+                    nodes.Add(node);
+                }
             }
+        }
 
-            foreach (string key in ServiceKeys)
+        private Node SubsystemNode(Type type)
+        {
+            var node = GetNode("subsystem:" + type.FullName, type.Name, NodeKind.Subsystem);
+
+            node.Type = type;
+            node.StaticReport = null;
+            node.Subtitle = (IsFrameworkType(type) ? "Native subsystem" : "User subsystem") + "  ·  " + Kind(type);
+            node.Description = AttributeOf(type)?.Description;
+            return node;
+        }
+
+        private void AddServiceNodes()
+        {
+            foreach (var service in Services())
             {
-                var node = GetNode(key, key, NodeKind.Service, null);
+                var node = GetNode(service.Key, service.Name, NodeKind.Service);
+
+                node.Type = service.DeclaringType;
+                node.Source = null;
+                node.StaticReport = service.Report;
                 node.Live = EditorApplication.isPlaying;
+                node.Subtitle = (IsFrameworkType(service.DeclaringType) ? "Native service" : "User service") + "  ·  " + service.DeclaringType.Name;
+                node.Description = service.Description;
                 nodes.Add(node);
             }
+        }
 
-            RefreshIris();
+        private void AddRegisteredNodes()
+        {
+            if (!EditorApplication.isPlaying)
+                return;
 
-            for (int i = 0; i < nodes.Count; i++)
+            foreach (var entry in MonitorRegistry.Entries)
             {
-                var node = nodes[i];
-                node.Index = i;
-                RefreshCaption(node);
+                if (entry.Source == null || (entry.Source is UnityObject unityObject && unityObject == null))
+                    continue;
+
+                var type = entry.Source.GetType();
+                var node = GetNode("registered:" + entry.Name + "#" + type.FullName, entry.Name, NodeKind.Service);
+
+                node.Type = type;
+                node.Source = entry.Source;
+                node.StaticReport = null;
+                node.Live = true;
+                node.Subtitle = "Registered service  ·  " + type.Name;
+                node.Description = AttributeOf(type)?.Description;
+                nodes.Add(node);
+            }
+        }
+
+        private Node GetNode(string key, string label, NodeKind kind)
+        {
+            if (!nodeCache.TryGetValue(key, out var node))
+            {
+                node = new Node { Key = key };
+                nodeCache[key] = node;
             }
 
-            RefreshCaption(coreNode);
+            node.Label = label;
+            node.Kind = kind;
+            return node;
         }
 
         /// <summary>Whether the core links <paramref name="subsystem"/>; false while the core is shutting down.</summary>
@@ -381,153 +481,63 @@ namespace Threadlink.Editor
             }
         }
 
-        private void RefreshCaption(Node node)
+        /// <summary>Asks <paramref name="node"/> for its summary: the caption and alert shown on the graph.</summary>
+        private void Summarise(Node node)
         {
+            node.Caption = string.Empty;
+            node.Alert = false;
+
+            if (!node.CanReport)
+            {
+                node.Caption = node.Kind == NodeKind.Core ? StateCaption() : state == RuntimeState.Live && node.Kind == NodeKind.Subsystem ? "not woven" : string.Empty;
+                return;
+            }
+
+            if (TryReport(node, summaryReport, false, out _))
+            {
+                node.Caption = summaryReport.Caption ?? string.Empty;
+                node.Alert = summaryReport.Alert;
+            }
+            else
+            {
+                node.Caption = "report failed";
+                node.Alert = true;
+            }
+
+            if (node.Kind == NodeKind.Core && state != RuntimeState.Live)
+                node.Caption = StateCaption();
+        }
+
+        /// <summary>Runs <paramref name="node"/>'s report, never letting a failing reporter break the window.</summary>
+        private static bool TryReport(Node node, MonitorReport report, bool detailed, out string error)
+        {
+            error = null;
+            report.Begin(detailed);
+
             try
             {
-                node.Caption = Caption(node);
-                node.Alert = Alert(node);
+                if (node.Source != null)
+                    node.Source.Report(report);
+                else
+                    node.StaticReport?.Invoke(report);
+
+                return true;
             }
-            catch (Exception)
+            catch (Exception exception)
             {
-                // A subsystem mid-deployment or mid-shutdown can be in any state.
-                node.Caption = "—";
-                node.Alert = false;
-            }
-        }
-
-        private Node GetIdleNode(Type type)
-        {
-            var node = GetNode(type.FullName, type.Name, NodeKind.Woven, type);
-            node.Subsystem = null;
-            node.Live = false;
-            return node;
-        }
-
-        private Node GetNode(string key, string label, NodeKind kind, Type type)
-        {
-            if (!nodeCache.TryGetValue(key, out var node))
-            {
-                node = new Node { Key = key };
-                nodeCache[key] = node;
-            }
-
-            node.Label = label;
-            node.Kind = kind;
-            node.Type = type;
-            return node;
-        }
-
-        private static List<Type> DeclaredUserSubsystems()
-        {
-            if (declaredUserSubsystems != null)
-                return declaredUserSubsystems;
-
-            declaredUserSubsystems = new List<Type>();
-
-            foreach (var type in TypeCache.GetTypesDerivedFrom<IThreadlinkSubsystem>())
-            {
-                if (type.IsAbstract || type.IsInterface || type.ContainsGenericParameters || type == typeof(Threadlink)
-                || Array.IndexOf(NativeWoven, type) >= 0)
-                    continue;
-
-                declaredUserSubsystems.Add(type);
-            }
-
-            declaredUserSubsystems.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
-            return declaredUserSubsystems;
-        }
-
-        private void RefreshIris()
-        {
-            irisListeners.Clear();
-            irisTotal = 0;
-
-            if (!EditorApplication.isPlaying)
-                return;
-
-            irisEvents ??= (ThreadlinkIDs.Iris.Events[])Enum.GetValues(typeof(ThreadlinkIDs.Iris.Events));
-
-            foreach (var eventID in irisEvents)
-            {
-                if (!Iris.TryGetListenerCount(eventID, out int count) || count <= 0)
-                    continue;
-
-                irisListeners.Add((eventID.ToString(), count));
-                irisTotal += count;
-            }
-
-            irisListeners.Sort((a, b) => b.Count.CompareTo(a.Count));
-        }
-
-        private string Caption(Node node)
-        {
-            switch (node.Kind)
-            {
-                case NodeKind.Core:
-                    return state switch
-                    {
-                        RuntimeState.Live => weaveOrder.Count + " woven",
-                        RuntimeState.Deploying => "deploying",
-                        RuntimeState.Waiting => "waiting",
-                        _ => "offline",
-                    };
-
-                case NodeKind.Service:
-                    if (!node.Live)
-                        return string.Empty;
-
-                    switch (node.Key)
-                    {
-                        case IrisKey: return irisTotal + " listeners";
-                        case NexusKey: return Count(Nexus.EditorOnly_Scenes) + " scenes";
-                        case ScribeKey:
-                            lock (logLock)
-                                return errorCount > 0 ? errorCount + (errorCount == 1 ? " error" : " errors") : logCount + " logs";
-                        default: return "pipeline";
-                    }
-
-                default:
-                    if (!node.Live)
-                        return EditorApplication.isPlaying && state == RuntimeState.Live ? "not woven" : string.Empty;
-
-                    switch (node.Subsystem)
-                    {
-                        case Sentinel sentinel: return sentinel.State.ToString();
-                        case Chronos _: return Chronos.DeltaTime > 0f ? Mathf.RoundToInt(1f / Chronos.DeltaTime) + " fps" : "—";
-                        case Dextra dextra: return dextra.CurrentInputDevice.ToString();
-                        case IEditorOnlyRegister register: return register.EditorOnly_Count + " linked";
-                        default: return "woven";
-                    }
-            }
-        }
-
-        private bool Alert(Node node)
-        {
-            if (!node.Live)
+                error = exception.GetType().Name + ": " + exception.Message;
+                report.Begin(detailed);
                 return false;
-
-            if (node.Subsystem is Sentinel sentinel)
-                return sentinel.State is Sentinel.DeploymentState.Failed;
-
-            if (node.Key == ScribeKey)
-            {
-                lock (logLock)
-                    return errorCount > 0;
             }
-
-            return false;
         }
 
-        private static int Count<T>(IEnumerable<T> items)
+        private string StateCaption() => state switch
         {
-            int count = 0;
-
-            foreach (var _ in items)
-                count++;
-
-            return count;
-        }
+            RuntimeState.Live => core != null ? core.WovenSubsystems.Count + " woven" : "live",
+            RuntimeState.Deploying => "deploying",
+            RuntimeState.Waiting => "waiting",
+            _ => "offline",
+        };
         #endregion
 
         #region GUI:
@@ -558,9 +568,7 @@ namespace Threadlink.Editor
         private void OnGUI()
         {
             BuildStyles();
-
-            if (Event.current.type == EventType.Layout || nodes.Count == 0)
-                RefreshModel();
+            RefreshOnLayout();
 
             var graphRect = new Rect(0f, 0f, position.width - PanelWidth, position.height - StripHeight);
             var panelRect = new Rect(graphRect.xMax, 0f, PanelWidth, position.height - StripHeight);
@@ -580,12 +588,69 @@ namespace Threadlink.Editor
                 selectedKey = pendingKey;
                 pendingKey = null;
                 panelScroll = Vector2.zero;
+                lastDetailRefresh = -1d;
                 GUIUtility.keyboardControl = 0;
                 Repaint();
             }
 
             if (Event.current.type == EventType.MouseMove)
                 Repaint();
+        }
+
+        /// <summary>
+        /// Refreshes the graph at 10 Hz and the selected node's report at 4 Hz, only on Layout, so Layout and Repaint
+        /// always draw the same content.
+        /// </summary>
+        private void RefreshOnLayout()
+        {
+            bool playing = EditorApplication.isPlaying;
+            double now = EditorApplication.timeSinceStartup;
+
+            if (coreNode == null || playing != wasPlaying)
+            {
+                wasPlaying = playing;
+                lastModelRefresh = lastDetailRefresh = -1d;
+            }
+
+            if (Event.current.type != EventType.Layout && coreNode != null)
+                return;
+
+            if (lastModelRefresh < 0d || (playing && now - lastModelRefresh >= ModelInterval))
+            {
+                RefreshModel();
+                lastModelRefresh = now;
+            }
+
+            var node = SelectedNode();
+
+            if (lastDetailRefresh < 0d || detailKey != node.Key || (playing && now - lastDetailRefresh >= DetailInterval))
+            {
+                detailKey = node.Key;
+                detailError = null;
+
+                if (node.CanReport)
+                    TryReport(node, detailReport, true, out detailError);
+                else
+                    detailReport.Begin(true);
+
+                lastDetailRefresh = now;
+            }
+        }
+
+        private Node SelectedNode()
+        {
+            if (selectedKey != CoreKey)
+            {
+                foreach (var node in nodes)
+                {
+                    if (node.Key == selectedKey)
+                        return node;
+                }
+
+                selectedKey = CoreKey;
+            }
+
+            return coreNode;
         }
 
         private void LayoutGraph(Rect rect)
@@ -612,9 +677,9 @@ namespace Threadlink.Editor
         private void HandleGraphInput(Rect rect)
         {
             var current = Event.current;
-            var hovered = NodeAt(current.mousePosition);
+            var hovered = rect.Contains(current.mousePosition) ? NodeAt(current.mousePosition) : null;
 
-            hoveredKey = rect.Contains(current.mousePosition) ? hovered?.Key : null;
+            hoveredKey = hovered?.Key;
 
             if (hovered != null)
                 EditorGUIUtility.AddCursorRect(Theme.Circle(hovered.Centre, hovered.Radius), MouseCursor.Link);
@@ -750,11 +815,11 @@ namespace Threadlink.Editor
             if (!string.IsNullOrEmpty(node.Caption))
             {
                 var outward = (node.Centre - graphCentre).normalized;
-                float textWidth = Theme.Measure(node.Caption, captionStyle).x;
+                float textWidth = Mathf.Min(Theme.Measure(node.Caption, captionStyle).x, 150f);
                 var anchor = node.Centre + outward * (node.Radius + 10f) + new Vector2(outward.x * textWidth * 0.5f, outward.y * 4f);
 
-                Theme.Draw(new Rect(anchor.x - textWidth * 0.5f - 2f, anchor.y - 7f, textWidth + 4f, 14f), node.Caption, captionStyle,
-                    node.Alert ? Bad : InkDim);
+                Theme.Draw(new Rect(anchor.x - textWidth * 0.5f - 2f, anchor.y - 7f, textWidth + 4f, 14f), Theme.Fit(node.Caption, captionStyle, textWidth),
+                    captionStyle, node.Alert ? Bad : InkDim);
             }
         }
 
@@ -792,9 +857,9 @@ namespace Threadlink.Editor
 
             x += 124f;
             Theme.StrokeRounded(Theme.Circle(new Vector2(x + 5f, y + 7f), 5f), Ink, 5f, 1.3f);
-            Theme.Draw(new Rect(x + 16f, y, 100f, 14f), "Static service", legendStyle, InkFaint);
+            Theme.Draw(new Rect(x + 16f, y, 100f, 14f), "Service", legendStyle, InkFaint);
 
-            x += 108f;
+            x += 80f;
             Theme.FillRounded(Theme.Circle(new Vector2(x + 5f, y + 7f), 5f), IdleFill, 5f);
             Theme.StrokeRounded(Theme.Circle(new Vector2(x + 5f, y + 7f), 5f), IdleStroke, 5f, 1f);
             Theme.Draw(new Rect(x + 16f, y, 100f, 14f), "Not running", legendStyle, InkFaint);
@@ -807,13 +872,7 @@ namespace Threadlink.Editor
             Theme.Fill(rect, PanelBackground);
             Theme.Fill(new Rect(rect.x, rect.y, 1f, rect.height), Rule);
 
-            var node = selectedKey == CoreKey ? coreNode : nodes.Find(candidate => candidate.Key == selectedKey);
-
-            if (node == null)
-            {
-                selectedKey = CoreKey;
-                node = coreNode;
-            }
+            var node = SelectedNode();
 
             GUILayout.BeginArea(rect);
             panelScroll = GUILayout.BeginScrollView(panelScroll, GUIStyle.none, GUI.skin.verticalScrollbar);
@@ -822,17 +881,30 @@ namespace Threadlink.Editor
             GUILayout.BeginVertical(GUILayout.Width(PanelWidth - PanelPadding * 2f - 4f));
             GUILayout.Space(16f);
 
-            DrawPanelHeader(node);
+            var title = GUILayoutUtility.GetRect(0f, 24f, GUILayout.ExpandWidth(true));
+            Theme.Draw(title, Theme.Fit(node.Label, titleStyle, title.width), titleStyle, Ink);
 
-            try
+            var subtitle = GUILayoutUtility.GetRect(0f, 16f, GUILayout.ExpandWidth(true));
+            Theme.Draw(subtitle, Theme.Fit(node.Subtitle, subtitleStyle, subtitle.width), subtitleStyle, InkDim);
+            GUILayout.Space(4f);
+
+            if (node.Kind == NodeKind.Subsystem)
+                DrawSubsystemFacts(node);
+
+            if (!node.Live && !string.IsNullOrEmpty(node.Description))
             {
-                DrawDetails(node);
+                GUILayout.Space(10f);
+                Note(node.Description, InkFaint);
             }
-            catch (Exception exception)
+
+            if (node.CanReport)
+                DrawReport(detailReport, detailError);
+
+            if (node.Kind == NodeKind.Core)
             {
-                // A subsystem mid-deployment or mid-shutdown can be in any state; never break the window over it.
-                Section("Unavailable");
-                Note(exception.GetType().Name + ": " + exception.Message, Bad);
+                DrawBudgetDetails();
+                DrawMemoryDetails();
+                DrawRenderingDetails();
             }
 
             GUILayout.Space(18f);
@@ -842,98 +914,71 @@ namespace Threadlink.Editor
             GUILayout.EndArea();
         }
 
-        private void DrawPanelHeader(Node node)
+        /// <summary>What the window can tell about any subsystem from its type alone.</summary>
+        private void DrawSubsystemFacts(Node node)
         {
-            var title = GUILayoutUtility.GetRect(0f, 24f, GUILayout.ExpandWidth(true));
-            Theme.Draw(title, Theme.Fit(node.Label, titleStyle, title.width), titleStyle, Ink);
+            var type = node.Type;
 
-            string subtitle = node.Kind switch
-            {
-                NodeKind.Core => "Core  ·  " + Kind(typeof(Threadlink)),
-                NodeKind.Service => "Static service",
-                _ => (node.Type != null && Array.IndexOf(NativeWoven, node.Type) >= 0 ? "Native subsystem" : "User subsystem") + "  ·  " + Kind(node.Type),
-            };
+            Section("Subsystem");
+            Row("Status", node.Live ? "Woven and linked" : EditorApplication.isPlaying ? "Not woven" : "Not running", node.Live ? Good : InkDim);
 
-            var sub = GUILayoutUtility.GetRect(0f, 16f, GUILayout.ExpandWidth(true));
-            Theme.Draw(sub, Theme.Fit(subtitle, subtitleStyle, sub.width), subtitleStyle, InkDim);
-            GUILayout.Space(4f);
+            if (type == null)
+                return;
+
+            Row("Type", type.FullName);
+            Row("Assembly", type.Assembly.GetName().Name);
+            Row("ID", "0x" + (node.Source is IThreadlinkSubsystem subsystem ? subsystem.ID : HashFunctions.ToXxHash32(type.FullName)).ToString("X8"));
+
+            var lifecycle = new List<string>(4);
+            if (typeof(IAddressablesPreloader).IsAssignableFrom(type)) lifecycle.Add("Preloads");
+            lifecycle.Add("Boots");
+            if (typeof(IInitializable).IsAssignableFrom(type)) lifecycle.Add("Initialises");
+            if (typeof(IDisposable).IsAssignableFrom(type)) lifecycle.Add("Disposes");
+
+            Row("Lifecycle", string.Join(" · ", lifecycle));
         }
 
-        private void DrawDetails(Node node)
+        /// <summary>Renders a report's lines. Nothing here knows which subsystem or service wrote them.</summary>
+        private void DrawReport(MonitorReport report, string error)
         {
-            if (node.Kind == NodeKind.Core)
+            if (error != null)
             {
-                DrawCoreDetails();
+                Section("Report failed");
+                Note(error, Bad);
                 return;
             }
 
-            if (node.Kind == NodeKind.Service)
+            var lines = report.Lines;
+
+            for (int i = 0; i < lines.Count; i++)
             {
-                switch (node.Key)
+                var line = lines[i];
+
+                switch (line.Kind)
                 {
-                    case IrisKey: DrawIrisDetails(); break;
-                    case NexusKey: DrawNexusDetails(); break;
-                    case InitiumKey: DrawInitiumDetails(); break;
-                    case ScribeKey: DrawScribeDetails(); break;
-                }
+                    case MonitorLineKind.Section:
+                        Section(line.Label);
+                        break;
 
-                return;
-            }
+                    case MonitorLineKind.Field:
+                        Row(line.Label ?? string.Empty, line.Value ?? string.Empty, ToneColor(line.Tone));
+                        break;
 
-            DrawSubsystemDetails(node);
+                    case MonitorLineKind.Reference:
+                        ObjectRow(line.Label ?? string.Empty, line.Target, line.Value);
+                        break;
 
-            if (!node.Live)
-                return;
+                    case MonitorLineKind.Meter:
+                        Row(line.Label ?? string.Empty, line.Value ?? string.Empty, ToneColor(line.Tone));
+                        Bar(line.Fraction, line.Tone == MonitorTone.Normal ? InkDim : ToneColor(line.Tone));
+                        break;
 
-            switch (node.Subsystem)
-            {
-                case Sentinel sentinel: DrawSentinelDetails(sentinel); break;
-                case Chronos _: DrawChronosDetails(); break;
-                case Dextra dextra: DrawDextraDetails(dextra); break;
-                case Aura _:
-                    Section("Audio");
-                    Row("Listener volume", AudioListener.volume.ToString("0.00"));
-                    break;
-            }
-
-            if (node.Subsystem is IEditorOnlyRegister register)
-                DrawRegister(register);
-        }
-
-        private void DrawCoreDetails()
-        {
-            Section("Deployment");
-            Row("State", StateLabel(), StateColor());
-
-            if (core == null)
-            {
-                Note(state == RuntimeState.Offline
-                    ? "Threadlink deploys once the first scene has loaded in Play Mode. Click any node to see what it does and, once running, its live state."
-                    : "Waiting for the core to deploy.");
-            }
-            else
-            {
-                Row("Woven subsystems", weaveOrder.Count.ToString());
-
-                if (Chronos.TryGetSingleton(out _))
-                    Row("Since deployment", FormatTime(Chronos.CurrentTimeSinceDeployment));
-
-                ObjectRow("Native config", core.NativeConfig);
-                ObjectRow("User config", core.UserConfig);
-
-                Section("Weave order");
-
-                for (int i = 0; i < weaveOrder.Count; i++)
-                {
-                    var subsystem = weaveOrder[i];
-                    bool linked = IsLinked(subsystem);
-                    Row((i + 1) + ".  " + subsystem.GetType().Name, linked ? Kind(subsystem.GetType()) : "unlinked", linked ? InkDim : Caution);
+                    case MonitorLineKind.Note:
+                        Note(line.Label ?? string.Empty, line.Tone == MonitorTone.Normal ? InkDim : ToneColor(line.Tone));
+                        GUILayout.Space(2f);
+                        break;
                 }
             }
-
-            DrawBudgetDetails();
-            DrawMemoryDetails();
-            DrawRenderingDetails();
         }
 
         private void DrawBudgetDetails()
@@ -941,7 +986,7 @@ namespace Threadlink.Editor
             Section("Frame budget");
 
             var popup = GUILayoutUtility.GetRect(0f, 20f, GUILayout.ExpandWidth(true));
-            Theme.Draw(new Rect(popup.x, popup.y, popup.width * 0.5f, popup.height), "Target", keyStyle, InkDim);
+            Theme.Draw(new Rect(popup.x, popup.y, popup.width * 0.5f, popup.height), "Target", keyStyle, Ink);
 
             var options = new string[TargetFrameRates.Length];
             options[0] = "Auto (" + ResolveTargetFrameRate(0) + " fps)";
@@ -956,7 +1001,7 @@ namespace Threadlink.Editor
 
             if (!EditorApplication.isPlaying)
             {
-                Note("Frame metrics are sampled in Play Mode.");
+                Note("Frame metrics are sampled in Play Mode.", InkFaint);
                 return;
             }
 
@@ -968,7 +1013,7 @@ namespace Threadlink.Editor
 
             GUILayout.Space(6f);
             Sparkline(budget);
-            Note("Main thread time over the last 12 seconds, against the budget line. In the Editor it includes Editor work.");
+            Note("Main thread time over the last 12 seconds, against the budget line. In the Editor it includes Editor work.", InkFaint);
         }
 
         private void DrawMemoryDetails()
@@ -977,7 +1022,7 @@ namespace Threadlink.Editor
 
             if (!EditorApplication.isPlaying)
             {
-                Note("Memory is sampled in Play Mode.");
+                Note("Memory is sampled in Play Mode.", InkFaint);
                 return;
             }
 
@@ -1002,7 +1047,7 @@ namespace Threadlink.Editor
             Row("GC allocation", Theme.Bytes((long)gcPerFrame) + " / frame");
             Row("GC rate", Theme.Bytes((long)(gcPerFrame * fps)) + " / s");
             Row("GC collections", (GC.CollectionCount(0) - gcBaseline) + " this session");
-            Note("Editor figures include the Editor itself. Profile a development build for numbers to budget against.");
+            Note("Editor figures include the Editor itself. Profile a development build for numbers to budget against.", InkFaint);
         }
 
         private void DrawRenderingDetails()
@@ -1015,260 +1060,6 @@ namespace Threadlink.Editor
             Row("Draw calls", RecorderValue(drawCalls));
             Row("Set-pass calls", RecorderValue(setPassCalls));
             Row("Triangles", RecorderValue(triangles));
-        }
-
-        private void DrawSubsystemDetails(Node node)
-        {
-            var type = node.Type;
-
-            Section("Subsystem");
-            Row("Status", node.Live ? "Woven and linked" : EditorApplication.isPlaying ? "Not woven" : "Not running", node.Live ? Good : InkDim);
-
-            if (type == null)
-                return;
-
-            Row("Type", type.FullName);
-            Row("Assembly", type.Assembly.GetName().Name);
-            Row("ID", "0x" + (node.Subsystem?.ID ?? HashFunctions.ToXxHash32(type.FullName)).ToString("X8"));
-
-            var lifecycle = new List<string>(4);
-            if (typeof(IAddressablesPreloader).IsAssignableFrom(type)) lifecycle.Add("Preloads");
-            lifecycle.Add("Boots");
-            if (typeof(IInitializable).IsAssignableFrom(type)) lifecycle.Add("Initialises");
-            if (typeof(IDisposable).IsAssignableFrom(type)) lifecycle.Add("Disposes");
-
-            Row("Lifecycle", string.Join(" · ", lifecycle));
-
-            if (!node.Live)
-                Note(Describe(type));
-        }
-
-        private void DrawRegister(IEditorOnlyRegister register)
-        {
-            registryBuffer.Clear();
-            registryBuffer.AddRange(register.EditorOnly_Registry);
-
-            Section("Linked " + register.EditorOnly_ObjectType.Name + "  (" + registryBuffer.Count + ")");
-
-            if (registryBuffer.Count == 0)
-            {
-                Note("Nothing linked.");
-                return;
-            }
-
-            int shown = Mathf.Min(registryBuffer.Count, 200);
-
-            for (int i = 0; i < shown; i++)
-            {
-                var value = registryBuffer[i].Value;
-                string name = value is INamable namable ? namable.Name : value?.GetType().Name ?? "null";
-
-                if (value is UnityObject unityObject)
-                    ObjectRow(name, unityObject, "0x" + registryBuffer[i].Key.ToString("X8"));
-                else
-                    Row(name, "0x" + registryBuffer[i].Key.ToString("X8"));
-            }
-
-            if (registryBuffer.Count > shown)
-                Note("And " + (registryBuffer.Count - shown) + " more.");
-        }
-
-        private void DrawSentinelDetails(Sentinel sentinel)
-        {
-            var result = sentinel.InitializationResult;
-
-            Section("Platform");
-            Row("State", sentinel.State.ToString(), sentinel.State switch
-            {
-                Sentinel.DeploymentState.Ready => Good,
-                Sentinel.DeploymentState.Failed => Bad,
-                _ => Caution,
-            });
-            Row("Platform", sentinel.ActivePlatform.ToString());
-            Row("Distribution", sentinel.ActiveDistribution.ToString());
-            Row("Module", string.IsNullOrEmpty(sentinel.ActiveModuleDisplayName) ? "—" : sentinel.ActiveModuleDisplayName);
-            Row("Result", result.Succeeded ? "Success" : result.Error.ToString(), result.Succeeded ? InkDim : Bad);
-
-            if (!result.Succeeded && !string.IsNullOrEmpty(result.Message))
-                Note(result.Message, Bad);
-
-            Section("Capabilities");
-            var capabilities = sentinel.Capabilities;
-            Note(capabilities == SentinelCapability.None ? "None" : capabilities.ToString().Replace(", ", "  ·  "), InkDim);
-        }
-
-        private void DrawChronosDetails()
-        {
-            Section("Time");
-            Row("Frame rate", Chronos.DeltaTime > 0f ? (1f / Chronos.DeltaTime).ToString("0") + " fps" : "—");
-            Row("Delta time", (Chronos.DeltaTime * 1000f).ToString("0.00") + " ms");
-            Row("Smooth delta", (Chronos.SmoothDeltaTime * 1000f).ToString("0.00") + " ms");
-            Row("Unscaled delta", (Chronos.UnscaledDeltaTime * 1000f).ToString("0.00") + " ms");
-            Row("Fixed delta", (Chronos.FixedDeltaTime * 1000f).ToString("0.00") + " ms");
-            Row("Time scale", Chronos.TimeScale.ToString("0.##"), Chronos.TimeScale <= 0f ? Caution : InkDim);
-
-            Section("Playtime");
-            Row("Total", FormatTime(Chronos.TotalPlaytime));
-            Row("Counting", Chronos.CountTotalPlaytime ? Chronos.PlaytimeCountingMode.ToString() : "Paused");
-            Row("Since deployment", FormatTime(Chronos.CurrentTimeSinceDeployment));
-        }
-
-        private void DrawDextraDetails(Dextra dextra)
-        {
-            Section("Input");
-            Row("Device", dextra.CurrentInputDevice.ToString());
-            ObjectRow("Pointed object", dextra.CurrentPointedObject);
-
-            Section("UI stack");
-            int index = 0;
-
-            foreach (var userInterface in dextra.EditorOnly_StackedInterfaces)
-                Row(index++ == 0 ? "Top" : index.ToString(), userInterface.Name);
-
-            if (index == 0)
-                Note("No interfaces stacked.");
-        }
-
-        private void DrawIrisDetails()
-        {
-            Note("Iris is the event bus: subscribe, unsubscribe and publish by generated event ID.");
-
-            if (!EditorApplication.isPlaying)
-                return;
-
-            irisEvents ??= (ThreadlinkIDs.Iris.Events[])Enum.GetValues(typeof(ThreadlinkIDs.Iris.Events));
-
-            Section("Events");
-            Row("Declared", irisEvents.Length.ToString());
-            Row("With listeners", irisListeners.Count.ToString());
-            Row("Listeners", irisTotal.ToString());
-
-            if (irisListeners.Count == 0)
-                return;
-
-            Section("Listeners by event");
-
-            foreach (var (eventName, count) in irisListeners)
-                Row(eventName, count.ToString());
-        }
-
-        private void DrawNexusDetails()
-        {
-            Note("Nexus loads, holds and presents scenes. A scene stays resident while anything holds it.");
-
-            if (!EditorApplication.isPlaying)
-                return;
-
-            Section("Presentation");
-            Row("Presented", Nexus.Presented != null ? Nexus.Presented.ScenePointer.ToString() : "None");
-            Row("Active scene", SceneManager.GetActiveScene().name);
-
-            Section("Scenes");
-            int count = 0;
-
-            foreach (var (pointer, sceneState, holds, _) in Nexus.EditorOnly_Scenes)
-            {
-                count++;
-                Row(pointer, sceneState + "  ·  " + holds + (holds == 1 ? " hold" : " holds"), sceneState == "Resident" ? InkDim : Caution);
-            }
-
-            if (count == 0)
-                Note("Nexus holds no scenes.");
-
-            Section("Loaded Unity scenes");
-
-            for (int i = 0; i < SceneManager.sceneCount; i++)
-            {
-                var scene = SceneManager.GetSceneAt(i);
-                Row(scene.name, scene == SceneManager.GetActiveScene() ? "active" : scene.isLoaded ? "loaded" : "loading");
-            }
-        }
-
-        private void DrawInitiumDetails()
-        {
-            Note("Initium is the initialisation pipeline: it preloads, boots and initialises subsystems at deployment, then the " +
-                "IDiscoverable objects of loaded scenes and of every scene Nexus holds, and discards them before Nexus unloads a scene.");
-
-            if (!EditorApplication.isPlaying)
-                return;
-
-            // Rescan at most once a second, and only on Layout, so Layout and Repaint lay out the same rows.
-            if (Event.current.type == EventType.Layout && EditorApplication.timeSinceStartup - lastDiscoverableScan > 1d)
-            {
-                lastDiscoverableScan = EditorApplication.timeSinceStartup;
-                discoverables.Clear();
-
-                var counts = new Dictionary<string, int>(8);
-
-                foreach (var behaviour in UnityObject.FindObjectsByType<LinkableBehaviour>(FindObjectsInactive.Include))
-                {
-                    if (behaviour is not IDiscoverable)
-                        continue;
-
-                    string scene = behaviour.gameObject.scene.name;
-                    counts[scene] = counts.TryGetValue(scene, out int existing) ? existing + 1 : 1;
-                }
-
-                foreach (var pair in counts)
-                    discoverables.Add((pair.Key, pair.Value));
-
-                discoverables.Sort((a, b) => b.Count.CompareTo(a.Count));
-            }
-
-            Section("Discoverable objects");
-
-            foreach (var (scene, count) in discoverables)
-                Row(string.IsNullOrEmpty(scene) ? "(no scene)" : scene, count.ToString());
-
-            if (discoverables.Count == 0)
-                Note("No discoverable objects are loaded.");
-        }
-
-        private void DrawScribeDetails()
-        {
-            Note("Scribe formats and sends Threadlink's log messages to the Unity console.");
-
-            if (!EditorApplication.isPlaying)
-                return;
-
-            // Messages arrive on any thread: take the snapshot on Layout, so Layout and Repaint lay out the same rows.
-            if (Event.current.type == EventType.Layout || scribeSnapshot == null)
-            {
-                lock (logLock)
-                {
-                    scribeCounts = (logCount, warningCount, errorCount);
-                    scribeSnapshot = recentMessages.ToArray();
-                }
-            }
-
-            var (logs, warnings, errors) = scribeCounts;
-            var recent = scribeSnapshot;
-
-            Section("Console this session");
-            Row("Messages", logs.ToString());
-            Row("Warnings", warnings.ToString(), warnings > 0 ? Caution : InkDim);
-            Row("Errors", errors.ToString(), errors > 0 ? Bad : InkDim);
-
-            Section("Recent Threadlink messages");
-
-            if (recent.Length == 0)
-            {
-                Note("None yet.");
-                return;
-            }
-
-            for (int i = recent.Length - 1; i >= 0; i--)
-            {
-                var color = recent[i].Type switch
-                {
-                    LogType.Warning => Caution,
-                    LogType.Log => InkDim,
-                    _ => Bad,
-                };
-
-                Note(recent[i].Text, color);
-                GUILayout.Space(2f);
-            }
         }
         #endregion
 
@@ -1331,7 +1122,7 @@ namespace Threadlink.Editor
         {
             GUILayout.Space(16f);
             var rect = GUILayoutUtility.GetRect(0f, 14f, GUILayout.ExpandWidth(true));
-            Theme.Draw(rect, title.ToUpperInvariant(), sectionStyle, InkFaint);
+            Theme.Draw(rect, Theme.Fit((title ?? string.Empty).ToUpperInvariant(), sectionStyle, rect.width), sectionStyle, InkFaint);
             Theme.Fill(new Rect(rect.x, rect.yMax + 3f, rect.width, 1f), Rule);
             GUILayout.Space(7f);
         }
@@ -1353,7 +1144,7 @@ namespace Threadlink.Editor
         }
 
         /// <summary>A row whose value pings <paramref name="target"/> when clicked.</summary>
-        private void ObjectRow(string key, UnityObject target, string value = null)
+        private void ObjectRow(string key, UnityObject target, string value)
         {
             var rect = GUILayoutUtility.GetRect(0f, 19f, GUILayout.ExpandWidth(true));
             value ??= target != null ? target.name : "None";
@@ -1382,8 +1173,6 @@ namespace Threadlink.Editor
             if (clickable)
                 Theme.Fill(new Rect(valueRect.x, valueRect.yMax - 3f, valueRect.width, 1f), Theme.WithAlpha(Ink, hovered ? 0.6f : 0.18f));
         }
-
-        private void Note(string text) => Note(text, InkFaint);
 
         private void Note(string text, Color color)
         {
@@ -1439,6 +1228,15 @@ namespace Threadlink.Editor
         #endregion
 
         #region Helpers:
+        private static Color ToneColor(MonitorTone tone) => tone switch
+        {
+            MonitorTone.Muted => InkFaint,
+            MonitorTone.Good => Good,
+            MonitorTone.Caution => Caution,
+            MonitorTone.Bad => Bad,
+            _ => InkDim,
+        };
+
         private int ResolveTargetFrameRate(int selected)
         {
             if (selected > 0)
@@ -1464,28 +1262,7 @@ namespace Threadlink.Editor
             return recorder.Valid && recorder.LastValue > 0 ? recorder.LastValue.ToString("N0") : "—";
         }
 
-        private string StateLabel() => state switch
-        {
-            RuntimeState.Live => "Deployed",
-            RuntimeState.Deploying => "Deploying",
-            RuntimeState.Waiting => "Waiting for the core",
-            _ => "Offline",
-        };
-
-        private Color StateColor() => state switch
-        {
-            RuntimeState.Live => Good,
-            RuntimeState.Deploying => Caution,
-            _ => InkDim,
-        };
-
-        private static string FormatTime(float seconds)
-        {
-            var span = TimeSpan.FromSeconds(Mathf.Max(0f, seconds));
-            return span.TotalHours >= 1d ? span.ToString(@"h\:mm\:ss") : span.ToString(@"m\:ss");
-        }
-
-        /// <summary>Weaver, Linker, Register or Subsystem: the most specific base <paramref name="type"/> derives from.</summary>
+        /// <summary>Weaver, Linker, Register or Subsystem: the most specific Threadlink base <paramref name="type"/> derives from.</summary>
         private static string Kind(Type type)
         {
             for (var current = type; current != null; current = current.BaseType)
@@ -1495,22 +1272,12 @@ namespace Threadlink.Editor
 
                 var definition = current.GetGenericTypeDefinition();
 
-                if (definition == typeof(Weaver<,>)) return "Weaver of " + current.GetGenericArguments()[1].Name;
-                if (definition == typeof(Linker<,>)) return "Linker of " + current.GetGenericArguments()[1].Name;
-                if (definition == typeof(Register<,>)) return "Register of " + current.GetGenericArguments()[1].Name;
+                if (definition == typeof(global::Threadlink.Core.Weaver<,>)) return "Weaver of " + current.GetGenericArguments()[1].Name;
+                if (definition == typeof(global::Threadlink.Core.Linker<,>)) return "Linker of " + current.GetGenericArguments()[1].Name;
+                if (definition == typeof(global::Threadlink.Core.Register<,>)) return "Register of " + current.GetGenericArguments()[1].Name;
             }
 
             return "Subsystem";
-        }
-
-        private static string Describe(Type type)
-        {
-            if (type == typeof(Sentinel)) return "Sentinel resolves the platform and distribution, and exposes platform services: accounts, saves, achievements, presence and invites.";
-            if (type == typeof(Chronos)) return "Chronos tracks time: delta times, time scale, pausing and total playtime.";
-            if (type == typeof(Dextra)) return "Dextra handles input: the current device, input maps, and the stack of user interfaces.";
-            if (type == typeof(Aura)) return "Aura mixes audio: music and ambience channels, UI effects, and spatial audio zones in the presented scene.";
-
-            return "A user subsystem declared in the project. It appears here once woven at deployment.";
         }
         #endregion
     }

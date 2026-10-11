@@ -23,28 +23,29 @@ Every command is under the **Threadlink** menu. [Menus and Asset Creation](../re
 
 ## Runtime Monitor
 
-**`Threadlink ▸ Runtime Monitor`** shows the runtime as a graph: the core in the centre, with every woven subsystem and static service (Iris, Nexus, Initium, Scribe) around it. It replaces the Registers Tracker.
+**`Threadlink ▸ Runtime Monitor`** shows the runtime as a graph: the core in the centre, with every woven subsystem and monitored service around it, native and project alike. It replaces the Registers Tracker.
 
-- **Nodes.** Filled nodes are woven subsystems; outlined nodes are static services; dark nodes are not running. Each caption gives a live summary, such as linked objects, listeners or Sentinel's state. A red dot marks a failed Sentinel or errors in the console.
-- **Details.** Click a node to inspect it in the side panel:
+- **Nodes.** Filled nodes are woven subsystems; outlined nodes are services; dark nodes are not running. Each node's caption and red alert dot come from its own report.
+- **Details.** Click a node to see its report in the side panel. For subsystems, the panel also shows what the type itself tells: status, type, assembly, ID and lifecycle. Out of the box:
 
-  | Node | Shows |
+  | Node | Reports |
   |---|---|
-  | Threadlink | Deployment state, weave order, configs, and the frame, memory and rendering figures below. |
-  | Any register (Aura, user Linkers and Weavers) | Every linked object: name, ID, and a ping link for Unity objects. |
+  | Threadlink | Deployment state, weave order and configs, followed by the frame, memory and rendering figures below. |
+  | Any register (Aura, project Linkers and Weavers) | Every linked object: name, ID, and a ping link for Unity objects. |
   | Sentinel | State, platform, distribution, module, initialisation result, capabilities. |
   | Chronos | Delta times, time scale, playtime. |
   | Dextra | Input device, pointed object, UI stack. |
+  | Aura | Listener, music and ambience volumes and clips, then its links. |
   | Iris | Listener counts per event. |
   | Nexus | Presented scene, held scenes with state and holds, loaded Unity scenes. |
   | Initium | Discoverable objects per loaded scene. |
-  | Scribe | Messages, warnings and errors this session, and recent Threadlink messages. |
+  | Scribe | Messages, warnings and errors this session, and the most recent. |
+
+  Your own subsystems and services appear the same way; [Monitoring](monitoring.md) shows how to report their state.
 
 - **Metrics.** The bottom strip shows FPS, main-thread time against the frame budget, GC allocation per frame, managed heap, memory and batches. The budget comes from a target frame rate (**Auto** uses `Application.targetFrameRate`, then the display's refresh rate); change it in the core's panel, which also plots main-thread time over the last 12 seconds.
 
-Outside Play Mode the graph shows the native subsystems and the user subsystems declared in the project, without live data. Editor figures include the Editor's own work and memory, so budget against a development build.
-
-The monitor reads the runtime through editor-only members, which are not compiled into builds: `Register.EditorOnly_Registry` (through `IEditorOnlyRegister`), `Threadlink.EditorOnly_WeaveOrder`, `Nexus.EditorOnly_Scenes` and `Dextra.EditorOnly_StackedInterfaces`. `Threadlink.IsDeployed` is public in every build.
+Outside Play Mode the graph shows every subsystem and service declared in the project, with their descriptions but no live data. Editor figures include the Editor's own work and memory, so budget against a development build.
 
 ## Scene dropdown
 

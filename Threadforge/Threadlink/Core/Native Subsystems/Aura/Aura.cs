@@ -21,6 +21,7 @@ namespace Threadlink.Core.NativeSubsystems.Aura
     /// Subsystem responsible for Audio Mixing during Threadlink's runtime.
     /// Provides Spatial Mixing for BGM and Atmos, audio transitions, fades etc.
     /// </summary>
+    [Monitored(Description = "Mixes audio: music and ambience channels, UI sounds, and spatial audio zones in the presented scene.", Order = -1997)]
     public sealed class Aura : Linker<Aura, AuraSpatialObject>,
     IAddressablesPreloader,
     IDependencyConsumer<AuraConfig>,
@@ -316,5 +317,24 @@ namespace Threadlink.Core.NativeSubsystems.Aura
         {
             source.volume = source.volume.MoveTowards(targetVolume, Chronos.UnscaledDeltaTime * Config.VolumeFadeSpeed);
         }
+
+        #region Monitoring:
+        public override void Report(MonitorReport report)
+        {
+            report.Summary(LinkedCountCaption());
+
+            if (!report.Detailed)
+                return;
+
+            report.Section("Audio")
+                .Field("Listener volume", AudioListener.volume)
+                .Meter("Music", Music != null ? Music.volume : 0f, Music != null ? Music.volume.ToString("0.00") + " of " + CurrentMaxMusicVolume.ToString("0.00") : "—")
+                .Meter("Atmos", Atmos != null ? Atmos.volume : 0f, Atmos != null ? Atmos.volume.ToString("0.00") + " of " + CurrentMaxAtmosVolume.ToString("0.00") : "—")
+                .Reference("Music clip", Music != null ? Music.clip : null)
+                .Reference("Atmos clip", Atmos != null ? Atmos.clip : null);
+
+            ReportLinks(report);
+        }
+        #endregion
     }
 }

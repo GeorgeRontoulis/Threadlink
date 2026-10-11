@@ -21,10 +21,8 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
     /// <see cref="RetryAsync"/>, and when a Ready platform is lost (for example the Steam client
     /// shutting down), in which case Sentinel moves to Failed with <see cref="SentinelError.PlatformLost"/>.
     /// </summary>
-    public sealed class Sentinel
-        : ThreadlinkSubsystem<Sentinel>,
-            IDependencyConsumer<SentinelConfig>,
-            IAddressablesPreloader
+    [Monitored(Description = "Resolves the platform and distribution, and exposes platform services: accounts, saves, achievements, presence and invites.", Order = -2000)]
+    public sealed class Sentinel : ThreadlinkSubsystem<Sentinel>, IDependencyConsumer<SentinelConfig>, IAddressablesPreloader
     {
         public enum DeploymentState : byte
         {
@@ -38,20 +36,16 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
 
         public DeploymentState State { get; private set; } = DeploymentState.Uninitialized;
 
-        public SentinelResult InitializationResult { get; private set; } =
-            SentinelResult.Failure(SentinelError.NotInitialized);
-        public SentinelPlatformMarker ActivePlatform { get; private set; } =
-            SentinelPlatformMarker.Unknown;
-        public SentinelDistribution ActiveDistribution { get; private set; } =
-            SentinelDistribution.None;
+        public SentinelResult InitializationResult { get; private set; } = SentinelResult.Failure(SentinelError.NotInitialized);
+        public SentinelPlatformMarker ActivePlatform { get; private set; } = SentinelPlatformMarker.Unknown;
+        public SentinelDistribution ActiveDistribution { get; private set; } = SentinelDistribution.None;
 
         public string ActiveModuleID { get; private set; }
         public string ActiveModuleDisplayName { get; private set; }
 
         public ISentinelPlatform Platform { get; private set; }
 
-        public SentinelCapability Capabilities =>
-            Platform != null ? Platform.Capabilities : SentinelCapability.None;
+        public SentinelCapability Capabilities => Platform != null ? Platform.Capabilities : SentinelCapability.None;
 
         private SentinelConfig Config { get; set; }
         private bool Retrying { get; set; }
@@ -358,5 +352,36 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
             State = DeploymentState.Failed;
             return false;
         }
+
+        #region Monitoring:
+        public override void Report(MonitorReport report)
+        {
+            report.Summary(State.ToString(), State is DeploymentState.Failed);
+
+            if (!report.Detailed)
+                return;
+
+            var result = InitializationResult;
+            var capabilities = Capabilities;
+
+            report.Section("Platform")
+                .Field("State", State.ToString(), State switch
+                {
+                    DeploymentState.Ready => MonitorTone.Good,
+                    DeploymentState.Failed => MonitorTone.Bad,
+                    _ => MonitorTone.Caution,
+                })
+                .Field("Platform", ActivePlatform.ToString())
+                .Field("Distribution", ActiveDistribution.ToString())
+                .Field("Module", string.IsNullOrEmpty(ActiveModuleDisplayName) ? "—" : ActiveModuleDisplayName)
+                .Field("Result", result.Succeeded ? "Success" : result.Error.ToString(), result.Succeeded ? MonitorTone.Muted : MonitorTone.Bad);
+
+            if (!result.Succeeded && !string.IsNullOrEmpty(result.Message))
+                report.Note(result.Message, MonitorTone.Bad);
+
+            report.Section("Capabilities")
+                .Note(capabilities == SentinelCapability.None ? "None" : capabilities.ToString().Replace(", ", "  ·  "), MonitorTone.Normal);
+        }
+        #endregion
     }
 }

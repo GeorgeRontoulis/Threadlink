@@ -13,7 +13,7 @@
     /// to enforce type safety for their exposed static singletons.
     /// </summary>
     /// <typeparam name="Singleton">The singleton type of the subsystem.</typeparam>
-    public abstract partial class ThreadlinkSubsystem<Singleton> : IThreadlinkSubsystem<Singleton>
+    public abstract partial class ThreadlinkSubsystem<Singleton> : IThreadlinkSubsystem<Singleton>, IMonitorable
     where Singleton : ThreadlinkSubsystem<Singleton>
     {
         /// <summary>
@@ -35,6 +35,12 @@
             Instance = null;
         }
 
+        /// <summary>
+        /// Describe this subsystem's state to a monitor, such as the Runtime Monitor. Reports nothing by default;
+        /// override to report a summary and, when <see cref="MonitorReport.Detailed"/>, sections of fields.
+        /// </summary>
+        public virtual void Report(MonitorReport report) { }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool TryGetSingleton(out Singleton result)
         {
@@ -48,19 +54,6 @@
     }
 
     #region Register:
-#if UNITY_EDITOR
-    /// <summary>
-    /// Editor-only view of a <see cref="Register{Singleton, Object}"/>'s contents, for editor tooling such as the
-    /// Runtime Monitor. Not compiled into builds.
-    /// </summary>
-    public interface IEditorOnlyRegister
-    {
-        public int EditorOnly_Count { get; }
-        public System.Type EditorOnly_ObjectType { get; }
-        public IEnumerable<KeyValuePair<int, IIdentifiable>> EditorOnly_Registry { get; }
-    }
-#endif
-
     /// <summary>
     /// A specialized type of subsystem acting as a register of objects.
     /// Internally, it uses a <see cref="Dictionary{int, Object}"/> to keep
@@ -82,16 +75,10 @@
     /// <typeparam name="Singleton">The singleton type of the subsystem.</typeparam>
     /// <typeparam name="Object">The type of object that can be registered.</typeparam>
     public abstract class Register<Singleton, Object> : ThreadlinkSubsystem<Singleton>
-#if UNITY_EDITOR
-    , IEditorOnlyRegister
-#endif
     where Singleton : Register<Singleton, Object>
     where Object : IIdentifiable
     {
 #if UNITY_EDITOR
-        public int EditorOnly_Count => Registry?.Count ?? 0;
-        public System.Type EditorOnly_ObjectType => typeof(Object);
-
         public IEnumerable<KeyValuePair<int, IIdentifiable>> EditorOnly_Registry
         {
             get
@@ -129,6 +116,52 @@
         {
             Registry = new(1);
             base.Boot();
+        }
+
+        /// <summary>Reports how many objects are linked and, in detail, each one.</summary>
+        public override void Report(MonitorReport report)
+        {
+            report.Summary(LinkedCountCaption());
+
+            if (report.Detailed)
+                ReportLinks(report);
+        }
+
+        /// <summary>"1 linked", "4 linked".</summary>
+        protected string LinkedCountCaption() => (Registry?.Count ?? 0) + " linked";
+
+        /// <summary>A section listing every linked object, up to <paramref name="limit"/>: name, ID, and a reference to Unity objects.</summary>
+        protected void ReportLinks(MonitorReport report, int limit = 200)
+        {
+            int count = Registry?.Count ?? 0;
+
+            report.Section("Linked " + typeof(Object).Name + "  (" + count + ")");
+
+            if (count == 0)
+            {
+                report.Note("Nothing linked.");
+                return;
+            }
+
+            int shown = 0;
+
+            foreach (var pair in Registry)
+            {
+                if (shown++ >= limit)
+                {
+                    report.Note("And " + (count - limit) + " more.");
+                    break;
+                }
+
+                var value = pair.Value;
+                string id = "0x" + pair.Key.ToString("X8");
+                string name = value is INamable namable ? namable.Name : value?.GetType().Name ?? "null";
+
+                if (value is global::UnityEngine.Object unityObject)
+                    report.Reference(name, unityObject, id);
+                else
+                    report.Field(name, id, MonitorTone.Muted);
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

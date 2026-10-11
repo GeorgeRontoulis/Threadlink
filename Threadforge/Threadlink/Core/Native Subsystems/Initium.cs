@@ -16,6 +16,39 @@ namespace Threadlink.Core.NativeSubsystems.Initium
     /// </summary>
     public static class Initium
     {
+        [Monitored("Initium", Order = -998, Description = "The initialisation pipeline: it preloads, boots and initialises subsystems at deployment, " +
+            "then the discoverable objects of loaded scenes and of every scene Nexus holds, and discards them before Nexus unloads a scene.")]
+        private static void Report(MonitorReport report)
+        {
+            int sceneCount = SceneManager.sceneCount;
+            report.Summary(sceneCount + (sceneCount == 1 ? " scene" : " scenes"));
+
+            // Counting means finding every object, so it happens only for the detailed report.
+            if (!report.Detailed)
+                return;
+
+            var counts = new Dictionary<string, int>(8);
+            int total = 0;
+
+            foreach (var behaviour in Object.FindObjectsByType<LinkableBehaviour>(FindObjectsInactive.Include))
+            {
+                if (behaviour is not IDiscoverable)
+                    continue;
+
+                string scene = behaviour.gameObject.scene.name;
+                counts[scene] = counts.TryGetValue(scene, out int existing) ? existing + 1 : 1;
+                total++;
+            }
+
+            report.Section("Discoverable objects  (" + total + ")");
+
+            if (total == 0)
+                report.Note("No discoverable objects are loaded.");
+
+            foreach (var pair in counts.OrderByDescending(entry => entry.Value))
+                report.Field(string.IsNullOrEmpty(pair.Key) ? "(no scene)" : pair.Key, pair.Value);
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static IEnumerable<IDiscoverable> DiscoverLinkableBehaviours()
         {

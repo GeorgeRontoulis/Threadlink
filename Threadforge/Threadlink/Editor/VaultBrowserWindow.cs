@@ -3,11 +3,11 @@ namespace Threadlink.Editor
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using Threadlink.Vault;
     using UnityEditor;
     using UnityEditor.IMGUI.Controls;
     using UnityEngine;
     using Theme = ThreadlinkEditorTheme;
+    using VaultAsset = global::Threadlink.Vault.Vault;
     using UnityInspector = UnityEditor.Editor;
 
     /// <summary>
@@ -42,7 +42,7 @@ namespace Threadlink.Editor
 
         private SearchField searchField;
         private UnityInspector inspector;
-        private Vault inspected;
+        private VaultAsset inspected;
         private bool listDirty = true;
         private bool resizing;
         private string pendingGuid;
@@ -53,15 +53,15 @@ namespace Threadlink.Editor
         internal static void Open() => Show(null);
 
         [MenuItem("Assets/Threadlink/Open in Vault Browser", priority = 2000)]
-        private static void OpenSelected() => Show(Selection.activeObject as Vault);
+        private static void OpenSelected() => Show(Selection.activeObject as VaultAsset);
 
         [MenuItem("Assets/Threadlink/Open in Vault Browser", true)]
-        private static bool CanOpenSelected() => Selection.activeObject is Vault;
+        private static bool CanOpenSelected() => Selection.activeObject is VaultAsset;
 
         [MenuItem("CONTEXT/Vault/Open in Vault Browser")]
-        private static void OpenFromInspector(MenuCommand command) => Show(command.context as Vault);
+        private static void OpenFromInspector(MenuCommand command) => Show(command.context as VaultAsset);
 
-        private static void Show(Vault vault)
+        private static void Show(VaultAsset vault)
         {
             var window = GetWindow<VaultBrowserWindow>();
             window.titleContent = new GUIContent("Vault Browser", EditorGUIUtility.IconContent("ScriptableObject Icon").image);
@@ -112,11 +112,11 @@ namespace Threadlink.Editor
             listDirty = false;
             entries.Clear();
 
-            foreach (string guid in AssetDatabase.FindAssets("t:" + nameof(Vault)))
+            foreach (string guid in AssetDatabase.FindAssets("t:" + typeof(VaultAsset).Name))
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
 
-                if (string.IsNullOrEmpty(path) || AssetDatabase.LoadAssetAtPath<Vault>(path) is not Vault vault)
+                if (string.IsNullOrEmpty(path) || AssetDatabase.LoadAssetAtPath<VaultAsset>(path) is not VaultAsset vault)
                     continue;
 
                 entries.Add(new Entry
@@ -133,7 +133,7 @@ namespace Threadlink.Editor
             Filter();
         }
 
-        private static int CountFields(Vault vault)
+        private static int CountFields(VaultAsset vault)
         {
             using var serializedVault = new SerializedObject(vault);
             var count = serializedVault.FindProperty("dataFields.count");
@@ -167,10 +167,10 @@ namespace Threadlink.Editor
             Repaint();
         }
 
-        private Vault ResolveSelectedVault()
+        private VaultAsset ResolveSelectedVault()
         {
             var entry = Selected;
-            var vault = entry != null ? AssetDatabase.LoadAssetAtPath<Vault>(entry.Path) : null;
+            var vault = entry != null ? AssetDatabase.LoadAssetAtPath<VaultAsset>(entry.Path) : null;
 
             if (vault != inspected)
             {
@@ -469,7 +469,7 @@ namespace Threadlink.Editor
         #region Actions:
         private static void PingEntry(Entry entry)
         {
-            var asset = AssetDatabase.LoadAssetAtPath<Vault>(entry.Path);
+            var asset = AssetDatabase.LoadAssetAtPath<VaultAsset>(entry.Path);
 
             if (asset != null)
                 EditorGUIUtility.PingObject(asset);
@@ -480,7 +480,7 @@ namespace Threadlink.Editor
             var menu = new GenericMenu();
 
             menu.AddItem(new GUIContent("Ping in Project"), false, () => PingEntry(entry));
-            menu.AddItem(new GUIContent("Select in Project"), false, () => Selection.activeObject = AssetDatabase.LoadAssetAtPath<Vault>(entry.Path));
+            menu.AddItem(new GUIContent("Select in Project"), false, () => Selection.activeObject = AssetDatabase.LoadAssetAtPath<VaultAsset>(entry.Path));
             menu.AddItem(new GUIContent("Reveal in File Browser"), false, () => EditorUtility.RevealInFinder(entry.Path));
             menu.AddItem(new GUIContent("Copy Path"), false, () => EditorGUIUtility.systemCopyBuffer = entry.Path);
             menu.AddSeparator(string.Empty);
@@ -501,7 +501,7 @@ namespace Threadlink.Editor
             if (string.IsNullOrEmpty(path))
                 return;
 
-            var vault = CreateInstance<Vault>();
+            var vault = CreateInstance<VaultAsset>();
             AssetDatabase.CreateAsset(vault, path);
             AssetDatabase.SaveAssets();
 

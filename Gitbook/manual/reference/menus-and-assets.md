@@ -5,7 +5,7 @@
 | Command | Function |
 |---|---|
 | `Threadlink ▸ Vault Browser` | Lists every Vault, and inspects and edits the selected one (see [Editor Tooling](../engineer/editor-tooling.md#vault-browser)). |
-| `Threadlink ▸ Runtime Monitor` | Shows the live runtime as a graph, with per-subsystem state and frame, memory and rendering metrics (see [Editor Tooling](../engineer/editor-tooling.md#runtime-monitor)). |
+| `Threadlink ▸ Runtime Monitor` | Shows the live runtime as a graph of every subsystem and service, with their reported state and frame, memory and rendering metrics (see [Editor Tooling](../engineer/editor-tooling.md#runtime-monitor)). |
 | `Threadlink ▸ CodeGen ▸ Run Domain CodeGen` | Runs a generation pass for every domain. |
 | `Threadlink ▸ Code Formatter` | Formats the C# files in a chosen folder with CSharpier. |
 | `Threadlink ▸ Addressables ▸ Mapping Window` | Maps Addressable assets to generated identifiers. |
