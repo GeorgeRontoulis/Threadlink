@@ -118,7 +118,7 @@ public static class ManagedReferenceUtility
             return realType;
 
         // Fallback for tricky assembly resolutions
-        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        foreach (var assembly in UnityEngine.Assemblies.CurrentAssemblies.GetLoadedAssemblies())
         {
             if (assembly.GetName().Name == AssemblyName)
             {

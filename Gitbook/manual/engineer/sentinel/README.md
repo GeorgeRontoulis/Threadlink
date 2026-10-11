@@ -47,7 +47,7 @@ if (Sentinel.TryGetSingleton(out var sentinel))
   - It discards the platform one frame later, after the reporting callback has returned.
 - Every time a deployment settles (`Ready` or `Failed`), Sentinel publishes the native Iris event `OnSentinelStateChanged` (`Action<Sentinel>`): after the first deployment, after a retry, and on a loss.
 - Sentinel deploys before any subsystem initialises, so a subscriber reads `State` once when it subscribes, then follows the event.
-- In the Editor and development builds, `SimulatePlatformLoss()` runs the loss path, for tests. It is not compiled into release builds.
+- In the Editor and development builds, `SimulatePlatformLoss()` runs the loss path, for tests. It does nothing in release builds.
 
 ## Distributions
 

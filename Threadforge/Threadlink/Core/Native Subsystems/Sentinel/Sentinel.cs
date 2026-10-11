@@ -120,17 +120,16 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
             }
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
         /// <summary>
         /// Development only: act as if the Ready platform had just been lost, through the same path a
         /// module's report takes. For tests of what the game does when, for example, Steam closes.
+        /// Does nothing outside the Editor and development builds (<see cref="Debug.isDebugBuild"/>).
         /// </summary>
         public void SimulatePlatformLoss()
         {
             if (Debug.isDebugBuild)
                 OnPlatformLost(SentinelResult.Failure(SentinelError.PlatformLost, "Simulated platform loss."));
         }
-#endif
 
         private async UniTask<bool> TryDeployPlatformAsync()
         {
