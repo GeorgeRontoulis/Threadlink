@@ -588,6 +588,7 @@ The **Scenes** dropdown in the main toolbar lists every scene that ships, from B
 | [Vault Runtime API](#vault-runtime-api) | Reading and writing Vault fields; Timeline integration. |
 | [Resource Loading](#resource-loading) | Loading by identifier or by reference; queries; renamed assets. |
 | [Implementing a Subsystem](#implementing-a-subsystem) | Registering and weaving project subsystems. |
+| [Monitoring](#monitoring) | Reporting a subsystem's or service's state to the Runtime Monitor. |
 | [Deterministic Toolkit](#deterministic-toolkit) | `FP`, its vectors and rotations, `StatelessRNG`. |
 | [Memory](#memory) | Native allocation, raw-memory hashing, inline collections. |
 | [Identifier Domains and Code Generation](#identifier-domains-and-code-generation) | Domain kinds, sources, manifests, the Mapping Window. |
@@ -637,7 +638,7 @@ A `Weaver` creates objects through `WeavingFactory<T>`: `TryWeave<T>(out T)` thr
 
 `Threadlink` is itself a `Weaver<Threadlink, IThreadlinkSubsystem>`. `Aura` is a `Linker<Aura, AuraSpatialObject>`.
 
-In the Editor, every register also implements `IEditorOnlyRegister`, which exposes its contents (`EditorOnly_Count`, `EditorOnly_ObjectType`, `EditorOnly_Registry`) to tools such as the [Runtime Monitor](#runtime-monitor). It is not compiled into builds.
+Every subsystem is `IMonitorable`: it can report its state to the [Runtime Monitor](#runtime-monitor), and registers report their linked objects by default (see [Monitoring](#monitoring)). The core lists its woven subsystems, in weave order, as `WovenSubsystems`.
 
 ### Lifecycle contracts
 
@@ -837,7 +838,7 @@ Scribe.Send<MySystem>("Static context message.").ToUnityConsole(DebugType.Error)
 
 Each message starts with a type name in colour: the receiver's runtime type for the extension form, or the type argument for the static form. Severities are tinted white, yellow and red.
 
-The runtime and most editor tools log through Scribe. A few build-time tools (the Sentinel build pipeline, the Steam App ID processor, the code formatter and **Match Addressables to Paths**) use `Debug` directly. The [Runtime Monitor](#runtime-monitor) counts the session's messages and shows recent Threadlink ones.
+The runtime and most editor tools log through Scribe. A few build-time tools (the Sentinel build pipeline, the Steam App ID processor, the code formatter and **Match Addressables to Paths**) use `Debug` directly. Scribe counts the messages it sends this session, by severity, and keeps the last six; the [Runtime Monitor](#runtime-monitor) shows both.
 
 ## Chronos: Time
 
@@ -1550,9 +1551,121 @@ private static List<IThreadlinkSubsystem> WeaveSubsystems()
 
 During deployment the subsystem then goes through preload, boot and initialise, and `InventorySystem.TryGetSingleton(out var instance)` returns it. Implement only the lifecycle interfaces you need.
 
-The list order is the weave order. Shutdown discards in reverse, so weave a subsystem after the ones it depends on (see [Shutdown](#shutdown)). The [Runtime Monitor](#runtime-monitor) shows the weave order, and lists a register's linked objects.
+The list order is the weave order. Shutdown discards in reverse, so weave a subsystem after the ones it depends on (see [Shutdown](#shutdown)). The [Runtime Monitor](#runtime-monitor) shows the weave order, and each subsystem's state: override `Report` to describe yours (see [Monitoring](#monitoring)).
 
 > For custom construction, assign a factory delegate to `WeavingFactory<T>.OnCreate` instead of calling `Register<T>()`. `WeavingFactory<T>.OnCreateFrom` is the clone factory used by `TryWeave<T>(original, out T)`. Each holds one delegate: adding one replaces the previous, and removing clears it. `ThreadlinkSubsystems.Register<T>()` (namespace `Threadlink.Utilities.Subsystems`) is the same as `WeavingFactory.Register<T>()`.
+
+## Monitoring
+
+Subsystems and services describe their own state through one contract, `IMonitorable`. The [Runtime Monitor](#runtime-monitor) shows whatever they report, and knows none of them by name: native and project code are monitored the same way.
+
+The types are in `Threadlink.Shared`.
+
+### Reports
+
+```csharp
+public interface IMonitorable
+{
+    void Report(MonitorReport report);
+}
+```
+
+A report has two parts:
+
+- **A summary**, always: `report.Summary(caption, alert)`. The caption is the short status on the node, such as `"4 linked"` or `"Ready"`; `alert` puts a red dot on it. Summaries are requested ten times a second, so keep them cheap.
+- **Details**, only while `report.Detailed` is `true`, when the node is selected. Add lines in order:
+
+| Method | Shows |
+|---|---|
+| `Section(title)` | A heading. |
+| `Field(label, value, tone)` | A label and a value. Overloads take `string`, `int`, `long`, `bool` and `float` (with an optional format). |
+| `Reference(label, unityObject, value)` | A value that pings the object when clicked. The value defaults to the object's name. |
+| `Meter(label, fraction, value, tone)` | A field with a bar, `fraction` full (0–1). |
+| `Note(text, tone)` | A wrapped line of text. |
+
+`MonitorTone` is `Normal`, `Muted`, `Good`, `Caution` or `Bad`. Each method returns the report, so calls chain. Lines added while `Detailed` is `false` are ignored, but return early anyway, to avoid building strings nobody reads.
+
+Reporting costs nothing unless a monitor asks. A reporter that throws is shown as failed; it never breaks the monitor.
+
+### Subsystems
+
+Every `ThreadlinkSubsystem<T>` is `IMonitorable`, with an empty virtual `Report`. A `Register`, `Linker` or `Weaver` reports its linked objects by default. Override `Report` to describe your own state:
+
+```csharp
+[Monitored(Description = "Tracks the player's inventory.")]
+public sealed class InventorySystem : ThreadlinkSubsystem<InventorySystem>
+{
+    private const int Capacity = 40;
+    private readonly List<Item> items = new();
+
+    public override void Report(MonitorReport report)
+    {
+        report.Summary(items.Count + " items", items.Count > Capacity);
+
+        if (!report.Detailed)
+            return;
+
+        report.Section("Items")
+            .Field("Count", items.Count)
+            .Meter("Capacity", (float)items.Count / Capacity, items.Count + " of " + Capacity);
+    }
+}
+```
+
+A register keeps its link list by calling the protected `ReportLinks(report)` from its override, and `LinkedCountCaption()` gives the default caption.
+
+`[Monitored]` on a subsystem class is optional. Its `Description` is shown while the subsystem isn't running, and its `Order` sorts the subsystems shown before deployment. Once deployed, subsystems appear in weave order.
+
+### Static services
+
+A static class has no instance to implement an interface, so it marks a static report method instead:
+
+```csharp
+public static class Matchmaking
+{
+    public enum State { Idle, Searching, Joined, Failed }
+
+    public static State Current { get; private set; }
+
+    [Monitored("Matchmaking", Description = "Finds and joins sessions.")]
+    private static void Report(MonitorReport report)
+    {
+        report.Summary(Current.ToString(), Current == State.Failed);
+
+        if (report.Detailed)
+            report.Section("Session").Field("State", Current.ToString());
+    }
+}
+```
+
+The method must be `static void` with one `MonitorReport` parameter; it may be private. The name defaults to the class name. Iris, Nexus, Initium and Scribe are monitored this way. Nodes sort by `Order`, then name; Threadlink's own use negative orders.
+
+### Other objects
+
+An object that is neither a subsystem nor a static service, such as a scene singleton or a network session, implements `IMonitorable` and registers itself:
+
+```csharp
+public sealed class Session : LinkableBehaviourSingleton<Session>, IMonitorable
+{
+    public int PlayerCount { get; private set; }
+
+    public override void Boot()
+    {
+        base.Boot();
+        MonitorRegistry.Register("Session", this);
+    }
+
+    public override void Discard()
+    {
+        MonitorRegistry.Unregister(this);
+        base.Discard();
+    }
+
+    public void Report(MonitorReport report) => report.Summary(PlayerCount + " players");
+}
+```
+
+Registering the same object again replaces its entry. The registry clears when Play Mode exits, and destroyed Unity objects are skipped.
 
 ## Deterministic Toolkit
 
@@ -2030,28 +2143,29 @@ Every command is under the **Threadlink** menu. [Menus and Asset Creation](#menu
 
 ### Runtime Monitor
 
-**`Threadlink ▸ Runtime Monitor`** shows the runtime as a graph: the core in the centre, with every woven subsystem and static service (Iris, Nexus, Initium, Scribe) around it. It replaces the Registers Tracker.
+**`Threadlink ▸ Runtime Monitor`** shows the runtime as a graph: the core in the centre, with every woven subsystem and monitored service around it, native and project alike. It replaces the Registers Tracker.
 
-- **Nodes.** Filled nodes are woven subsystems; outlined nodes are static services; dark nodes are not running. Each caption gives a live summary, such as linked objects, listeners or Sentinel's state. A red dot marks a failed Sentinel or errors in the console.
-- **Details.** Click a node to inspect it in the side panel:
+- **Nodes.** Filled nodes are woven subsystems; outlined nodes are services; dark nodes are not running. Each node's caption and red alert dot come from its own report.
+- **Details.** Click a node to see its report in the side panel. For subsystems, the panel also shows what the type itself tells: status, type, assembly, ID and lifecycle. Out of the box:
 
-  | Node | Shows |
+  | Node | Reports |
   |---|---|
-  | Threadlink | Deployment state, weave order, configs, and the frame, memory and rendering figures below. |
-  | Any register (Aura, user Linkers and Weavers) | Every linked object: name, ID, and a ping link for Unity objects. |
+  | Threadlink | Deployment state, weave order and configs, followed by the frame, memory and rendering figures below. |
+  | Any register (Aura, project Linkers and Weavers) | Every linked object: name, ID, and a ping link for Unity objects. |
   | Sentinel | State, platform, distribution, module, initialisation result, capabilities. |
   | Chronos | Delta times, time scale, playtime. |
   | Dextra | Input device, pointed object, UI stack. |
+  | Aura | Listener, music and ambience volumes and clips, then its links. |
   | Iris | Listener counts per event. |
   | Nexus | Presented scene, held scenes with state and holds, loaded Unity scenes. |
   | Initium | Discoverable objects per loaded scene. |
-  | Scribe | Messages, warnings and errors this session, and recent Threadlink messages. |
+  | Scribe | Messages, warnings and errors this session, and the most recent. |
+
+  Your own subsystems and services appear the same way; [Monitoring](#monitoring) shows how to report their state.
 
 - **Metrics.** The bottom strip shows FPS, main-thread time against the frame budget, GC allocation per frame, managed heap, memory and batches. The budget comes from a target frame rate (**Auto** uses `Application.targetFrameRate`, then the display's refresh rate); change it in the core's panel, which also plots main-thread time over the last 12 seconds.
 
-Outside Play Mode the graph shows the native subsystems and the user subsystems declared in the project, without live data. Editor figures include the Editor's own work and memory, so budget against a development build.
-
-The monitor reads the runtime through editor-only members, which are not compiled into builds: `Register.EditorOnly_Registry` (through `IEditorOnlyRegister`), `Threadlink.EditorOnly_WeaveOrder`, `Nexus.EditorOnly_Scenes` and `Dextra.EditorOnly_StackedInterfaces`. `Threadlink.IsDeployed` is public in every build.
+Outside Play Mode the graph shows every subsystem and service declared in the project, with their descriptions but no live data. Editor figures include the Editor's own work and memory, so budget against a development build.
 
 ### Scene dropdown
 
@@ -2105,6 +2219,7 @@ The [Runtime Monitor](#runtime-monitor) shows FPS, main-thread time against a fr
 - [ ] Register the factory in `UserWeavingFactory.Register()`.
 - [ ] Weave the subsystem in `UserSubsystemsConfig.WeaveSubsystems()`, after the subsystems it depends on.
 - [ ] Subscribe in `Initialize()`; unsubscribe in `Discard()`, then call `base.Discard()`.
+- [ ] Override `Report` to show its state in the Runtime Monitor (see [Monitoring](#monitoring)).
 
 See [Implementing a Subsystem](#implementing-a-subsystem). Check it in the [Runtime Monitor](#runtime-monitor): it should appear in the graph, linked to the core.
 
@@ -2207,7 +2322,7 @@ Namespaces:
 | `Threadlink.Core` | `Threadlink`, `ThreadlinkSubsystem<T>` and the register hierarchy, `LinkableBehaviour`, `LinkableAsset` and their singletons, configs |
 | `Threadlink.Core.NativeSubsystems.Iris` / `.Nexus` / `.Initium` / `.Scribe` | The static services |
 | `Threadlink.Core.NativeSubsystems.Sentinel` / `.Chronos` / `.Dextra` / `.Aura` | The native subsystems and their types |
-| `Threadlink.Shared` | Lifecycle contracts, `WeavingFactory`, hashing, Addressables helpers |
+| `Threadlink.Shared` | Lifecycle contracts, `WeavingFactory`, hashing, Addressables helpers, monitoring (`IMonitorable`, `MonitorReport`, `[Monitored]`, `MonitorRegistry`) |
 | `Threadlink.Generated` | `ThreadlinkIDs` |
 | `Threadlink.Vault`, `Threadlink.Vault.DataFields` | The Vault and its field types |
 | `Threadlink.Collections` | Serialisable maps and collections |
@@ -2245,7 +2360,7 @@ The native resources are `UserConfig`, `SentinelConfig`, `DextraConfig`, `Dextra
 | Command | Function |
 |---|---|
 | `Threadlink ▸ Vault Browser` | Lists every Vault, and inspects and edits the selected one (see [Editor Tooling](#vault-browser)). |
-| `Threadlink ▸ Runtime Monitor` | Shows the live runtime as a graph, with per-subsystem state and frame, memory and rendering metrics (see [Editor Tooling](#runtime-monitor)). |
+| `Threadlink ▸ Runtime Monitor` | Shows the live runtime as a graph of every subsystem and service, with their reported state and frame, memory and rendering metrics (see [Editor Tooling](#runtime-monitor)). |
 | `Threadlink ▸ CodeGen ▸ Run Domain CodeGen` | Runs a generation pass for every domain. |
 | `Threadlink ▸ Code Formatter` | Formats the C# files in a chosen folder with CSharpier. |
 | `Threadlink ▸ Addressables ▸ Mapping Window` | Maps Addressable assets to generated identifiers. |
@@ -2296,4 +2411,5 @@ The **Scenes** dropdown in the main toolbar opens any scene that ships (see [Edi
 | **Module** | A Sentinel implementation for exact platform/distribution pairs. |
 | **FP** | Deterministic Q32.32 fixed-point number type (see [Fixed Point](#fixed-point)). |
 | **Stream** | A sequence of random numbers that is a pure function of a seed, a domain and identity parts (see [StatelessRNG](#statelessrng)). |
+| **Report** | What a monitored subsystem or service says about its state: a summary and, on request, details (see [Monitoring](#monitoring)). |
 | **Inline collection** | A collection laid out inside another value's memory (see [Memory](#memory)). |

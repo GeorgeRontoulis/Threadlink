@@ -15,10 +15,8 @@ namespace Threadlink.Core
         /// </summary>
         private List<IThreadlinkSubsystem> WeaveOrder { get; } = new(16);
 
-#if UNITY_EDITOR
-        /// <summary>Editor-only: the woven subsystems in weave order, for editor tooling.</summary>
-        public IReadOnlyList<IThreadlinkSubsystem> EditorOnly_WeaveOrder => WeaveOrder;
-#endif
+        /// <summary>The woven subsystems, in weave order: native subsystems first, then user subsystems.</summary>
+        public IReadOnlyList<IThreadlinkSubsystem> WovenSubsystems => WeaveOrder;
 
         public override bool TryWeave<T>(out T wovenObject)
         {

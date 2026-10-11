@@ -21,7 +21,7 @@ Namespaces:
 | `Threadlink.Core` | `Threadlink`, `ThreadlinkSubsystem<T>` and the register hierarchy, `LinkableBehaviour`, `LinkableAsset` and their singletons, configs |
 | `Threadlink.Core.NativeSubsystems.Iris` / `.Nexus` / `.Initium` / `.Scribe` | The static services |
 | `Threadlink.Core.NativeSubsystems.Sentinel` / `.Chronos` / `.Dextra` / `.Aura` | The native subsystems and their types |
-| `Threadlink.Shared` | Lifecycle contracts, `WeavingFactory`, hashing, Addressables helpers |
+| `Threadlink.Shared` | Lifecycle contracts, `WeavingFactory`, hashing, Addressables helpers, monitoring (`IMonitorable`, `MonitorReport`, `[Monitored]`, `MonitorRegistry`) |
 | `Threadlink.Generated` | `ThreadlinkIDs` |
 | `Threadlink.Vault`, `Threadlink.Vault.DataFields` | The Vault and its field types |
 | `Threadlink.Collections` | Serialisable maps and collections |

@@ -150,5 +150,37 @@
             return true;
         }
         #endregion
+
+        #region Monitoring:
+        public override void Report(MonitorReport report)
+        {
+            int woven = WeaveOrder.Count;
+
+            report.Summary(IsDeployed ? woven + " woven" : "deploying");
+
+            if (!report.Detailed)
+                return;
+
+            report.Section("Deployment")
+                .Field("State", IsDeployed ? "Deployed" : "Deploying", IsDeployed ? MonitorTone.Good : MonitorTone.Caution)
+                .Field("Woven subsystems", woven)
+                .Field("Update loop", UserConfig != null ? UserConfig.UpdateLoopBehaviour.ToString() : "—")
+                .Reference("Native config", NativeConfig)
+                .Reference("User config", UserConfig);
+
+            report.Section("Weave order");
+
+            for (int i = 0; i < woven; i++)
+            {
+                var subsystem = WeaveOrder[i];
+
+                if (subsystem == null)
+                    continue;
+
+                bool linked = Registry != null && Registry.ContainsKey(subsystem.ID);
+                report.Field((i + 1) + ".  " + subsystem.GetType().Name, linked ? "linked" : "unlinked", linked ? MonitorTone.Muted : MonitorTone.Caution);
+            }
+        }
+        #endregion
     }
 }

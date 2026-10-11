@@ -18,6 +18,7 @@
 | [Vault Runtime API](vault.md) | Reading and writing Vault fields; Timeline integration. |
 | [Resource Loading](resource-loading.md) | Loading by identifier or by reference; queries; renamed assets. |
 | [Implementing a Subsystem](implementing-a-subsystem.md) | Registering and weaving project subsystems. |
+| [Monitoring](monitoring.md) | Reporting a subsystem's or service's state to the Runtime Monitor. |
 | [Deterministic Toolkit](deterministic/README.md) | `FP`, its vectors and rotations, `StatelessRNG`. |
 | [Memory](memory.md) | Native allocation, raw-memory hashing, inline collections. |
 | [Identifier Domains and Code Generation](code-generation.md) | Domain kinds, sources, manifests, the Mapping Window. |

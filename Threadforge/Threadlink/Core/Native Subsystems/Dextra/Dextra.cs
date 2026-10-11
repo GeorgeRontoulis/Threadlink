@@ -26,6 +26,7 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     /// The Input implementation is based on Unity's modern Input System package,
     /// while the UI is based on Unity's standard UGUI package.
     /// </summary>
+    [Monitored(Description = "Handles input and UI: the current device, input maps, and the stack of user interfaces.", Order = -1998)]
     public sealed partial class Dextra : ThreadlinkSubsystem<Dextra>,
     IDisposable,
     IInitializable,
@@ -332,5 +333,32 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
             Iris.Publish(ThreadlinkIDs.Iris.Events.OnInputDeviceChanged, CurrentInputDevice);
         }
+
+        #region Monitoring:
+        public override void Report(MonitorReport report)
+        {
+            report.Summary(CurrentInputDevice.ToString());
+
+            if (!report.Detailed)
+                return;
+
+            report.Section("Input")
+                .Field("Device", CurrentInputDevice.ToString())
+                .Reference("Pointed object", CurrentPointedObject);
+
+            report.Section("UI stack");
+
+            int index = 0;
+
+            if (UIStack != null)
+            {
+                foreach (var stacked in UIStack.StackedTypes)
+                    report.Field(index++ == 0 ? "Top" : index.ToString(), stacked.Name);
+            }
+
+            if (index == 0)
+                report.Note("No interfaces stacked.");
+        }
+        #endregion
     }
 }

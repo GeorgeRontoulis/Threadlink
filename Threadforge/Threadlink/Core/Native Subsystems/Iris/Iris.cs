@@ -2,6 +2,8 @@ namespace Threadlink.Core.NativeSubsystems.Iris
 {
     using global::Threadlink.Core.NativeSubsystems.Scribe;
     using global::Threadlink.Generated;
+    using global::Threadlink.Shared;
+    using System.Collections.Generic;
     using System;
     using System.Runtime.CompilerServices;
     using UnityEngine;
@@ -35,6 +37,53 @@ namespace Threadlink.Core.NativeSubsystems.Iris
             for (int i = 0; i < length; i++)
                 (EventRegistry[i] as IClearable)?.Clear();
         }
+
+        #region Monitoring:
+        [Monitored("Iris", Description = "The event bus: subscribe, unsubscribe and publish by generated event ID.", Order = -1000)]
+        private static void Report(MonitorReport report)
+        {
+            int total = 0, withListeners = 0;
+            int length = EventRegistry.Length;
+
+            for (int i = 0; i < length; i++)
+            {
+                if (EventRegistry[i] is IDelegateList list && list.Count > 0)
+                {
+                    total += list.Count;
+                    withListeners++;
+                }
+            }
+
+            report.Summary(total + (total == 1 ? " listener" : " listeners"));
+
+            if (!report.Detailed)
+                return;
+
+            var events = (ThreadlinkIDs.Iris.Events[])Enum.GetValues(typeof(ThreadlinkIDs.Iris.Events));
+
+            report.Section("Events")
+                .Field("Declared", events.Length)
+                .Field("With listeners", withListeners)
+                .Field("Listeners", total);
+
+            if (withListeners == 0)
+                return;
+
+            var counted = new List<(string Name, int Count)>(withListeners);
+
+            foreach (var eventID in events)
+            {
+                if (TryGetListenerCount(eventID, out int count) && count > 0)
+                    counted.Add((eventID.ToString(), count));
+            }
+
+            counted.Sort((a, b) => b.Count.CompareTo(a.Count));
+            report.Section("Listeners by event");
+
+            foreach (var (name, count) in counted)
+                report.Field(name, count);
+        }
+        #endregion
 
         #region Utility:
         public static bool TryGetListenerCount(ThreadlinkIDs.Iris.Events eventID, out int listenerCount)

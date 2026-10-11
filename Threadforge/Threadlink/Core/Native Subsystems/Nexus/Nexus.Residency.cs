@@ -51,17 +51,50 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
         [NoAutoStaticsCleanup]
         private static readonly Dictionary<ThreadlinkIDs.Addressables.Scenes, SceneRecord> Records = new(8);
 
-#if UNITY_EDITOR
-        /// <summary>Editor-only: every scene Nexus tracks, with its state and hold count, for editor tooling.</summary>
-        public static IEnumerable<(string Pointer, string State, int Holds, Scene Scene)> EditorOnly_Scenes
+        #region Monitoring:
+        [Monitored("Nexus", Description = "Loads, holds and presents scenes. A scene stays resident while anything holds it.", Order = -999)]
+        private static void Report(MonitorReport report)
         {
-            get
+            int held = Records.Count;
+
+            report.Summary(held + (held == 1 ? " scene" : " scenes"));
+
+            if (!report.Detailed)
+                return;
+
+            report.Section("Presentation")
+                .Field("Presented", Presented != null ? Presented.ScenePointer.ToString() : "None")
+                .Field("Active scene", SceneManager.GetActiveScene().name);
+
+            report.Section("Held scenes");
+
+            if (held == 0)
+                report.Note("Nexus holds no scenes.");
+
+            foreach (var record in Records.Values)
             {
-                foreach (var record in Records.Values)
-                    yield return (record.Pointer.ToString(), record.State.ToString(), record.Holds, record.Scene);
+                var tone = record.State switch
+                {
+                    SceneState.Resident => MonitorTone.Normal,
+                    SceneState.UnloadFailed => MonitorTone.Bad,
+                    _ => MonitorTone.Caution,
+                };
+
+                report.Field(record.Pointer.ToString(), record.State + "  ·  " + record.Holds + (record.Holds == 1 ? " hold" : " holds"), tone);
+            }
+
+            report.Section("Loaded Unity scenes");
+
+            var active = SceneManager.GetActiveScene();
+
+            for (int i = 0; i < SceneManager.sceneCount; i++)
+            {
+                var scene = SceneManager.GetSceneAt(i);
+                report.Field(scene.name, scene == active ? "active" : scene.isLoaded ? "loaded" : "loading", MonitorTone.Muted);
             }
         }
-#endif
+        #endregion
+
 
         #region Residency:
         /// <summary>

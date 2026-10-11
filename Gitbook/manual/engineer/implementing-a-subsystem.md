@@ -52,6 +52,6 @@ private static List<IThreadlinkSubsystem> WeaveSubsystems()
 
 During deployment the subsystem then goes through preload, boot and initialise, and `InventorySystem.TryGetSingleton(out var instance)` returns it. Implement only the lifecycle interfaces you need.
 
-The list order is the weave order. Shutdown discards in reverse, so weave a subsystem after the ones it depends on (see [Shutdown](deployment.md#shutdown)). The [Runtime Monitor](editor-tooling.md#runtime-monitor) shows the weave order, and lists a register's linked objects.
+The list order is the weave order. Shutdown discards in reverse, so weave a subsystem after the ones it depends on (see [Shutdown](deployment.md#shutdown)). The [Runtime Monitor](editor-tooling.md#runtime-monitor) shows the weave order, and each subsystem's state: override `Report` to describe yours (see [Monitoring](monitoring.md)).
 
 > For custom construction, assign a factory delegate to `WeavingFactory<T>.OnCreate` instead of calling `Register<T>()`. `WeavingFactory<T>.OnCreateFrom` is the clone factory used by `TryWeave<T>(original, out T)`. Each holds one delegate: adding one replaces the previous, and removing clears it. `ThreadlinkSubsystems.Register<T>()` (namespace `Threadlink.Utilities.Subsystems`) is the same as `WeavingFactory.Register<T>()`.

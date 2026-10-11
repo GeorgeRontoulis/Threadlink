@@ -42,6 +42,7 @@
 * [Vault Runtime API](engineer/vault.md)
 * [Resource Loading](engineer/resource-loading.md)
 * [Implementing a Subsystem](engineer/implementing-a-subsystem.md)
+* [Monitoring](engineer/monitoring.md)
 * [Deterministic Toolkit](engineer/deterministic/README.md)
   * [Fixed Point](engineer/deterministic/fixed-point.md)
   * [StatelessRNG](engineer/deterministic/stateless-rng.md)

@@ -22,4 +22,5 @@
 | **Module** | A Sentinel implementation for exact platform/distribution pairs. |
 | **FP** | Deterministic Q32.32 fixed-point number type (see [Fixed Point](../engineer/deterministic/fixed-point.md)). |
 | **Stream** | A sequence of random numbers that is a pure function of a seed, a domain and identity parts (see [StatelessRNG](../engineer/deterministic/stateless-rng.md)). |
+| **Report** | What a monitored subsystem or service says about its state: a summary and, on request, details (see [Monitoring](../engineer/monitoring.md)). |
 | **Inline collection** | A collection laid out inside another value's memory (see [Memory](../engineer/memory.md)). |

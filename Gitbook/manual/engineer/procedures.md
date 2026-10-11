@@ -7,6 +7,7 @@
 - [ ] Register the factory in `UserWeavingFactory.Register()`.
 - [ ] Weave the subsystem in `UserSubsystemsConfig.WeaveSubsystems()`, after the subsystems it depends on.
 - [ ] Subscribe in `Initialize()`; unsubscribe in `Discard()`, then call `base.Discard()`.
+- [ ] Override `Report` to show its state in the Runtime Monitor (see [Monitoring](monitoring.md)).
 
 See [Implementing a Subsystem](implementing-a-subsystem.md). Check it in the [Runtime Monitor](editor-tooling.md#runtime-monitor): it should appear in the graph, linked to the core.
 

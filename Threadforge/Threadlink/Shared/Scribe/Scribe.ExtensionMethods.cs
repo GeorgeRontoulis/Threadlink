@@ -27,6 +27,7 @@ namespace Threadlink.Core.NativeSubsystems.Scribe
         public static void ToUnityConsole(this Utf8ValueStringBuilder nonAllocInput, DebugType logType = DebugType.Info)
         {
             string message = nonAllocInput.ToString();
+            Record(logType, message);
 
             switch (logType)
             {

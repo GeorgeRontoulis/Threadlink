@@ -23,10 +23,8 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
 
         private Stack<Type> StackedInterfaces { get; set; } = null;
 
-#if UNITY_EDITOR
-        /// <summary>Editor-only: the stacked interface types, top first.</summary>
-        internal IEnumerable<Type> EditorOnly_StackedInterfaces => StackedInterfaces ?? (IEnumerable<Type>)Array.Empty<Type>();
-#endif
+        /// <summary>The stacked interface types, top first.</summary>
+        internal IEnumerable<Type> StackedTypes => StackedInterfaces ?? (IEnumerable<Type>)Array.Empty<Type>();
         private Dictionary<Type, UserInterface> CreatedInterfaces { get; set; } = null;
 
         public void Discard()

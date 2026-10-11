@@ -11,4 +11,4 @@ Scribe.Send<MySystem>("Static context message.").ToUnityConsole(DebugType.Error)
 
 Each message starts with a type name in colour: the receiver's runtime type for the extension form, or the type argument for the static form. Severities are tinted white, yellow and red.
 
-The runtime and most editor tools log through Scribe. A few build-time tools (the Sentinel build pipeline, the Steam App ID processor, the code formatter and **Match Addressables to Paths**) use `Debug` directly. The [Runtime Monitor](editor-tooling.md#runtime-monitor) counts the session's messages and shows recent Threadlink ones.
+The runtime and most editor tools log through Scribe. A few build-time tools (the Sentinel build pipeline, the Steam App ID processor, the code formatter and **Match Addressables to Paths**) use `Debug` directly. Scribe counts the messages it sends this session, by severity, and keeps the last six; the [Runtime Monitor](editor-tooling.md#runtime-monitor) shows both.
