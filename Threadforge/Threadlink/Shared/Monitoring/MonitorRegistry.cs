@@ -2,12 +2,13 @@ namespace Threadlink.Shared
 {
     using System.Collections.Generic;
     using Unity.Scripting.LifecycleManagement;
+    using UnityEngine;
 
     /// <summary>
     /// Monitored objects that are neither subsystems nor static services, such as a scene singleton or a network
     /// session. Register in <c>Boot</c> and unregister in <c>Discard</c>. Cleared when Play Mode exits.
     /// </summary>
-    public static class MonitorRegistry
+    public static partial class MonitorRegistry
     {
         public readonly struct Entry
         {
