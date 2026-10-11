@@ -74,11 +74,11 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
             if (activeArea != area)
                 activeArea = area;
 
-            if (TryGetComponent(out Rigidbody rb))
+            if (TryGetComponent(out Rigidbody2D rb))
             {
-                rb.constraints = RigidbodyConstraints.FreezeAll;
-                rb.useGravity = false;
-                rb.isKinematic = true;
+                rb.constraints = RigidbodyConstraints2D.FreezeAll;
+                rb.gravityScale = 0f;
+                rb.bodyType = RigidbodyType2D.Kinematic;
             }
 
             base.OnValidate();

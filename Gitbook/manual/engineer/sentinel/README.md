@@ -47,7 +47,7 @@ if (Sentinel.TryGetSingleton(out var sentinel))
   - It discards the platform one frame later, after the reporting callback has returned.
 - Every time a deployment settles (`Ready` or `Failed`), Sentinel publishes the native Iris event `OnSentinelStateChanged` (`Action<Sentinel>`): after the first deployment, after a retry, and on a loss.
 - Sentinel deploys before any subsystem initialises, so a subscriber reads `State` once when it subscribes, then follows the event.
-- In the Editor, `SimulatePlatformLoss()` runs the loss path, for tests. It is compiled into the Editor only.
+- In the Editor and development builds, `SimulatePlatformLoss()` runs the loss path, for tests. It is not compiled into release builds.
 
 ## Distributions
 
@@ -73,12 +73,10 @@ The policy declares the ecosystems a project may target, but a target is usable 
 | Source | Availability |
 |---|---|
 | `SentinelDistributionOverride.Requested`, assigned by project code before deployment (for example at `BeforeSceneLoad`) | Always |
-| Command-line argument `-threadlink-sentinel-distribution <Distribution>` (`COMMAND_LINE_ARGUMENT`) | Editor only |
-| Environment variable `THREADLINK_SENTINEL_DISTRIBUTION` (`ENVIRONMENT_VARIABLE`) | Editor only |
+| Command-line argument `-threadlink-sentinel-distribution <Distribution>` (`COMMAND_LINE_ARGUMENT`) | Editor and development builds |
+| Environment variable `THREADLINK_SENTINEL_DISTRIBUTION` (`ENVIRONMENT_VARIABLE`) | Editor and development builds |
 
 Values are case-insensitive `SentinelDistribution` names (for example `Local`). An override must still be allowed for the active platform by `SentinelDistributionPolicy`; a disallowed or unknown value is ignored with a warning. An applied override is logged. `Requested` is reset on entering Play Mode.
-
-> The command-line and environment sources are compiled only into the Editor. In a player build, development builds included, only `Requested` applies; a development build that must honour a launch argument reads it itself and assigns `Requested`.
 
 ## Capabilities
 
