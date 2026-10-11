@@ -1,6 +1,6 @@
 # Editor Tooling
 
-Every command is under the **Threadlink** menu. [Menus and Asset Creation](../reference/menus-and-assets.md) lists them all.
+Commands are under the **Threadlink** menu; the Vault Browser also adds entries to a Vault's context menus. [Menus and Asset Creation](../reference/menus-and-assets.md) lists them all.
 
 ## Code generation and Addressables
 
@@ -41,7 +41,7 @@ Every command is under the **Threadlink** menu. [Menus and Asset Creation](../re
   | Initium | Discoverable objects per loaded scene. |
   | Scribe | Messages, warnings and errors this session, and the most recent. |
 
-  Your own subsystems and services appear the same way; [Monitoring](monitoring.md) shows how to report their state.
+  Your own subsystems and services appear the same way, and objects registered with `MonitorRegistry` join the graph while playing; [Monitoring](monitoring.md) shows how to report their state.
 
 - **Metrics.** The bottom strip shows FPS, main-thread time against the frame budget, GC allocation per frame, managed heap, memory and batches. The budget comes from a target frame rate (**Auto** uses `Application.targetFrameRate`, then the display's refresh rate); change it in the core's panel, which also plots main-thread time over the last 12 seconds.
 
@@ -71,4 +71,4 @@ A **Scenes** dropdown in the main toolbar lists every scene that ships: the enab
 | Processor | Stage | Function |
 |---|---|---|
 | `SentinelBuildProcessor` | Pre-build, first (`callbackOrder` −10000) | Resolves and validates the build's Sentinel platform, distribution and build module, and fails the build on any error (see [Sentinel Modules](sentinel/modules.md#the-build-pipeline)). |
-| Steam `SteamAppIdBuildProcessor` | Post-build, standalone targets | Copies `steam_appid.txt` into development Steam builds and `threadlink_steam_appid.txt` into release Steam builds, and removes both from other builds (see [Sentinel Modules](sentinel/modules.md#steam)). |
+| Steam `SteamAppIdBuildProcessor` | Post-build, standalone targets | Copies `steam_appid.txt` beside the executable of development Steam builds, writes the App ID to `<Data>/threadlink_steam_appid.txt` in release Steam builds, and removes both files from other builds (see [Sentinel Modules](sentinel/modules.md#steam)). |

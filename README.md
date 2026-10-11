@@ -10,11 +10,12 @@
 - **Native subsystems.** Iris (events), Chronos (time), Nexus (scene residency and presentation), Dextra (input and UI), Aura (audio) and Sentinel (accounts, transactional saves, achievements and social affordances across platforms and storefronts).
 - **Type-safe identifiers.** Scenes, assets, prefabs, events, input modes, spawn points, RNG domains and data fields are C# enumerations generated from plain-text declarations, with content-addressed values that survive removals.
 - **The Vault.** A polymorphic, designer-authored data container.
+- **Editor tools.** A Vault Browser for every Vault in the project, and a Runtime Monitor that graphs the live runtime, with each subsystem and service reporting its own state, plus frame and memory budgets.
 - **Deterministic and memory toolkits.** Q32.32 fixed point, deterministic vectors and rotations, a stateless RNG, native memory with stable hashing, and inline collections for simulation state.
 
 ## Requirements
 
-Unity **6000.6** (Threadlink 6.6 is validated against 6000.6.4f1) with Addressables, Input System, uGUI and Collections. Timeline, Localization, Odin Inspector and Steamworks.NET are optional. See [Requirements](Gitbook/manual/getting-started/requirements.md).
+Unity **6000.6** (Threadlink 6.6 is validated against 6000.6.5f1) with Addressables, Input System, uGUI and Collections. Timeline, Localization, Odin Inspector and Steamworks.NET are optional. See [Requirements](Gitbook/manual/getting-started/requirements.md).
 
 ## Installation
 
@@ -30,7 +31,7 @@ The reference manual is a GitBook space in [`Gitbook/manual`](Gitbook/manual/REA
 |---|---|
 | [Introduction](Gitbook/manual/README.md) | What the manual covers and how it is organised. |
 | [Designer Reference](Gitbook/manual/designer/README.md) | Identifiers, Vaults, audio zones, input prompts, content registration. No C#. |
-| [Engineer Reference](Gitbook/manual/engineer/README.md) | Architecture, subsystem APIs, Sentinel, code generation, deterministic tooling. |
+| [Engineer Reference](Gitbook/manual/engineer/README.md) | Architecture, subsystem APIs, Sentinel, code generation, monitoring, editor tools, deterministic tooling. |
 | [Reference](Gitbook/manual/reference/iris-events.md) | Native Iris events, service access, identifier domains, menus, terminology. |
 
 An offline, single-file edition ships inside the framework as [`Threadforge/MarkdownDocumentation.md`](Threadforge/MarkdownDocumentation.md).

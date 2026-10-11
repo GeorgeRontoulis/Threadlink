@@ -47,7 +47,7 @@ Both volumes describe the same systems from opposite ends. Where the designer vo
 
 ### Unity
 
-Threadlink 6.6 is developed and tested on **Unity 6000.6.4f1**. It uses recent editor APIs, such as the `Unity.Scripting.LifecycleManagement` attributes (`[OnEnteringPlayMode]`, `[OnExitingPlayMode]`, `[AutoStaticsCleanup]`) and the main-toolbar extension API. Earlier versions are untested.
+Threadlink 6.6 is developed and tested on **Unity 6000.6.5f1**. It uses recent editor APIs, such as the `Unity.Scripting.LifecycleManagement` attributes (`[OnEnteringPlayMode]`, `[OnExitingPlayMode]`, `[AutoStaticsCleanup]`) and the main-toolbar extension API. Earlier versions are untested.
 
 ### Required packages
 
@@ -203,7 +203,7 @@ Threadforge/
 │   │   │       ├── Contracts/         ← Multiplayer and social service contracts
 │   │   │       └── Modules/           ← The Local and Steam platform modules
 │   │   └── Objects/                   ← LinkableBehaviour, LinkableAsset, singletons, native weaving factory
-│   ├── Shared/                        ← Contracts, Scribe, hashing, Addressables helpers, WeavingFactory
+│   ├── Shared/                        ← Contracts, Scribe, monitoring, hashing, Addressables helpers, WeavingFactory
 │   ├── Collections/                   ← Serialisable hash maps, arrays and lists
 │   ├── Utilities/                     ← Extension-method libraries, FixedPointConversions
 │   ├── Vault/                         ← Data container and Timeline integration
@@ -245,7 +245,7 @@ Don't edit `Threadlink/` by hand. That includes `Threadlink/Generated/`, which o
 | Assembly | Contents | Constraints |
 |---|---|---|
 | `Threadlink.Generated` | `ThreadlinkIDs` enumerations | No references; `noEngineReferences`. Any assembly can reference it, including a deterministic simulation. |
-| `Threadlink.Shared` | Contracts, Scribe, hashing, Addressables helpers, `WeavingFactory`, `AnimatorHash` | — |
+| `Threadlink.Shared` | Contracts, Scribe, monitoring (`IMonitorable`, `MonitorReport`, `[Monitored]`, `MonitorRegistry`), hashing, Addressables helpers, `WeavingFactory`, `AnimatorHash` | — |
 | `Threadlink.Deterministic` | `FP`, `FPVector2`, `FPVector3`, `FPQuaternion`, `StatelessRNG`, `Bits` | `noEngineReferences`; `allowUnsafeCode`. References `Threadlink.Shared` and `Threadlink.Generated`. |
 | `Threadlink.Memory` | `NativeAllocator`, `MemoryHash`, inline collections | `allowUnsafeCode`. No assembly references; no other Threadlink assembly references it. |
 | `Threadlink.Runtime` | Core, native subsystems, Vault, collections, utilities (including `FixedPointConversions`, between Unity's float types and the deterministic ones) | `allowUnsafeCode`. Defines `THREADLINK_TIMELINE` and `THREADLINK_LOCALIZATION` from package versions. |
@@ -254,7 +254,7 @@ Don't edit `Threadlink/` by hand. That includes `Threadlink/Generated/`, which o
 | `Threadlink.Sentinel.Steam` | The Steam Sentinel module | Compiled only with the `STEAMWORKS_NET` define, on standalone platforms and in the Editor. |
 | `Threadlink.Sentinel.Steam.Shared` | `SteamSentinelSettings`, module identity | No references; `noEngineReferences` |
 | `Threadlink.Sentinel.Local.Editor`, `Threadlink.Sentinel.Steam.Editor` | Sentinel build modules and the Steam App ID build processor | Editor-only |
-| `Threadlink.Editor` | Code generation, editor tools, the Sentinel build pipeline | Editor-only. Also references UniTask, Input System and uGUI. |
+| `Threadlink.Editor` | Code generation, editor tools, the Sentinel build pipeline | Editor-only |
 | `Threadlink.User` | Project code | `allowUnsafeCode`. References `Threadlink.Runtime`, `Threadlink.Shared`, `Threadlink.Deterministic`, `Threadlink.Generated`, `Threadlink.User.Generated` and UniTask. |
 | `Threadlink.User.Generated` | Project-defined domain enumerations | No references; `noEngineReferences` |
 
@@ -460,7 +460,7 @@ An **AuraZone** is a local sound source in a scene. As the listener gets closer,
 2. Add an **AudioSource** to the same GameObject and assign its clip. The zone puts it in its **Source** field and sets it to loop from the start at full volume. You can assign an AudioSource on another object to **Source** instead.
 3. Set two values:
    - **Radius Coefficient** (0–1): the zone's radius, as a fraction of the AudioSource's maximum distance.
-   - **Influence** (0–1): how far the global channels are turned down when the listener is fully inside the zone.
+   - **Influence** (0–1): the most this zone turns the global channels down. The effect grows from nothing at the zone's edge as the listener approaches its centre, until it reaches this value.
 
 Placing the zone is all it takes. Zones start working when their scene becomes the presented scene, and stop when it is replaced or unloaded. Only the presented scene is heard, so zones in other loaded scenes (such as scenes kept loaded for other players) do nothing.
 
@@ -1068,9 +1068,9 @@ The stack doesn't manage interfaces placed in scenes. `ClearStackedInterfaces()`
 
 `Interactable` is a `LinkableBehaviour` with an `InteractableConfig`. `Interactable2D` and `Interactable3D` use a 2D or 3D collider on the same GameObject as the active area. Like the other framework types it isn't discoverable: your code discards it, which disables its collider and stops it answering `OnInteract`.
 
-`InteractablesDetector2D` (a `CapsuleCollider2D`) and `InteractablesDetector3D` (a `CapsuleCollider`) are the triggers that find interactables. They publish `OnInteractableDetected` and `OnInteractableOutOfRange` with the interactable as payload. Both derive from the generic `EntityDetector2D<Area, Entity>` and `EntityDetector3D<Area, Entity>`, which project code can extend for other entity types.
+`InteractablesDetector2D` (a `CapsuleCollider2D`) and `InteractablesDetector3D` (a `CapsuleCollider`) are the triggers that find interactables. Each needs a `Rigidbody2D` or `Rigidbody` on the same GameObject, which it keeps kinematic, frozen and free of gravity. They publish `OnInteractableDetected` and `OnInteractableOutOfRange` with the interactable as payload. Both derive from the generic `EntityDetector2D<Area, Entity>` and `EntityDetector3D<Area, Entity>`, which project code can extend for other entity types.
 
-When detected, an interactable subscribes its `Interact` method to `OnInteract` as a `Func<bool>`, and unsubscribes when out of range. Project code publishes `OnInteract`, typically from an input action, to interact with whatever is in range. With `InteractionOptions.InteractOnContact` in its config, an interactable interacts as soon as it is detected instead. `InteractionPrompt` is the config's prompt text, localised when `THREADLINK_LOCALIZATION` is defined.
+Derived interactables implement `Interact()`, which returns whether the interaction happened. When detected, an interactable subscribes it to `OnInteract` as a `Func<bool>`, and unsubscribes when out of range. Project code publishes `OnInteract`, typically from an input action, to interact with whatever is in range. With `InteractionOptions.InteractOnContact` in its config, an interactable interacts as soon as it is detected instead. `InteractionPrompt` is the config's prompt text, localised when `THREADLINK_LOCALIZATION` is defined.
 
 Because `OnInteract` is a `Func` event, only one interactable can be in range at a time. Overlapping active areas throw.
 
@@ -1100,7 +1100,7 @@ aura.MoveTowardsVolume(source, target);
 
 Aura links only the **presented** scene's `AuraSpatialObject`s (including `AuraZone`s). Once the core has deployed, and on every `OnScenePresented`, it disconnects every spatial object and links the active ones in the active scene. Other resident scenes are never linked, so a scene kept loaded for another player is silent.
 
-While anything is linked, each `OnUpdate` Aura adds up the objects' influence at the listener and moves music and ambience towards their maxima minus that total. An object's influence falls linearly from its `Influence` at the source to zero at its radius. The radius is the AudioSource's maximum distance times the Radius Coefficient, read at runtime from the `Source` field or, if that is empty, the AudioSource on the same GameObject. Custom spatial objects derive from `AuraSpatialObject` and supply `SourcePosition`; they can set `Radius` themselves or override `GetSpatialInfluence`.
+While anything is linked, each `OnUpdate` Aura adds up the objects' influence at the listener and moves music and ambience towards their maxima minus that total. An object's influence grows linearly from zero at its radius towards the source, and is capped at its `Influence`. The radius is the AudioSource's maximum distance times the Radius Coefficient, read at runtime from the `Source` field or, if that is empty, the AudioSource on the same GameObject. Custom spatial objects derive from `AuraSpatialObject` and supply `SourcePosition`; they can set `Radius` themselves or override `GetSpatialInfluence`.
 
 Aura never drops its links on scene events. A spatial object unlinks itself, and stops its source, when discarded. It isn't discoverable, so the code that owns it must discard it before its scene unloads; otherwise Aura keeps evaluating a destroyed object until the next presentation. Aura's own `Discard` disconnects whatever is left, such as the persistent scene's.
 
@@ -1387,7 +1387,7 @@ Before every build, Sentinel resolves the target the same way the runtime does: 
 
 An `ISentinelBuildModule` exposes `ModuleID`, `DisplayName`, `Implements(in SentinelModuleKey)`, `ConfigureBuild` and `ValidateBuild`. The last two receive a `SentinelBuildContext` (the `BuildReport`, the key, the output path, and `GetSubtarget<T>()`) and append `SentinelBuildDiagnostic.Info`, `Warning` or `Error` entries, which are logged. Build modules are found through the `TypeCache` and must expose a public parameterless constructor.
 
-The Steam build module checks that Steamworks.NET is installed and that `steam_appid.txt` holds a valid App ID, and warns if it is Valve's test App ID 480.
+The Steam build module checks that Steamworks.NET is installed and that `steam_appid.txt` holds a valid App ID. It logs the installed Steamworks.NET version beside the validated one, and warns if the App ID is Valve's test App ID 480.
 
 The Sentinel Config's Inspector shows the current build target, its Sentinel platform, and the distribution choice the target allows.
 
@@ -1642,10 +1642,10 @@ The method must be `static void` with one `MonitorReport` parameter; it may be p
 
 ### Other objects
 
-An object that is neither a subsystem nor a static service, such as a scene singleton or a network session, implements `IMonitorable` and registers itself:
+An object that is neither a subsystem nor a static service, such as a scene singleton or a network session, implements `IMonitorable` and registers itself. Here, `IDiscoverable` makes Initium boot and discard the object with its scene:
 
 ```csharp
-public sealed class Session : LinkableBehaviourSingleton<Session>, IMonitorable
+public sealed class Session : LinkableBehaviourSingleton<Session>, IDiscoverable, IMonitorable
 {
     public int PlayerCount { get; private set; }
 
@@ -2120,7 +2120,7 @@ Types implementing `IBinaryAuthor` write authoring data to `.bytes` files in the
 
 ## Editor Tooling
 
-Every command is under the **Threadlink** menu. [Menus and Asset Creation](#menus-and-asset-creation) lists them all.
+Commands are under the **Threadlink** menu; the Vault Browser also adds entries to a Vault's context menus. [Menus and Asset Creation](#menus-and-asset-creation) lists them all.
 
 ### Code generation and Addressables
 
@@ -2161,7 +2161,7 @@ Every command is under the **Threadlink** menu. [Menus and Asset Creation](#menu
   | Initium | Discoverable objects per loaded scene. |
   | Scribe | Messages, warnings and errors this session, and the most recent. |
 
-  Your own subsystems and services appear the same way; [Monitoring](#monitoring) shows how to report their state.
+  Your own subsystems and services appear the same way, and objects registered with `MonitorRegistry` join the graph while playing; [Monitoring](#monitoring) shows how to report their state.
 
 - **Metrics.** The bottom strip shows FPS, main-thread time against the frame budget, GC allocation per frame, managed heap, memory and batches. The budget comes from a target frame rate (**Auto** uses `Application.targetFrameRate`, then the display's refresh rate); change it in the core's panel, which also plots main-thread time over the last 12 seconds.
 
@@ -2191,7 +2191,7 @@ A **Scenes** dropdown in the main toolbar lists every scene that ships: the enab
 | Processor | Stage | Function |
 |---|---|---|
 | `SentinelBuildProcessor` | Pre-build, first (`callbackOrder` −10000) | Resolves and validates the build's Sentinel platform, distribution and build module, and fails the build on any error (see [Sentinel Modules](#the-build-pipeline)). |
-| Steam `SteamAppIdBuildProcessor` | Post-build, standalone targets | Copies `steam_appid.txt` into development Steam builds and `threadlink_steam_appid.txt` into release Steam builds, and removes both from other builds (see [Sentinel Modules](#steam-1)). |
+| Steam `SteamAppIdBuildProcessor` | Post-build, standalone targets | Copies `steam_appid.txt` beside the executable of development Steam builds, writes the App ID to `<Data>/threadlink_steam_appid.txt` in release Steam builds, and removes both files from other builds (see [Sentinel Modules](#steam-1)). |
 
 ## Performance Constraints
 

@@ -85,10 +85,10 @@ The method must be `static void` with one `MonitorReport` parameter; it may be p
 
 ## Other objects
 
-An object that is neither a subsystem nor a static service, such as a scene singleton or a network session, implements `IMonitorable` and registers itself:
+An object that is neither a subsystem nor a static service, such as a scene singleton or a network session, implements `IMonitorable` and registers itself. Here, `IDiscoverable` makes Initium boot and discard the object with its scene:
 
 ```csharp
-public sealed class Session : LinkableBehaviourSingleton<Session>, IMonitorable
+public sealed class Session : LinkableBehaviourSingleton<Session>, IDiscoverable, IMonitorable
 {
     public int PlayerCount { get; private set; }
 

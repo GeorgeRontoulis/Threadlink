@@ -11,7 +11,7 @@ Threadforge/
 │   │   │       ├── Contracts/         ← Multiplayer and social service contracts
 │   │   │       └── Modules/           ← The Local and Steam platform modules
 │   │   └── Objects/                   ← LinkableBehaviour, LinkableAsset, singletons, native weaving factory
-│   ├── Shared/                        ← Contracts, Scribe, hashing, Addressables helpers, WeavingFactory
+│   ├── Shared/                        ← Contracts, Scribe, monitoring, hashing, Addressables helpers, WeavingFactory
 │   ├── Collections/                   ← Serialisable hash maps, arrays and lists
 │   ├── Utilities/                     ← Extension-method libraries, FixedPointConversions
 │   ├── Vault/                         ← Data container and Timeline integration
@@ -53,7 +53,7 @@ Don't edit `Threadlink/` by hand. That includes `Threadlink/Generated/`, which o
 | Assembly | Contents | Constraints |
 |---|---|---|
 | `Threadlink.Generated` | `ThreadlinkIDs` enumerations | No references; `noEngineReferences`. Any assembly can reference it, including a deterministic simulation. |
-| `Threadlink.Shared` | Contracts, Scribe, hashing, Addressables helpers, `WeavingFactory`, `AnimatorHash` | — |
+| `Threadlink.Shared` | Contracts, Scribe, monitoring (`IMonitorable`, `MonitorReport`, `[Monitored]`, `MonitorRegistry`), hashing, Addressables helpers, `WeavingFactory`, `AnimatorHash` | — |
 | `Threadlink.Deterministic` | `FP`, `FPVector2`, `FPVector3`, `FPQuaternion`, `StatelessRNG`, `Bits` | `noEngineReferences`; `allowUnsafeCode`. References `Threadlink.Shared` and `Threadlink.Generated`. |
 | `Threadlink.Memory` | `NativeAllocator`, `MemoryHash`, inline collections | `allowUnsafeCode`. No assembly references; no other Threadlink assembly references it. |
 | `Threadlink.Runtime` | Core, native subsystems, Vault, collections, utilities (including `FixedPointConversions`, between Unity's float types and the deterministic ones) | `allowUnsafeCode`. Defines `THREADLINK_TIMELINE` and `THREADLINK_LOCALIZATION` from package versions. |
@@ -62,7 +62,7 @@ Don't edit `Threadlink/` by hand. That includes `Threadlink/Generated/`, which o
 | `Threadlink.Sentinel.Steam` | The Steam Sentinel module | Compiled only with the `STEAMWORKS_NET` define, on standalone platforms and in the Editor. |
 | `Threadlink.Sentinel.Steam.Shared` | `SteamSentinelSettings`, module identity | No references; `noEngineReferences` |
 | `Threadlink.Sentinel.Local.Editor`, `Threadlink.Sentinel.Steam.Editor` | Sentinel build modules and the Steam App ID build processor | Editor-only |
-| `Threadlink.Editor` | Code generation, editor tools, the Sentinel build pipeline | Editor-only. Also references UniTask, Input System and uGUI. |
+| `Threadlink.Editor` | Code generation, editor tools, the Sentinel build pipeline | Editor-only |
 | `Threadlink.User` | Project code | `allowUnsafeCode`. References `Threadlink.Runtime`, `Threadlink.Shared`, `Threadlink.Deterministic`, `Threadlink.Generated`, `Threadlink.User.Generated` and UniTask. |
 | `Threadlink.User.Generated` | Project-defined domain enumerations | No references; `noEngineReferences` |
 
