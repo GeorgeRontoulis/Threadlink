@@ -50,7 +50,6 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
                 return true;
             }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (UnityEngine.Debug.isDebugBuild)
             {
                 if (TryParse(ReadCommandLineArgument(), COMMAND_LINE_ARGUMENT, out distribution))
@@ -65,14 +64,12 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
                     return true;
                 }
             }
-#endif
 
             distribution = SentinelDistribution.None;
             source = null;
             return false;
         }
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
         private static string ReadCommandLineArgument()
         {
             if (!UnityEngine.Debug.isDebugBuild)
@@ -110,6 +107,5 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
             distribution = SentinelDistribution.None;
             return false;
         }
-#endif
     }
 }
