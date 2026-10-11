@@ -230,13 +230,8 @@ namespace Threadlink.Core.NativeSubsystems.Aura
 
         public void SetGlobalVolumesMax(float maxMusicVolume, float maxAtmosVolume)
         {
-#if THREADLINK_MATHEMATICS
-            CurrentMaxMusicVolume = Unity.Mathematics.math.clamp(musicVolume, 0f, 1f);
-            CurrentMaxAtmosVolume = Unity.Mathematics.math.clamp(atmosVolume, 0f, 1f);
-#else
             CurrentMaxMusicVolume = Mathf.Clamp01(maxMusicVolume);
             CurrentMaxAtmosVolume = Mathf.Clamp01(maxAtmosVolume);
-#endif
         }
 
         public async UniTask FadeAudioListenerVolumeAsync(float targetVolume)

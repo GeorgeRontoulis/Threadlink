@@ -19,7 +19,7 @@ Clips are selected from the Assets dropdown; [Registering Scenes, Prefabs and As
 An **AuraZone** is a scene component producing a localised sound source that attenuates global music and ambience by inverse-distance influence as the listener approaches.
 
 1. Add an **AuraZone** component to a GameObject.
-2. Add an **AudioSource** to the same GameObject, assign its clip, and assign the AudioSource to the zone's **Source** field. Editing the zone configures the source for looping playback on awake, at full volume.
+2. Add an **AudioSource** to the same GameObject and assign its clip. The zone picks the AudioSource up into its **Source** field, and configures it for looping playback on awake, at full volume. An AudioSource elsewhere can be assigned to **Source** instead.
 3. Configure two parameters:
    - **Radius Coefficient** (0–1): scales the influence radius relative to the AudioSource's maximum distance.
    - **Influence** (0–1): attenuation applied to the global channels when the listener is fully within the zone.

@@ -454,7 +454,7 @@ Clips are selected from the Assets dropdown; [Registering Scenes, Prefabs and As
 An **AuraZone** is a scene component producing a localised sound source that attenuates global music and ambience by inverse-distance influence as the listener approaches.
 
 1. Add an **AuraZone** component to a GameObject.
-2. Add an **AudioSource** to the same GameObject, assign its clip, and assign the AudioSource to the zone's **Source** field. Editing the zone configures the source for looping playback on awake, at full volume.
+2. Add an **AudioSource** to the same GameObject and assign its clip. The zone picks the AudioSource up into its **Source** field, and configures it for looping playback on awake, at full volume. An AudioSource elsewhere can be assigned to **Source** instead.
 3. Configure two parameters:
    - **Radius Coefficient** (0–1): scales the influence radius relative to the AudioSource's maximum distance.
    - **Influence** (0–1): attenuation applied to the global channels when the listener is fully within the zone.
@@ -545,7 +545,7 @@ The **Scenes** dropdown in the Editor's main toolbar lists every scene that ship
 
 ### Placing an audio zone
 
-1. Add an **AuraZone** and an **AudioSource** to a GameObject in the scene, and assign the source to the zone.
+1. Add an **AuraZone** and an **AudioSource** to a GameObject in the scene, and assign the source's clip.
 2. Give the zone a name unique within the scene.
 3. Set **Radius Coefficient** and **Influence**.
 
@@ -1087,7 +1087,7 @@ aura.MoveTowardsVolume(source, target);
 
 Aura links the `AuraSpatialObject`s (including `AuraZone`s) of the **presented** scene only: once the core has deployed, and on every `OnScenePresented`, it disconnects all spatial objects and links the active ones in the active scene. Spatial objects of other resident scenes are never linked, so a scene kept loaded for another player is inaudible.
 
-While anything is linked, Aura sums the linked objects' influence at the listener's position on each `OnUpdate` and moves the music and ambience volumes toward their maxima minus that influence. An object's influence falls linearly from its `Influence` at its source to zero at its radius, which is the AudioSource's maximum distance scaled by the Radius Coefficient. Custom spatial objects derive from `AuraSpatialObject`, supply `SourcePosition`, and may override `GetSpatialInfluence`.
+While anything is linked, Aura sums the linked objects' influence at the listener's position on each `OnUpdate` and moves the music and ambience volumes toward their maxima minus that influence. An object's influence falls linearly from its `Influence` at its source to zero at its radius, which is the AudioSource's maximum distance scaled by the Radius Coefficient, read at runtime from the object's `Source` field or, if that is unassigned, the AudioSource on its GameObject. Custom spatial objects derive from `AuraSpatialObject`, supply `SourcePosition`, and may assign `Radius` themselves or override `GetSpatialInfluence`.
 
 Aura never tears its links down on a scene event. A spatial object unlinks itself when discarded, stopping its source. It isn't discoverable, so the developer's code that owns it discards it before its scene unloads; otherwise Aura keeps evaluating a destroyed object until the next presentation relinks. Aura's own `Discard` disconnects whatever is left, such as the persistent scene's.
 
@@ -1142,7 +1142,7 @@ if (Sentinel.TryGetSingleton(out var sentinel))
   - It discards the platform one frame later, after the reporting callback has returned.
 - Every time a deployment settles (`Ready` or `Failed`), Sentinel publishes the native Iris event `OnSentinelStateChanged` (`Action<Sentinel>`): after the first deployment, after a retry, and on a loss.
 - Sentinel deploys before any subsystem initialises, so a subscriber reads `State` once when it subscribes, then follows the event.
-- In the Editor, `SimulatePlatformLoss()` runs the loss path, for tests. It is compiled into the Editor only.
+- In the Editor and development builds, `SimulatePlatformLoss()` runs the loss path, for tests. It is not compiled into release builds.
 
 ### Distributions
 
@@ -1168,12 +1168,10 @@ The policy declares the ecosystems a project may target, but a target is usable 
 | Source | Availability |
 |---|---|
 | `SentinelDistributionOverride.Requested`, assigned by project code before deployment (for example at `BeforeSceneLoad`) | Always |
-| Command-line argument `-threadlink-sentinel-distribution <Distribution>` (`COMMAND_LINE_ARGUMENT`) | Editor only |
-| Environment variable `THREADLINK_SENTINEL_DISTRIBUTION` (`ENVIRONMENT_VARIABLE`) | Editor only |
+| Command-line argument `-threadlink-sentinel-distribution <Distribution>` (`COMMAND_LINE_ARGUMENT`) | Editor and development builds |
+| Environment variable `THREADLINK_SENTINEL_DISTRIBUTION` (`ENVIRONMENT_VARIABLE`) | Editor and development builds |
 
 Values are case-insensitive `SentinelDistribution` names (for example `Local`). An override must still be allowed for the active platform by `SentinelDistributionPolicy`; a disallowed or unknown value is ignored with a warning. An applied override is logged. `Requested` is reset on entering Play Mode.
-
-> The command-line and environment sources are compiled only into the Editor. In a player build, development builds included, only `Requested` applies; a development build that must honour a launch argument reads it itself and assigns `Requested`.
 
 ### Capabilities
 

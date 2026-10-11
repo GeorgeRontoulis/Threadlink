@@ -120,7 +120,7 @@ namespace Threadlink.Core.NativeSubsystems.Sentinel
             }
         }
 
-#if UNITY_EDITOR
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         /// <summary>
         /// Development only: act as if the Ready platform had just been lost, through the same path a
         /// module's report takes. For tests of what the game does when, for example, Steam closes.

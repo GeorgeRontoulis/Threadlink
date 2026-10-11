@@ -3,33 +3,55 @@ namespace Threadlink.Core.NativeSubsystems.Aura
     using Core;
     using Unity.Mathematics;
     using UnityEngine;
-    using Utilities.Mathematics;
 
     public abstract class AuraSpatialObject : LinkableBehaviour
     {
         protected abstract Vector3 SourcePosition { get; }
 
-        protected internal float Volume { set => source.volume = value; }
-        protected float Radius { get; set; }
+        protected internal float Volume
+        {
+            set
+            {
+                var audioSource = ResolveSource();
+
+                if (audioSource != null)
+                    audioSource.volume = value;
+            }
+        }
+
+        /// <summary>
+        /// The influence radius: the source's maximum distance scaled by <see cref="radiusCoefficient"/>. It is computed
+        /// from serialized data whenever it is read, so it holds in builds as it does in the Editor. A derived type may
+        /// assign its own radius instead.
+        /// </summary>
+        protected float Radius
+        {
+            get
+            {
+                if (radiusOverride.HasValue)
+                    return radiusOverride.Value;
+
+                var audioSource = ResolveSource();
+                return audioSource != null ? audioSource.maxDistance * radiusCoefficient : 0f;
+            }
+            set => radiusOverride = value;
+        }
 
         [SerializeField] protected AudioSource source = null;
         [Range(0f, 1f), SerializeField] protected float radiusCoefficient = 1f;
         [Range(0f, 1f), SerializeField] protected float influence = 1f;
 
+        private float? radiusOverride = null;
+
         protected override void OnValidate()
         {
-            if (TryGetComponent(out AudioSource source))
+            if (TryGetComponent(out AudioSource attachedSource))
             {
-                source.volume = 1;
-                source.loop = source.playOnAwake = true;
-            }
+                attachedSource.volume = 1;
+                attachedSource.loop = attachedSource.playOnAwake = true;
 
-            if (source != null)
-            {
-                float target = source.maxDistance * radiusCoefficient;
-
-                if (!Radius.IsSimilarTo(target))
-                    Radius = target;
+                if (source == null)
+                    source = attachedSource;
             }
 
             base.OnValidate();
@@ -58,10 +80,20 @@ namespace Threadlink.Core.NativeSubsystems.Aura
 
         protected internal virtual float GetSpatialInfluence(Vector3 listenerPosition)
         {
+            float radius = Radius;
             float distance = Vector3.Distance(listenerPosition, SourcePosition);
 
             // Inverse distance influence
-            return math.clamp(distance >= Radius ? 0f : math.clamp(1f - (distance / Radius), 0f, 1f), 0f, influence);
+            return math.clamp(distance >= radius ? 0f : math.clamp(1f - (distance / radius), 0f, 1f), 0f, influence);
+        }
+
+        /// <summary>The assigned source, or else the AudioSource on this GameObject.</summary>
+        private AudioSource ResolveSource()
+        {
+            if (source == null)
+                TryGetComponent(out source);
+
+            return source;
         }
     }
 }

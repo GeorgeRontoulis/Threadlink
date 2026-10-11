@@ -24,7 +24,7 @@
 
 ## Placing an audio zone
 
-1. Add an **AuraZone** and an **AudioSource** to a GameObject in the scene, and assign the source to the zone.
+1. Add an **AuraZone** and an **AudioSource** to a GameObject in the scene, and assign the source's clip.
 2. Give the zone a name unique within the scene.
 3. Set **Radius Coefficient** and **Influence**.
 
