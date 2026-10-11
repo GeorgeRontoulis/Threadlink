@@ -22,7 +22,9 @@ Copy the [`Threadforge`](Threadforge) folder into your project as `Assets/Thread
 
 ## Documentation
 
-The reference manual is a GitBook space in [`Gitbook/manual`](Gitbook/manual/README.md), readable directly on GitHub:
+**Read it online: [threadforge.gitbook.io/threadlink-documentation](https://threadforge.gitbook.io/threadlink-documentation/)**
+
+The reference manual is a GitBook space in [`Gitbook/manual`](Gitbook/manual/README.md), synced to that site and readable directly on GitHub:
 
 | Start here | |
 |---|---|
@@ -38,7 +40,7 @@ An offline, single-file edition ships inside the framework as [`Threadforge/Mark
 - The pages in `Gitbook/manual` are the source of truth. Edit them in the repository, or in GitBook, whose Git Sync commits changes back.
 - A new page must be listed in [`Gitbook/manual/SUMMARY.md`](Gitbook/manual/SUMMARY.md), which defines the navigation.
 - After changing the manual, regenerate the single-file edition with `python Gitbook/tools/build_single_file.py`. `--check` reports whether it is out of date.
-- **GitBook setup.** For site-level Git Sync, set the **Project directory** to `Gitbook`. [`Gitbook/gitbook-docs.yaml`](Gitbook/gitbook-docs.yaml) maps the `threadlink-manual` space to `Gitbook/manual`. For space-level Git Sync without a project directory, the root [`.gitbook.yaml`](.gitbook.yaml) points GitBook at the same folder. Choose GitHub → GitBook as the direction of the first sync.
+- **GitBook Git Sync** is connected to `main` at site level, with **Project directory** `Gitbook`. [`Gitbook/gitbook-docs.yaml`](Gitbook/gitbook-docs.yaml) maps the `threadlink-manual` space to `Gitbook/manual`; never change that key, or GitBook creates a new space. Every push to `main` updates the site, and its result appears as the *GitBook* commit checks. The root [`.gitbook.yaml`](.gitbook.yaml) serves space-level Git Sync, should the site ever be set up without a project directory.
 
 ## License
 

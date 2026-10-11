@@ -2,7 +2,7 @@
 
 # Threadlink Framework — Reference Manual
 
-> This is the offline, single-file edition of the Threadlink reference manual, generated from the GitBook space in the repository's `Gitbook/manual` folder.
+> This is the offline, single-file edition of the Threadlink reference manual, generated from the GitBook space in the repository's `Gitbook/manual` folder. The manual is online at [threadforge.gitbook.io/threadlink-documentation](https://threadforge.gitbook.io/threadlink-documentation/).
 
 
 ![Powered by Threadlink. Weaving worlds together.](Threadlink_Banner.png)
