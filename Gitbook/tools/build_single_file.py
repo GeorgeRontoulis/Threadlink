@@ -23,6 +23,7 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 MANUAL_ROOT = os.path.join(REPO_ROOT, "Gitbook", "manual")
 DEFAULT_OUTPUT = os.path.join(REPO_ROOT, "Threadforge", "MarkdownDocumentation.md")
 TITLE = "Threadlink Framework — Reference Manual"
+SITE_URL = "https://threadforge.gitbook.io/threadlink-documentation/"
 
 # Images in the GitBook space mapped to files that sit beside the single-file manual.
 ASSET_MAP = {
@@ -166,7 +167,8 @@ def build():
         f"# {TITLE}",
         "",
         "> This is the offline, single-file edition of the Threadlink reference manual, generated from the GitBook"
-        " space in the repository's `Gitbook/manual` folder.",
+        " space in the repository's `Gitbook/manual` folder. The manual is online at"
+        f" [{SITE_URL.split('://')[1].rstrip('/')}]({SITE_URL}).",
         "",
     ]
     for kind, value in items:
