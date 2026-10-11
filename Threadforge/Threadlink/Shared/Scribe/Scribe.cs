@@ -4,6 +4,7 @@ namespace Threadlink.Core.NativeSubsystems.Scribe
     using Shared;
     using System.Text;
     using Unity.Scripting.LifecycleManagement;
+    using UnityEngine;
 
     /// <summary>
     /// Threadlink's Logging Subsystem.
