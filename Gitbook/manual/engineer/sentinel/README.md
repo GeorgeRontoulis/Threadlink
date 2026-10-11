@@ -1,8 +1,8 @@
 # Sentinel: Platform Services
 
-Sentinel is Threadlink's cross-platform platform-service abstraction. Unity determines the hardware/platform; `SentinelConfig` only selects a **distribution** where that platform is ambiguous (for example Windows: Local, Steam, Microsoft Store, Epic or GOG). Runtime modules register exact `SentinelPlatformMarker` / `SentinelDistribution` pairs and expose a capability-driven service graph.
+Sentinel gives one API for platform services on every platform. Unity decides the platform; `SentinelConfig` only picks the **distribution** (store) where a platform has several, such as Windows: Local, Steam, Microsoft Store, Epic or GOG. Runtime modules each handle one exact `SentinelPlatformMarker` / `SentinelDistribution` pair, and expose services according to their capabilities.
 
-Sentinel provides platform-native affordances: accounts, saves, achievements, presence, friends and invites. It is not a transport or game-state networking layer.
+Sentinel covers what platforms provide: accounts, saves, achievements, presence, friends and invites. It is not a networking or game-state transport.
 
 | Page | Covers |
 |---|---|
@@ -13,7 +13,7 @@ Sentinel provides platform-native affordances: accounts, saves, achievements, pr
 
 ## Deployment
 
-Sentinel deploys during the preloading phase and moves through:
+Sentinel deploys while preloading, moving through:
 
 `Uninitialized → ResolvingPlatform → ResolvingModule → InitializingPlatform → Ready`
 
@@ -31,27 +31,27 @@ if (Sentinel.TryGetSingleton(out var sentinel))
 }
 ```
 
-1. **Platform.** `SentinelRuntimePlatformResolver` maps Unity's runtime platform to a `SentinelPlatformMarker`. In Play Mode, the Editor host's platform is used (Windows, macOS or Linux).
-2. **Distribution.** `SentinelConfig.GetDistribution(platform)` picks the distribution, after any [override](#distribution-override).
-3. **Module.** `SentinelModuleRegistry` requires an exact platform/distribution match. If no installed module implements the resolved key, deployment fails with `SentinelError.Unsupported`.
+1. **Platform.** `SentinelRuntimePlatformResolver` maps Unity's runtime platform to a `SentinelPlatformMarker`. In Play Mode it uses the Editor's host platform (Windows, macOS or Linux).
+2. **Distribution.** `SentinelConfig.GetDistribution(platform)` picks the distribution, unless [overridden](#distribution-override).
+3. **Module.** `SentinelModuleRegistry` needs a module for that exact platform and distribution. If none is installed, deployment fails with `SentinelError.Unsupported`.
 4. **Platform initialisation.** The module creates its `ISentinelPlatform`, and Sentinel awaits its `InitializeAsync()`.
 
-**A failed platform does not abort Threadlink.** Only a missing `SentinelConfig` fails Sentinel's preloader. Every platform-level failure leaves Sentinel in `Failed`, logs `InitializationResult` as an error during `Boot`, and lets deployment continue with no platform services: for example, Steam not running, a missing module, or a native initialisation error. `TryGetService` and `HasCapability` return `false` in that state. Whether a failed platform is acceptable (degraded play, an error screen, quitting) is the project's decision, made by checking `State` once deployment completes.
+**A failed platform does not stop Threadlink.** Only a missing `SentinelConfig` fails Sentinel's preloader. Any platform failure (Steam not running, a missing module, a native error) leaves Sentinel `Failed`, logs `InitializationResult` as an error during `Boot`, and lets deployment continue without platform services. `TryGetService` and `HasCapability` then return `false`. The project decides what a failed platform means (degraded play, an error screen, quitting) by checking `State` after deployment. The [Runtime Monitor](../editor-tooling.md#runtime-monitor) shows the state, result and capabilities live.
 
 **Retrying, losing the platform, and state changes.**
 
-- `RetryAsync()` deploys the platform again while Sentinel is `Failed`, for example after the player has started Steam, and returns whether it is `Ready`. It returns `true` at once if Sentinel is already `Ready`, and `false` while another retry is running.
-- A platform that goes away after initialising reports it: a module calls the protected `SentinelPlatform.ReportLost(result)`, as the Steam module does on `SteamShutdown_t`.
+- `RetryAsync()` deploys the platform again while Sentinel is `Failed` (for example, after the player starts Steam) and returns whether it is now `Ready`. It returns `true` at once if already `Ready`, and `false` while another retry is running.
+- A module reports a platform that goes away after initialising by calling the protected `SentinelPlatform.ReportLost(result)`, as the Steam module does on `SteamShutdown_t`.
   - Sentinel then moves to `Failed` with `SentinelError.PlatformLost`.
   - It publishes the state change at once, so code using the platform can release it synchronously.
   - It discards the platform one frame later, after the reporting callback has returned.
-- Every time a deployment settles (`Ready` or `Failed`), Sentinel publishes the native Iris event `OnSentinelStateChanged` (`Action<Sentinel>`): after the first deployment, after a retry, and on a loss.
-- Sentinel deploys before any subsystem initialises, so a subscriber reads `State` once when it subscribes, then follows the event.
+- Whenever deployment settles (`Ready` or `Failed`), Sentinel publishes the native Iris event `OnSentinelStateChanged` (`Action<Sentinel>`): after the first deployment, after a retry, and on a loss.
+- Sentinel deploys before any subsystem initialises, so a subscriber reads `State` once when subscribing, then follows the event.
 - In the Editor and development builds, `SimulatePlatformLoss()` runs the loss path, for tests. It does nothing in release builds.
 
 ## Distributions
 
-`SentinelDistributionPolicy` defines which distributions each platform allows. Where only one is allowed, the platform resolves automatically and the Sentinel Config is not consulted; where several are, the config's choice is used, and an invalid choice resolves to `None`, which fails deployment.
+`SentinelDistributionPolicy` defines which distributions each platform allows. If only one is allowed, it is used and the Sentinel Config is ignored. If several are, the config's choice is used; an invalid choice resolves to `None`, which fails deployment.
 
 | Platform | Allowed distributions |
 |---|---|
@@ -64,11 +64,11 @@ if (Sentinel.TryGetSingleton(out var sentinel))
 | WindowsStore | MicrosoftStore |
 | WebGL | Local |
 
-The policy declares the ecosystems a project may target, but a target is usable only when a matching runtime module is installed and registered (see [Modules](modules.md)).
+The policy lists what a project may target, but a target only works with a matching runtime module installed (see [Modules](modules.md)).
 
 ### Distribution override
 
-`SentinelDistributionOverride` replaces the configured distribution at runtime. It is intended for instances that must not deploy the configured ecosystem, such as several development instances on one machine sharing a single Steam account. Sources, in order of precedence:
+`SentinelDistributionOverride` replaces the configured distribution at runtime. Use it for instances that must not use the configured store, such as several development instances on one machine sharing one Steam account. Sources, highest priority first:
 
 | Source | Availability |
 |---|---|
@@ -76,11 +76,11 @@ The policy declares the ecosystems a project may target, but a target is usable 
 | Command-line argument `-threadlink-sentinel-distribution <Distribution>` (`COMMAND_LINE_ARGUMENT`) | Editor and development builds |
 | Environment variable `THREADLINK_SENTINEL_DISTRIBUTION` (`ENVIRONMENT_VARIABLE`) | Editor and development builds |
 
-Values are case-insensitive `SentinelDistribution` names (for example `Local`). An override must still be allowed for the active platform by `SentinelDistributionPolicy`; a disallowed or unknown value is ignored with a warning. An applied override is logged. `Requested` is reset on entering Play Mode.
+Values are `SentinelDistribution` names, in any case (for example `Local`). The active platform must allow the override; a disallowed or unknown value is ignored with a warning. An applied override is logged. `Requested` resets on entering Play Mode.
 
 ## Capabilities
 
-`SentinelCapability` is a flags enumeration. A platform module advertises only what it actually implements; `sentinel.HasCapability(flag)` is `true` only while Sentinel is `Ready`.
+`SentinelCapability` is a flags enumeration. A module advertises only what it implements; `sentinel.HasCapability(flag)` is only `true` while Sentinel is `Ready`.
 
 | Group | Flags |
 |---|---|
@@ -94,7 +94,7 @@ Values are case-insensitive `SentinelDistribution` names (for example `Local`). 
 
 ## Services
 
-Top-level services are obtained from `Sentinel`; account-scoped services are obtained from the resolved account:
+Get platform services from `Sentinel`, and account services from the account:
 
 ```csharp
 if (Sentinel.TryGetSingleton(out var sentinel)
@@ -121,10 +121,10 @@ if (Sentinel.TryGetSingleton(out var sentinel)
 
 `IAccountService` exposes `Accounts`, `PrimaryAccount`, `RefreshAsync()`, `GetPrimaryAccountAsync(allowUI)` and `PickAccountAsync()`, and the events `AccountAdded`, `AccountRemoved`, `PrimaryAccountChanged` and `AccountStateChanged`. `AccountStateChanged` reports an account's `State` changing, for example between `SignedIn` and `Suspended` as a platform loses and regains its servers.
 
-`ISentinelAccount` carries `ID`, `DisplayName`, `State` (`Unknown`, `SignedOut`, `SigningIn`, `SignedIn`, `Suspended`) and `IsPrimary`, and is itself a service provider, allowing platform-specific account-scoped services such as saves, achievements and multiplayer/social affordances.
+`ISentinelAccount` has `ID`, `DisplayName`, `State` (`Unknown`, `SignedOut`, `SigningIn`, `SignedIn`, `Suspended`) and `IsPrimary`. It is also a service provider, for account services such as saves, achievements and social features.
 
 ## Results
 
-`SentinelResult` / `SentinelResult<T>` carry `Succeeded`, `Error`, `Message`, and an optional `NativeCode`, rather than relying on exceptions for normal service failures. The typed result adds `Value`, and `Untyped()` drops it.
+Services report ordinary failures through `SentinelResult` / `SentinelResult<T>`, not exceptions. A result has `Succeeded`, `Error`, `Message` and an optional `NativeCode`. The typed result adds `Value`, and `Untyped()` drops it.
 
-`SentinelError` enumerates `None`, `NotInitialized`, `Unsupported`, `InvalidArgument`, `NotFound`, `Busy`, `Cancelled`, `PermissionDenied`, `NetworkUnavailable`, `QuotaExceeded`, `Conflict`, `CorruptData`, `AccountUnavailable`, `NativeFailure`, `Unknown` and `PlatformLost`. A failure created with `None` is reported as `Unknown`.
+`SentinelError` values are `None`, `NotInitialized`, `Unsupported`, `InvalidArgument`, `NotFound`, `Busy`, `Cancelled`, `PermissionDenied`, `NetworkUnavailable`, `QuotaExceeded`, `Conflict`, `CorruptData`, `AccountUnavailable`, `NativeFailure`, `Unknown` and `PlatformLost`. A failure created with `None` is reported as `Unknown`.

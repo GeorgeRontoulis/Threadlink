@@ -15,6 +15,12 @@ namespace Threadlink.Core
 
     public partial class Threadlink
     {
+        /// <summary>
+        /// Whether deployment has finished: every native and user subsystem is woven and initialised, and
+        /// <see cref="ThreadlinkIDs.Iris.Events.OnCoreDeployed"/> has been published.
+        /// </summary>
+        public bool IsDeployed { get; private set; }
+
         //We maintain the old Lifecycle API here, as there's no new equivalent for AfterSceneLoad.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static async UniTaskVoid DeployCoreAsync()
@@ -57,6 +63,7 @@ namespace Threadlink.Core
             await RegisterSubsystemsAsync(ThreadlinkIDs.Iris.Events.OnNativeSubsystemRegistration);
             await RegisterSubsystemsAsync(ThreadlinkIDs.Iris.Events.OnUserSubsystemRegistration);
 
+            IsDeployed = true;
             this.Send("Core successfully deployed.").ToUnityConsole();
             Iris.Publish(ThreadlinkIDs.Iris.Events.OnCoreDeployed, this);
         }

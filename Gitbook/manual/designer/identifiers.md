@@ -1,18 +1,18 @@
 # The Identifier Workflow
 
-Threadlink compiles plain-text declaration lists into C# enumerations. The declaration files reside in **`Threadlink User/Native Domain Injectors/`**. Three are designer-owned:
+Threadlink turns plain-text lists into C# enumerations. The lists are in **`Threadlink User/Native Domain Injectors/`**. Designers own three of them:
 
 | File | Resulting dropdown | Purpose |
 |---|---|---|
 | `Dextra.InputModes.User.txt` | Input Modes | Control contexts (`Gameplay`, `Menu`, `Cutscene`). |
-| `Nexus.SpawnPoints.User.txt` | Spawn Points | Locations at which entities may be placed. |
-| `Vault.Fields.User.txt` | Vault Fields | Data fields available to Vault assets. |
+| `Nexus.SpawnPoints.User.txt` | Spawn Points | Places where entities can be put. |
+| `Vault.Fields.User.txt` | Vault Fields | The fields Vaults can hold. |
 
-These files are termed **injectors**: each injects entries into an enumeration the framework declares. Two further injectors in the same directory are engineer-owned (`Iris.Events.User.txt`, `StatelessRNG.Domains.User.txt`).
+These files are called **injectors**, because each adds entries to an enumeration the framework declares. Engineers own the other two in the folder (`Iris.Events.User.txt`, `StatelessRNG.Domains.User.txt`).
 
 ## Declaration syntax
 
-Each file opens with comment lines prefixed `///`. Declarations follow, one identifier per line:
+Each file starts with comment lines beginning `///`, followed by one identifier per line:
 
 ```text
 ///Use this file to define custom player spawn points for Nexus as showcased below:
@@ -26,33 +26,32 @@ SecretRoom_North
 CheckpointAlpha
 ```
 
-Constraints:
+Rules:
 
-- One identifier per line. Leading and trailing whitespace is ignored.
-- Identifiers begin with a letter or underscore and comprise letters, digits and underscores. Any other character is substituted with an underscore during generation; declaring `Checkpoint_Alpha` directly is preferred to relying on substitution.
-- Lines prefixed `//`, including `///`, are treated as comments.
-- Blank lines are ignored.
-- Identifier comparison is case-insensitive: `Alpha` and `alpha` denote the same entry, and only the first is kept.
+- One identifier per line. Surrounding whitespace is ignored.
+- Start with a letter or underscore; use only letters, digits and underscores. Other characters become underscores, but write `Checkpoint_Alpha` yourself rather than relying on that.
+- Lines starting `//` (including `///`) are comments. Blank lines are ignored.
+- Case doesn't matter: `Alpha` and `alpha` are the same entry, and only the first is kept.
 
 ## Regeneration
 
-Saving the file is sufficient. The injector directory is monitored, generation runs automatically, and Unity recompiles. New identifiers appear in the corresponding dropdowns.
+Save the file. Generation runs automatically, Unity recompiles, and the new identifiers appear in their dropdowns.
 
-**`Threadlink ▸ CodeGen ▸ Run Domain CodeGen`** forces a generation pass on demand.
+**`Threadlink ▸ CodeGen ▸ Run Domain CodeGen`** runs generation on demand.
 
 ## Removal semantics
 
-Entries may be removed by deleting the corresponding line. Values are content-addressed, with the following consequences:
+To remove an entry, delete its line. Because each value is a hash of its name:
 
-- Removing an entry does not alter the value of any other entry.
-- The removed identifier is retained in the generated enumeration as an obsolete tombstone, preserving resolution for assets that still reference it. Code referencing it produces a compiler warning.
-- Declaring a removed identifier again revives it with its original value.
-- Reordering declarations has no effect; declaration order is not significant.
+- Removing an entry never changes another entry's value.
+- The removed identifier stays in the enumeration as an obsolete tombstone, so assets that still use it keep working. Code that uses it gets a compiler warning.
+- Declaring it again brings it back with its original value.
+- Order doesn't matter; reordering changes nothing.
 
-Iris events constitute the sole exception and fall under engineering ownership. Their values are positional, so removal produces compilation failures at every subscription site rather than a tombstone. This behaviour is intentional.
+The one exception is Iris events, which engineers own. Their values are positional, so removing one breaks compilation wherever it is used, instead of leaving a tombstone. This is deliberate.
 
 ## Rename semantics
 
-A rename is equivalent to a removal followed by an addition: the former identifier becomes a tombstone and the new identifier receives a distinct value. References to the former identifier require reassignment. Engineering must be notified of any rename affecting an identifier referenced in code.
+A rename is a removal plus an addition: the old name becomes a tombstone and the new name gets a new value. Anything that used the old name must be reassigned, so tell engineering about any rename of an identifier used in code.
 
-Each generation pass that changes a domain emits a console summary enumerating additions, removals, renames, rescopes and collisions. Consulting this summary is the most direct means of detecting an unintended rename.
+Each generation pass that changes a domain logs a summary of additions, removals, renames, rescopes and collisions. Check it to catch an accidental rename.

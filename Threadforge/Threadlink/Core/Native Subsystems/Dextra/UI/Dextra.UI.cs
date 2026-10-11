@@ -57,6 +57,11 @@ namespace Threadlink.Core.NativeSubsystems.Dextra
     {
         private UIStack UIStack { get; set; }
 
+#if UNITY_EDITOR
+        /// <summary>Editor-only: the stacked interface types, top first, for editor tooling.</summary>
+        public IEnumerable<System.Type> EditorOnly_StackedInterfaces => UIStack?.EditorOnly_StackedInterfaces ?? System.Array.Empty<System.Type>();
+#endif
+
         public bool TopInterfaceIsInteractable
         {
             get => UIStack.TryGetTopInterface(out var ui) && ui is IInteractableInterface;

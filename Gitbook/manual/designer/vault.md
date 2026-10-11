@@ -1,19 +1,25 @@
 # The Vault
 
-A **Vault** is a polymorphic data asset holding a set of named, typed **fields**: the authoring unit for any game entity, such as an enemy, a weapon, a level or an item.
+A **Vault** is a data asset holding named, typed **fields**. Use one per game entity, such as an enemy, a weapon, a level or an item.
 
 ## Creation
 
-1. In the Project window, select **Create ▸ Threadlink ▸ Vault**.
-2. Assign a descriptive name (`Vault_Enemy_Goblin`, `Vault_Weapon_Longsword`).
-3. Select the asset to expose its data-field map in the Inspector.
+1. In the Project window, select **Create ▸ Threadlink ▸ Vault**, or select **+** in the Vault Browser.
+2. Give it a descriptive name (`Vault_Enemy_Goblin`, `Vault_Weapon_Longsword`).
+3. Select it to edit its fields in the Inspector.
+
+## The Vault Browser
+
+**`Threadlink ▸ Vault Browser`** lists every Vault in the project, with its folder and field count. Select one to edit it in place, with undo. Search filters by name or folder, and right-clicking a Vault offers ping, duplicate and delete. To jump to a Vault in the browser, right-click it in the Project window and choose **Threadlink ▸ Open in Vault Browser**.
+
+Edits made in Play Mode change the asset itself and are kept after Play Mode ends.
 
 ## Field composition
 
-Each field comprises two elements:
+Each field has:
 
-1. A **field identifier**, selected from the Vault Fields dropdown (declared in `Vault.Fields.User.txt`, see [The Identifier Workflow](identifiers.md)).
-2. A **typed value**, whose type is selected from a dropdown prior to entry.
+1. A **field identifier**, picked from the Vault Fields dropdown (declared in `Vault.Fields.User.txt`; see [The Identifier Workflow](identifiers.md)).
+2. A **value**, whose type you pick from a dropdown before entering it.
 
 Available field types:
 
@@ -32,21 +38,19 @@ Available field types:
 | `UnityGameObject` | GameObject reference |
 | `LocalizedText` | Localised string; requires the Unity Localization package |
 
-Additional field types are introduced through a minor engineering task (see [Vault Runtime API](../engineer/vault.md#custom-field-types)).
+Engineers can add more field types (see [Vault Runtime API](../engineer/vault.md#custom-field-types)).
 
 ## Serialised and transient backings
 
-Each field is assigned one of two value backings:
+Each field stores its value in one of two ways:
 
-- **Serialised**: persisted with the asset. Appropriate for authored values such as base health or weapon damage. This is the backing for design data.
-- **Transient**: runtime-only, never persisted, reset each session. Appropriate for scratch values populated during play.
+- **Serialised**: saved with the asset. Use it for authored values such as base health or weapon damage.
+- **Transient**: runtime-only, never saved, reset each session. Use it for scratch values set during play.
 
-Authored values are serialised; runtime scratch values are transient.
-
-> Unity [Asset Presets](https://docs.unity3d.com/Manual/Presets.html) may be applied to guarantee that every Vault of a given class is instantiated with its complete field set.
+> Unity [Presets](https://docs.unity3d.com/Manual/Presets.html) can give every new Vault of a kind its full set of fields.
 
 ## Runtime consumption
 
-Engineering reads and writes fields by identifier at runtime. Renaming a field identifier invalidates those references; engineering must be notified.
+Engineers read and write fields by identifier at runtime. Renaming a field identifier breaks those references, so tell engineering first.
 
 A Timeline can carry Vault values on markers (see [Vault Runtime API](../engineer/vault.md#timeline-integration)), and an animation event can pass a Vault to code through an `AnimationEventsReceiver` (see [Collections and Utilities](../engineer/collections-and-utilities.md#animation-helpers)).

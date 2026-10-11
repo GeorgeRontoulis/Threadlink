@@ -4,13 +4,16 @@
 
 | Command | Function |
 |---|---|
-| `Threadlink ▸ CodeGen ▸ Run Domain CodeGen` | Forces a generation pass across every domain. |
-| `Threadlink ▸ Code Formatter` | Recursively formats C# files in a selected project folder using CSharpier. |
+| `Threadlink ▸ Vault Browser` | Lists every Vault, and inspects and edits the selected one (see [Editor Tooling](../engineer/editor-tooling.md#vault-browser)). |
+| `Threadlink ▸ Runtime Monitor` | Shows the live runtime as a graph, with per-subsystem state and frame, memory and rendering metrics (see [Editor Tooling](../engineer/editor-tooling.md#runtime-monitor)). |
+| `Threadlink ▸ CodeGen ▸ Run Domain CodeGen` | Runs a generation pass for every domain. |
+| `Threadlink ▸ Code Formatter` | Formats the C# files in a chosen folder with CSharpier. |
 | `Threadlink ▸ Addressables ▸ Mapping Window` | Maps Addressable assets to generated identifiers. |
-| `Threadlink ▸ Addressables ▸ Mark Native Assets as Addressable` | Registers framework assets with the Addressables system. |
-| `Threadlink ▸ Addressables ▸ Match Addressables to Paths` | Realigns addresses to asset paths. |
-| `Threadlink ▸ Clear all Binaries` | Empties `.bytes` files within a selected directory. |
-| `Threadlink ▸ Registers Tracker` | Inspects live register contents. |
+| `Threadlink ▸ Addressables ▸ Mark Native Assets as Addressable` | Makes the framework's own assets Addressable. |
+| `Threadlink ▸ Addressables ▸ Match Addressables to Paths` | Sets each address to its asset path. |
+| `Threadlink ▸ Clear all Binaries` | Empties the `.bytes` files in a chosen folder. |
+
+A Vault's context menus also offer **Open in Vault Browser**: `Assets ▸ Threadlink` in the Project window, and the Inspector's context menu.
 
 The **Scenes** dropdown in the main toolbar opens any scene that ships (see [Editor Tooling](../engineer/editor-tooling.md#scene-dropdown)).
 

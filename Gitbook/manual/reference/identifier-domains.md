@@ -12,7 +12,7 @@
 | `ThreadlinkIDs.Addressables.Prefabs` | Identity | `None = 0` | — | Mapping Window | Shared |
 | `ThreadlinkIDs.Addressables.NativeResources` | Identity | `None = 0` | `Addressables.NativeResources.Native.txt` | — | Framework |
 
-All reside in namespace `Threadlink.Generated`, assembly `Threadlink.Generated`, under `Threadlink/Generated/`, with their manifests in `Threadlink/Generated/Manifests/`.
+All are in namespace `Threadlink.Generated`, assembly `Threadlink.Generated`, under `Threadlink/Generated/`, with their manifests in `Threadlink/Generated/Manifests/`.
 
 Project-defined domains (one `.txt` per domain in `Threadlink User/Design/Custom Domain Definitions/`) are Identity domains with `None = 0` reserved, emitted into namespace `Threadlink.User`, assembly `Threadlink.User.Generated`, under `Threadlink User/Engineering/Codebase/Generated/`.
 

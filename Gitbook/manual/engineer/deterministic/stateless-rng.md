@@ -22,7 +22,7 @@ var item = loot.Fork(itemIndex);                  // a finer identity: independe
 
 `StatelessRNG.Seed` is the process-wide seed, set through `SetSeed`. Every machine simulating a world must use the same one, and the world's save keeps it. The static `CreateStream` overloads draw from `StatelessRNG.Global`, the source of that seed.
 
-A world that can share its process with another (a host's authoritative simulation and its prediction, two worlds in a test, a world and a preview of another) keeps its own **`StatelessRNG.Source`** instead, so the worlds never share randomness:
+When two worlds can run in one process (a host's authoritative simulation and its prediction, two worlds in a test, a world and a preview), give each its own **`StatelessRNG.Source`** so they never share randomness:
 
 ```csharp
 var rng = new StatelessRNG.Source(worldSeed);
@@ -75,4 +75,4 @@ Every sampler is unbiased (Lemire's method, redrawing the rare biased case), and
 
 Domains partition streams: systems drawing from one seed under distinct domains do not interfere. New domains are declared in `StatelessRNG.Domains.User.txt` and surface as `ThreadlinkIDs.StatelessRNG.Domains`.
 
-> Domain values are name hashes. Renaming a domain alters its stream, causing divergence in anything reproducing a prior sequence from a stored seed or replay. Domain names constitute part of the save format, as does the stream format itself.
+> Domain values are name hashes. Renaming a domain changes its stream, so anything that replays an earlier sequence from a stored seed or replay will diverge. Domain names are part of the save format, as is the stream format itself.

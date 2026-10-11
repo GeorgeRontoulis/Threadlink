@@ -2,13 +2,13 @@
 
 ## Unity
 
-Threadlink 6.6 is developed and validated against **Unity 6000.6.4f1**. It relies on recent editor APIs, among them the `Unity.Scripting.LifecycleManagement` attributes (`[OnEnteringPlayMode]`, `[OnExitingPlayMode]`, `[AutoStaticsCleanup]`) and the main-toolbar extension API; earlier editor versions are untested.
+Threadlink 6.6 is developed and tested on **Unity 6000.6.4f1**. It uses recent editor APIs, such as the `Unity.Scripting.LifecycleManagement` attributes (`[OnEnteringPlayMode]`, `[OnExitingPlayMode]`, `[AutoStaticsCleanup]`) and the main-toolbar extension API. Earlier versions are untested.
 
 ## Required packages
 
 | Package | Version in the reference project | Used by |
 |---|---|---|
-| Addressables (`com.unity.addressables`) | 2.11.2 | Every runtime-loaded scene, prefab and asset, and the configuration assets themselves. |
+| Addressables (`com.unity.addressables`) | 2.11.2 | Every scene, prefab and asset loaded at runtime, including the configuration assets. |
 | Input System (`com.unity.inputsystem`) | 1.20.0 | Dextra: devices, action maps, UI input module. |
 | uGUI (`com.unity.ugui`) | 2.6.0 | Dextra's interfaces and selectables. |
 | Collections (`com.unity.collections`) | 6.6.0 | Unsafe collections and native memory; brings Mathematics (`int2`, `float2`, `quaternion`). |
@@ -27,7 +27,7 @@ See [Scripting Defines](../engineer/configuration.md#scripting-defines) for the 
 
 ## Bundled dependencies
 
-Threadlink ships the following under `Threadlink/Plugins/` and `Threadlink/Editor/`. They need no separate installation.
+These ship in `Threadlink/Plugins/` and `Threadlink/Editor/`; there is nothing to install.
 
 | Dependency | Purpose |
 |---|---|

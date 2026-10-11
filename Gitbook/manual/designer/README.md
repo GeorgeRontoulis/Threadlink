@@ -1,26 +1,26 @@
 # Designer Reference
 
-> This volume covers data and identifier authoring. All operations are performed through text files, the Unity Inspector, and a small set of commands under the **Threadlink** menu. It requires no C#.
+> This volume covers authoring data and identifiers. Everything is done through text files, the Inspector and a few commands under the **Threadlink** menu. No C# is needed.
 
 ## Scope of the role
 
-Designers produce four categories of artefact:
+Designers produce four things:
 
-1. **Identifiers**: names for spawn points, input modes and Vault data fields, declared in text files and surfaced as Inspector dropdowns. See [The Identifier Workflow](identifiers.md).
-2. **Vaults**: data assets holding tunable values keyed by those identifiers. See [The Vault](vault.md).
-3. **Configuration values**: exposed fields on the framework's configuration assets. See [Configuration Assets](configuration-assets.md).
-4. **Scene authoring**: placement of Threadlink components, including [audio zones](audio.md#audio-zones), interactables, and [input-prompt icons](input-prompts.md).
+1. **Identifiers**: names for spawn points, input modes and Vault fields, declared in text files and picked from Inspector dropdowns. See [The Identifier Workflow](identifiers.md).
+2. **Vaults**: data assets of tunable values, keyed by those identifiers. See [The Vault](vault.md).
+3. **Configuration values**: the exposed fields of the framework's configuration assets. See [Configuration Assets](configuration-assets.md).
+4. **Scene content**: Threadlink components placed in scenes, such as [audio zones](audio.md#audio-zones), interactables and [input-prompt icons](input-prompts.md).
 
-The governing principle: no name is typed twice, and nothing is referenced by raw string. An identifier is declared once and thereafter selected from a dropdown.
+The rule: declare a name once, then pick it from a dropdown. Nothing is referenced by a typed string.
 
 ## In this volume
 
 | Page | Covers |
 |---|---|
 | [The Identifier Workflow](identifiers.md) | Declaring, regenerating, removing and renaming identifiers. |
-| [The Vault](vault.md) | Creating Vaults, field types, serialised and transient backings. |
+| [The Vault](vault.md) | Creating and browsing Vaults, field types, serialised and transient backings. |
 | [Audio (Aura)](audio.md) | Aura configuration, audio zones, per-scene audio. |
 | [Input Prompts](input-prompts.md) | Device-specific button glyphs. |
 | [Configuration Assets](configuration-assets.md) | The designer-tunable fields of each configuration asset. |
 | [Registering Scenes, Prefabs and Assets](registering-content.md) | The Addressables Mapping Window. |
-| [Designer Procedures](procedures.md) | Step-by-step procedures and operating principles. |
+| [Designer Procedures](procedures.md) | Step-by-step procedures and working rules. |

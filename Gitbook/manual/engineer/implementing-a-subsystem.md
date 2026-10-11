@@ -1,6 +1,6 @@
 # Implementing a Subsystem
 
-A project subsystem derives from `ThreadlinkSubsystem<T>` (or `Register`, `Linker` or `Weaver`, see [Architecture](architecture.md#register-hierarchy)) and implements whichever further lifecycle interfaces it needs. Every subsystem is bootable and discardable; overrides of `Boot()` and `Discard()` call the base implementation, which publishes and clears the singleton.
+A project subsystem derives from `ThreadlinkSubsystem<T>` (or `Register`, `Linker` or `Weaver`; see [Architecture](architecture.md#register-hierarchy)) and implements whichever other lifecycle interfaces it needs. Every subsystem can boot and be discarded. Overrides of `Boot()` and `Discard()` must call the base method, which sets and clears the singleton.
 
 ```csharp
 public sealed class InventorySystem : ThreadlinkSubsystem<InventorySystem>, IInitializable
@@ -20,7 +20,7 @@ public sealed class InventorySystem : ThreadlinkSubsystem<InventorySystem>, IIni
 }
 ```
 
-Registration spans two files.
+Register it in two files.
 
 **Factory registration** in `WeavingFactory.User.cs`:
 
@@ -50,8 +50,8 @@ private static List<IThreadlinkSubsystem> WeaveSubsystems()
 }
 ```
 
-The subsystem then traverses the preload, boot and initialise pipeline during deployment and is accessible through `InventorySystem.TryGetSingleton(out var instance)`. Only the required lifecycle interfaces need be implemented.
+During deployment the subsystem then goes through preload, boot and initialise, and `InventorySystem.TryGetSingleton(out var instance)` returns it. Implement only the lifecycle interfaces you need.
 
-The order of the list is the weave order. Shutdown discards subsystems in reverse weave order, so a subsystem should be woven after the subsystems it depends on (see [Shutdown](deployment.md#shutdown)).
+The list order is the weave order. Shutdown discards in reverse, so weave a subsystem after the ones it depends on (see [Shutdown](deployment.md#shutdown)). The [Runtime Monitor](editor-tooling.md#runtime-monitor) shows the weave order, and lists a register's linked objects.
 
-> Non-trivial construction is accommodated by assigning a factory delegate to `WeavingFactory<T>.OnCreate` in place of `Register<T>()`. `WeavingFactory<T>.OnCreateFrom` supplies the clone factory used by `TryWeave<T>(original, out T)`. Each holds a single delegate: adding one replaces the previous, and removing clears it. `ThreadlinkSubsystems.Register<T>()` (namespace `Threadlink.Utilities.Subsystems`) is equivalent to `WeavingFactory.Register<T>()`.
+> For custom construction, assign a factory delegate to `WeavingFactory<T>.OnCreate` instead of calling `Register<T>()`. `WeavingFactory<T>.OnCreateFrom` is the clone factory used by `TryWeave<T>(original, out T)`. Each holds one delegate: adding one replaces the previous, and removing clears it. `ThreadlinkSubsystems.Register<T>()` (namespace `Threadlink.Utilities.Subsystems`) is the same as `WeavingFactory.Register<T>()`.

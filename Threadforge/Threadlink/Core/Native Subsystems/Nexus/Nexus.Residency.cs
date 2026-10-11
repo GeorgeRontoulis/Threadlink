@@ -51,6 +51,18 @@ namespace Threadlink.Core.NativeSubsystems.Nexus
         [NoAutoStaticsCleanup]
         private static readonly Dictionary<ThreadlinkIDs.Addressables.Scenes, SceneRecord> Records = new(8);
 
+#if UNITY_EDITOR
+        /// <summary>Editor-only: every scene Nexus tracks, with its state and hold count, for editor tooling.</summary>
+        public static IEnumerable<(string Pointer, string State, int Holds, Scene Scene)> EditorOnly_Scenes
+        {
+            get
+            {
+                foreach (var record in Records.Values)
+                    yield return (record.Pointer.ToString(), record.State.ToString(), record.Holds, record.Scene);
+            }
+        }
+#endif
+
         #region Residency:
         /// <summary>
         /// Hold <paramref name="entry"/>'s scene resident, loading it if needed: a scene is loaded while anything holds

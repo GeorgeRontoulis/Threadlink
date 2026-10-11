@@ -1,6 +1,6 @@
 # Engineer Reference
 
-> This volume assumes C# proficiency and familiarity with Unity, Addressables and asynchronous programming. Threadlink uses **UniTask** exclusively in place of `System.Threading.Tasks`, and relies on runtime-initialisation hooks (`[RuntimeInitializeOnLoadMethod]` and Unity's lifecycle-management attributes), generic constraints, generated identifier domains, and direct Unity PlayerLoop integration.
+> This volume assumes you know C#, Unity, Addressables and async programming. Threadlink uses **UniTask** throughout, never `System.Threading.Tasks`. It relies on runtime-initialisation hooks (`[RuntimeInitializeOnLoadMethod]` and Unity's lifecycle-management attributes), generic constraints, generated identifiers and the Unity PlayerLoop.
 
 ## In this volume
 
@@ -23,6 +23,6 @@
 | [Identifier Domains and Code Generation](code-generation.md) | Domain kinds, sources, manifests, the Mapping Window. |
 | [Collections and Utilities](collections-and-utilities.md) | Serialisable maps and collections, extension libraries, attributes. |
 | [Configuration and Project Setup](configuration.md) | Configuration assets, update loop modes, scripting defines. |
-| [Editor Tooling](editor-tooling.md) | Menu commands, the scene dropdown, the code formatter, diagnostics. |
+| [Editor Tooling](editor-tooling.md) | Menu commands, the Vault Browser, the Runtime Monitor, the scene dropdown, the code formatter. |
 | [Performance Constraints](performance.md) | Rules for hot paths. |
 | [Engineering Procedures](procedures.md) | Checklists for common engineering tasks. |
