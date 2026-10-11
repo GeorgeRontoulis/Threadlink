@@ -48,6 +48,19 @@
     }
 
     #region Register:
+#if UNITY_EDITOR
+    /// <summary>
+    /// Editor-only view of a <see cref="Register{Singleton, Object}"/>'s contents, for editor tooling such as the
+    /// Runtime Monitor. Not compiled into builds.
+    /// </summary>
+    public interface IEditorOnlyRegister
+    {
+        public int EditorOnly_Count { get; }
+        public System.Type EditorOnly_ObjectType { get; }
+        public IEnumerable<KeyValuePair<int, IIdentifiable>> EditorOnly_Registry { get; }
+    }
+#endif
+
     /// <summary>
     /// A specialized type of subsystem acting as a register of objects.
     /// Internally, it uses a <see cref="Dictionary{int, Object}"/> to keep
@@ -69,10 +82,16 @@
     /// <typeparam name="Singleton">The singleton type of the subsystem.</typeparam>
     /// <typeparam name="Object">The type of object that can be registered.</typeparam>
     public abstract class Register<Singleton, Object> : ThreadlinkSubsystem<Singleton>
+#if UNITY_EDITOR
+    , IEditorOnlyRegister
+#endif
     where Singleton : Register<Singleton, Object>
     where Object : IIdentifiable
     {
 #if UNITY_EDITOR
+        public int EditorOnly_Count => Registry?.Count ?? 0;
+        public System.Type EditorOnly_ObjectType => typeof(Object);
+
         public IEnumerable<KeyValuePair<int, IIdentifiable>> EditorOnly_Registry
         {
             get

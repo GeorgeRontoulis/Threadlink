@@ -1,6 +1,6 @@
 # Iris: Event Dispatch
 
-`Iris` is a static class backed by `object[] EventRegistry`, dimensioned at type load to span the highest value of `ThreadlinkIDs.Iris.Events` (values can have gaps, see [Domain kinds](code-generation.md#domain-kinds)). Each slot holds a `DelegateList<T>` allocated on first subscription.
+`Iris` is a static class. Its `object[] EventRegistry` has a slot for every value up to the highest `ThreadlinkIDs.Iris.Events` value (values can have gaps; see [Domain kinds](code-generation.md#domain-kinds)). Each slot gets a `DelegateList<T>` on its first subscription.
 
 ## Dispatch signatures
 
@@ -11,7 +11,7 @@ Iris.Publish<Output>(eventID);                  // Func<Output>        (single l
 Iris.Publish<Input, Output>(eventID, input);    // Func<Input, Output> (single listener)
 ```
 
-Subscription and unsubscription state the delegate type explicitly:
+Subscribe and unsubscribe with an explicit delegate type:
 
 ```csharp
 Iris.Subscribe<Action<Nexus.ISceneEntry>>(ThreadlinkIDs.Iris.Events.OnScenePresented, OnScenePresented);
@@ -20,20 +20,20 @@ Iris.Unsubscribe<Action<Nexus.ISceneEntry>>(ThreadlinkIDs.Iris.Events.OnScenePre
 
 Subscribing a delegate that is already subscribed has no effect.
 
-Diagnostic members: `TryGetListenerCount(eventID, out int)`, `ContainsListener<T>(eventID, listener)`, `Clear(eventID)`.
+Diagnostics: `TryGetListenerCount(eventID, out int)`, `ContainsListener<T>(eventID, listener)`, `Clear(eventID)`. The [Runtime Monitor](editor-tooling.md#runtime-monitor) shows listener counts per event.
 
 ## Constraints
 
-- **The delegate type constitutes the contract and is not enforced across subscribers at compile time.** Subscribing `Action<Foo>` to a slot holding `Action<Bar>` logs a type-mismatch error and discards the subscription. Publishing under a mismatched type is a no-op. Signature agreement remains a project discipline; the native signatures are listed in [Native Iris Events](../reference/iris-events.md).
-- **`Func` events throw `InvalidOperationException` beyond a single listener.** They model a single provider rather than a broadcast. With no listener, a `Func` publication returns `default`.
-- **Action dispatch iterates in reverse registration order with a fixed publication bound.** Removal or clearing immediately skips affected listeners; additions wait until the next publication (a nested publication counts as new). Slots are compacted after the outermost dispatch, including when a listener throws. Dispatch allocates no snapshot array.
-- **Unsubscription belongs in `Discard()`.** A retained delegate keeps a destroyed object reachable and dispatches to stale state.
-- Dispatch to an event without listeners is a no-op.
+- **The delegate type is the contract, and the compiler doesn't check it across subscribers.** Subscribing `Action<Foo>` to a slot holding `Action<Bar>` logs a type-mismatch error and drops the subscription. Publishing with the wrong type does nothing. Keep signatures consistent; the native ones are in [Native Iris Events](../reference/iris-events.md).
+- **A `Func` event allows one listener**, and throws `InvalidOperationException` beyond that: it is a single provider, not a broadcast. With no listener, publishing returns `default`.
+- **`Action` listeners run newest first, over the listeners present when publishing began.** A listener removed or cleared during dispatch is skipped at once; one added waits for the next publication (a nested publication counts as new). Slots are compacted after the outermost dispatch, even if a listener throws. Dispatch allocates no snapshot.
+- **Unsubscribe in `Discard()`.** A delegate left subscribed keeps a destroyed object alive and runs on stale state.
+- Publishing an event with no listeners does nothing.
 - Every listener is cleared when Play Mode exits.
 
 ## Update events
 
-When the update loop is configured as `Native`, `ThreadlinkPlayerLoop` injects three marker systems into Unity's **current** `PlayerLoop` and publishes the Iris events directly; no `GameObject` or `MonoBehaviour` exists.
+With the `Native` update loop, `ThreadlinkPlayerLoop` inserts three systems into Unity's **current** `PlayerLoop` that publish the Iris update events. No `GameObject` or `MonoBehaviour` is involved.
 
 | Iris event | Native PlayerLoop position |
 |---|---|
@@ -41,10 +41,10 @@ When the update loop is configured as `Native`, `ThreadlinkPlayerLoop` injects t
 | `OnFixedUpdate` | Immediately **after** `FixedUpdate.ScriptRunBehaviourFixedUpdate` |
 | `OnLateUpdate` | Immediately **after** `PreLateUpdate.ScriptRunBehaviourLateUpdate` |
 
-Installation removes stale Threadlink markers first, then fails fast if any expected Unity anchor cannot be found. The loop is uninstalled when the core is discarded or the application quits, and an entering-play-mode reset protects against stale PlayerLoop state when Domain Reload is disabled. `Custom` mode installs nothing; the project is responsible for publishing the three Iris update events (see [Update loop modes](configuration.md#update-loop-modes)).
+Installing first removes any old Threadlink systems, then fails at once if a Unity anchor is missing. The loop is uninstalled when the core is discarded or the application quits, and reset on entering Play Mode in case Domain Reload is disabled. `Custom` mode installs nothing; the project publishes the three update events itself (see [Update loop modes](configuration.md#update-loop-modes)).
 
 ## Declaring events
 
 Declare the identifier in `Threadlink User/Native Domain Injectors/Iris.Events.User.txt` and save.
 
-Iris events are the framework's sole **ordinal** domain: values are array indices allocated in source order, native entries preceding injector entries, and kept by the domain's manifest. Values are never serialised, so removal produces compilation failure at every subscription site. Tombstoning is disabled for this domain accordingly.
+Iris events are the only **ordinal** domain: values are array indices, assigned in source order (native entries first, then the injector's) and kept stable by the domain's manifest. They are never serialised, so there are no tombstones: removing an event breaks compilation wherever it is used.

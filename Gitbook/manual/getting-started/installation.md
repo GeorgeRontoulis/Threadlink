@@ -1,17 +1,17 @@
 # Installation and Project Setup
 
-Threadlink is distributed as a folder, not as a UPM package. The repository's `Threadforge/` directory is the framework together with a ready-made project territory and default configuration assets.
+Threadlink ships as a folder, not a UPM package. The repository's `Threadforge/` folder holds the framework, a ready-made project area and default configuration assets.
 
 ## Add the framework
 
 1. Install the [required packages](requirements.md#required-packages).
 2. Copy the repository's `Threadforge/` folder into the project as **`Assets/Threadforge/`**, `.meta` files included.
 
-The location is not a convention but a requirement: the core loads the Native Config from the fixed Addressables address `Assets/Threadforge/Threadlink/ThreadlinkConfig.Native.asset` (`NativeConstants.Addressables.NATIVE_CONFIG`). The asset references between the shipped configuration assets also rely on the `.meta` GUIDs being preserved.
+This location is required. The core loads the Native Config from the fixed address `Assets/Threadforge/Threadlink/ThreadlinkConfig.Native.asset` (`NativeConstants.Addressables.NATIVE_CONFIG`), and the shipped assets reference each other by the GUIDs in their `.meta` files.
 
 ## Shipped configuration
 
-The framework arrives configured. Nothing below needs to be created; it needs to be reviewed.
+The framework comes configured. Review these assets; there is nothing to create.
 
 | Asset | Location |
 |---|---|
@@ -22,25 +22,25 @@ The framework arrives configured. Nothing below needs to be created; it needs to
 | Aura Config, `AuraComponents.prefab`, `AuraMixer.mixer` | `Threadlink User/Engineering/Configs/Aura/` |
 | Dextra Config, `DextraComponents.prefab`, `ThreadlinkInputActions.inputactions`, `UIInputActions.inputactions`, `InputSystem.inputsettings.asset` | `Threadlink User/Engineering/Configs/Dextra/` |
 
-Every configuration asset is described in [Configuration and Project Setup](../engineer/configuration.md).
+[Configuration and Project Setup](../engineer/configuration.md) describes each one.
 
 ## Make the native assets Addressable
 
 1. Create the project's Addressables settings if it has none, and an Addressable group named **`Threadlink Assets`**.
 2. Select **`Threadlink ▸ Addressables ▸ Mark Native Assets as Addressable`**.
 
-The command reads the Native Config and marks the Native Config itself and every native resource it references as Addressable in the `Threadlink Assets` group, each addressed by its asset path. If that group does not exist, the default group is used and a warning is logged.
+This makes the Native Config, and every native resource it references, Addressable in the `Threadlink Assets` group, each addressed by its asset path. Without that group, it uses the default group and logs a warning.
 
 ## Create the bootstrap scene
 
-Every project needs exactly one **bootstrap scene**, the build's entry point:
+Every project needs one **bootstrap scene**: the build's entry point.
 
 1. Create a scene that is **not** Addressable.
 2. Make it the first, and ideally the only, scene in Build Settings.
-3. Keep it minimal. It stays loaded for the whole run; gameplay content belongs in Addressable scenes loaded through Nexus.
+3. Keep it minimal. It stays loaded for the whole run; gameplay belongs in Addressable scenes loaded through Nexus.
 4. Make Play Mode start from it, so the Editor boots as a build does.
 
-Play Mode otherwise starts from whichever scene is open, and that scene takes the bootstrap scene's place. If it is an Addressable gameplay scene, Nexus later loads a second copy of it beside the first. Unity exposes the Play Mode start scene through `EditorSceneManager.playModeStartScene`, for example:
+Otherwise Play Mode starts from whichever scene is open, which then stands in for the bootstrap scene. If that is an Addressable gameplay scene, Nexus later loads a second copy of it. Set the start scene with `EditorSceneManager.playModeStartScene`:
 
 ```csharp
 #if UNITY_EDITOR
@@ -56,19 +56,19 @@ internal static class BootstrapPlayModeStart
 #endif
 ```
 
-The reasons for this arrangement are set out in [Deployment Overview](../foundations/deployment-overview.md).
+[Deployment Overview](../foundations/deployment-overview.md) explains why.
 
 ## Choose the platform distribution
 
-Open the **Sentinel Config** and confirm the distribution for platforms that offer a choice, such as Windows (Local, Steam, Microsoft Store, Epic or GOG). The shipped default is **Local**, which needs no platform SDK. See [Sentinel](../engineer/sentinel/README.md).
+Open the **Sentinel Config** and check the distribution for each platform that offers a choice, such as Windows (Local, Steam, Microsoft Store, Epic or GOG). The default, **Local**, needs no platform SDK. See [Sentinel](../engineer/sentinel/README.md).
 
 ## Verify the deployment
 
-Enter Play Mode from the bootstrap scene. The console lists the woven native subsystems (Sentinel, Chronos, Dextra and Aura), then the user subsystems (or reports that there are none), then `Core successfully deployed.` Sentinel separately reports the platform and distribution it deployed, or why it failed; a failed platform does not stop the deployment.
+Enter Play Mode from the bootstrap scene. The console lists the native subsystems (Sentinel, Chronos, Dextra and Aura), then any user subsystems, then `Core successfully deployed.` Sentinel also reports its platform and distribution, or why it failed; a failed platform does not stop deployment. **`Threadlink ▸ Runtime Monitor`** shows the result live.
 
-Deployment aborts with an error if either the Native Config or the User Config cannot be loaded, most often because the native assets were never made Addressable.
+If the Native Config or User Config cannot be loaded, deployment stops with an error. The usual cause is that the native assets were never made Addressable.
 
-> **Previewing a scene without the core.** Setting `ThreadlinkEditorDeployment.Suppressed = true` before `AfterSceneLoad` (for example from a `BeforeSceneLoad` hook) skips Addressables initialisation and core deployment for that Play session. The flag is Editor-only and resets on entering and exiting Play Mode.
+> **Previewing a scene without the core.** Set `ThreadlinkEditorDeployment.Suppressed = true` before `AfterSceneLoad` (for example from a `BeforeSceneLoad` hook) to skip Addressables initialisation and deployment for that Play session. The flag is Editor-only and resets on entering and exiting Play Mode.
 
 ## Next steps
 

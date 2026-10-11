@@ -11,7 +11,7 @@ The account-scoped `IMultiplayerService` exposes platform-native social and sess
 | `InviteFriendAsync(friendID, joinPayload)` | Sends a private opaque payload to one friend without publishing it. |
 | `JoinRequested`, `TryDequeueJoinRequest(out SentinelJoinRequest)` | Join requests: `SourceUserID`, `SourceDisplayName` and the `JoinPayload` to join with. |
 
-`SentinelFriendPresence` enumerates `Unknown`, `Offline`, `Online`, `Busy`, `Away`, `Snooze`, `LookingToTrade` and `LookingToPlay`.
+`SentinelFriendPresence` values are `Unknown`, `Offline`, `Online`, `Busy`, `Away`, `Snooze`, `LookingToTrade` and `LookingToPlay`.
 
 ## Private invitations
 
@@ -21,7 +21,7 @@ A `SentinelSessionPresence` with a null or empty `JoinPayload` retains status an
 
 ## Join requests
 
-A join request is delivered to `JoinRequested` if it has a subscriber, and queued otherwise, so a request that arrives before the game is ready to handle it is not lost: the game drains the queue with `TryDequeueJoinRequest` once it is. A game launched by accepting an invitation (a cold launch) receives the request the same way; its source user is unknown.
+A join request goes to `JoinRequested` if it has a subscriber, and is queued otherwise, so a request that arrives before the game is ready isn't lost. Once ready, the game drains the queue with `TryDequeueJoinRequest`. A game launched by accepting an invitation (a cold launch) receives the request the same way; its source user is unknown.
 
 ## Steam
 

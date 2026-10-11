@@ -17,6 +17,11 @@
 1. Add the mode identifier to `Dextra.InputModes.User.txt` and save.
 2. Provide the identifier to engineering for binding to an input action map.
 
+## Browsing and editing Vaults
+
+1. Open **`Threadlink ▸ Vault Browser`**.
+2. Search or scroll to the Vault, select it, and edit its fields on the right.
+
 ## Making an asset loadable
 
 1. Assign the asset to an Addressable group under a stable name.
@@ -28,10 +33,10 @@
 2. Give the zone a name unique within the scene.
 3. Set **Radius Coefficient** and **Influence**.
 
-## Operating principles
+## Working rules
 
-- Nothing is referenced by raw string. Declare an identifier, save, and select from the dropdown.
-- Removal is safe; renaming orphans existing references and requires coordination.
-- Consult the console summary emitted by each generation pass.
-- Assign stable names and final group membership to Addressable assets before mapping them.
-- Notify engineering of any identifier rename that may be referenced in code.
+- Never type a name as a string. Declare an identifier, save, and pick it from the dropdown.
+- Removing is safe. Renaming breaks existing references, so coordinate it.
+- Read the console summary after each generation pass.
+- Give Addressable assets stable names and final groups before mapping them.
+- Tell engineering about any rename of an identifier that code may use.

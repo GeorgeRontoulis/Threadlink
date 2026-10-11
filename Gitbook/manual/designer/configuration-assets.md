@@ -3,10 +3,10 @@
 | Asset | Designer-tunable fields |
 |---|---|
 | **Aura Config** | Volume fade speed; navigation, confirm and cancel clips. |
-| **Dextra Config** | Interface fade-in and fade-out durations (seconds, default 0.25); input-icon sprite assignments; interface list, in conjunction with engineering. |
-| **Chronos Config** | Iris Physics Update. **Engineering-owned; do not modify.** |
-| **Sentinel Config** | Target distribution where a platform permits multiple storefront/ecosystem choices. **Engineering-owned; do not modify without coordination.** |
+| **Dextra Config** | Interface fade-in and fade-out times (seconds, default 0.25); input-icon sprites; the interface list, with engineering. |
+| **Chronos Config** | Iris Physics Update. **Engineering-owned; do not change.** |
+| **Sentinel Config** | The distribution (store) for platforms that offer several. **Engineering-owned; change only with engineering.** |
 
-The physics toggle alters the simulation model for the entire application. Values of uncertain ownership should be confirmed with engineering before modification.
+The physics toggle changes how the whole game simulates physics. If you're unsure who owns a value, ask engineering before changing it.
 
-The shipped assets reside in `Threadlink User/Engineering/Configs/`. The full description of every configuration asset, including the engineering-owned ones, is in [Configuration and Project Setup](../engineer/configuration.md).
+The shipped assets are in `Threadlink User/Engineering/Configs/`. [Configuration and Project Setup](../engineer/configuration.md) describes every one, including the engineering-owned ones.
