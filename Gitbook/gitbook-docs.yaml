@@ -1,0 +1,18 @@
+# GitBook site configuration for site-level Git Sync.
+#
+# In GitBook's Git Sync setup, set "Project directory" to: Gitbook
+# The manual space's content, .gitbook.yaml and SUMMARY.md live in ./manual (Gitbook/manual).
+#
+# A space's key identifies it across syncs. Never change a key once synced: GitBook would treat the
+# space as removed and create a new one with a new ID. Rename a space through `title`, move it through `path`.
+$schema: https://api.gitbook.com/gitbook-docs.yaml
+site:
+  title: Threadlink Framework
+  structure:
+    - type: space
+      key: threadlink-manual
+      title: Reference Manual
+      path: manual
+      default: true
+      content:
+        directory: ./manual

@@ -1,0 +1,7 @@
+# Space-level Git Sync with no Project directory reads this file from the repository root.
+# Site-level Git Sync uses Gitbook/gitbook-docs.yaml instead (Project directory: Gitbook).
+root: ./Gitbook/manual/
+
+structure:
+  readme: README.md
+  summary: SUMMARY.md
