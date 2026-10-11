@@ -2,7 +2,7 @@
 
 ## Unity
 
-Threadlink 6.6 is developed and tested on **Unity 6000.6.4f1**. It uses recent editor APIs, such as the `Unity.Scripting.LifecycleManagement` attributes (`[OnEnteringPlayMode]`, `[OnExitingPlayMode]`, `[AutoStaticsCleanup]`) and the main-toolbar extension API. Earlier versions are untested.
+Threadlink 6.6 is developed and tested on **Unity 6000.6.5f1**. It uses recent editor APIs, such as the `Unity.Scripting.LifecycleManagement` attributes (`[OnEnteringPlayMode]`, `[OnExitingPlayMode]`, `[AutoStaticsCleanup]`) and the main-toolbar extension API. Earlier versions are untested.
 
 ## Required packages
 

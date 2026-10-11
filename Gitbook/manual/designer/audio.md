@@ -22,7 +22,7 @@ An **AuraZone** is a local sound source in a scene. As the listener gets closer,
 2. Add an **AudioSource** to the same GameObject and assign its clip. The zone puts it in its **Source** field and sets it to loop from the start at full volume. You can assign an AudioSource on another object to **Source** instead.
 3. Set two values:
    - **Radius Coefficient** (0–1): the zone's radius, as a fraction of the AudioSource's maximum distance.
-   - **Influence** (0–1): how far the global channels are turned down when the listener is fully inside the zone.
+   - **Influence** (0–1): the most this zone turns the global channels down. The effect grows from nothing at the zone's edge as the listener approaches its centre, until it reaches this value.
 
 Placing the zone is all it takes. Zones start working when their scene becomes the presented scene, and stop when it is replaced or unloaded. Only the presented scene is heard, so zones in other loaded scenes (such as scenes kept loaded for other players) do nothing.
 

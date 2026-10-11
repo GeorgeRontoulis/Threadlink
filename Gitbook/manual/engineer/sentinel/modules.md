@@ -79,6 +79,6 @@ Before every build, Sentinel resolves the target the same way the runtime does: 
 
 An `ISentinelBuildModule` exposes `ModuleID`, `DisplayName`, `Implements(in SentinelModuleKey)`, `ConfigureBuild` and `ValidateBuild`. The last two receive a `SentinelBuildContext` (the `BuildReport`, the key, the output path, and `GetSubtarget<T>()`) and append `SentinelBuildDiagnostic.Info`, `Warning` or `Error` entries, which are logged. Build modules are found through the `TypeCache` and must expose a public parameterless constructor.
 
-The Steam build module checks that Steamworks.NET is installed and that `steam_appid.txt` holds a valid App ID, and warns if it is Valve's test App ID 480.
+The Steam build module checks that Steamworks.NET is installed and that `steam_appid.txt` holds a valid App ID. It logs the installed Steamworks.NET version beside the validated one, and warns if the App ID is Valve's test App ID 480.
 
 The Sentinel Config's Inspector shows the current build target, its Sentinel platform, and the distribution choice the target allows.
