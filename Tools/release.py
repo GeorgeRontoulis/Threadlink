@@ -18,6 +18,7 @@ import json
 import re
 import sys
 import tarfile
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -244,6 +245,9 @@ def openupm(output):
     submission automatically when its pull request holds one file titled "chore(data): new package <name>"."""
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
+    # OpenUPM requires the submission time in epoch milliseconds, and licenseName equal to the SPDX license's name
+    # (the MessagePack package's third-party notices ship inside the package).
+    created = int(time.time() * 1000)
     for name, folder in folders().items():
         data = json.loads((folder / "package.json").read_text(encoding="utf-8"))
         suffix = "dependencies.messagepack" if name in THIRD_PARTY else suffix_of(name)
@@ -257,7 +261,7 @@ def openupm(output):
             f"repoUrl: '{REPOSITORY}'",
             "parentRepoUrl: null",
             "licenseSpdxId: MIT",
-            "licenseName: " + ("MIT License (MessagePack, StringTools, Immutable), with lz4net BSD and Apache-2.0 notices" if name in THIRD_PARTY else "MIT License"),
+            "licenseName: MIT License",
             "topics:",
             *[f"  - {topic}" for topic in TOPICS.get(suffix, ["utilities"])],
             f"hunter: {HUNTER}",
@@ -267,6 +271,7 @@ def openupm(output):
             f"image: '{IMAGE}'",
             "imageFit: contain",
             f"readme: '{readme}'",
+            f"createdAt: {created}",
         ]
         (output / f"{name}.yml").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"Wrote OpenUPM metadata for {len(folders())} packages into {output}.")
