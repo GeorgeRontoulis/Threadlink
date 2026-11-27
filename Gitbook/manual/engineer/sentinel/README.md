@@ -44,8 +44,19 @@ A platform package reports its authoring to the generator by implementing `IPlat
 
 `AccountIdentity` pairs a provider and an account string; equal strings from different providers are different accounts. Changing account invalidates earlier leases; adapters observe the cancellation and recheck before applying results. Operations that may already have committed natively are reconciled, never blindly retried.
 
+## Events
+
+Sentinel announces on Iris (see [Framework Events](../events.md)):
+
+| Event | When |
+| --- | --- |
+| `PlatformReady` | A platform provider is added, such as Steam once it has started; it carries the routed capabilities. |
+| `AccountChanged` | The signed-in account changes, and once for the startup account during the initialization phase. |
+| `AchievementUnlocked` | An achievement is unlocked through Sentinel: show an in-game toast. |
+| `SaveWritten`, `SaveFailed`, `SaveRecovered` | A save is written; a save cannot be written, read, deleted or restored (an empty slot and a cancelled operation are not failures); a slot is restored to its previous version. |
+
 ## Providers
 
 A provider implements `ISentinelProvider` and the capability contracts it supports. Its `Status(capability)` reports Ready, Offline, AccountRequired, Initializing, TemporarilyUnavailable or Failed separately from support. Provider contracts and the Sentinel API return `UniTask`.
 
-`JoinIntentBuffer` holds launch and invite join requests captured before the game is ready; the game takes them when it chooses. Lobbies, matchmaking and transport are separate networking integrations. See [Social and Invitations](multiplayer.md).
+`JoinIntentBuffer` holds launch and invite join requests captured before the game is ready; the game takes them when it chooses, and `JoinIntentReceived` announces each one on Iris. Lobbies, matchmaking and transport are separate networking integrations. See [Social and Invitations](multiplayer.md).

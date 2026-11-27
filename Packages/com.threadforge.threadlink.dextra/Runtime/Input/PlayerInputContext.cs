@@ -30,6 +30,10 @@ namespace Threadforge.Threadlink
             }
         }
 
+        // Devices a player uses because no other player owns them (player 0's free devices). An explicit assignment to
+        // another player takes them over.
+        private static readonly Dictionary<InputDevice, PlayerInputContext> lent = new Dictionary<InputDevice, PlayerInputContext>();
+
         private readonly List<ClaimToken> claims = new List<ClaimToken>();
         private InputUser user;
         private InputActionRebindingExtensions.RebindingOperation rebinding;
@@ -89,7 +93,65 @@ namespace Threadforge.Threadlink
                 return;
             }
             if (control != null)
-                LastDevice = control.device;
+                RecordUse(control.device);
+        }
+
+        // Records the device the player used; a different kind of device (gamepad after keyboard) changes the controls.
+        internal void RecordUse(InputDevice device)
+        {
+            var previous = LastDevice;
+            LastDevice = device;
+            if (previous != null && device != null && Kind(previous) != Kind(device))
+                ControlsChanged?.Invoke(this);
+        }
+
+        /// <summary>The kind of controls a device offers: keyboard and mouse count as one.</summary>
+        internal static string Kind(InputDevice device) =>
+            device is Keyboard || device is Mouse ? "KeyboardMouse"
+            : device is Gamepad ? "Gamepad"
+            : device is Touchscreen ? "Touch"
+            : device is Joystick ? "Joystick"
+            : device is Pen ? "Pen"
+            : device.layout;
+
+        /// <summary>Raised when the player starts using a different kind of device.</summary>
+        internal Action<PlayerInputContext> ControlsChanged;
+
+        /// <summary>Uses devices no other player owns, such as one connected after the player joined, until another player is assigned them.</summary>
+        internal void Lend(params InputDevice[] devices)
+        {
+            if (disposed)
+                return;
+            foreach (var device in devices)
+            {
+                if (device == null)
+                    continue;
+                var owner = InputUser.FindUserPairedToDevice(device);
+                if (owner.HasValue && owner.Value.id != user.id)
+                    continue;
+                if (!owner.HasValue)
+                    user = InputUser.PerformPairingWithDevice(device, user);
+                lent[device] = this;
+            }
+        }
+
+        private void Return(InputDevice device)
+        {
+            lent.Remove(device);
+            if (user.valid)
+                user.UnpairDevice(device);
+            if (LastDevice == device)
+                LastDevice = null;
+        }
+
+        private void Forget()
+        {
+            var mine = new List<InputDevice>();
+            foreach (var pair in lent)
+                if (pair.Value == this)
+                    mine.Add(pair.Key);
+            foreach (var device in mine)
+                lent.Remove(device);
         }
 
         private void CheckOpen()
@@ -110,9 +172,13 @@ namespace Threadforge.Threadlink
                 if (device == null)
                     throw new ArgumentException("Device is null.");
                 var previous = InputUser.FindUserPairedToDevice(device);
-                if (previous.HasValue && previous.Value.id != user.id)
+                if (previous.HasValue && previous.Value.id != user.id && !(lent.TryGetValue(device, out var borrower) && borrower.user.id == previous.Value.id))
                     throw new InvalidOperationException("Device belongs to another player.");
             }
+            foreach (var device in devices)
+                if (lent.TryGetValue(device, out var borrower) && borrower != this)
+                    borrower.Return(device);
+            Forget();
             user.UnpairDevices();
             foreach (var device in devices)
                 user = InputUser.PerformPairingWithDevice(device, user);
@@ -434,7 +500,7 @@ namespace Threadforge.Threadlink
                     .OnComplete(operation =>
                     {
                         if (operation.selectedControl != null)
-                            LastDevice = operation.selectedControl.device;
+                            RecordUse(operation.selectedControl.device);
                         operation.Dispose();
                         rebinding = null;
                         step++;
@@ -500,6 +566,7 @@ namespace Threadforge.Threadlink
                 return;
             CancelRebind();
             disposed = true;
+            Forget();
             foreach (var claim in claims)
                 claim.Owner = null;
             claims.Clear();

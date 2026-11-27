@@ -78,7 +78,7 @@ Threadlink targets .NET Standard 2.1 APIs, uses [UniTask](https://github.com/Cys
 
 ## Installation and Project Setup
 
-Threadlink is a set of Unity packages published on [OpenUPM](https://openupm.com), a scoped registry that the Unity Package Manager installs from with dependencies resolved automatically. All Threadlink packages share one version; this manual describes **1.0.0**.
+Threadlink is a set of Unity packages published on [OpenUPM](https://openupm.com), a scoped registry that the Unity Package Manager installs from with dependencies resolved automatically. All Threadlink packages share one version; this manual describes **1.1.0**.
 
 ### Install with the OpenUPM command-line tool
 
@@ -488,11 +488,26 @@ Threadlink owns the parts of a game that live for the whole session. Each part i
 | Moment | What happens |
 | --- | --- |
 | `RuntimeInitializeLoadType.SubsystemRegistration` | Every subsystem class registers itself. Generated code does this; nothing scans assemblies. |
-| `RuntimeInitializeLoadType.BeforeSceneLoad` | The core deploys: each subsystem is created and initialized, dependencies first. |
+| `RuntimeInitializeLoadType.BeforeSceneLoad` | The core deploys in two phases. Iris boots and initializes first. Then every other subsystem **boots**, then every one **initializes**. `ThreadlinkReady` is announced on Iris. |
 | First scene's `Awake` and `Start` | Every subsystem is ready. Nothing waits. |
-| Leaving Play mode, code reload, player quit | Subsystems shut down in reverse initialization order; the session's `Threadlink.Lifetime` token is cancelled. |
+| Leaving Play mode, code reload, player quit | `SessionEnding` is announced, the session's `Threadlink.Lifetime` token is cancelled, every subsystem **deinitializes** in reverse initialization order, then every one **shuts down** in reverse boot order. |
 
-Initialization is synchronous. Work that is genuinely asynchronous, such as reading a save, loading a scene or calling a platform service, is an ordinary `UniTask` call the game makes when it needs it, never a precondition for `Start`.
+Startup is synchronous. Work that is genuinely asynchronous, such as reading a save, loading a scene or calling a platform service, is an ordinary `UniTask` call the game makes when it needs it, never a precondition for `Start`.
+
+#### Two phases instead of a dependency order
+
+Boot and initialization split what a subsystem does to itself from what it does with others, so no subsystem declares what it depends on and the order between them never matters.
+
+| Phase | Hook | Does | May use |
+| --- | --- | --- | --- |
+| Boot | `OnSubsystemBoot()` | Sets up the subsystem's own state, creates its objects, subscribes to Iris events. | Only itself and Iris. Using any other subsystem throws, with the fix in the message. |
+| Initialize | `OnSubsystemInit()` | Connects to other subsystems, registers with them, announces readiness on Iris. | Every subsystem, in any order: all have booted. |
+| Deinitialize | `OnSubsystemDeinit()` | Disconnects from other subsystems. | Every subsystem: none has shut down yet. |
+| Shut down | `OnSubsystemShutdown()` | Releases the subsystem's own state. | Itself and Iris. |
+
+A subsystem that reaches a state only while it initializes (Steam signing in, a platform taking over accounts) announces it on Iris. Subscribe while booting, and the announcement arrives whichever subsystem initializes first. State another subsystem reaches during its initialization arrives through its events, not from `OnSubsystemInit`. An event reaches only the subscribers listening when it is announced; Iris never replays one. See [Framework Events](#framework-events).
+
+Keep both phases to the work that has to happen before the first scene: wiring, subscriptions, starting an SDK that must start early. Loading, waiting and reading files belong to the asynchronous APIs, after startup.
 
 ### Subsystems
 
@@ -503,9 +518,14 @@ using Threadforge.Threadlink;
 
 public sealed class Wallet : ThreadlinkSubsystem<Wallet>
 {
+    private SubscriptionToken account;
+
     public int Coins { get; private set; }
 
-    protected override void OnInitialize() => Require<Iris>();
+    // Its own state, and its subscriptions: the account is announced while Sentinel and the platforms initialize.
+    protected override void OnSubsystemBoot() => account = Iris.Subscribe<AccountChanged>(changed => Coins = 0);
+
+    protected override void OnSubsystemShutdown() => account.Dispose();
 
     public static void Add(int amount)
     {
@@ -519,15 +539,28 @@ public sealed class Wallet : ThreadlinkSubsystem<Wallet>
 
 | Member | Meaning |
 | --- | --- |
-| `OnInitialize()` | Runs once, before the first scene's Awake. Throwing fails only this subsystem and the ones that require it. |
-| `OnShutdown()` | Runs once when the session ends, in reverse order. |
-| `Require<T>()` | Returns another subsystem, initializing it first if needed. The dependency is recorded, ordered and shown in the Runtime monitor; cycles are rejected with the full chain. |
-| `Instance` | The linked instance. Throws `SubsystemUnavailableException` with the reason when it is not linked. |
-| `TryGetSingleton(out T)` | Whether the subsystem exists, is initialized and is linked to the current core. |
+| `OnSubsystemBoot()` | Startup phase one: set up the subsystem itself and subscribe to Iris. Throwing fails only this subsystem. |
+| `OnSubsystemInit()` | Startup phase two: connect to other subsystems through their `Instance`. Throwing fails this subsystem; a subsystem whose initialization uses a failed one fails with the chain in its error. |
+| `OnSubsystemDeinit()` | Shutdown phase one, in reverse initialization order: disconnect from other subsystems. |
+| `OnSubsystemShutdown()` | Shutdown phase two, in reverse boot order: release the subsystem's own state. |
+| `Instance` | The subsystem in the current session. Throws `SubsystemUnavailableException` with the reason when it is not part of the session or failed, and `InvalidOperationException` when used from another subsystem's boot. |
+| `TryGetSingleton(out T)` | Whether the subsystem is part of the current session and available. It never starts one. |
+| `State`, `Error` | `Registered`, `Booting`, `Booted`, `Initializing`, `Ready`, `Failed` or `ShutDown`, and why it failed. |
+| `Dependencies` | The subsystems this one used while it initialized, shown in the Runtime monitor's graph. |
 | `Lifetime` | Cancelled when the session ends. |
 | `Report(MonitorReport)` | What the Runtime monitor shows. |
 
 Framework subsystems follow the same pattern and expose their API as static methods on the class: `Iris.Publish`, `Nexus.LoadAsync`, `Aura.Play`, `Dextra.Player`, `Sentinel.Saves.SaveAsync`, `Vault.Get`. Content loading lives on the core: `Threadlink.LoadAsync`.
+
+#### Subsystems written for 1.0
+
+`OnInitialize()`, `OnShutdown()` and `Require<T>()` are obsolete and still work, with compiler warnings that name their replacements:
+
+- `OnInitialize()` runs in the initialization phase. A subsystem that overrides it is initialized as soon as another one uses it, so its setup has run before it is used, as before.
+- `OnShutdown()` runs in the deinitialization phase, while every subsystem is still available.
+- `Require<T>()` returns the subsystem after initializing it, and still rejects cycles between `OnInitialize` methods with the full chain.
+
+To migrate, move a subsystem's own setup from `OnInitialize` into `OnSubsystemBoot`, replace `Require<T>()` with `T.Instance` in `OnSubsystemInit`, and split `OnShutdown` the same way.
 
 ### The core
 
@@ -536,9 +569,9 @@ Framework subsystems follow the same pattern and expose their API as static meth
 | `Threadlink.TryGetSingleton(out Threadlink)` | Whether a core is deployed and linked. |
 | `Threadlink.IsDeployed`, `Threadlink.Instance` | Deployment state and the current core. |
 | `Threadlink.Lifetime` | Cancelled when the session ends. |
-| `core.Subsystems` | Every subsystem in initialization order. |
+| `core.Subsystems` | Every subsystem in initialization order, then any that failed. |
 | `Threadlink.Operations`, `Threadlink.Begin` | The session's operation log. See [Diagnostics](#diagnostics). |
-| `Threadlink.DeployIsolated()` | A separate core for tests and tools; it becomes current until disposed and starts empty (`core.Add<T>()`). |
+| `Threadlink.DeployIsolated()` | A separate core for tests and tools; it becomes current until disposed and starts empty. `core.Add<T>()` boots and initializes a subsystem; one that another uses joins on first use. |
 
 ### Design and engineering
 
@@ -582,6 +615,8 @@ Ownership is optional. Ordinary `using` statements remain appropriate for indivi
 
 Iris is the session's event system, in the core package (`com.threadforge.threadlink`). Use it from the main thread; workers queue events with `TryPost`.
 
+Iris boots and initializes before every other subsystem, and it is the one subsystem others may use while they boot. Subscribe in `OnSubsystemBoot` and you hear everything other subsystems announce while they initialize, whatever their order. The framework announces its own state changes on Iris: see [Framework Events](#framework-events).
+
 ### Synchronous events
 
 ```csharp
@@ -605,6 +640,7 @@ Iris.Publish(new CoinsChanged(12));
 | `Iris.Subscribe<T>(owner, callback)` | Ends when the `MonoBehaviour` owner is destroyed. |
 | `Iris.Publish<T>(value)` | Delivers now, in subscription order. A listener's exception stops delivery and propagates. |
 | `Iris.Notify<T>(value)` | Delivers now; listener exceptions are logged and delivery continues. |
+| `Iris.TryNotify<T>(value)` | As `Notify` when Iris is available; returns false otherwise, such as in a test session without Iris. Framework events use it. |
 | `Iris.TryPost<T>(value)` | From any thread: queues the event for the next Update. Returns false when the bounded queue is full or Iris is not linked. |
 | `Iris.ListenerCount<T>()` | Current synchronous listeners. |
 
@@ -612,7 +648,7 @@ Additions during a publication take effect for the next publication; removals ta
 
 ### Frame callbacks
 
-`Iris.OnUpdate(owner, deltaTime => …)`, `OnFixedUpdate` and `OnLateUpdate` run after the corresponding MonoBehaviour phase and end with their owner. Iris also publishes `UpdateFrame`, `FixedFrame` and `LateFrame` (each with `DeltaTime`) for `Iris.Subscribe`. Iris inserts its markers into the PlayerLoop while it is linked and removes only its own markers at shutdown.
+`Iris.OnUpdate(owner, deltaTime => …)`, `OnFixedUpdate` and `OnLateUpdate` run after the corresponding MonoBehaviour phase and end with their owner. Iris also publishes `UpdateFrame`, `FixedFrame` and `LateFrame` (each with `DeltaTime`) for `Iris.Subscribe`. Iris inserts its markers into the PlayerLoop while it is linked and removes only its own markers at shutdown; a test session inside Play mode reuses the running session's markers.
 
 ### Awaited events and requests
 
@@ -636,6 +672,85 @@ Listeners return `UniTask`. Publication adds no allocation: warmed sequential an
 ### Isolated buses
 
 `EventBus` and `AsyncEventBus` are ordinary classes for tools and tests that need a bus outside the session; `Iris.Instance.Bus` and `AwaitedBus` are the session's buses.
+
+## Framework Events
+
+The framework announces its state changes on [Iris](#iris-event-dispatch), so game code reacts to them instead of polling or depending on startup order. Every event is a `readonly struct`, delivered synchronously with `Iris.TryNotify`: a listener that throws is logged and the others still run.
+
+### Listening
+
+An event reaches the subscribers that are listening when it is announced; Iris never replays one. Subscribe before the events you need are announced: a subsystem subscribes while it boots. Iris boots before every other subsystem, and every subsystem boots before any initializes, so a boot-time subscriber hears everything announced during initialization and afterwards, whatever the order between subsystems:
+
+```csharp
+public sealed class OnlineBadge : ThreadlinkSubsystem<OnlineBadge>
+{
+    private SubscriptionToken ready;
+
+    protected override void OnSubsystemBoot() =>
+        ready = Iris.Subscribe<PlatformReady>(platform => Debug.Log(platform.Provider + " is ready"));
+
+    protected override void OnSubsystemShutdown() => ready.Dispose();
+}
+```
+
+A component subscribes with an owner, so the subscription ends when it is destroyed; it hears what is announced while it exists:
+
+```csharp
+private void Start() => Iris.Subscribe<DeviceLost>(this, lost => pauseMenu.Open());
+```
+
+### Core
+
+| Event | Announced |
+| --- | --- |
+| `ThreadlinkReady` | Once, when the session has started: every registered subsystem has booted and initialized, or failed. Carries the counts. |
+| `SubsystemFailed` | A subsystem fails to boot or initialize, with its type, name and error. For crash reporting. |
+| `SessionEnding` | The session starts to shut down, while every subsystem is still available: the last moment to save. |
+| `ContentLoadFailed` | A content load fails (cancelled loads are not announced), with the content's identity, request kind and error. |
+
+### Nexus
+
+| Event | Announced |
+| --- | --- |
+| `SceneTransitionStarted` | A transition starts, before the next scene loads. |
+| `SceneChanged` | The next scene is presented. |
+| `SceneTransitionFailed` | A transition fails or is cancelled before presentation; the current scene stays. |
+
+### Aura
+
+| Event | Announced |
+| --- | --- |
+| `MusicChanged` | The music channel changes cue or stops. |
+| `VolumeChanged` | A category's volume is set, or a volume fade completes. |
+| `MuteChanged` | A category is muted or unmuted. |
+
+### Dextra
+
+| Event | Announced |
+| --- | --- |
+| `PlayerJoined`, `PlayerLeft` | A player joins or is removed. Startup players are announced during initialization. |
+| `DeviceLost`, `DeviceRegained` | A player's device disconnects, and when it reconnects. |
+| `ControlsChanged` | A player starts using a different kind of device. |
+| `BindingsChanged` | A player's bindings change. |
+| `ScreenOpened`, `ScreenClosed` | A screen is presented or closed. |
+| `GameplayInputBlockChanged` | The first blocking screen opens, or the last one closes. |
+| `InteractionTargetChanged` | An interaction sensor selects a different target. |
+
+### Sentinel
+
+| Event | Announced |
+| --- | --- |
+| `PlatformReady` | A platform provider is added, such as Steam once it has started. |
+| `AccountChanged` | The signed-in account changes, and once for the startup account during initialization. |
+| `JoinIntentReceived` | A platform captures a join request. The intent also stays queued until taken. |
+| `AchievementUnlocked` | An achievement is unlocked through Sentinel. |
+| `SaveWritten` | A save is written. |
+| `SaveFailed` | A save cannot be written, read, deleted or restored. An empty slot and a cancelled operation are not failures. |
+| `SaveRecovered` | A slot is restored to its previous version. |
+
+### Announcing your own
+
+Follow the same shape for your subsystems' events: a `readonly struct` named in the past tense, announced with `Iris.TryNotify` when the change happens. Announce what other subsystems react to from `OnSubsystemInit` or later, never from `OnSubsystemBoot`, so every subsystem is subscribed.
 
 ## Nexus: Scene Management
 
@@ -666,7 +781,7 @@ public sealed class Portal : MonoBehaviour
 
 Threadlink generates `GameScenes` from the scenes in the active Build Profile (see [Generated IDs](#generated-ids-1)); it regenerates when the scene list changes. A `SceneId` is the scene asset's GUID plus its path, so moving or renaming a scene keeps references working. The generated class registers the scenes' current paths with `Nexus.AddScenes` before the first scene loads. Designer data uses a `SceneReference` field, which stores the same ID and shows a scene picker; `IsAssigned` tells whether one was chosen. A scene that is not in the active Build Profile fails the transition and the current scene stays.
 
-After every presentation Nexus publishes `SceneChanged` on Iris.
+Nexus announces each transition on Iris: `SceneTransitionStarted` before the next scene loads (show a loading screen, lock input), then `SceneChanged` after presentation, or `SceneTransitionFailed` when the transition fails or is cancelled and the current scene stays. `SceneTransitionFailed.Error` is an `OperationCanceledException` for a cancelled transition. See [Framework Events](#framework-events).
 
 ### Presentation
 
@@ -681,10 +796,11 @@ public sealed class LoadingCurtain : ThreadlinkSubsystem<LoadingCurtain>
 {
     private IDisposable step;
 
-    protected override void OnInitialize() =>
+    // Joining Nexus connects to another subsystem: the initialization phase.
+    protected override void OnSubsystemInit() =>
         step = Nexus.AddTransitionStep(async (transition, token) => await WarmUpAsync(transition.To, token));
 
-    protected override void OnShutdown() => step.Dispose();
+    protected override void OnSubsystemDeinit() => step.Dispose();
 }
 ```
 
@@ -696,7 +812,7 @@ Dextra (`com.threadforge.threadlink.dextra`) covers player input, screens and in
 
 ### Players
 
-Player 0 exists before the first Awake, with its own copy of the input actions, paired to every device, and the gameplay map enabled.
+Player 0 exists before the first Awake, with its own copy of the input actions and the gameplay map enabled. It uses every device no other player owns, including devices connected later; assigning one of those devices to another player (`AddPlayer`, `ReassignDevices`) moves it there. A device assigned explicitly stays with its player.
 
 ```csharp
 var player = Dextra.Player();                              // player 0
@@ -718,6 +834,16 @@ Dextra.RemovePlayer(second);
 | `player.RebindAsync(id, binding = 0)`, `GetConflicts(id, binding = 0)` | Interactive rebinding on the player's own devices; returns conflicts. |
 | `player.ResetBindings()`, `ExportOverrides()`, `ImportOverrides(json)` | Binding overrides. |
 | `Dextra.AddPlayer(devices)` / `AddPlayer(actions, devices)` | Joins a player with the project's or explicit actions. |
+| `player.LastDevice` | The device the player used last, which prompts follow. |
+
+Dextra announces input changes on Iris (see [Framework Events](#framework-events)):
+
+| Event | When |
+| --- | --- |
+| `PlayerJoined`, `PlayerLeft` | A player joins or is removed. Players present at startup, such as player 0, are announced during the initialization phase. |
+| `DeviceLost`, `DeviceRegained` | A player's device disconnects, such as a gamepad running out of battery (pause the game), and when it reconnects and returns to the player. |
+| `ControlsChanged` | A player starts using a different kind of device, such as a gamepad after keyboard and mouse: switch prompts. Keyboard and mouse count as one kind. |
+| `BindingsChanged` | A rebind, reset or conflict removal changes a player's bindings: refresh prompts and settings menus. |
 
 ### Input IDs
 
@@ -742,6 +868,8 @@ var map = await Dextra.Screens.OpenAsync(ContentPrefabs.Screens.Map, ScreenLayer
 ```
 
 A screen prepares before it shows, takes focus, and by default blocks gameplay input by claiming the interface map above gameplay. Closing it restores focus and input to what was below. Layers are `Hud`, `Overlay`, `Menu` and `Modal`. Prefab screens carry a `ToolkitScreen` or, with uGUI installed, a `UGuiScreen`. `ScreenHandle.Root` is the root element of a UI Toolkit screen; `ScreenHandle.Instance` its GameObject. `Dextra.Screens.DefaultPanel` overrides the configured panel settings at runtime.
+
+`ScreenOpened` and `ScreenClosed` announce every screen on Iris, and `GameplayInputBlockChanged` announces when the first blocking screen opens and the last one closes: pause gameplay, show the cursor, hide the HUD.
 
 Components implementing `IScreenListener` on a screen hear when it shows, hides and regains focus. With Aura installed, **Threadlink ▸ Dextra ▸ Screen Sounds** plays open, close and focus cues; a rejected sound never affects the screen.
 
@@ -787,6 +915,8 @@ await Aura.FadeVolumeAsync(AudioCategories.Effects, 0, 0.5f);
 | `Aura.SetVolume`, `SetMute`, `FadeVolumeAsync`, `SetVoiceLimit` | Per-category player volume, mute and limits, by `AudioCategory`. |
 
 `AuraPlaylist` (a component) crossfades through a list of cues; `AmbienceLayers` keeps several looping layers.
+
+Aura announces on Iris when the music channel changes cue or stops (`MusicChanged`), when a category's volume is set or a volume fade completes (`VolumeChanged`), and when a category is muted or unmuted (`MuteChanged`). A settings menu that subscribes stays in step with volumes changed elsewhere, such as from a loaded save. See [Framework Events](#framework-events).
 
 ### Categories
 
@@ -842,11 +972,22 @@ A platform package reports its authoring to the generator by implementing `IPlat
 
 `AccountIdentity` pairs a provider and an account string; equal strings from different providers are different accounts. Changing account invalidates earlier leases; adapters observe the cancellation and recheck before applying results. Operations that may already have committed natively are reconciled, never blindly retried.
 
+### Events
+
+Sentinel announces on Iris (see [Framework Events](#framework-events)):
+
+| Event | When |
+| --- | --- |
+| `PlatformReady` | A platform provider is added, such as Steam once it has started; it carries the routed capabilities. |
+| `AccountChanged` | The signed-in account changes, and once for the startup account during the initialization phase. |
+| `AchievementUnlocked` | An achievement is unlocked through Sentinel: show an in-game toast. |
+| `SaveWritten`, `SaveFailed`, `SaveRecovered` | A save is written; a save cannot be written, read, deleted or restored (an empty slot and a cancelled operation are not failures); a slot is restored to its previous version. |
+
 ### Providers
 
 A provider implements `ISentinelProvider` and the capability contracts it supports. Its `Status(capability)` reports Ready, Offline, AccountRequired, Initializing, TemporarilyUnavailable or Failed separately from support. Provider contracts and the Sentinel API return `UniTask`.
 
-`JoinIntentBuffer` holds launch and invite join requests captured before the game is ready; the game takes them when it chooses. Lobbies, matchmaking and transport are separate networking integrations. See [Social and Invitations](#social-and-invitations).
+`JoinIntentBuffer` holds launch and invite join requests captured before the game is ready; the game takes them when it chooses, and `JoinIntentReceived` announces each one on Iris. Lobbies, matchmaking and transport are separate networking integrations. See [Social and Invitations](#social-and-invitations).
 
 ## Transactional Saving
 
@@ -888,7 +1029,7 @@ else if (loaded.Error == PersistenceError.CorruptData)
 | `List<T>()` | Slots that hold a save of the type. |
 | `DeleteAsync<T>(slot)` | Deletes a slot; earlier versions stay recoverable. |
 | `RestorePreviousAsync<T>(slot)` | Republishes the newest earlier version after validating it. |
-| `AddMigration<T>(fromVersion, read)` | Reads payloads written by an older version. Call it from your save subsystem's `OnInitialize`. |
+| `AddMigration<T>(fromVersion, read)` | Reads payloads written by an older version. Call it from your save subsystem's `OnSubsystemInit`. |
 
 Slots are numbered from 0 per save type. Saves live under `persistentDataPath/Threadlink/<Save Folder>` in a separate folder per account; switching account switches folders and never moves data. The folder name and size limit are engineering settings (**Project Settings ▸ Threadlink ▸ Sentinel**).
 
@@ -919,7 +1060,7 @@ Presence, friends and invites return a `PlatformResult<T>`. Resolve the contract
 
 ### Join intents
 
-A `JoinIntent` carries the provider, an identity and the opaque payload. Providers capture intents as they arrive; the Steam provider also captures the connect data a game was launched with. With the local provider, the game captures intents explicitly. `JoinIntentBuffer` holds them until the game is ready: `Capture` adds one, `TryTake` removes the oldest, `Pending` and `Rejected` report the queue, and the capacity (32 by default) bounds it. Recent duplicates are suppressed. The game decides when to consume intents and whether to join.
+A `JoinIntent` carries the provider, an identity and the opaque payload. Providers capture intents as they arrive; the Steam provider also captures the connect data a game was launched with. With the local provider, the game captures intents explicitly. `JoinIntentBuffer` holds them until the game is ready: `Capture` adds one, `TryTake` removes the oldest, `Pending` and `Rejected` report the queue, and the capacity (32 by default) bounds it. Recent duplicates are suppressed. Each captured intent is also announced as `JoinIntentReceived` on Iris, and stays queued until taken. The game decides when to consume intents and whether to join.
 
 The caller owns the join data: create, authorize, expire and revoke it in the networking layer. Treat received payloads as untrusted input.
 
@@ -971,7 +1112,7 @@ if (Sentinel.TryGet<IStatistics>(out var statistics))
 var provider = SteamPlatform.Provider;        // null while Steam is disabled or did not start
 ```
 
-`SteamPlatform` owns the Steam API lifecycle: nothing initializes on installation, Steam starts once with the session and shuts down with it. A start that reports `ClientNotRunning`, `RestartRequired`, `AppIdMismatch`, `AlreadyInitialized` or `Failed` is logged and leaves Sentinel on the local provider; a `RestartRequired` player should quit. On success the signed-in user becomes the `steam` account.
+`SteamPlatform` owns the Steam API lifecycle: nothing initializes on installation, Steam starts once with the session, in the initialization phase, and shuts down with it. When it has started, Sentinel announces `PlatformReady` and `AccountChanged` on Iris, so subsystems that subscribed while booting react whichever subsystem initializes first. A start that reports `ClientNotRunning`, `RestartRequired`, `AppIdMismatch`, `AlreadyInitialized` or `Failed` is logged and leaves Sentinel on the local provider; a `RestartRequired` player should quit. On success the signed-in user becomes the `steam` account.
 
 `Status` keeps supported and available separate. Before `Start` capabilities are `Initializing`; without a client they are `TemporarilyUnavailable`; offline users are `Offline`; another selected account means `AccountRequired`; Steam Cloud is unavailable when disabled for the account or app. Commerce is unsupported, because Steam microtransactions require a trusted server.
 
@@ -1095,7 +1236,7 @@ var forest = await Threadlink.LoadAllAsync<AudioCue>(ContentLabels.Forest, owner
 | `Threadlink.MapContent(id, key)` | Maps an ID to a backend key from code, for tests, tools and content generated at runtime. |
 | `Threadlink.UseContentBackend(backend)` | Loads through another `IContentBackend` (Resources, streamed or generated content); `null` returns to Addressables. |
 
-Requests never share a hidden cache: two loads are two obligations, and Addressables keeps the reference counting. An unmapped ID throws `KeyNotFoundException`; loading an asset as a component, or a prefab as an asset type, throws before anything loads; a prefab without the requested root component is released and throws `InvalidOperationException`. A custom `IContentBackend` implements `Acquire` and, for labels, `AcquireLabel`. Outstanding requests appear in the Runtime monitor under Content, and any still held when the session ends are logged.
+Requests never share a hidden cache: two loads are two obligations, and Addressables keeps the reference counting. An unmapped ID throws `KeyNotFoundException`; loading an asset as a component, or a prefab as an asset type, throws before anything loads; a prefab without the requested root component is released and throws `InvalidOperationException`. A custom `IContentBackend` implements `Acquire` and, for labels, `AcquireLabel`. Outstanding requests appear in the Runtime monitor under Content, and any still held when the session ends are logged. A load that fails (not one that is cancelled) is also announced as `ContentLoadFailed` on Iris, with the content's identity, the kind of request and the error, for diagnostics.
 
 ## Deterministic Toolkit
 
@@ -1376,7 +1517,7 @@ The Hub opens first; in Play mode the Workspace switches to the Runtime page. Th
 
 **Threadlink ▸ Runtime Monitor** opens the Workspace on the Runtime page:
 
-- a graph that reads left to right: the core, then the subsystems that require nothing, then each subsystem one level after the latest subsystem it requires. Each card shows a subsystem's name, summary and state (a dot that is green when ready and amber on alerts). Arrowed dashed lines run from each dependency to the subsystem that requires it; in Play mode the dashes flow in that direction. Hovering or selecting a card highlights its lines and fades the rest. Levels order their cards to keep lines from crossing, tall levels wrap into extra columns, and cards shrink to their names in narrow windows;
+- a graph that reads left to right: the core, then the subsystems that use no other, then each subsystem one level after the latest subsystem it uses. A subsystem uses another when its initialization reaches it through `Instance`. Each card shows a subsystem's name, summary and state (a dot that is green when ready and amber on alerts). Arrowed dashed lines run from each used subsystem to the one that uses it; in Play mode the dashes flow in that direction. Hovering or selecting a card highlights its lines and fades the rest. Levels order their cards to keep lines from crossing, tall levels wrap into extra columns, and cards shrink to their names in narrow windows;
 - a panel with the selected node's report: sections, fields, meters, references that ping their object, and notes, refreshed four times a second;
 - a strip with frames per second, main-thread time against the frame budget, total memory, GC allocation per frame and a frame-time history.
 
@@ -1483,7 +1624,7 @@ Diagnostics, Editor Mono, same machine, Unity 6000.6.9f1, 101 samples after warm
 ### Adding a subsystem
 
 1. Derive a `public sealed class` from `ThreadlinkSubsystem<T>` with a public parameterless constructor. It registers automatically.
-2. Call `Require<T>()` in `OnInitialize` for every subsystem it uses; release what it owns in `OnShutdown`.
+2. Set up its own state and subscribe to Iris events in `OnSubsystemBoot`; use other subsystems through their `Instance` in `OnSubsystemInit`. Mirror both in `OnSubsystemDeinit` and `OnSubsystemShutdown`. See [Architecture](#two-phases-instead-of-a-dependency-order).
 3. Expose its API as static methods built on `Instance`, and describe it in `Report`.
 4. Check **Threadlink ▸ Runtime Monitor** in Play mode: the node, its edges and its report.
 
@@ -1495,9 +1636,10 @@ Diagnostics, Editor Mono, same machine, Unity 6000.6.9f1, 101 samples after warm
 
 ### Adding an event
 
-1. Declare a payload type, usually a `readonly struct`.
-2. Subscribe with `Iris.Subscribe<T>(owner, callback)` so the subscription ends with its owner.
-3. For work that must finish before the caller continues, use `Iris.PublishAsync`; for a single answer, `Iris.Respond`/`RequestAsync`.
+1. Declare a payload type, usually a `readonly struct` named in the past tense.
+2. Subscribe with `Iris.Subscribe<T>(owner, callback)` so the subscription ends with its owner. A subsystem subscribes in `OnSubsystemBoot`, so it hears what other subsystems announce while they initialize.
+3. Announce a change with `Iris.TryNotify`, as the framework does. An event reaches only the subscribers listening at that moment, so subscribers subscribe first: a subsystem in `OnSubsystemBoot`.
+4. For work that must finish before the caller continues, use `Iris.PublishAsync`; for a single answer, `Iris.Respond`/`RequestAsync`.
 
 ### Adding a scene
 
@@ -1527,7 +1669,7 @@ Diagnostics, Editor Mono, same machine, Unity 6000.6.9f1, 101 samples after warm
 ### Adding a platform provider
 
 1. Implement `ISentinelProvider` and the capability interfaces the platform supports; report `Supported` and `Status` honestly.
-2. Add a subsystem that requires `Sentinel`, starts the SDK, and calls `Sentinel.AddProvider(provider, capabilities)`; give it engineering settings that keep it off until enabled.
+2. Add a subsystem whose `OnSubsystemInit` starts the SDK and calls `Sentinel.AddProvider(provider, capabilities)`, which announces `PlatformReady`; give it engineering settings that keep it off until enabled.
 3. Verify every advertised capability against the real platform before treating it as stable.
 
 ### Testing
@@ -1545,14 +1687,14 @@ Every subsystem is reached the same way, from any script, from Awake onwards.
 | Need | Call |
 | --- | --- |
 | Use a subsystem's API | Its static methods: `Iris.Publish(…)`, `Aura.Play(…)`, `Wallet.Add(…)` |
-| The instance | `Wallet.Instance` (throws `SubsystemUnavailableException` with the reason when not linked) |
-| Check existence and linkage to the core | `Wallet.TryGetSingleton(out var wallet)` |
+| The instance | `Wallet.Instance` (throws `SubsystemUnavailableException` with the reason when it is not part of the session or failed) |
+| Check existence and linkage to the core | `Wallet.TryGetSingleton(out var wallet)`; it never starts a subsystem |
 | The core | `Threadlink.TryGetSingleton(out var core)`, `Threadlink.Instance`, `Threadlink.IsDeployed` |
-| Another subsystem from a subsystem | `Require<T>()` in `OnInitialize` (records and orders the dependency) |
+| Another subsystem from a subsystem | `T.Instance` in `OnSubsystemInit`, in any order (recorded for the Runtime monitor). Only Iris is available in `OnSubsystemBoot`. |
 | Everything in the session | `Threadlink.Instance.Subsystems` |
 | Work bound to the session | `Threadlink.Lifetime` (cancelled at shutdown) |
 
-`Instance` and `TryGetSingleton` fail outside Play mode and players unless a core was deployed explicitly with `Threadlink.DeployIsolated()`. A subsystem that failed to initialize stays visible in the Runtime monitor with its error; `Instance` reports that error.
+`Instance` and `TryGetSingleton` fail outside Play mode and players unless a core was deployed explicitly with `Threadlink.DeployIsolated()`. A subsystem that failed to boot or initialize stays visible in the Runtime monitor with its error, `Instance` reports that error, and `SubsystemFailed` announces it on Iris.
 
 ### Registration
 
@@ -1604,11 +1746,14 @@ Under **Add Component ▸ Threadlink**: **Aura ▸ Scene Music**, **Dextra ▸ S
 | **Package** | One installable `com.threadforge.threadlink.*` unit with its own version and declared dependencies. |
 | **Integration** | An assembly inside a package that connects it to another package, such as Aura's scene music for Nexus, and compiles only when that package is installed. |
 | **Core** | The `Threadlink` runtime that owns the session's subsystems (see [Architecture](#architecture)). |
-| **Subsystem** | A `ThreadlinkSubsystem<T>` that lives for the whole session: registered automatically, initialized before the first scene, reached through `Instance` or `TryGetSingleton` (see [Subsystem Access](#subsystem-access)). |
+| **Subsystem** | A `ThreadlinkSubsystem<T>` that lives for the whole session: registered automatically, started before the first scene, reached through `Instance` or `TryGetSingleton` (see [Subsystem Access](#subsystem-access)). |
+| **Boot** | Startup phase one: each subsystem sets up only itself and subscribes to Iris (see [Architecture](#two-phases-instead-of-a-dependency-order)). |
+| **Initialization** | Startup phase two, after every subsystem has booted: subsystems connect to each other, in any order. |
 | **Session** | One deployment of the core, from before the first scene until Play mode ends, code reloads or the player quits. |
 | **Engineering settings** | A `ThreadlinkSettings<T>` asset edited only in Project Settings ▸ Threadlink. |
 | **Designer data** | Assets and scene components designers edit: cues, definitions, scene music, screen documents, tuning values. |
 | **Event** | A typed payload delivered by Iris to its subscribers, synchronously or awaited (see [Iris](#iris-event-dispatch)). |
+| **Framework event** | An event the framework announces when its state changes, such as `PlatformReady` or `DeviceLost` (see [Framework Events](#framework-events)). |
 | **Request** | A `ResourceRequest<T>`: one acquisition of content, released by disposing it (see [Resource Loading](#resource-loading)). |
 | **Content mapping** | Which Addressables entries game code loads by ID, generated as three read-only dictionaries; Addressables owns everything else. |
 | **Identity** | A permanent GUID for content or a definition, independent of names and paths. |

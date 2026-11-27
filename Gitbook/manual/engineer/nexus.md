@@ -27,7 +27,7 @@ public sealed class Portal : MonoBehaviour
 
 Threadlink generates `GameScenes` from the scenes in the active Build Profile (see [Generated IDs](editor-tooling.md#generated-ids)); it regenerates when the scene list changes. A `SceneId` is the scene asset's GUID plus its path, so moving or renaming a scene keeps references working. The generated class registers the scenes' current paths with `Nexus.AddScenes` before the first scene loads. Designer data uses a `SceneReference` field, which stores the same ID and shows a scene picker; `IsAssigned` tells whether one was chosen. A scene that is not in the active Build Profile fails the transition and the current scene stays.
 
-After every presentation Nexus publishes `SceneChanged` on Iris.
+Nexus announces each transition on Iris: `SceneTransitionStarted` before the next scene loads (show a loading screen, lock input), then `SceneChanged` after presentation, or `SceneTransitionFailed` when the transition fails or is cancelled and the current scene stays. `SceneTransitionFailed.Error` is an `OperationCanceledException` for a cancelled transition. See [Framework Events](events.md).
 
 ## Presentation
 
@@ -42,10 +42,11 @@ public sealed class LoadingCurtain : ThreadlinkSubsystem<LoadingCurtain>
 {
     private IDisposable step;
 
-    protected override void OnInitialize() =>
+    // Joining Nexus connects to another subsystem: the initialization phase.
+    protected override void OnSubsystemInit() =>
         step = Nexus.AddTransitionStep(async (transition, token) => await WarmUpAsync(transition.To, token));
 
-    protected override void OnShutdown() => step.Dispose();
+    protected override void OnSubsystemDeinit() => step.Dispose();
 }
 ```
 

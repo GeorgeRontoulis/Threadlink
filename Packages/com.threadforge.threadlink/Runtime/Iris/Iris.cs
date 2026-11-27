@@ -17,6 +17,7 @@ namespace Threadforge.Threadlink
     {
         private EventBus bus;
         private AsyncEventBus awaited;
+        private bool ownsFrames;
 
         /// <summary>The synchronous bus of this session.</summary>
         public EventBus Bus => bus;
@@ -25,19 +26,21 @@ namespace Threadforge.Threadlink
         public AsyncEventBus AwaitedBus => awaited;
 
         /// <inheritdoc />
-        protected override void OnInitialize()
+        protected override void OnSubsystemBoot()
         {
             bus = new EventBus();
             awaited = new AsyncEventBus();
             bus.ObserverFailed = Debug.LogException;
-            if (Application.isPlaying)
+            // One frame pump serves whichever session is current; a test session inside Play mode reuses it.
+            ownsFrames = Application.isPlaying && !IrisFrames.Installed;
+            if (ownsFrames)
                 IrisFrames.Install();
         }
 
         /// <inheritdoc />
-        protected override void OnShutdown()
+        protected override void OnSubsystemShutdown()
         {
-            if (IrisFrames.Installed)
+            if (ownsFrames && IrisFrames.Installed)
                 IrisFrames.Uninstall();
             awaited?.Dispose();
             bus?.Dispose();
@@ -68,6 +71,18 @@ namespace Threadforge.Threadlink
 
         /// <summary>Delivers a notification to every listener now; listener exceptions are logged and delivery continues.</summary>
         public static void Notify<T>(T value) => Instance.bus.PublishIsolated(value);
+
+        /// <summary>
+        /// Delivers a notification now when Iris is available, as <see cref="Notify{T}"/> does; false when it is not, such as
+        /// in a test session without Iris. Framework events use it.
+        /// </summary>
+        public static bool TryNotify<T>(T value)
+        {
+            if (!TryGetSingleton(out var iris))
+                return false;
+            iris.bus.PublishIsolated(value);
+            return true;
+        }
 
         /// <summary>Queues an event from any thread for delivery at the next Update. False when the queue is full or Iris is not linked.</summary>
         public static bool TryPost<T>(T value) => TryGetSingleton(out var iris) && iris.bus.TryPost(value);

@@ -15,13 +15,15 @@ namespace Threadforge.Threadlink
         private PlaybackHandle music;
         private AudioCue musicCue;
 
+        private ContentLibrary content;
+
         internal AuraEngine Engine { get; private set; }
 
         /// <summary>The music cue playing on the music channel, if any.</summary>
         public static AudioCue CurrentMusic => Instance.music != null && Instance.music.IsPlaying ? Instance.musicCue : null;
 
         /// <inheritdoc />
-        protected override void OnInitialize()
+        protected override void OnSubsystemBoot()
         {
             host = new GameObject("Threadlink Aura") { hideFlags = HideFlags.DontSave };
             if (Application.isPlaying)
@@ -30,8 +32,15 @@ namespace Threadforge.Threadlink
             AuraSettings.Apply(Engine);
         }
 
+        // Mapped cues load through the content library.
         /// <inheritdoc />
-        protected override void OnShutdown()
+        protected override void OnSubsystemInit() => content = ContentLibrary.Instance;
+
+        /// <inheritdoc />
+        protected override void OnSubsystemDeinit() => content = null;
+
+        /// <inheritdoc />
+        protected override void OnSubsystemShutdown()
         {
             music = null;
             musicCue = null;
@@ -73,7 +82,7 @@ namespace Threadforge.Threadlink
         /// <summary>Loads a mapped cue (a ContentAssets ID) and plays it; the cue stays loaded while it plays.</summary>
         public static async UniTask<PlaybackHandle> PlayAsync(ContentAssetId cue, CancellationToken token = default) =>
             await Instance.Engine.PlayCueAsync(
-                Instance.Require<ContentLibrary>().Provider,
+                (Instance.content ?? ContentLibrary.Instance).Provider,
                 cue.IsAssigned ? new ResourceId<AudioCue>(cue.Identity) : throw new System.ArgumentException("The cue ID is empty.", nameof(cue)),
                 token
             );
@@ -85,41 +94,64 @@ namespace Threadforge.Threadlink
             var aura = Instance;
             if (cue == aura.musicCue && aura.music != null && aura.music.IsPlaying)
                 return;
-            StopMusic(crossfadeSeconds);
-            if (cue == null)
-                return;
-            var next = aura.Engine.Play(cue, loop: true, initialGain: crossfadeSeconds > 0 ? 0 : 1);
-            if (next == null)
-                return;
-            if (crossfadeSeconds > 0)
-                _ = next.FadeTo(1, crossfadeSeconds);
-            aura.music = next;
-            aura.musicCue = cue;
+            var previous = CurrentMusic;
+            aura.Silence(crossfadeSeconds);
+            var next = cue != null ? aura.Engine.Play(cue, loop: true, initialGain: crossfadeSeconds > 0 ? 0 : 1) : null;
+            AudioCue playing = null;
+            if (next != null)
+            {
+                if (crossfadeSeconds > 0)
+                    _ = next.FadeTo(1, crossfadeSeconds);
+                aura.music = next;
+                aura.musicCue = playing = cue;
+            }
+            if (previous != playing)
+                Iris.TryNotify(new MusicChanged(previous, playing));
         }
 
         /// <summary>Fades the music channel out.</summary>
         public static void StopMusic(float fadeSeconds = 1f)
         {
             var aura = Instance;
-            if (aura.music == null)
+            var previous = CurrentMusic;
+            aura.Silence(fadeSeconds);
+            if (previous != null)
+                Iris.TryNotify(new MusicChanged(previous, null));
+        }
+
+        private void Silence(float fadeSeconds)
+        {
+            if (music == null)
                 return;
-            if (fadeSeconds > 0 && aura.music.IsPlaying)
-                _ = aura.music.FadeTo(0, fadeSeconds, true);
+            if (fadeSeconds > 0 && music.IsPlaying)
+                _ = music.FadeTo(0, fadeSeconds, true);
             else
-                aura.music.Stop();
-            aura.music = null;
-            aura.musicCue = null;
+                music.Stop();
+            music = null;
+            musicCue = null;
         }
 
         /// <summary>Sets a category's player volume, from 0 to 1, such as <c>Aura.SetVolume(AudioCategories.Music, 0.8f)</c>.</summary>
-        public static void SetVolume(AudioCategory category, float volume) => Instance.Engine.SetUserVolume(category.Name, volume);
+        public static void SetVolume(AudioCategory category, float volume)
+        {
+            Instance.Engine.SetUserVolume(category.Name, volume);
+            Iris.TryNotify(new VolumeChanged(category, volume));
+        }
 
         /// <summary>Mutes or unmutes a category.</summary>
-        public static void SetMute(AudioCategory category, bool muted) => Instance.Engine.SetMute(category.Name, muted);
+        public static void SetMute(AudioCategory category, bool muted)
+        {
+            Instance.Engine.SetMute(category.Name, muted);
+            Iris.TryNotify(new MuteChanged(category, muted));
+        }
 
         /// <summary>Fades a category's player volume. A later fade or <see cref="SetVolume"/> replaces it.</summary>
-        public static UniTask FadeVolumeAsync(AudioCategory category, float volume, float seconds) =>
-            Instance.Engine.FadeCategoryAsync(category.Name, volume, seconds);
+        /// <remarks><see cref="VolumeChanged"/> is announced when the fade completes; a replaced fade announces nothing.</remarks>
+        public static async UniTask FadeVolumeAsync(AudioCategory category, float volume, float seconds)
+        {
+            await Instance.Engine.FadeCategoryAsync(category.Name, volume, seconds);
+            Iris.TryNotify(new VolumeChanged(category, volume));
+        }
 
         /// <summary>Sets how many voices a category may play at once.</summary>
         public static void SetVoiceLimit(AudioCategory category, int voices) => Instance.Engine.SetVoiceLimit(category.Name, voices);

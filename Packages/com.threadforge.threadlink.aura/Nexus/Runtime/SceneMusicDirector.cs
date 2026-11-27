@@ -13,14 +13,9 @@ namespace Threadforge.Threadlink
 
         public override string Name => "Scene Music";
 
-        protected override void OnInitialize()
-        {
-            Require<Aura>();
-            Require<Nexus>();
-            step = Nexus.AddTransitionStep(PrepareAsync, Committed);
-        }
+        protected override void OnSubsystemInit() => step = Nexus.AddTransitionStep(PrepareAsync, Committed);
 
-        protected override void OnShutdown() => step?.Dispose();
+        protected override void OnSubsystemDeinit() => step?.Dispose();
 
         public override void Report(MonitorReport report)
         {

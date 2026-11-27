@@ -14,7 +14,7 @@ namespace Threadforge.Threadlink.Starter.Tests
         {
             Assert.That(StarterGame.TryGetSingleton(out var game), Is.True, "StarterGame registers automatically and deploys with the session.");
             Assert.That(game.State, Is.EqualTo(SubsystemState.Ready));
-            Assert.That(game.Dependencies, Has.Member(typeof(Nexus)).And.Member(typeof(Sentinel)).And.Member(typeof(Dextra)));
+            Assert.That(Threadlink.Instance.Subsystems, Has.Member(game));
         }
 
         [Test]

@@ -91,6 +91,25 @@ namespace Threadforge.Threadlink.Tests
         }
 
         [Test]
+        public void FailedLoadsAreAnnouncedAndCancelledOnesAreNot()
+        {
+            using var runtime = Threadlink.DeployIsolated(typeof(Iris));
+            var failed = new List<ContentLoadFailed>();
+            Iris.Subscribe<ContentLoadFailed>(failed.Add);
+            var provider = Provider(new Backend { FailAdmission = true });
+            Assert.That(TaskAssert.Faulted(provider.LoadAsync(id)), Is.True);
+            using (var cancel = new CancellationTokenSource())
+            {
+                cancel.Cancel();
+                Assert.That(Provider(new Backend()).LoadAsync(id, cancel.Token).Status.IsCanceled(), Is.True);
+            }
+            Assert.That(failed, Has.Count.EqualTo(1));
+            Assert.That(failed[0].Content, Is.EqualTo(id.Value));
+            Assert.That(failed[0].Kind, Is.EqualTo(AcquisitionKind.Asset));
+            Assert.That(failed[0].Error, Is.TypeOf<NotSupportedException>());
+        }
+
+        [Test]
         public void CancellationBeforeAdmissionDoesNotAcquire()
         {
             var backend = new Backend();

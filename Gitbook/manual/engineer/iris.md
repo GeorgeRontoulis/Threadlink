@@ -2,6 +2,8 @@
 
 Iris is the session's event system, in the core package (`com.threadforge.threadlink`). Use it from the main thread; workers queue events with `TryPost`.
 
+Iris boots and initializes before every other subsystem, and it is the one subsystem others may use while they boot. Subscribe in `OnSubsystemBoot` and you hear everything other subsystems announce while they initialize, whatever their order. The framework announces its own state changes on Iris: see [Framework Events](events.md).
+
 ## Synchronous events
 
 ```csharp
@@ -25,6 +27,7 @@ Iris.Publish(new CoinsChanged(12));
 | `Iris.Subscribe<T>(owner, callback)` | Ends when the `MonoBehaviour` owner is destroyed. |
 | `Iris.Publish<T>(value)` | Delivers now, in subscription order. A listener's exception stops delivery and propagates. |
 | `Iris.Notify<T>(value)` | Delivers now; listener exceptions are logged and delivery continues. |
+| `Iris.TryNotify<T>(value)` | As `Notify` when Iris is available; returns false otherwise, such as in a test session without Iris. Framework events use it. |
 | `Iris.TryPost<T>(value)` | From any thread: queues the event for the next Update. Returns false when the bounded queue is full or Iris is not linked. |
 | `Iris.ListenerCount<T>()` | Current synchronous listeners. |
 
@@ -32,7 +35,7 @@ Additions during a publication take effect for the next publication; removals ta
 
 ## Frame callbacks
 
-`Iris.OnUpdate(owner, deltaTime => …)`, `OnFixedUpdate` and `OnLateUpdate` run after the corresponding MonoBehaviour phase and end with their owner. Iris also publishes `UpdateFrame`, `FixedFrame` and `LateFrame` (each with `DeltaTime`) for `Iris.Subscribe`. Iris inserts its markers into the PlayerLoop while it is linked and removes only its own markers at shutdown.
+`Iris.OnUpdate(owner, deltaTime => …)`, `OnFixedUpdate` and `OnLateUpdate` run after the corresponding MonoBehaviour phase and end with their owner. Iris also publishes `UpdateFrame`, `FixedFrame` and `LateFrame` (each with `DeltaTime`) for `Iris.Subscribe`. Iris inserts its markers into the PlayerLoop while it is linked and removes only its own markers at shutdown; a test session inside Play mode reuses the running session's markers.
 
 ## Awaited events and requests
 

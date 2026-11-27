@@ -61,6 +61,8 @@ namespace Threadforge.Threadlink
         private AccountSession accounts;
         private LocalProvider local;
         private AccountLocalStores stores;
+        private AccountIdentity? announced;
+        private bool announcing;
 
         /// <summary>The signed-in account, or null.</summary>
         public static AccountIdentity? Account => Instance.accounts.Current;
@@ -69,7 +71,7 @@ namespace Threadforge.Threadlink
         public static AccountSession Accounts => Instance.accounts;
 
         /// <inheritdoc />
-        protected override void OnInitialize()
+        protected override void OnSubsystemBoot()
         {
             var settings = SentinelSettings.Current;
             accounts = new AccountSession();
@@ -82,10 +84,30 @@ namespace Threadforge.Threadlink
             Route(stores, Capability.LocalStorage);
             if (!string.IsNullOrWhiteSpace(settings.DefaultProfile))
                 local.SelectProfile(settings.DefaultProfile);
+            // Later account changes, such as a platform signing in during its initialization, are announced as they happen.
+            accounts.Changed += AnnounceAccount;
+        }
+
+        // Announces the startup account now that every subsystem has subscribed.
+        /// <inheritdoc />
+        protected override void OnSubsystemInit()
+        {
+            announcing = true;
+            AnnounceAccount();
+        }
+
+        private void AnnounceAccount()
+        {
+            var account = accounts.Current;
+            if (!announcing || Nullable.Equals(account, announced))
+                return;
+            var previous = announced;
+            announced = account;
+            Iris.TryNotify(new AccountChanged(previous, account));
         }
 
         /// <inheritdoc />
-        protected override void OnShutdown()
+        protected override void OnSubsystemShutdown()
         {
             saves.Clear();
             routes.Clear();
@@ -137,6 +159,7 @@ namespace Threadforge.Threadlink
             if (!sentinel.providers.Contains(provider))
                 sentinel.providers.Add(provider);
             sentinel.Route(provider, capabilities);
+            Iris.TryNotify(new PlatformReady(provider.Identity, capabilities));
         }
 
         /// <summary>Whether a capability is supported and ready, and by which provider's status.</summary>
@@ -183,7 +206,10 @@ namespace Threadforge.Threadlink
                 return PlatformResult<Unit>.Failure(achievements.Error, achievements.Detail);
             var lease = Instance.accounts.Capture();
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, lease.Token);
-            return await achievements.Value.SetProgressAsync(achievement, progress, linked.Token);
+            var result = await achievements.Value.SetProgressAsync(achievement, progress, linked.Token);
+            if (result.Succeeded && progress >= 1)
+                Iris.TryNotify(new AchievementUnlocked(achievement));
+            return result;
         }
 
         private void Route(ISentinelProvider provider, Capability capabilities)
@@ -209,12 +235,14 @@ namespace Threadforge.Threadlink
         public static class Saves
         {
             /// <summary>Saves <paramref name="data"/> to a slot atomically. Fails with Conflict if the slot changed since this session last read or wrote it.</summary>
+            /// <remarks>Announces <see cref="SaveWritten"/> or <see cref="SaveFailed"/>.</remarks>
             public static UniTask<PersistenceResult<SlotSummary>> SaveAsync<T>(int slot, T data, string title = null, CancellationToken token = default) =>
-                Instance.Slots<T>().SaveAsync(Stored(slot), data, title, token);
+                Written(typeof(T), slot, Instance.Slots<T>().SaveAsync(Stored(slot), data, title, token));
 
             /// <summary>Loads a slot. Fails with NotFound for an empty slot, CorruptData for damaged data; older versions are migrated.</summary>
+            /// <remarks>Announces <see cref="SaveFailed"/> when the slot exists but cannot be read.</remarks>
             public static UniTask<PersistenceResult<T>> LoadAsync<T>(int slot, CancellationToken token = default) =>
-                Instance.Slots<T>().LoadAsync(Stored(slot), token);
+                Loaded(typeof(T), slot, Instance.Slots<T>().LoadAsync(Stored(slot), token));
 
             /// <summary>The slots that hold a save of this type.</summary>
             public static int[] List<T>()
@@ -230,18 +258,60 @@ namespace Threadforge.Threadlink
             }
 
             /// <summary>Deletes a slot. Earlier versions stay recoverable.</summary>
+            /// <remarks>Announces <see cref="SaveFailed"/> when the slot exists but cannot be deleted.</remarks>
             public static UniTask<PersistenceResult> DeleteAsync<T>(int slot, CancellationToken token = default) =>
-                Instance.Slots<T>().Store.Store.DeleteAsync(Stored(slot), token);
+                Finished(typeof(T), slot, SaveOperation.Delete, Instance.Slots<T>().Store.Store.DeleteAsync(Stored(slot), token));
 
             /// <summary>Restores the newest earlier version of a slot, for example after CorruptData.</summary>
+            /// <remarks>Announces <see cref="SaveRecovered"/> or <see cref="SaveFailed"/>.</remarks>
             public static UniTask<PersistenceResult> RestorePreviousAsync<T>(int slot, CancellationToken token = default) =>
-                Instance.Slots<T>().RestorePreviousAsync(Stored(slot), token);
+                Finished(typeof(T), slot, SaveOperation.Restore, Instance.Slots<T>().RestorePreviousAsync(Stored(slot), token));
+
+            // The public methods validate synchronously, as before; these await the store and announce the outcome.
+            private static async UniTask<PersistenceResult<SlotSummary>> Written(Type save, int slot, UniTask<PersistenceResult<SlotSummary>> saving)
+            {
+                var result = await saving;
+                if (result.Succeeded)
+                    Iris.TryNotify(new SaveWritten(save, slot, result.Value));
+                else
+                    Failed(save, slot, SaveOperation.Save, result.Error, result.Message);
+                return result;
+            }
+
+            private static async UniTask<PersistenceResult<T>> Loaded<T>(Type save, int slot, UniTask<PersistenceResult<T>> loading)
+            {
+                var result = await loading;
+                if (!result.Succeeded)
+                    Failed(save, slot, SaveOperation.Load, result.Error, result.Message);
+                return result;
+            }
+
+            private static async UniTask<PersistenceResult> Finished(Type save, int slot, SaveOperation operation, UniTask<PersistenceResult> working)
+            {
+                var result = await working;
+                if (result.Succeeded)
+                {
+                    if (operation == SaveOperation.Restore)
+                        Iris.TryNotify(new SaveRecovered(save, slot));
+                }
+                else
+                {
+                    Failed(save, slot, operation, result.Error, result.Message);
+                }
+                return result;
+            }
+
+            private static void Failed(Type save, int slot, SaveOperation operation, PersistenceError error, string message)
+            {
+                if (error != PersistenceError.Cancelled && error != PersistenceError.NotFound)
+                    Iris.TryNotify(new SaveFailed(save, slot, operation, error, message));
+            }
 
             // Slots are numbered from 0 here; the store numbers them from 1.
             private static int Stored(int slot) =>
                 slot >= 0 && slot < int.MaxValue ? slot + 1 : throw new ArgumentOutOfRangeException(nameof(slot), "Slots are numbered from 0.");
 
-            /// <summary>Reads saves written by an older version. Call it from your save subsystem's OnInitialize.</summary>
+            /// <summary>Reads saves written by an older version. Call it from your save subsystem's OnSubsystemInit.</summary>
             public static void AddMigration<T>(int fromVersion, Func<ReadOnlyMemory<byte>, T> read) =>
                 Instance.Slots<T>().Schema.RegisterMigration(fromVersion, read);
         }

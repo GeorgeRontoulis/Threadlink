@@ -9,10 +9,10 @@ namespace Threadforge.Threadlink
         private VaultContext context;
 
         /// <inheritdoc />
-        protected override void OnInitialize() => context = new VaultContext();
+        protected override void OnSubsystemBoot() => context = new VaultContext();
 
         /// <inheritdoc />
-        protected override void OnShutdown() => context = null;
+        protected override void OnSubsystemShutdown() => context = null;
 
         /// <inheritdoc />
         public override void Report(MonitorReport report)

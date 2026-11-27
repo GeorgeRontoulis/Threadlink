@@ -3,7 +3,7 @@
 ## Adding a subsystem
 
 1. Derive a `public sealed class` from `ThreadlinkSubsystem<T>` with a public parameterless constructor. It registers automatically.
-2. Call `Require<T>()` in `OnInitialize` for every subsystem it uses; release what it owns in `OnShutdown`.
+2. Set up its own state and subscribe to Iris events in `OnSubsystemBoot`; use other subsystems through their `Instance` in `OnSubsystemInit`. Mirror both in `OnSubsystemDeinit` and `OnSubsystemShutdown`. See [Architecture](architecture.md#two-phases-instead-of-a-dependency-order).
 3. Expose its API as static methods built on `Instance`, and describe it in `Report`.
 4. Check **Threadlink ▸ Runtime Monitor** in Play mode: the node, its edges and its report.
 
@@ -15,9 +15,10 @@
 
 ## Adding an event
 
-1. Declare a payload type, usually a `readonly struct`.
-2. Subscribe with `Iris.Subscribe<T>(owner, callback)` so the subscription ends with its owner.
-3. For work that must finish before the caller continues, use `Iris.PublishAsync`; for a single answer, `Iris.Respond`/`RequestAsync`.
+1. Declare a payload type, usually a `readonly struct` named in the past tense.
+2. Subscribe with `Iris.Subscribe<T>(owner, callback)` so the subscription ends with its owner. A subsystem subscribes in `OnSubsystemBoot`, so it hears what other subsystems announce while they initialize.
+3. Announce a change with `Iris.TryNotify`, as the framework does. An event reaches only the subscribers listening at that moment, so subscribers subscribe first: a subsystem in `OnSubsystemBoot`.
+4. For work that must finish before the caller continues, use `Iris.PublishAsync`; for a single answer, `Iris.Respond`/`RequestAsync`.
 
 ## Adding a scene
 
@@ -47,7 +48,7 @@
 ## Adding a platform provider
 
 1. Implement `ISentinelProvider` and the capability interfaces the platform supports; report `Supported` and `Status` honestly.
-2. Add a subsystem that requires `Sentinel`, starts the SDK, and calls `Sentinel.AddProvider(provider, capabilities)`; give it engineering settings that keep it off until enabled.
+2. Add a subsystem whose `OnSubsystemInit` starts the SDK and calls `Sentinel.AddProvider(provider, capabilities)`, which announces `PlatformReady`; give it engineering settings that keep it off until enabled.
 3. Verify every advertised capability against the real platform before treating it as stable.
 
 ## Testing

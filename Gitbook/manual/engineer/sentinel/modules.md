@@ -42,7 +42,7 @@ if (Sentinel.TryGet<IStatistics>(out var statistics))
 var provider = SteamPlatform.Provider;        // null while Steam is disabled or did not start
 ```
 
-`SteamPlatform` owns the Steam API lifecycle: nothing initializes on installation, Steam starts once with the session and shuts down with it. A start that reports `ClientNotRunning`, `RestartRequired`, `AppIdMismatch`, `AlreadyInitialized` or `Failed` is logged and leaves Sentinel on the local provider; a `RestartRequired` player should quit. On success the signed-in user becomes the `steam` account.
+`SteamPlatform` owns the Steam API lifecycle: nothing initializes on installation, Steam starts once with the session, in the initialization phase, and shuts down with it. When it has started, Sentinel announces `PlatformReady` and `AccountChanged` on Iris, so subsystems that subscribed while booting react whichever subsystem initializes first. A start that reports `ClientNotRunning`, `RestartRequired`, `AppIdMismatch`, `AlreadyInitialized` or `Failed` is logged and leaves Sentinel on the local provider; a `RestartRequired` player should quit. On success the signed-in user becomes the `steam` account.
 
 `Status` keeps supported and available separate. Before `Start` capabilities are `Initializing`; without a client they are `TemporarilyUnavailable`; offline users are `Offline`; another selected account means `AccountRequired`; Steam Cloud is unavailable when disabled for the account or app. Commerce is unsupported, because Steam microtransactions require a trusted server.
 

@@ -41,5 +41,41 @@ namespace Threadforge.Threadlink.Tests
             yield return Wait(Sentinel.Saves.DeleteAsync<SentinelTestSave>(0), result => deleted = result);
             Assert.That(deleted.Succeeded, Is.True);
         }
+
+        [UnityTest]
+        public IEnumerator WritesFailuresAndRecoveriesAreAnnounced()
+        {
+            var heard = new System.Collections.Generic.List<string>();
+            var tokens = new[]
+            {
+                Iris.Subscribe<SaveWritten>(e => heard.Add("written " + e.Slot + " " + e.Save.Name)),
+                Iris.Subscribe<SaveFailed>(e => heard.Add("failed " + e.Slot + " " + e.Operation + " " + e.Error)),
+                Iris.Subscribe<SaveRecovered>(e => heard.Add("recovered " + e.Slot)),
+            };
+            try
+            {
+                PersistenceResult deleted = default;
+                yield return Wait(Sentinel.Saves.DeleteAsync<SentinelTestSave>(1), result => deleted = result);
+                PersistenceResult<SentinelTestSave> missing = default;
+                yield return Wait(Sentinel.Saves.LoadAsync<SentinelTestSave>(1), result => missing = result);
+                Assert.That(missing.Error, Is.EqualTo(PersistenceError.NotFound));
+                Assert.That(heard, Is.Empty, "An empty slot is not a failure.");
+                PersistenceResult<SlotSummary> saved = default;
+                yield return Wait(Sentinel.Saves.SaveAsync(1, new SentinelTestSave { Value = 1 }), result => saved = result);
+                yield return Wait(Sentinel.Saves.SaveAsync(1, new SentinelTestSave { Value = 2 }), result => saved = result);
+                Assert.That(saved.Succeeded, Is.True, saved.Message);
+                PersistenceResult restored = default;
+                yield return Wait(Sentinel.Saves.RestorePreviousAsync<SentinelTestSave>(1), result => restored = result);
+                Assert.That(restored.Succeeded, Is.True, restored.Message);
+                Assert.That(heard, Is.EqualTo(new[] { "written 1 SentinelTestSave", "written 1 SentinelTestSave", "recovered 1" }));
+            }
+            finally
+            {
+                foreach (var token in tokens)
+                    token.Dispose();
+            }
+            PersistenceResult cleaned = default;
+            yield return Wait(Sentinel.Saves.DeleteAsync<SentinelTestSave>(1), result => cleaned = result);
+        }
     }
 }

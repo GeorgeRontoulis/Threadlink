@@ -38,7 +38,7 @@ else if (loaded.Error == PersistenceError.CorruptData)
 | `List<T>()` | Slots that hold a save of the type. |
 | `DeleteAsync<T>(slot)` | Deletes a slot; earlier versions stay recoverable. |
 | `RestorePreviousAsync<T>(slot)` | Republishes the newest earlier version after validating it. |
-| `AddMigration<T>(fromVersion, read)` | Reads payloads written by an older version. Call it from your save subsystem's `OnInitialize`. |
+| `AddMigration<T>(fromVersion, read)` | Reads payloads written by an older version. Call it from your save subsystem's `OnSubsystemInit`. |
 
 Slots are numbered from 0 per save type. Saves live under `persistentDataPath/Threadlink/<Save Folder>` in a separate folder per account; switching account switches folders and never moves data. The folder name and size limit are engineering settings (**Project Settings ▸ Threadlink ▸ Sentinel**).
 

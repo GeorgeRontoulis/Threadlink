@@ -28,7 +28,9 @@ namespace Threadforge.Threadlink
                 if (entries.TryGetValue(entry.Identity, out var existing) && (existing.AssetType != entry.AssetType || existing.Location != entry.Location))
                     throw new ArgumentException("Two catalogs map " + entry.Identity.ToString("D") + " differently.");
                 entries[entry.Identity] = entry;
-                if (TryGetSingleton(out var library))
+                // Not TryGetSingleton: a subsystem may map content while it boots, when other subsystems are off limits.
+                var library = Linked;
+                if (library != null && library.catalog != null && ReferenceEquals(library.Core, Threadlink.Current))
                     library.catalog.Merge(entry);
             }
         }
@@ -43,7 +45,7 @@ namespace Threadforge.Threadlink
         [Unity.Scripting.LifecycleManagement.OnCodeUnloading]
         private static void OnCodeUnloading() => entries.Clear();
 
-        protected override void OnInitialize()
+        protected override void OnSubsystemBoot()
         {
             // The mapping in ContentSettings first; entries mapped from code (MapContent) replace an ID they share.
             var all = new Dictionary<Guid, ContentEntry>();
@@ -66,7 +68,8 @@ namespace Threadforge.Threadlink
         internal void UseBackend(IContentBackend backend) =>
             Provider = new ContentProvider(catalog, backend ?? BackendOverride?.Invoke() ?? new AddressablesBackend());
 
-        protected override void OnShutdown()
+        // After every subsystem has deinitialized and released what it held.
+        protected override void OnSubsystemShutdown()
         {
             foreach (var status in Provider.GetOutstanding())
                 UnityEngine.Debug.LogWarning("Threadlink: content " + status.ContentId.ToString("D") + " (" + status.Kind + ") was still held when the session ended.");

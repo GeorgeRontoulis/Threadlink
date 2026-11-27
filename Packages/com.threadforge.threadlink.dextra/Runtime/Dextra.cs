@@ -8,6 +8,7 @@ namespace Threadforge.Threadlink
     using System.Threading.Tasks;
     using UnityEngine;
     using UnityEngine.InputSystem;
+    using UnityEngine.InputSystem.Users;
     using UnityEngine.UIElements;
 
     /// <summary>
@@ -20,6 +21,7 @@ namespace Threadforge.Threadlink
         private readonly List<PlayerInputContext> players = new List<PlayerInputContext>();
         private readonly List<IDisposable> gameplayClaims = new List<IDisposable>();
         private ScreenHost host;
+        private InputBlocker blocker;
         private ScreenFactory factory;
         private GameObject root;
 
@@ -27,21 +29,43 @@ namespace Threadforge.Threadlink
         public static IReadOnlyList<PlayerInputContext> Players => Instance.players;
 
         /// <inheritdoc />
-        protected override void OnInitialize()
+        protected override void OnSubsystemBoot()
         {
             root = new GameObject("Threadlink Screens") { hideFlags = HideFlags.DontSave };
             if (Application.isPlaying)
                 UnityEngine.Object.DontDestroyOnLoad(root);
-            var content = Require<ContentLibrary>();
-            factory = new ScreenFactory(root.transform, () => content.Provider);
+            // Screen prefabs load through the content library when they open, so booting needs no other subsystem.
+            factory = new ScreenFactory(root.transform, () => ContentLibrary.Instance.Provider);
             if (DextraSettings.Current.Actions != null)
-                Join(Array.Empty<InputDevice>());
-            host = new ScreenHost(factory, new InputBlocker(() => players.Count > 0 ? players[0] : null, () => DextraSettings.Current.InterfaceMap));
+                Join(Array.Empty<InputDevice>(), announce: false);
+            blocker = new InputBlocker(() => players.Count > 0 ? players[0] : null, () => DextraSettings.Current.InterfaceMap);
+            blocker.BlockChanged = blocked => Iris.TryNotify(new GameplayInputBlockChanged(blocked));
+            host = new ScreenHost(factory, blocker)
+            {
+                Opened = screen => Iris.TryNotify(new ScreenOpened(screen)),
+                Closed = screen => Iris.TryNotify(new ScreenClosed(screen)),
+            };
+            InputUser.onChange += OnUserChange;
+            InputSystem.onDeviceChange += OnDeviceChange;
         }
 
+        // Announces the players that joined during boot, now that every subsystem has subscribed.
         /// <inheritdoc />
-        protected override void OnShutdown()
+        protected override void OnSubsystemInit()
         {
+            for (int i = 0; i < players.Count; i++)
+                Iris.TryNotify(new PlayerJoined(players[i], i));
+        }
+
+        // Closes screens while the content they came from is still available.
+        /// <inheritdoc />
+        protected override void OnSubsystemDeinit() => host?.Dispose();
+
+        /// <inheritdoc />
+        protected override void OnSubsystemShutdown()
+        {
+            InputUser.onChange -= OnUserChange;
+            InputSystem.onDeviceChange -= OnDeviceChange;
             Screens.DefaultPanel = null;
             host?.Dispose();
             foreach (var claim in gameplayClaims)
@@ -87,10 +111,10 @@ namespace Threadforge.Threadlink
         }
 
         /// <summary>Adds a local player paired to <paramref name="devices"/>, with the gameplay map enabled.</summary>
-        public static PlayerInputContext AddPlayer(params InputDevice[] devices) => Instance.Join(devices);
+        public static PlayerInputContext AddPlayer(params InputDevice[] devices) => Instance.Join(devices, announce: true);
 
         /// <summary>Adds a local player with its own <paramref name="actions"/>, paired to <paramref name="devices"/>.</summary>
-        public static PlayerInputContext AddPlayer(InputActionAsset actions, params InputDevice[] devices) => Instance.Join(devices, actions);
+        public static PlayerInputContext AddPlayer(InputActionAsset actions, params InputDevice[] devices) => Instance.Join(devices, announce: true, actions);
 
         /// <summary>Removes a local player. Later players move down one index.</summary>
         public static void RemovePlayer(PlayerInputContext player)
@@ -103,17 +127,21 @@ namespace Threadforge.Threadlink
             dextra.gameplayClaims.RemoveAt(index);
             dextra.players.RemoveAt(index);
             player.Dispose();
+            Iris.TryNotify(new PlayerLeft(player, index));
         }
 
-        private PlayerInputContext Join(InputDevice[] devices, InputActionAsset actions = null)
+        private PlayerInputContext Join(InputDevice[] devices, bool announce, InputActionAsset actions = null)
         {
             var settings = DextraSettings.Current;
             actions ??= settings.Actions;
             if (actions == null)
                 throw new InvalidOperationException("Assign input actions in Project Settings ▸ Threadlink ▸ Dextra.");
-            if (devices.Length == 0)
+            bool free = devices.Length == 0;
+            if (free)
                 devices = UnpairedDevices();
             var player = new PlayerInputContext(actions, devices);
+            if (free)
+                player.Lend(devices);
             int index = players.Count;
             players.Add(player);
             if (settings.SaveBindings)
@@ -128,11 +156,55 @@ namespace Threadforge.Threadlink
                 {
                     Debug.LogWarning("Threadlink: saved bindings for player " + index + " were ignored. " + error.Message);
                 }
-                player.BindingsChanged = Save;
             }
+            player.BindingsChanged = OnBindingsChanged;
+            player.ControlsChanged = changed => Iris.TryNotify(new ControlsChanged(changed, changed.LastDevice));
             string gameplay = settings.MapName(player.Actions, settings.GameplayMap);
             gameplayClaims.Add(string.IsNullOrEmpty(gameplay) ? new Nothing() : player.ClaimByName(0, false, gameplay));
+            if (announce)
+                Iris.TryNotify(new PlayerJoined(player, index));
             return player;
+        }
+
+        private void OnBindingsChanged(PlayerInputContext player)
+        {
+            if (DextraSettings.Current.SaveBindings)
+                Save(player);
+            Iris.TryNotify(new BindingsChanged(player));
+        }
+
+        private PlayerInputContext PlayerOf(InputUser user)
+        {
+            foreach (var player in players)
+                if (player.UserId == user.id)
+                    return player;
+            return null;
+        }
+
+        private void OnUserChange(InputUser user, InputUserChange change, InputDevice device)
+        {
+            if (change != InputUserChange.DeviceLost && change != InputUserChange.DeviceRegained)
+                return;
+            var player = PlayerOf(user);
+            if (player == null)
+                return;
+            if (change == InputUserChange.DeviceLost)
+                Iris.TryNotify(new DeviceLost(player, device));
+            else
+                Iris.TryNotify(new DeviceRegained(player, device));
+        }
+
+        // Player 0 uses every device no other player owns, including devices connected after it joined. A device
+        // reconnecting to the player that lost it is left to the Input System, which announces it as regained.
+        private void OnDeviceChange(InputDevice device, InputDeviceChange change)
+        {
+            if (change != InputDeviceChange.Added || players.Count == 0)
+                return;
+            foreach (var user in InputUser.all)
+                foreach (var lost in user.lostDevices)
+                    if (lost == device)
+                        return;
+            players[0].Lend(device);
         }
 
         private InputDevice[] UnpairedDevices()

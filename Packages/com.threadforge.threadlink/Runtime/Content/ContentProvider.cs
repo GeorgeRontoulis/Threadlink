@@ -161,6 +161,8 @@ namespace Threadforge.Threadlink
                     error is OperationCanceledException && token.IsCancellationRequested
                         ? RequestState.Cancelled
                         : RequestState.Failed;
+                if (outcome == RequestState.Failed)
+                    Iris.TryNotify(new ContentLoadFailed(identity, kind, error));
                 if (operation == null)
                     Finish(record, outcome);
                 else

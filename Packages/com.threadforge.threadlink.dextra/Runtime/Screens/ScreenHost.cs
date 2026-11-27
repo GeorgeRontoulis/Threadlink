@@ -139,6 +139,12 @@ namespace Threadforge.Threadlink
         /// <summary>Number of currently retained screen instances.</summary>
         public int OpenCount => screens.Count;
 
+        /// <summary>Called after a screen is presented.</summary>
+        internal Action<ScreenHandle> Opened;
+
+        /// <summary>Called after a screen is closed and cleaned up, including when the host is disposed.</summary>
+        internal Action<ScreenHandle> Closed;
+
         /// <summary>Creates an independent host; input blocking is an explicit optional integration.</summary>
         public ScreenHost(IScreenFactory factory, IInputBlocker input = null)
         {
@@ -208,6 +214,7 @@ namespace Threadforge.Threadlink
                 preparing = null;
                 view = null;
                 claim = null;
+                Opened?.Invoke(handle);
                 return handle;
             }
             finally
@@ -285,6 +292,14 @@ namespace Threadforge.Threadlink
                 {
                     errors.Add(error);
                 }
+                try
+                {
+                    Closed?.Invoke(handle);
+                }
+                catch (Exception error)
+                {
+                    errors.Add(error);
+                }
                 if (errors.Count > 0)
                     throw new AggregateException("Screen closed with cleanup failures.", errors);
             }
@@ -355,6 +370,14 @@ namespace Threadforge.Threadlink
                 try
                 {
                     screen.View.Dispose();
+                }
+                catch (Exception error)
+                {
+                    errors.Add(error);
+                }
+                try
+                {
+                    Closed?.Invoke(screen);
                 }
                 catch (Exception error)
                 {

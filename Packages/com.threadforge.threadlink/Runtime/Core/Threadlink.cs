@@ -7,13 +7,15 @@ namespace Threadforge.Threadlink
     using UnityEngine;
 
     /// <summary>
-    /// The Threadlink core. It owns every <see cref="Subsystem"/> of the session: subsystems register at
-    /// <see cref="RuntimeInitializeLoadType.SubsystemRegistration"/>, the core deploys and initializes them before the first
-    /// scene loads, and shuts them down in reverse order when the session ends. Code in Awake and Start can use any
-    /// subsystem directly.
+    /// The Threadlink core. It owns every <see cref="ThreadlinkSubsystem"/> of the session: subsystems register at
+    /// <see cref="RuntimeInitializeLoadType.SubsystemRegistration"/>, and the core starts them before the first scene loads,
+    /// in two phases. <see cref="Iris"/> boots and initializes first; then every other subsystem boots, then every one
+    /// initializes. Shutdown mirrors it. Code in Awake and Start can use any subsystem directly.
     /// </summary>
     public sealed partial class Threadlink : IMonitorable, IDisposable
     {
+        private const string CyclePrefix = "Threadlink subsystem dependency cycle: ";
+
         private sealed class Registration
         {
             internal readonly Type Type;
@@ -26,17 +28,27 @@ namespace Threadforge.Threadlink
             }
         }
 
+        /// <summary>Thrown when a subsystem uses another one from <see cref="ThreadlinkSubsystem.OnSubsystemBoot"/>.</summary>
+        private sealed class BootPhaseException : InvalidOperationException
+        {
+            internal BootPhaseException(string message)
+                : base(message) { }
+        }
+
         private static readonly List<Registration> pending = new List<Registration>();
         private static Threadlink current;
 
         private readonly Threadlink previous;
         private readonly bool isolated;
         private readonly int thread = Environment.CurrentManagedThreadId;
-        private readonly List<Registration> registered = new List<Registration>();
         private readonly Dictionary<Type, ThreadlinkSubsystem> subsystems = new Dictionary<Type, ThreadlinkSubsystem>();
+        private readonly List<ThreadlinkSubsystem> booted = new List<ThreadlinkSubsystem>();
         private readonly List<ThreadlinkSubsystem> order = new List<ThreadlinkSubsystem>();
         private readonly List<ThreadlinkSubsystem> initializing = new List<ThreadlinkSubsystem>();
         private readonly CancellationTokenSource lifetime = new CancellationTokenSource();
+        private ThreadlinkSubsystem booting;
+        private Iris iris;
+        private int busy;
         private bool deployed;
         private bool disposed;
 
@@ -63,7 +75,7 @@ namespace Threadforge.Threadlink
             return false;
         }
 
-        /// <summary>Whether the current session has finished deploying.</summary>
+        /// <summary>Whether the current session has finished starting.</summary>
         public static bool IsDeployed => current != null && current.deployed && !current.disposed;
 
         /// <summary>Cancelled when the current session ends. Already cancelled when nothing is deployed.</summary>
@@ -72,7 +84,7 @@ namespace Threadforge.Threadlink
         /// <summary>Unique identity of this session.</summary>
         public Guid SessionId { get; } = Guid.NewGuid();
 
-        /// <summary>Every subsystem of this session in initialization order, followed by any that failed.</summary>
+        /// <summary>Every subsystem of this session in initialization order, followed by any that did not initialize.</summary>
         public IReadOnlyList<ThreadlinkSubsystem> Subsystems
         {
             get
@@ -87,6 +99,9 @@ namespace Threadforge.Threadlink
 
         internal CancellationToken LifetimeToken => disposed ? new CancellationToken(true) : lifetime.Token;
 
+        // No subsystem is booting or initializing: a ready subsystem can be returned without bookkeeping.
+        internal bool IsSettled => busy == 0;
+
         /// <summary>
         /// Registers a subsystem for the next session. Generated code calls this at
         /// <see cref="RuntimeInitializeLoadType.SubsystemRegistration"/> for every subsystem class; call it yourself only for
@@ -96,6 +111,7 @@ namespace Threadforge.Threadlink
         public static void Register<T>()
             where T : ThreadlinkSubsystem<T>, new()
         {
+            ThreadlinkSubsystem<T>.UseFactory(static () => new T());
             if (current != null && current.deployed && !current.disposed)
             {
                 current.Add<T>();
@@ -107,19 +123,22 @@ namespace Threadforge.Threadlink
             pending.Add(new Registration(typeof(T), static () => new T()));
         }
 
-        /// <summary>Adds a subsystem to this session and initializes it, with any subsystem it requires.</summary>
+        /// <summary>Adds a subsystem to this session: it boots and initializes now. Returns the existing one when present.</summary>
         /// <returns>The subsystem, which may be <see cref="SubsystemState.Failed"/>.</returns>
         public T Add<T>()
             where T : ThreadlinkSubsystem<T>, new()
         {
             CheckOpen();
-            var registration = Find(typeof(T));
-            if (registration == null)
-                registered.Add(registration = new Registration(typeof(T), static () => new T()));
-            return (T)Initialize(registration, null);
+            ThreadlinkSubsystem<T>.UseFactory(static () => new T());
+            if (subsystems.TryGetValue(typeof(T), out var existing))
+            {
+                Initialize(existing, null);
+                return (T)existing;
+            }
+            return (T)Start(typeof(T), static () => new T());
         }
 
-        /// <summary>Returns a subsystem of this session, initializing it first when needed.</summary>
+        /// <summary>Returns a subsystem of this session, adding it first when needed.</summary>
         public T Get<T>()
             where T : ThreadlinkSubsystem<T>, new()
         {
@@ -131,7 +150,8 @@ namespace Threadforge.Threadlink
 
         /// <summary>
         /// Deploys a separate core that becomes current until it is disposed, for tests and tools. It starts empty: add the
-        /// subsystems under test with <see cref="Add{T}"/>. Disposing it shuts it down and restores the previous core.
+        /// subsystems under test with <see cref="Add{T}"/>; subsystems they use join on first use. Disposing it shuts it down
+        /// and restores the previous core.
         /// </summary>
         public static Threadlink DeployIsolated()
         {
@@ -149,24 +169,56 @@ namespace Threadforge.Threadlink
             current = core;
             var registrations = pending.ToArray();
             pending.Clear();
-            Array.Sort(registrations, (a, b) => string.CompareOrdinal(a.Type.FullName, b.Type.FullName));
-            core.registered.AddRange(registrations);
+#if !UNITY_EDITOR
+            Application.quitting -= ShutdownCurrent;
+            Application.quitting += ShutdownCurrent;
+#endif
+            core.StartAll(registrations);
+        }
+
+        // Starts subsystems the way a session deploys them, in a separate core, for tests.
+        internal static Threadlink DeployIsolated(params Type[] types)
+        {
+            var core = new Threadlink(current, true);
+            current = core;
+            var registrations = new Registration[types.Length];
+            for (int i = 0; i < types.Length; i++)
+            {
+                var type = types[i];
+                registrations[i] = new Registration(type, () => (ThreadlinkSubsystem)Activator.CreateInstance(type, true));
+            }
+            core.StartAll(registrations);
+            return core;
+        }
+
+        private void StartAll(Registration[] registrations)
+        {
+            // Iris first, then by name, so every session starts in the same order.
+            Array.Sort(registrations, (a, b) => a.Type == b.Type ? 0 : a.Type == typeof(Iris) ? -1 : b.Type == typeof(Iris) ? 1 : string.CompareOrdinal(a.Type.FullName, b.Type.FullName));
+            var created = new List<ThreadlinkSubsystem>(registrations.Length);
             foreach (var registration in registrations)
             {
                 try
                 {
-                    core.Initialize(registration, null);
+                    created.Add(Create(registration.Type, registration.Create));
                 }
                 catch (Exception)
                 {
                     // Already reported; the other subsystems still start.
                 }
             }
-            core.deployed = true;
-#if !UNITY_EDITOR
-            Application.quitting -= ShutdownCurrent;
-            Application.quitting += ShutdownCurrent;
-#endif
+            // Iris carries the startup events, so it is ready before anything else boots.
+            if (iris != null)
+            {
+                Boot(iris);
+                Initialize(iris, null);
+            }
+            foreach (var subsystem in created)
+                Boot(subsystem);
+            foreach (var subsystem in created)
+                Initialize(subsystem, null);
+            deployed = true;
+            Announce(ReadyEvent());
         }
 
         /// <summary>Shuts down every session, isolated ones included. The Editor calls it when Play mode ends and before
@@ -184,13 +236,17 @@ namespace Threadforge.Threadlink
             pending.Clear();
         }
 
-        /// <summary>Shuts this session down: cancels <see cref="Lifetime"/>, then shuts subsystems down in reverse
-        /// initialization order. Restores the previous core of an isolated session.</summary>
+        /// <summary>
+        /// Shuts this session down: announces <see cref="SessionEnding"/>, cancels <see cref="Lifetime"/>, deinitializes every
+        /// subsystem in reverse initialization order, then shuts each down in reverse boot order. Restores the previous core of
+        /// an isolated session.
+        /// </summary>
         public void Dispose()
         {
             if (disposed)
                 return;
             CheckThread();
+            Announce(new SessionEnding(SessionId));
             disposed = true;
             try
             {
@@ -205,6 +261,18 @@ namespace Threadforge.Threadlink
                 var subsystem = order[i];
                 try
                 {
+                    subsystem.RunDeinit();
+                }
+                catch (Exception error)
+                {
+                    Debug.LogException(new InvalidOperationException("Threadlink: " + subsystem.Name + " failed to deinitialize.", error));
+                }
+            }
+            for (int i = booted.Count - 1; i >= 0; i--)
+            {
+                var subsystem = booted[i];
+                try
+                {
                     subsystem.RunShutdown();
                 }
                 catch (Exception error)
@@ -213,7 +281,8 @@ namespace Threadforge.Threadlink
                 }
                 finally
                 {
-                    subsystem.State = SubsystemState.ShutDown;
+                    if (subsystem.State != SubsystemState.Failed)
+                        subsystem.State = SubsystemState.ShutDown;
                 }
             }
             foreach (var subsystem in subsystems.Values)
@@ -256,64 +325,225 @@ namespace Threadforge.Threadlink
             ReportOperations(report);
         }
 
+        /// <summary>
+        /// The subsystem of <paramref name="type"/> in the current session, for <c>Instance</c> and <c>TryGetSingleton</c>.
+        /// Enforces the boot phase, records what an initializing subsystem uses, and starts a subsystem that is not part of
+        /// the session yet when <paramref name="create"/> is given. Returns null instead of throwing when
+        /// <paramref name="trying"/>.
+        /// </summary>
+        internal static ThreadlinkSubsystem Resolve(Type type, Func<ThreadlinkSubsystem> create, bool trying)
+        {
+            var core = current;
+            if (core == null)
+                return trying
+                    ? null
+                    : throw new SubsystemUnavailableException(
+                        type,
+                        type.Name + " is not available: Threadlink is not deployed. It deploys before the first scene loads in Play mode and in players; tests and tools use Threadlink.DeployIsolated()."
+                    );
+            var bootingNow = core.booting;
+            if (bootingNow != null && bootingNow.GetType() != type && type != typeof(Iris))
+                return trying
+                    ? null
+                    : throw new BootPhaseException(
+                        bootingNow.Name + " used " + type.Name + " in OnSubsystemBoot. Boot sets up a subsystem on its own; use other subsystems from OnSubsystemInit. Only Iris is available while booting."
+                    );
+            var requester = core.initializing.Count > 0 ? core.initializing[core.initializing.Count - 1] : null;
+            if (!core.subsystems.TryGetValue(type, out var subsystem))
+            {
+                if (trying || create == null || core.disposed)
+                    return trying ? null : throw new SubsystemUnavailableException(type, type.Name + " is not part of the current Threadlink session.");
+                if (!core.isolated && type.IsDefined(typeof(ManualRegistrationAttribute), false))
+                    throw new SubsystemUnavailableException(
+                        type,
+                        type.Name + " is not part of the current Threadlink session. It is marked [ManualRegistration]: add it with Threadlink.Instance.Add<" + type.Name + ">()."
+                    );
+                core.CheckThread();
+                subsystem = core.Start(type, create);
+            }
+            else if (subsystem.legacy && subsystem.State == SubsystemState.Booted && !trying && !core.disposed)
+            {
+                // A 1.0 subsystem sets itself up in OnInitialize, so it initializes as soon as another one uses it.
+                core.Initialize(subsystem, requester);
+            }
+            switch (subsystem.State)
+            {
+                case SubsystemState.Booting:
+                case SubsystemState.Booted:
+                case SubsystemState.Initializing:
+                case SubsystemState.Ready:
+                    break;
+                case SubsystemState.Failed:
+                    return trying
+                        ? null
+                        : throw new SubsystemUnavailableException(
+                            type,
+                            (requester != null && !ReferenceEquals(requester, subsystem) ? requester.Name + " uses " + subsystem.Name + ", which" : subsystem.Name)
+                                + " failed to start: "
+                                + subsystem.Error?.Message,
+                            subsystem.Error
+                        );
+                default:
+                    return trying
+                        ? null
+                        : throw new SubsystemUnavailableException(type, subsystem.Name + " is not available: it is " + subsystem.State + ".");
+            }
+            if (requester != null && !ReferenceEquals(requester, subsystem) && !requester.dependencies.Contains(type))
+                requester.dependencies.Add(type);
+            return subsystem;
+        }
+
+        // The obsolete Require: initializes the required subsystem first and rejects cycles, as 1.0 did.
         internal T Require<T>(ThreadlinkSubsystem requester)
             where T : ThreadlinkSubsystem<T>, new()
         {
             CheckOpen();
+            ThreadlinkSubsystem<T>.UseFactory(static () => new T());
+            if (booting != null && booting.GetType() != typeof(T) && typeof(T) != typeof(Iris))
+                throw new BootPhaseException(booting.Name + " required " + typeof(T).Name + " in OnSubsystemBoot. Use other subsystems from OnSubsystemInit.");
             if (!requester.dependencies.Contains(typeof(T)))
                 requester.dependencies.Add(typeof(T));
-            var registration = Find(typeof(T));
-            if (registration == null)
-                registered.Add(registration = new Registration(typeof(T), static () => new T()));
-            var subsystem = Initialize(registration, requester);
-            if (subsystem.State != SubsystemState.Ready && subsystem.State != SubsystemState.Initializing)
-                throw new SubsystemUnavailableException(typeof(T), requester.Name + " requires " + subsystem.Name + ", which failed to initialize: " + subsystem.Error?.Message, subsystem.Error);
+            if (!subsystems.TryGetValue(typeof(T), out var subsystem))
+                subsystem = Start(typeof(T), static () => new T());
+            else if (subsystem.State == SubsystemState.Initializing && !ReferenceEquals(subsystem, requester))
+                throw new InvalidOperationException(CyclePrefix + Chain(subsystem) + ".");
+            else
+                Initialize(subsystem, requester);
+            if (subsystem.State == SubsystemState.Failed)
+                throw new SubsystemUnavailableException(typeof(T), requester.Name + " requires " + subsystem.Name + ", which failed to start: " + subsystem.Error?.Message, subsystem.Error);
+            if (subsystem.State != SubsystemState.Ready && subsystem.State != SubsystemState.Initializing && subsystem.State != SubsystemState.Booted)
+                throw new SubsystemUnavailableException(typeof(T), requester.Name + " requires " + subsystem.Name + ", which is " + subsystem.State + ".");
             return (T)subsystem;
         }
 
-        private ThreadlinkSubsystem Initialize(Registration registration, ThreadlinkSubsystem requester)
+        // Delivers a framework event when this session's Iris is up; listener failures are reported, not thrown.
+        internal void Announce<T>(T value)
         {
-            if (subsystems.TryGetValue(registration.Type, out var existing))
+            var bus = iris != null && (iris.State == SubsystemState.Ready || iris.State == SubsystemState.Initializing || iris.State == SubsystemState.Booted) ? iris.Bus : null;
+            bus?.PublishIsolated(value);
+        }
+
+        private ThreadlinkReady ReadyEvent()
+        {
+            int ready = 0,
+                failed = 0;
+            foreach (var subsystem in subsystems.Values)
+                if (subsystem.State == SubsystemState.Ready)
+                    ready++;
+                else if (subsystem.State == SubsystemState.Failed)
+                    failed++;
+            return new ThreadlinkReady(SessionId, ready, failed);
+        }
+
+        private ThreadlinkSubsystem Start(Type type, Func<ThreadlinkSubsystem> create)
+        {
+            var subsystem = Create(type, create);
+            if (subsystem is Iris)
             {
-                if (existing.State == SubsystemState.Initializing && requester != null)
-                    throw new InvalidOperationException("Threadlink subsystem dependency cycle: " + Chain(existing) + ".");
-                return existing;
+                // Iris boots alone, even when another subsystem's boot asked for it.
+                var outer = booting;
+                booting = null;
+                try
+                {
+                    Boot(subsystem);
+                }
+                finally
+                {
+                    booting = outer;
+                }
             }
+            else
+            {
+                Boot(subsystem);
+            }
+            Initialize(subsystem, null);
+            return subsystem;
+        }
+
+        private ThreadlinkSubsystem Create(Type type, Func<ThreadlinkSubsystem> create)
+        {
             ThreadlinkSubsystem subsystem;
             try
             {
-                subsystem = registration.Create() ?? throw new InvalidOperationException("The factory returned null.");
+                subsystem = create() ?? throw new InvalidOperationException("The factory returned null.");
             }
             catch (Exception error)
             {
-                Debug.LogException(new InvalidOperationException("Threadlink: " + registration.Type.Name + " could not be created.", error));
+                Debug.LogException(new InvalidOperationException("Threadlink: " + type.Name + " could not be created.", error));
                 throw;
             }
             subsystem.core = this;
-            subsystem.State = SubsystemState.Initializing;
-            subsystems.Add(registration.Type, subsystem);
+            subsystem.State = SubsystemState.Registered;
+            subsystem.legacy = ThreadlinkSubsystem.IsLegacy(type);
+            subsystems.Add(type, subsystem);
+            if (subsystem is Iris created)
+                iris = created;
             subsystem.Link();
-            initializing.Add(subsystem);
+            return subsystem;
+        }
+
+        private void Boot(ThreadlinkSubsystem subsystem)
+        {
+            if (subsystem.State != SubsystemState.Registered)
+                return;
+            var outer = booting;
+            booting = subsystem;
+            busy++;
+            subsystem.State = SubsystemState.Booting;
             try
             {
-                subsystem.RunInitialize();
+                subsystem.RunBoot();
+                subsystem.State = SubsystemState.Booted;
+                booted.Add(subsystem);
+            }
+            catch (Exception error)
+            {
+                Fail(subsystem, error, "boot");
+            }
+            finally
+            {
+                booting = outer;
+                busy--;
+            }
+        }
+
+        private void Initialize(ThreadlinkSubsystem subsystem, ThreadlinkSubsystem requester)
+        {
+            if (subsystem.State != SubsystemState.Booted)
+                return;
+            // An initialization started from another subsystem's boot runs outside that boot.
+            var outer = booting;
+            booting = null;
+            initializing.Add(subsystem);
+            busy++;
+            subsystem.State = SubsystemState.Initializing;
+            try
+            {
+                subsystem.RunInit();
                 subsystem.State = SubsystemState.Ready;
                 order.Add(subsystem);
             }
             catch (Exception error)
             {
-                subsystem.State = SubsystemState.Failed;
-                subsystem.Error = error;
-                if (error is SubsystemUnavailableException || error.Message.StartsWith("Threadlink subsystem dependency cycle", StringComparison.Ordinal))
-                    Debug.LogError("Threadlink: " + subsystem.Name + " failed to initialize. " + error.Message);
-                else
-                    Debug.LogException(new InvalidOperationException("Threadlink: " + subsystem.Name + " failed to initialize.", error));
+                Fail(subsystem, error, "initialize");
             }
             finally
             {
                 initializing.Remove(subsystem);
+                busy--;
+                booting = outer;
             }
-            return subsystem;
+        }
+
+        private void Fail(ThreadlinkSubsystem subsystem, Exception error, string phase)
+        {
+            subsystem.State = SubsystemState.Failed;
+            subsystem.Error = error;
+            if (error is SubsystemUnavailableException || error is BootPhaseException || error.Message.StartsWith(CyclePrefix, StringComparison.Ordinal))
+                Debug.LogError("Threadlink: " + subsystem.Name + " failed to " + phase + ". " + error.Message);
+            else
+                Debug.LogException(new InvalidOperationException("Threadlink: " + subsystem.Name + " failed to " + phase + ".", error));
+            Announce(new SubsystemFailed(subsystem.GetType(), subsystem.Name, error));
         }
 
         private string Chain(ThreadlinkSubsystem repeated)
@@ -325,18 +555,10 @@ namespace Threadforge.Threadlink
             return text.Append(repeated.Name).ToString();
         }
 
-        private Registration Find(Type type)
-        {
-            foreach (var registration in registered)
-                if (registration.Type == type)
-                    return registration;
-            return null;
-        }
-
         private void Relink()
         {
             foreach (var subsystem in subsystems.Values)
-                if (subsystem.State == SubsystemState.Ready || subsystem.State == SubsystemState.Failed)
+                if (subsystem.State != SubsystemState.ShutDown)
                     subsystem.Link();
         }
 

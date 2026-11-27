@@ -22,15 +22,13 @@ namespace Threadforge.Threadlink.Showcase.Demos
                 Iris.Publish(Instance.Points);
             }
 
-            protected override void OnInitialize() => Require<Iris>();
-
             public override void Report(MonitorReport report) => report.Summary(Points + " points");
         }
 
         public override string Title => "Subsystems";
 
         public override string Summary =>
-            "Derive from ThreadlinkSubsystem<T> and Threadlink creates it before the first scene's Awake, in dependency order, and shuts it down last. Static methods on the subsystem are its API; TryGetSingleton checks that it exists and is linked to the core.";
+            "Derive from ThreadlinkSubsystem<T> and Threadlink starts it before the first scene's Awake: every subsystem boots, then every one initializes, so no startup order needs declaring. Static methods on the subsystem are its API; TryGetSingleton checks that it exists and is linked to the core.";
 
         public override string[] Packages => new[] { "core" };
 
@@ -63,7 +61,7 @@ namespace Threadforge.Threadlink.Showcase.Demos
             int before = score.Points;
             ShowcaseScore.Add(1);
             Check(ShowcaseScore.Instance.Points == before + 1, "static API reaches the linked instance");
-            Check(System.Linq.Enumerable.Contains(score.Dependencies, typeof(Iris)), "the required subsystem is recorded");
+            Check(score.State == SubsystemState.Ready, "the subsystem booted and initialized");
             return UniTask.CompletedTask;
         }
     }

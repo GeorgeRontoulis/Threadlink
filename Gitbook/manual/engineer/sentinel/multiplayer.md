@@ -13,7 +13,7 @@ Presence, friends and invites return a `PlatformResult<T>`. Resolve the contract
 
 ## Join intents
 
-A `JoinIntent` carries the provider, an identity and the opaque payload. Providers capture intents as they arrive; the Steam provider also captures the connect data a game was launched with. With the local provider, the game captures intents explicitly. `JoinIntentBuffer` holds them until the game is ready: `Capture` adds one, `TryTake` removes the oldest, `Pending` and `Rejected` report the queue, and the capacity (32 by default) bounds it. Recent duplicates are suppressed. The game decides when to consume intents and whether to join.
+A `JoinIntent` carries the provider, an identity and the opaque payload. Providers capture intents as they arrive; the Steam provider also captures the connect data a game was launched with. With the local provider, the game captures intents explicitly. `JoinIntentBuffer` holds them until the game is ready: `Capture` adds one, `TryTake` removes the oldest, `Pending` and `Rejected` report the queue, and the capacity (32 by default) bounds it. Recent duplicates are suppressed. Each captured intent is also announced as `JoinIntentReceived` on Iris, and stays queued until taken. The game decides when to consume intents and whether to join.
 
 The caller owns the join data: create, authorize, expire and revoke it in the networking layer. Treat received payloads as untrusted input.
 

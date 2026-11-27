@@ -14,16 +14,25 @@ namespace Threadlink.User.Examples
     }
 
     /// <summary>
-    /// A project subsystem. Deriving is all it takes: it registers itself, initializes before the first scene's Awake
-    /// (after Iris, which it requires) and shuts down with the session.
+    /// A project subsystem. Deriving is all it takes: it registers itself, starts before the first scene's Awake and shuts
+    /// down with the session. It boots first (its own state and its Iris subscriptions), then initializes once every
+    /// subsystem has booted.
     /// </summary>
     public sealed class Wallet : ThreadlinkSubsystem<Wallet>
     {
+        private SubscriptionToken ending;
+
         public int Coins { get; private set; }
 
-        protected override void OnInitialize() => Require<Iris>();
+        // Boot sets up the subsystem itself. Iris is the only other subsystem available while booting: subscribe here, and
+        // the events other subsystems announce while they initialize arrive.
+        protected override void OnSubsystemBoot() => ending = Iris.Subscribe<SessionEnding>(_ => Debug.Log("The session ends with " + Coins + " coins."));
 
-        protected override void OnShutdown() => Coins = 0;
+        protected override void OnSubsystemShutdown()
+        {
+            ending.Dispose();
+            Coins = 0;
+        }
 
         /// <summary>The subsystem's API: static methods on the class.</summary>
         public static void Add(int amount)

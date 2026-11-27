@@ -7,11 +7,26 @@ Threadlink owns the parts of a game that live for the whole session. Each part i
 | Moment | What happens |
 | --- | --- |
 | `RuntimeInitializeLoadType.SubsystemRegistration` | Every subsystem class registers itself. Generated code does this; nothing scans assemblies. |
-| `RuntimeInitializeLoadType.BeforeSceneLoad` | The core deploys: each subsystem is created and initialized, dependencies first. |
+| `RuntimeInitializeLoadType.BeforeSceneLoad` | The core deploys in two phases. Iris boots and initializes first. Then every other subsystem **boots**, then every one **initializes**. `ThreadlinkReady` is announced on Iris. |
 | First scene's `Awake` and `Start` | Every subsystem is ready. Nothing waits. |
-| Leaving Play mode, code reload, player quit | Subsystems shut down in reverse initialization order; the session's `Threadlink.Lifetime` token is cancelled. |
+| Leaving Play mode, code reload, player quit | `SessionEnding` is announced, the session's `Threadlink.Lifetime` token is cancelled, every subsystem **deinitializes** in reverse initialization order, then every one **shuts down** in reverse boot order. |
 
-Initialization is synchronous. Work that is genuinely asynchronous, such as reading a save, loading a scene or calling a platform service, is an ordinary `UniTask` call the game makes when it needs it, never a precondition for `Start`.
+Startup is synchronous. Work that is genuinely asynchronous, such as reading a save, loading a scene or calling a platform service, is an ordinary `UniTask` call the game makes when it needs it, never a precondition for `Start`.
+
+### Two phases instead of a dependency order
+
+Boot and initialization split what a subsystem does to itself from what it does with others, so no subsystem declares what it depends on and the order between them never matters.
+
+| Phase | Hook | Does | May use |
+| --- | --- | --- | --- |
+| Boot | `OnSubsystemBoot()` | Sets up the subsystem's own state, creates its objects, subscribes to Iris events. | Only itself and Iris. Using any other subsystem throws, with the fix in the message. |
+| Initialize | `OnSubsystemInit()` | Connects to other subsystems, registers with them, announces readiness on Iris. | Every subsystem, in any order: all have booted. |
+| Deinitialize | `OnSubsystemDeinit()` | Disconnects from other subsystems. | Every subsystem: none has shut down yet. |
+| Shut down | `OnSubsystemShutdown()` | Releases the subsystem's own state. | Itself and Iris. |
+
+A subsystem that reaches a state only while it initializes (Steam signing in, a platform taking over accounts) announces it on Iris. Subscribe while booting, and the announcement arrives whichever subsystem initializes first. State another subsystem reaches during its initialization arrives through its events, not from `OnSubsystemInit`. An event reaches only the subscribers listening when it is announced; Iris never replays one. See [Framework Events](events.md).
+
+Keep both phases to the work that has to happen before the first scene: wiring, subscriptions, starting an SDK that must start early. Loading, waiting and reading files belong to the asynchronous APIs, after startup.
 
 ## Subsystems
 
@@ -22,9 +37,14 @@ using Threadforge.Threadlink;
 
 public sealed class Wallet : ThreadlinkSubsystem<Wallet>
 {
+    private SubscriptionToken account;
+
     public int Coins { get; private set; }
 
-    protected override void OnInitialize() => Require<Iris>();
+    // Its own state, and its subscriptions: the account is announced while Sentinel and the platforms initialize.
+    protected override void OnSubsystemBoot() => account = Iris.Subscribe<AccountChanged>(changed => Coins = 0);
+
+    protected override void OnSubsystemShutdown() => account.Dispose();
 
     public static void Add(int amount)
     {
@@ -38,15 +58,28 @@ public sealed class Wallet : ThreadlinkSubsystem<Wallet>
 
 | Member | Meaning |
 | --- | --- |
-| `OnInitialize()` | Runs once, before the first scene's Awake. Throwing fails only this subsystem and the ones that require it. |
-| `OnShutdown()` | Runs once when the session ends, in reverse order. |
-| `Require<T>()` | Returns another subsystem, initializing it first if needed. The dependency is recorded, ordered and shown in the Runtime monitor; cycles are rejected with the full chain. |
-| `Instance` | The linked instance. Throws `SubsystemUnavailableException` with the reason when it is not linked. |
-| `TryGetSingleton(out T)` | Whether the subsystem exists, is initialized and is linked to the current core. |
+| `OnSubsystemBoot()` | Startup phase one: set up the subsystem itself and subscribe to Iris. Throwing fails only this subsystem. |
+| `OnSubsystemInit()` | Startup phase two: connect to other subsystems through their `Instance`. Throwing fails this subsystem; a subsystem whose initialization uses a failed one fails with the chain in its error. |
+| `OnSubsystemDeinit()` | Shutdown phase one, in reverse initialization order: disconnect from other subsystems. |
+| `OnSubsystemShutdown()` | Shutdown phase two, in reverse boot order: release the subsystem's own state. |
+| `Instance` | The subsystem in the current session. Throws `SubsystemUnavailableException` with the reason when it is not part of the session or failed, and `InvalidOperationException` when used from another subsystem's boot. |
+| `TryGetSingleton(out T)` | Whether the subsystem is part of the current session and available. It never starts one. |
+| `State`, `Error` | `Registered`, `Booting`, `Booted`, `Initializing`, `Ready`, `Failed` or `ShutDown`, and why it failed. |
+| `Dependencies` | The subsystems this one used while it initialized, shown in the Runtime monitor's graph. |
 | `Lifetime` | Cancelled when the session ends. |
 | `Report(MonitorReport)` | What the Runtime monitor shows. |
 
 Framework subsystems follow the same pattern and expose their API as static methods on the class: `Iris.Publish`, `Nexus.LoadAsync`, `Aura.Play`, `Dextra.Player`, `Sentinel.Saves.SaveAsync`, `Vault.Get`. Content loading lives on the core: `Threadlink.LoadAsync`.
+
+### Subsystems written for 1.0
+
+`OnInitialize()`, `OnShutdown()` and `Require<T>()` are obsolete and still work, with compiler warnings that name their replacements:
+
+- `OnInitialize()` runs in the initialization phase. A subsystem that overrides it is initialized as soon as another one uses it, so its setup has run before it is used, as before.
+- `OnShutdown()` runs in the deinitialization phase, while every subsystem is still available.
+- `Require<T>()` returns the subsystem after initializing it, and still rejects cycles between `OnInitialize` methods with the full chain.
+
+To migrate, move a subsystem's own setup from `OnInitialize` into `OnSubsystemBoot`, replace `Require<T>()` with `T.Instance` in `OnSubsystemInit`, and split `OnShutdown` the same way.
 
 ## The core
 
@@ -55,9 +88,9 @@ Framework subsystems follow the same pattern and expose their API as static meth
 | `Threadlink.TryGetSingleton(out Threadlink)` | Whether a core is deployed and linked. |
 | `Threadlink.IsDeployed`, `Threadlink.Instance` | Deployment state and the current core. |
 | `Threadlink.Lifetime` | Cancelled when the session ends. |
-| `core.Subsystems` | Every subsystem in initialization order. |
+| `core.Subsystems` | Every subsystem in initialization order, then any that failed. |
 | `Threadlink.Operations`, `Threadlink.Begin` | The session's operation log. See [Diagnostics](diagnostics.md). |
-| `Threadlink.DeployIsolated()` | A separate core for tests and tools; it becomes current until disposed and starts empty (`core.Add<T>()`). |
+| `Threadlink.DeployIsolated()` | A separate core for tests and tools; it becomes current until disposed and starts empty. `core.Add<T>()` boots and initializes a subsystem; one that another uses joins on first use. |
 
 ## Design and engineering
 

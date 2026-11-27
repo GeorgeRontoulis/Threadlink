@@ -38,6 +38,47 @@ namespace Threadforge.Threadlink
         internal SceneChanged(SceneTransition transition) => Transition = transition;
     }
 
+    /// <summary>Announced on Iris when a transition starts, before the next scene loads: show a loading screen, lock input.</summary>
+    public readonly struct SceneTransitionStarted
+    {
+        /// <summary>The scene on screen, which stays until the next one is presented.</summary>
+        public readonly Scene From;
+
+        /// <summary>Identity of the scene being loaded, as in <see cref="SceneTransition.Id"/>.</summary>
+        public readonly Guid Target;
+
+        /// <summary>Creates the event.</summary>
+        public SceneTransitionStarted(Scene from, Guid target)
+        {
+            From = from;
+            Target = target;
+        }
+    }
+
+    /// <summary>
+    /// Announced on Iris when a transition fails or is cancelled before presentation. The current scene stays on screen;
+    /// <see cref="Error"/> is an <see cref="OperationCanceledException"/> for a cancelled transition.
+    /// </summary>
+    public readonly struct SceneTransitionFailed
+    {
+        /// <summary>The scene that stays on screen.</summary>
+        public readonly Scene From;
+
+        /// <summary>Identity of the scene that did not load.</summary>
+        public readonly Guid Target;
+
+        /// <summary>Why the transition failed.</summary>
+        public readonly Exception Error;
+
+        /// <summary>Creates the event.</summary>
+        public SceneTransitionFailed(Scene from, Guid target, Exception error)
+        {
+            From = from;
+            Target = target;
+            Error = error;
+        }
+    }
+
     /// <summary>A scene kept loaded without being presented. Release it to allow unloading.</summary>
     public sealed class SceneHold
     {
@@ -76,19 +117,16 @@ namespace Threadforge.Threadlink
         private int transitionDepth;
 
         /// <inheritdoc />
-        protected override void OnInitialize()
+        protected override void OnSubsystemBoot()
         {
-            Require<Iris>();
-            var content = Require<ContentLibrary>();
-            backend.Content = new ContentSceneBackend(() => content.Provider);
+            // Content is looked up when a scene loads, so booting needs no other subsystem.
+            backend.Content = new ContentSceneBackend(() => ContentLibrary.Instance.Provider);
             navigator = new SceneNavigator(backend);
         }
 
+        // Unloads scenes while the content they came from is still available.
         /// <inheritdoc />
-        protected override void OnShutdown()
-        {
-            navigator.ShutdownAsync().Forget(Debug.LogException);
-        }
+        protected override void OnSubsystemDeinit() => navigator.ShutdownAsync().Forget(Debug.LogException);
 
         /// <inheritdoc />
         public override void Report(MonitorReport report)
@@ -145,6 +183,7 @@ namespace Threadforge.Threadlink
             var from = navigator.PresentedResidency?.Scene ?? SceneManager.GetActiveScene();
             SceneTransition prepared = default;
             transitionDepth++;
+            Iris.TryNotify(new SceneTransitionStarted(from, id));
             try
             {
                 using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, Lifetime);
@@ -173,13 +212,13 @@ namespace Threadforge.Threadlink
                         Debug.LogException(error);
                     }
                 }
-                if (Iris.TryGetSingleton(out _))
-                    Iris.Notify(new SceneChanged(prepared));
+                Iris.TryNotify(new SceneChanged(prepared));
                 return prepared;
             }
-            catch
+            catch (Exception error)
             {
                 failures++;
+                Iris.TryNotify(new SceneTransitionFailed(from, id, error));
                 throw;
             }
             finally

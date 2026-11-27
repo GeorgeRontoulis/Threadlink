@@ -331,5 +331,55 @@ namespace Threadforge.Threadlink.Tests
             Assert.That(ProviderRequirements.ValidateSelection(provider, Capability.Purchases).Error, Is.EqualTo(PlatformError.Unsupported));
             Assert.That(ProviderRequirements.ValidateSelection(provider, Capability.Achievements | Capability.Leaderboards, requireReady: true).Succeeded, Is.True);
         }
+
+        [ManualRegistration]
+        public sealed class SteamWatcher : ThreadlinkSubsystem<SteamWatcher>
+        {
+            public static readonly List<string> Heard = new List<string>();
+            private SubscriptionToken ready,
+                account,
+                join;
+
+            protected override void OnSubsystemBoot()
+            {
+                ready = Iris.Subscribe<PlatformReady>(e => Heard.Add("ready " + e.Provider));
+                account = Iris.Subscribe<AccountChanged>(e => Heard.Add("account " + e.Current));
+                join = Iris.Subscribe<JoinIntentReceived>(e => Heard.Add("join " + e.Intent.Payload));
+            }
+
+            protected override void OnSubsystemShutdown()
+            {
+                ready.Dispose();
+                account.Dispose();
+                join.Dispose();
+            }
+        }
+
+        [Test]
+        public void SteamStartingInASessionIsAnnouncedToSubscribersThatBooted()
+        {
+            var settings = SteamSettings.Current;
+            bool enabled = settings.Enabled;
+            uint appId = settings.AppId;
+            var factory = SteamPlatform.BackendFactory;
+            settings.Enabled = true;
+            settings.AppId = 480;
+            SteamPlatform.BackendFactory = () => new FakeBackend { Launch = "+connect lobby-3" };
+            SteamWatcher.Heard.Clear();
+            try
+            {
+                using var runtime = Threadlink.DeployIsolated(typeof(Iris), typeof(Sentinel), typeof(SteamPlatform), typeof(SteamWatcher));
+                Assert.That(SteamPlatform.Provider, Is.Not.Null);
+                Assert.That(SteamWatcher.Heard, Has.Member("ready steam"));
+                Assert.That(SteamWatcher.Heard, Has.Member("account steam:76561197960287930"));
+                Assert.That(SteamWatcher.Heard, Has.Member("join +connect lobby-3"));
+            }
+            finally
+            {
+                settings.Enabled = enabled;
+                settings.AppId = appId;
+                SteamPlatform.BackendFactory = factory;
+            }
+        }
     }
 }

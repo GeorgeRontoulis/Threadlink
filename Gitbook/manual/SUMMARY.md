@@ -30,6 +30,7 @@
 * [Architecture](engineer/architecture.md)
 * [Ownership](engineer/lifecycle.md)
 * [Iris: Event Dispatch](engineer/iris.md "Iris")
+* [Framework Events](engineer/events.md)
 * [Nexus: Scene Management](engineer/nexus.md "Nexus")
 * [Dextra: Input and UI](engineer/dextra.md "Dextra")
 * [Aura: Audio](engineer/aura.md "Aura")

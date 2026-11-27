@@ -146,10 +146,11 @@ namespace Threadforge.Threadlink
         /// <summary>The provider, or null while Steam is disabled or failed to start.</summary>
         public static SteamProvider Provider => Instance.provider;
 
+        // Steam signs in through Sentinel's accounts and routes Sentinel's features, so it starts once every subsystem has
+        // booted. Sentinel announces PlatformReady when the provider is added.
         /// <inheritdoc />
-        protected override void OnInitialize()
+        protected override void OnSubsystemInit()
         {
-            Require<Sentinel>();
             var settings = SteamSettings.Current;
             if (!settings.Enabled)
                 return;

@@ -5,11 +5,14 @@
 | **Package** | One installable `com.threadforge.threadlink.*` unit with its own version and declared dependencies. |
 | **Integration** | An assembly inside a package that connects it to another package, such as Aura's scene music for Nexus, and compiles only when that package is installed. |
 | **Core** | The `Threadlink` runtime that owns the session's subsystems (see [Architecture](../engineer/architecture.md)). |
-| **Subsystem** | A `ThreadlinkSubsystem<T>` that lives for the whole session: registered automatically, initialized before the first scene, reached through `Instance` or `TryGetSingleton` (see [Subsystem Access](service-access.md)). |
+| **Subsystem** | A `ThreadlinkSubsystem<T>` that lives for the whole session: registered automatically, started before the first scene, reached through `Instance` or `TryGetSingleton` (see [Subsystem Access](service-access.md)). |
+| **Boot** | Startup phase one: each subsystem sets up only itself and subscribes to Iris (see [Architecture](../engineer/architecture.md#two-phases-instead-of-a-dependency-order)). |
+| **Initialization** | Startup phase two, after every subsystem has booted: subsystems connect to each other, in any order. |
 | **Session** | One deployment of the core, from before the first scene until Play mode ends, code reloads or the player quits. |
 | **Engineering settings** | A `ThreadlinkSettings<T>` asset edited only in Project Settings ▸ Threadlink. |
 | **Designer data** | Assets and scene components designers edit: cues, definitions, scene music, screen documents, tuning values. |
 | **Event** | A typed payload delivered by Iris to its subscribers, synchronously or awaited (see [Iris](../engineer/iris.md)). |
+| **Framework event** | An event the framework announces when its state changes, such as `PlatformReady` or `DeviceLost` (see [Framework Events](../engineer/events.md)). |
 | **Request** | A `ResourceRequest<T>`: one acquisition of content, released by disposing it (see [Resource Loading](../engineer/resource-loading.md)). |
 | **Content mapping** | Which Addressables entries game code loads by ID, generated as three read-only dictionaries; Addressables owns everything else. |
 | **Identity** | A permanent GUID for content or a definition, independent of names and paths. |

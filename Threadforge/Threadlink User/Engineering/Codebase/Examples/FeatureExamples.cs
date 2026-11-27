@@ -85,13 +85,14 @@ namespace Threadlink.User.Examples
     {
         private IDisposable step;
 
-        protected override void OnInitialize() =>
+        // Joining Nexus connects to another subsystem, so it happens in the initialization phase.
+        protected override void OnSubsystemInit() =>
             step = Nexus.AddTransitionStep(
                 async (transition, token) => await UniTask.WaitForSeconds(0.2f, cancellationToken: token),
                 transition => Debug.Log("Now in " + transition.To.name)
             );
 
-        protected override void OnShutdown() => step?.Dispose();
+        protected override void OnSubsystemDeinit() => step?.Dispose();
     }
 
     /// <summary>Audio: cues are designer data; Aura needs no component in the scene.</summary>

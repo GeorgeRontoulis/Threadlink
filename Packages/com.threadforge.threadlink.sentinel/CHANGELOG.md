@@ -2,6 +2,17 @@
 
 All notable changes to this package are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0]
+
+### Added
+
+- Platform events on Iris: `PlatformReady`, `AccountChanged` (including the startup account), `JoinIntentReceived` and `AchievementUnlocked`.
+- Save events on Iris: `SaveWritten`, `SaveFailed` and `SaveRecovered`.
+
+### Changed
+
+- Sentinel boots on its own and announces the startup account while initializing.
+
 ## [1.0.0]
 
 First release.

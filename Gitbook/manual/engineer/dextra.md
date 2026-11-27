@@ -4,7 +4,7 @@ Dextra (`com.threadforge.threadlink.dextra`) covers player input, screens and in
 
 ## Players
 
-Player 0 exists before the first Awake, with its own copy of the input actions, paired to every device, and the gameplay map enabled.
+Player 0 exists before the first Awake, with its own copy of the input actions and the gameplay map enabled. It uses every device no other player owns, including devices connected later; assigning one of those devices to another player (`AddPlayer`, `ReassignDevices`) moves it there. A device assigned explicitly stays with its player.
 
 ```csharp
 var player = Dextra.Player();                              // player 0
@@ -26,6 +26,16 @@ Dextra.RemovePlayer(second);
 | `player.RebindAsync(id, binding = 0)`, `GetConflicts(id, binding = 0)` | Interactive rebinding on the player's own devices; returns conflicts. |
 | `player.ResetBindings()`, `ExportOverrides()`, `ImportOverrides(json)` | Binding overrides. |
 | `Dextra.AddPlayer(devices)` / `AddPlayer(actions, devices)` | Joins a player with the project's or explicit actions. |
+| `player.LastDevice` | The device the player used last, which prompts follow. |
+
+Dextra announces input changes on Iris (see [Framework Events](events.md)):
+
+| Event | When |
+| --- | --- |
+| `PlayerJoined`, `PlayerLeft` | A player joins or is removed. Players present at startup, such as player 0, are announced during the initialization phase. |
+| `DeviceLost`, `DeviceRegained` | A player's device disconnects, such as a gamepad running out of battery (pause the game), and when it reconnects and returns to the player. |
+| `ControlsChanged` | A player starts using a different kind of device, such as a gamepad after keyboard and mouse: switch prompts. Keyboard and mouse count as one kind. |
+| `BindingsChanged` | A rebind, reset or conflict removal changes a player's bindings: refresh prompts and settings menus. |
 
 ## Input IDs
 
@@ -50,6 +60,8 @@ var map = await Dextra.Screens.OpenAsync(ContentPrefabs.Screens.Map, ScreenLayer
 ```
 
 A screen prepares before it shows, takes focus, and by default blocks gameplay input by claiming the interface map above gameplay. Closing it restores focus and input to what was below. Layers are `Hud`, `Overlay`, `Menu` and `Modal`. Prefab screens carry a `ToolkitScreen` or, with uGUI installed, a `UGuiScreen`. `ScreenHandle.Root` is the root element of a UI Toolkit screen; `ScreenHandle.Instance` its GameObject. `Dextra.Screens.DefaultPanel` overrides the configured panel settings at runtime.
+
+`ScreenOpened` and `ScreenClosed` announce every screen on Iris, and `GameplayInputBlockChanged` announces when the first blocking screen opens and the last one closes: pause gameplay, show the cursor, hide the HUD.
 
 Components implementing `IScreenListener` on a screen hear when it shows, hides and regains focus. With Aura installed, **Threadlink ▸ Dextra ▸ Screen Sounds** plays open, close and focus cues; a rejected sound never affects the screen.
 

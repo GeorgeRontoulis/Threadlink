@@ -194,7 +194,7 @@ namespace Threadforge.Threadlink.Editor
                 TryReport(subsystem, detail);
                 detail.Section("Lifecycle").Field("State", subsystem.State.ToString(), subsystem.State == SubsystemState.Ready ? MonitorTone.Good : MonitorTone.Bad);
                 if (subsystem.Dependencies.Count > 0)
-                    detail.Field("Requires", string.Join(", ", subsystem.Dependencies.Select(type => type.Name)), MonitorTone.Muted);
+                    detail.Field("Uses", string.Join(", ", subsystem.Dependencies.Select(type => type.Name)), MonitorTone.Muted);
                 if (subsystem.Error != null)
                     detail.Note(subsystem.Error.Message, MonitorTone.Bad);
             }

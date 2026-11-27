@@ -21,7 +21,7 @@ The Hub opens first; in Play mode the Workspace switches to the Runtime page. Th
 
 **Threadlink ▸ Runtime Monitor** opens the Workspace on the Runtime page:
 
-- a graph that reads left to right: the core, then the subsystems that require nothing, then each subsystem one level after the latest subsystem it requires. Each card shows a subsystem's name, summary and state (a dot that is green when ready and amber on alerts). Arrowed dashed lines run from each dependency to the subsystem that requires it; in Play mode the dashes flow in that direction. Hovering or selecting a card highlights its lines and fades the rest. Levels order their cards to keep lines from crossing, tall levels wrap into extra columns, and cards shrink to their names in narrow windows;
+- a graph that reads left to right: the core, then the subsystems that use no other, then each subsystem one level after the latest subsystem it uses. A subsystem uses another when its initialization reaches it through `Instance`. Each card shows a subsystem's name, summary and state (a dot that is green when ready and amber on alerts). Arrowed dashed lines run from each used subsystem to the one that uses it; in Play mode the dashes flow in that direction. Hovering or selecting a card highlights its lines and fades the rest. Levels order their cards to keep lines from crossing, tall levels wrap into extra columns, and cards shrink to their names in narrow windows;
 - a panel with the selected node's report: sections, fields, meters, references that ping their object, and notes, refreshed four times a second;
 - a strip with frames per second, main-thread time against the frame budget, total memory, GC allocation per frame and a frame-time history.
 

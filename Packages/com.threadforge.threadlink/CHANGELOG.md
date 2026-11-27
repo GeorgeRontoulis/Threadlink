@@ -2,6 +2,30 @@
 
 All notable changes to this package are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0]
+
+### Added
+
+- Two-phase startup: every subsystem boots (`OnSubsystemBoot`: its own state and Iris subscriptions), then every one initializes (`OnSubsystemInit`: connects to the others through `Instance`, in any order). Shutdown mirrors it with `OnSubsystemDeinit` and `OnSubsystemShutdown`. No subsystem declares a startup order.
+- Iris boots and initializes before every other subsystem and is the one subsystem available while others boot. Using any other subsystem from `OnSubsystemBoot` fails with the fix in the message.
+- Framework events on Iris: `ThreadlinkReady`, `SubsystemFailed`, `SessionEnding` and `ContentLoadFailed`.
+- `Iris.TryNotify` delivers a notification when Iris is available and returns false otherwise.
+- `SubsystemState` gains `Booting` and `Booted`. `Threadlink.DeployIsolated()` sessions start a subsystem another one uses on first use.
+
+### Changed
+
+- `TryGetSingleton` never starts a subsystem, and is true from the initialization phase on.
+- The Runtime monitor's graph shows the subsystems each one uses while it initializes ("Uses").
+
+### Deprecated
+
+- `OnInitialize`, `OnShutdown` and `Require<T>()`. They still work: a subsystem that overrides `OnInitialize` is initialized as soon as another uses it, and `Require` still rejects cycles.
+
+### Fixed
+
+- A test session with Iris inside Play mode no longer removes the running session's frame callbacks when it ends.
+- Content mapped while a subsystem boots joins the running catalog.
+
 ## [1.0.0]
 
 First release.

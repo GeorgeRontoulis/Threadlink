@@ -16,8 +16,35 @@ namespace Threadforge.Threadlink
             public void Dispose() { }
         }
 
+        private sealed class Counted : IDisposable
+        {
+            private readonly InputBlocker owner;
+            private IDisposable claim;
+
+            internal Counted(InputBlocker owner, IDisposable claim)
+            {
+                this.owner = owner;
+                this.claim = claim;
+            }
+
+            public void Dispose()
+            {
+                var held = claim;
+                if (held == null)
+                    return;
+                claim = null;
+                held.Dispose();
+                if (--owner.active == 0)
+                    owner.BlockChanged?.Invoke(false);
+            }
+        }
+
         private readonly Func<PlayerInputContext> player;
         private readonly Func<string> map;
+        private int active;
+
+        /// <summary>Called with true when the first blocking screen opens and false when the last one closes.</summary>
+        internal Action<bool> BlockChanged;
 
         public InputBlocker(Func<PlayerInputContext> player, Func<string> map)
         {
@@ -31,7 +58,10 @@ namespace Threadforge.Threadlink
             string name = target != null ? DextraSettings.Current.MapName(target.Actions, map()) : null;
             if (string.IsNullOrEmpty(name))
                 return Nothing.Instance;
-            return target.ClaimByName(100 + (int)layer, true, name);
+            var claim = new Counted(this, target.ClaimByName(100 + (int)layer, true, name));
+            if (active++ == 0)
+                BlockChanged?.Invoke(true);
+            return claim;
         }
     }
 }

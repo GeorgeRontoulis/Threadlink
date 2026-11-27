@@ -43,6 +43,30 @@ namespace Threadforge.Threadlink
         void Release();
     }
 
+    /// <summary>
+    /// Announced on <see cref="Iris"/> when content fails to load, for diagnostics; the awaited load fails with the same
+    /// error. Cancelled loads are not announced.
+    /// </summary>
+    public readonly struct ContentLoadFailed
+    {
+        /// <summary>The content: its generated ID's identity, or the label's.</summary>
+        public readonly Guid Content;
+
+        /// <summary>How it was requested.</summary>
+        public readonly AcquisitionKind Kind;
+
+        /// <summary>Why it failed.</summary>
+        public readonly Exception Error;
+
+        /// <summary>Creates the event.</summary>
+        public ContentLoadFailed(Guid content, AcquisitionKind kind, Exception error)
+        {
+            Content = content;
+            Kind = kind;
+            Error = error;
+        }
+    }
+
     /// <summary>Backend acquisition contract. Every returned operation transfers one release obligation.</summary>
     public interface IContentBackend
     {

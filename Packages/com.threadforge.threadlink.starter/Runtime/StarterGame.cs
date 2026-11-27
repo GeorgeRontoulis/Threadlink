@@ -33,15 +33,6 @@ namespace Threadforge.Threadlink.Starter
         public static StarterLevel Level => Instance.level;
 
         /// <inheritdoc />
-        protected override void OnInitialize()
-        {
-            Require<Nexus>();
-            Require<Aura>();
-            Require<Dextra>();
-            Require<Sentinel>();
-        }
-
-        /// <inheritdoc />
         public override void Report(MonitorReport report)
         {
             report.Summary(level != null ? "Playing slot " + slot : started ? "Menu" : "Waiting for the bootstrap scene");
