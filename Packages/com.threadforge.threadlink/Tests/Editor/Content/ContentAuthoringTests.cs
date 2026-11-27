@@ -1,10 +1,12 @@
 namespace Threadforge.Threadlink.Editor.Tests
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Linq;
     using NUnit.Framework;
     using UnityEditor;
+    using UnityEditor.AddressableAssets;
     using UnityEditor.AddressableAssets.Settings;
     using UnityEditor.AddressableAssets.Settings.GroupSchemas;
     using UnityEngine;
@@ -15,6 +17,8 @@ namespace Threadforge.Threadlink.Editor.Tests
         private AddressableAssetSettings addressables;
         private AddressableAssetGroup characters;
         private ContentSettings settings;
+        private AddressableAssetSettings project;
+        private List<AddressableAssetGroup> projectGroups;
         private string text,
             prefab,
             scene;
@@ -22,6 +26,10 @@ namespace Threadforge.Threadlink.Editor.Tests
         [SetUp]
         public void SetUp()
         {
+            // Addressables registers every imported group asset with the project's settings, including the
+            // temporary ones below; TearDown restores the project's group list.
+            project = AddressableAssetSettingsDefaultObject.Settings;
+            projectGroups = project != null ? new List<AddressableAssetGroup>(project.groups) : null;
             folder = "Assets/ContentTests_" + Guid.NewGuid().ToString("N");
             AssetDatabase.CreateFolder("Assets", Path.GetFileName(folder));
             File.WriteAllText(folder + "/Notes.txt", "notes");
@@ -46,6 +54,11 @@ namespace Threadforge.Threadlink.Editor.Tests
         {
             UnityEngine.Object.DestroyImmediate(settings);
             AssetDatabase.DeleteAsset(folder);
+            if (project != null && project.groups.RemoveAll(group => group == null || !projectGroups.Contains(group)) > 0)
+            {
+                EditorUtility.SetDirty(project);
+                AssetDatabase.SaveAssetIfDirty(project);
+            }
         }
 
         [Test]
