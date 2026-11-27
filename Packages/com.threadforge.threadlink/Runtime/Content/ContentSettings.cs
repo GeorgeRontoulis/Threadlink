@@ -26,6 +26,14 @@ namespace Threadforge.Threadlink
         [SerializeField, GeneratedSetting("Threadlink/Content Mapping")]
         private Dictionary<ContentSceneId, AssetReference> scenes = new Dictionary<ContentSceneId, AssetReference>();
 
+        [Tooltip("The main type of each mapped asset, for finding assets by type without loading them. Generated.")]
+        [DictionaryDisplay(keyLabel = "Asset", valueLabel = "Type", keyColumnFraction = 0.4f)]
+        [SerializeField, GeneratedSetting("Threadlink/Content Mapping")]
+        private Dictionary<ContentAssetId, string> assetTypes = new Dictionary<ContentAssetId, string>();
+
+        /// <summary>The main type of each mapped asset ("Namespace.Type, Assembly"), recorded when the mapping is applied.</summary>
+        public IReadOnlyDictionary<ContentAssetId, string> AssetTypes => assetTypes;
+
         /// <summary>Mapped assets.</summary>
         public IReadOnlyDictionary<ContentAssetId, AssetReference> Assets => assets;
 
@@ -43,9 +51,11 @@ namespace Threadforge.Threadlink
         internal void ReplaceMapping(
             Dictionary<ContentAssetId, AssetReference> nextAssets,
             Dictionary<ContentPrefabId, AssetReferenceGameObject> nextPrefabs,
-            Dictionary<ContentSceneId, AssetReference> nextScenes
+            Dictionary<ContentSceneId, AssetReference> nextScenes,
+            Dictionary<ContentAssetId, string> nextAssetTypes = null
         )
         {
+            assetTypes = nextAssetTypes ?? new Dictionary<ContentAssetId, string>();
             assets = nextAssets;
             prefabs = nextPrefabs;
             scenes = nextScenes;

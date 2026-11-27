@@ -34,10 +34,13 @@
 
 ## Adding a definition type
 
-1. Define an immutable runtime type.
-2. Derive the authoring class from `VaultAsset<T>` or `VaultVariant<T>` with a new schema GUID and version 1, and map fields in `BuildRuntime`.
-3. Add a `CreateAssetMenu` entry for designers; read values with `Vault.Get(definition)`.
-4. When the layout changes, raise `SchemaVersion` and implement `MigrateAuthoring`.
+1. Declare the runtime type as an empty `public sealed partial class`.
+2. Derive a `partial` authoring class from `VaultAsset<T>` with the serialized fields designers edit; Threadlink generates the runtime type's properties and `BuildRuntime` ([Vault Runtime API](vault.md#defining-a-type)). Write `BuildRuntime` yourself when values need validation or computing.
+3. For variants, add an empty `partial` class deriving from `VaultVariant<T>`.
+4. Add a `CreateAssetMenu` entry for designers; read values with `Vault.Get(definition)`.
+5. When the layout changes, raise `SchemaVersion` and implement `MigrateAuthoring`.
+
+Values that need no type of their own go in a field set, which designers build without code ([Field sets](vault.md#field-sets)).
 
 ## Adding a save type
 

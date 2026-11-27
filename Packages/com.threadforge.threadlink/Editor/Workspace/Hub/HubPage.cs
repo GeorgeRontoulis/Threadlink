@@ -66,6 +66,7 @@ namespace Threadforge.Threadlink.Editor
             status = new Label { style = { unityFontStyleAndWeight = FontStyle.Bold, marginBottom = 4 } };
             root.Add(status);
             AddRegistry(root, catalog);
+            AddProject(root);
             AddFramework(root, catalog, installed);
             var search = new TextField("Filter") { value = filter, tooltip = "Show packages whose name or description contains this text." };
             search.RegisterValueChangedCallback(change =>
@@ -112,6 +113,39 @@ namespace Threadforge.Threadlink.Editor
                             return;
                         ProjectManifest.EnsureRegistry("OpenUPM", catalog.registry, catalog.scopes);
                         Client.Resolve();
+                        Reload();
+                    },
+                    IssueSeverity.Warning
+                )
+            );
+        }
+
+        private void AddProject(VisualElement root)
+        {
+            var problems = ProjectSetup.Problems();
+            if (problems.Count == 0)
+            {
+                root.Add(
+                    WorkspaceUI.Row(
+                        "Project",
+                        $"Threadlink User is set up: project code compiles into its assembly and generated IDs into {ProjectSetup.GeneratedAssembly}.",
+                        "Reveal",
+                        () => context.Select(AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(ProjectSetup.Root))
+                    )
+                );
+                return;
+            }
+            root.Add(
+                WorkspaceUI.Row(
+                    "Project",
+                    problems[0] + (problems.Count > 1 ? $" ({problems.Count - 1} more)" : string.Empty),
+                    "Set Up Project",
+                    () =>
+                    {
+                        string details = string.Join("\n\n", problems.Select(problem => "• " + problem));
+                        if (!EditorUtility.DisplayDialog("Set up project", "Threadlink will create the Threadlink User folders and assembly definitions:\n\n" + details + "\n\nScripts recompile afterwards.", "Set Up", "Cancel"))
+                            return;
+                        ProjectSetup.SetUp();
                         Reload();
                     },
                     IssueSeverity.Warning

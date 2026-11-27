@@ -24,8 +24,44 @@ namespace Threadforge.Threadlink
         void OnScreenFocused(bool focused);
     }
 
+    /// <summary>
+    /// Handles Back on a screen, such as leaving a sub-panel before the screen itself closes. Implement it on components of
+    /// a screen's GameObject.
+    /// </summary>
+    public interface IScreenBackHandler
+    {
+        /// <summary>Back was pressed while the screen had focus. Return true when handled; false lets the screen close.</summary>
+        bool OnBack();
+    }
+
+    /// <summary>A screen component that says whether its screen closes on Back.</summary>
+    internal interface IBackPolicy
+    {
+        bool ClosesOnBack { get; }
+    }
+
     internal static class ScreenListeners
     {
+        private static readonly System.Collections.Generic.List<IScreenBackHandler> handlers = new System.Collections.Generic.List<IScreenBackHandler>();
+
+        internal static bool Back(UnityEngine.GameObject screen)
+        {
+            if (screen == null)
+                return false;
+            screen.GetComponents(handlers);
+            try
+            {
+                foreach (var handler in handlers)
+                    if (handler.OnBack())
+                        return true;
+                return false;
+            }
+            finally
+            {
+                handlers.Clear();
+            }
+        }
+
         private static readonly System.Collections.Generic.List<IScreenListener> found = new System.Collections.Generic.List<IScreenListener>();
 
         internal static void Visible(UnityEngine.GameObject screen, bool visible)
@@ -99,6 +135,18 @@ namespace Threadforge.Threadlink
 
         /// <summary>Host layer.</summary>
         public ScreenLayer Layer { get; internal set; }
+
+        /// <summary>
+        /// Whether Back closes this screen when nothing on it handles Back. Off by default, so a main menu or a HUD never
+        /// closes by accident; prefab screens take it from their <c>Closes On Back</c> setting.
+        /// </summary>
+        public bool ClosesOnBack { get; set; }
+
+        /// <summary>
+        /// Called when Back is pressed while this screen has focus. Return true when handled, such as leaving a sub-panel;
+        /// false (or no handler) lets the screen close.
+        /// </summary>
+        public Func<bool> BackHandler { get; set; }
 
         /// <summary>Whether the host has closed this instance.</summary>
         public bool IsClosed { get; internal set; }
@@ -202,6 +250,7 @@ namespace Threadforge.Threadlink
                     Input = claim,
                     GameObject = (view as IScreenObject)?.Instance,
                 };
+                handle.ClosesOnBack = handle.GameObject != null && handle.GameObject.TryGetComponent<IBackPolicy>(out var policy) && policy.ClosesOnBack;
                 screens.Add(handle);
                 try
                 {
@@ -311,12 +360,22 @@ namespace Threadforge.Threadlink
             }
         }
 
+        /// <summary>The screen with input focus: the last opened focus-taking screen on the highest layer, or null.</summary>
+        internal ScreenHandle Focused
+        {
+            get
+            {
+                ScreenHandle focused = null;
+                foreach (var screen in screens)
+                    if (screen.Focus && (focused == null || screen.Layer >= focused.Layer))
+                        focused = screen;
+                return focused;
+            }
+        }
+
         private void RefreshPresentation()
         {
-            ScreenHandle focused = null;
-            foreach (var screen in screens)
-                if (screen.Focus && (focused == null || screen.Layer >= focused.Layer))
-                    focused = screen;
+            var focused = Focused;
             foreach (var screen in screens)
             {
                 bool visible = true;

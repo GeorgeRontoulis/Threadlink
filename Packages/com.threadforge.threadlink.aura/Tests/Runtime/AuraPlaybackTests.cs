@@ -84,6 +84,44 @@ namespace Threadforge.Threadlink.Tests
         }
 
         [Test]
+        public void ZonesLowerTheirCategoriesInProportionToTheListenersDistance()
+        {
+            SelectTestListener();
+            var place = new GameObject("Waterfall");
+            try
+            {
+                place.transform.position = root.transform.position + Vector3.forward * 5;
+                var zone = place.AddComponent<AudioZone>();
+                zone.Radius = 10;
+                zone.Lowers.Clear();
+                zone.Lowers.Add(new AudioZone.Lowering { Category = "Music", Amount = 0.8f });
+                var second = place.AddComponent<AudioZone>();
+                second.Radius = 20;
+                second.Lowers.Clear();
+                second.Lowers.Add(new AudioZone.Lowering { Category = "Music", Amount = 0.2f });
+
+                engine.DuckForZones();
+                Assert.That(engine.DuckOf("Music"), Is.EqualTo(0.4f).Within(1e-4f), "halfway to the edge: half the amount; the strongest zone wins");
+                Assert.That(engine.DuckOf("Effects"), Is.Zero);
+
+                place.transform.position = root.transform.position + Vector3.forward * 50;
+                engine.DuckForZones();
+                Assert.That(engine.DuckOf("Music"), Is.Zero, "beyond the radius a zone does nothing");
+
+                place.transform.position = root.transform.position;
+                zone.enabled = false;
+                engine.DuckForZones();
+                Assert.That(engine.DuckOf("Music"), Is.EqualTo(0.2f).Within(1e-4f), "a disabled zone stops acting");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(place);
+            }
+            engine.DuckForZones();
+            Assert.That(engine.DuckOf("Music"), Is.Zero);
+        }
+
+        [Test]
         public void VoiceLimitsAndStealingReleaseOnlyAdmittedRetention()
         {
             SelectTestListener();

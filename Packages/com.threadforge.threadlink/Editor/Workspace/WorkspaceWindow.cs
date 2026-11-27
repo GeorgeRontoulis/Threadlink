@@ -58,6 +58,13 @@ namespace Threadforge.Threadlink.Editor
             return true;
         }
 
+        /// <summary>Rebuilds the current page of every open workspace, after a change it shows.</summary>
+        public static void Refresh()
+        {
+            foreach (var window in Resources.FindObjectsOfTypeAll<WorkspaceWindow>())
+                window.Rebuild();
+        }
+
         private static int GroupRank(string group) =>
             group == "Project" ? 0
             : group == "Runtime" ? 1

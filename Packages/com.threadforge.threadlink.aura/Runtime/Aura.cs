@@ -156,6 +156,9 @@ namespace Threadforge.Threadlink
         /// <summary>Sets how many voices a category may play at once.</summary>
         public static void SetVoiceLimit(AudioCategory category, int voices) => Instance.Engine.SetVoiceLimit(category.Name, voices);
 
+        /// <summary>How much audio zones lower <paramref name="category"/> at the listener now, from 0 (not at all) to 1 (silent).</summary>
+        public static float ZoneLowering(AudioCategory category) => Instance.Engine.DuckOf(category.Name);
+
         /// <summary>Makes <paramref name="listener"/> the only enabled AudioListener.</summary>
         public static void UseListener(AudioListener listener) => Instance.Engine.SelectListener(listener);
     }

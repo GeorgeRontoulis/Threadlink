@@ -36,6 +36,19 @@ Additions during a publication take effect for the next publication; removals ta
 
 `Iris.OnUpdate(owner, deltaTime => …)`, `OnFixedUpdate` and `OnLateUpdate` run after the corresponding MonoBehaviour phase and end with their owner. Iris also publishes `UpdateFrame`, `FixedFrame` and `LateFrame` (each with `DeltaTime`) for `Iris.Subscribe`. Iris inserts its markers into the PlayerLoop while it is linked and removes only its own markers at shutdown; a test session inside Play mode reuses the running session's markers.
 
+### Driving frames from another simulation
+
+When another framework owns the simulation, such as a deterministic or networked one, it decides when frames happen. `Iris.DriveFramesExternally()` removes Iris's markers until the returned object is disposed; meanwhile the simulation publishes each frame with `Iris.RunUpdate(deltaTime)`, `RunFixedUpdate` and `RunLateUpdate`. Frame callbacks, frame events and posted events work the same either way. `Iris.FramesAreExternal` tells which mode is active, and calling `RunUpdate` while Iris publishes frames itself throws.
+
+```csharp
+private IDisposable frames;
+
+protected override void OnSubsystemInit() => frames = Iris.DriveFramesExternally();
+protected override void OnSubsystemDeinit() => frames.Dispose();
+
+private void OnSimulationTicked(float step) => Iris.RunFixedUpdate(step);
+```
+
 ## Awaited events and requests
 
 ```csharp

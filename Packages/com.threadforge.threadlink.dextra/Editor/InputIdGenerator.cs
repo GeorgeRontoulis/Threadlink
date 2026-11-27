@@ -106,6 +106,36 @@ namespace Threadforge.Threadlink.Editor
         }
     }
 
+    /// <summary>A dropdown of the project's actions ("Map/Action") for fields marked <see cref="InputActionPickerAttribute"/>; stores the action ID.</summary>
+    [CustomPropertyDrawer(typeof(InputActionPickerAttribute))]
+    internal sealed class InputActionPickerDrawer : PropertyDrawer
+    {
+        public override VisualElement CreatePropertyGUI(SerializedProperty property)
+        {
+            var actions = DextraSettings.Current.Actions;
+            var all = actions == null ? new List<UnityEngine.InputSystem.InputAction>() : actions.ToList();
+            if (all.Count == 0)
+            {
+                var text = new TextField(property.displayName) { tooltip = (property.tooltip + " Assign input actions to choose from them.").Trim() };
+                text.AddToClassList(BaseField<string>.alignedFieldUssClassName);
+                text.BindProperty(property);
+                return text;
+            }
+            var choices = new List<string> { "(None)" };
+            choices.AddRange(all.Select(action => action.actionMap.name + "/" + action.name));
+            int index = all.FindIndex(action => action.id.ToString("D") == property.stringValue || action.actionMap.name + "/" + action.name == property.stringValue) + 1;
+            var popup = new PopupField<string>(property.displayName, choices, Math.Max(0, index)) { tooltip = property.tooltip };
+            popup.AddToClassList(BaseField<string>.alignedFieldUssClassName);
+            popup.RegisterValueChangedCallback(change =>
+            {
+                int chosen = choices.IndexOf(change.newValue) - 1;
+                property.stringValue = chosen < 0 ? string.Empty : all[chosen].id.ToString("D");
+                property.serializedObject.ApplyModifiedProperties();
+            });
+            return popup;
+        }
+    }
+
     /// <summary>A dropdown of the project's action maps for fields marked <see cref="InputMapReferenceAttribute"/>; stores the map ID.</summary>
     [CustomPropertyDrawer(typeof(InputMapReferenceAttribute))]
     internal sealed class InputMapReferenceDrawer : PropertyDrawer

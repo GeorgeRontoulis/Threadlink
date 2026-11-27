@@ -24,6 +24,11 @@ namespace Threadforge.Threadlink
         private InputBlocker blocker;
         private ScreenFactory factory;
         private GameObject root;
+        private SubscriptionToken frames;
+        private InputAction back;
+        private PlayerInputContext backOwner;
+        private bool goingBack;
+        private IDisposable pause;
 
         /// <summary>Players joined this session. Player 0 always exists once input actions are configured.</summary>
         public static IReadOnlyList<PlayerInputContext> Players => Instance.players;
@@ -39,7 +44,11 @@ namespace Threadforge.Threadlink
             if (DextraSettings.Current.Actions != null)
                 Join(Array.Empty<InputDevice>(), announce: false);
             blocker = new InputBlocker(() => players.Count > 0 ? players[0] : null, () => DextraSettings.Current.InterfaceMap);
-            blocker.BlockChanged = blocked => Iris.TryPublish(new GameplayInputBlockChanged(blocked));
+            blocker.BlockChanged = blocked =>
+            {
+                PauseWhileBlocked(blocked);
+                Iris.TryPublish(new GameplayInputBlockChanged(blocked));
+            };
             host = new ScreenHost(factory, blocker)
             {
                 Opened = screen => Iris.TryPublish(new ScreenOpened(screen)),
@@ -47,6 +56,40 @@ namespace Threadforge.Threadlink
             };
             InputUser.onChange += OnUserChange;
             InputSystem.onDeviceChange += OnDeviceChange;
+            frames = Iris.Subscribe<UpdateFrame>(_ => PollBack());
+        }
+
+        // Pauses with Chronos while a screen blocks gameplay, when the settings ask for it.
+        private void PauseWhileBlocked(bool blocked)
+        {
+            if (!blocked)
+            {
+                pause?.Dispose();
+                pause = null;
+            }
+            else if (pause == null && DextraSettings.Current.PauseWhileBlocked && Chronos.TryGetSingleton(out _))
+                pause = Chronos.Pause();
+        }
+
+        // The Back action closes the focused screen. Read from player 0, whose interface map a blocking screen enables.
+        private void PollBack()
+        {
+            if (goingBack || host == null || host.OpenCount == 0 || players.Count == 0 || !DextraSettings.Current.BackClosesScreens)
+                return;
+            var player = players[0];
+            if (backOwner != player)
+            {
+                backOwner = player;
+                back = DextraSettings.Current.FindBack(player.Actions);
+            }
+            if (back == null || !back.WasPressedThisFrame())
+                return;
+            goingBack = true;
+            Screens.BackAsync().ContinueWith(_ => goingBack = false).Forget(error =>
+            {
+                goingBack = false;
+                Debug.LogException(error);
+            });
         }
 
         // Announces the players that joined during boot, now that every subsystem has subscribed.
@@ -59,13 +102,21 @@ namespace Threadforge.Threadlink
 
         // Closes screens while the content they came from is still available.
         /// <inheritdoc />
-        protected override void OnSubsystemDeinit() => host?.Dispose();
+        protected override void OnSubsystemDeinit()
+        {
+            host?.Dispose();
+            pause?.Dispose();
+            pause = null;
+        }
 
         /// <inheritdoc />
         protected override void OnSubsystemShutdown()
         {
             InputUser.onChange -= OnUserChange;
             InputSystem.onDeviceChange -= OnDeviceChange;
+            frames.Dispose();
+            back = null;
+            backOwner = null;
             Screens.DefaultPanel = null;
             host?.Dispose();
             foreach (var claim in gameplayClaims)
@@ -262,6 +313,28 @@ namespace Threadforge.Threadlink
             {
                 var dextra = Instance;
                 return dextra.host.OpenAsync(dextra.factory.Register(document, layer), layer, true, blocksInput, token);
+            }
+
+            /// <summary>The screen with input focus, or null.</summary>
+            public static ScreenHandle Focused => Instance.host.Focused;
+
+            /// <summary>
+            /// Goes back from the focused screen: its <see cref="ScreenHandle.BackHandler"/> or an
+            /// <see cref="IScreenBackHandler"/> on it may handle it (leaving a sub-panel); otherwise the screen closes when
+            /// its <see cref="ScreenHandle.ClosesOnBack"/> is on. HUD screens never close this way. Returns whether anything
+            /// happened. The Back action in Project Settings ▸ Threadlink ▸ Dextra calls this.
+            /// </summary>
+            public static async UniTask<bool> BackAsync(CancellationToken token = default)
+            {
+                var screen = Instance.host.Focused;
+                if (screen == null || screen.Layer == ScreenLayer.Hud)
+                    return false;
+                if (screen.BackHandler?.Invoke() == true || ScreenListeners.Back(screen.GameObject))
+                    return true;
+                if (!screen.ClosesOnBack)
+                    return false;
+                await Instance.host.CloseAsync(screen, token);
+                return true;
             }
 
             /// <summary>Closes a screen and returns focus and input to what was below it.</summary>

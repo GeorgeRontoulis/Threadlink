@@ -32,6 +32,7 @@
 * [Lifetimes](engineer/lifecycle.md)
 * [Iris: Event Dispatch](engineer/iris.md "Iris")
 * [Framework Events](engineer/events.md)
+* [Chronos: Time](engineer/chronos.md "Chronos")
 * [Nexus: Scene Management](engineer/nexus.md "Nexus")
 * [Dextra: Input and UI](engineer/dextra.md "Dextra")
 * [Aura: Audio](engineer/aura.md "Aura")

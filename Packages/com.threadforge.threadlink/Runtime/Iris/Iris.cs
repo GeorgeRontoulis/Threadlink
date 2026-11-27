@@ -18,6 +18,7 @@ namespace Threadforge.Threadlink
         private EventBus bus;
         private AsyncEventBus awaited;
         private bool ownsFrames;
+        private int externalDrivers;
 
         internal EventBus Bus => bus;
 
@@ -55,7 +56,7 @@ namespace Threadforge.Threadlink
             report.Field("Queued posts", bus.QueueDepth);
             report.Field("Rejected posts", bus.RejectedPosts, bus.RejectedPosts > 0 ? MonitorTone.Caution : MonitorTone.Muted);
             report.Field("Listener failures", failures, failures > 0 ? MonitorTone.Bad : MonitorTone.Muted);
-            report.Field("Frame callbacks", IrisFrames.Installed ? "Installed" : "Not installed", IrisFrames.Installed ? MonitorTone.Good : MonitorTone.Muted);
+            report.Field("Frame callbacks", externalDrivers > 0 ? "Driven externally" : IrisFrames.Installed ? "Installed" : "Not installed", IrisFrames.Installed || externalDrivers > 0 ? MonitorTone.Good : MonitorTone.Muted);
         }
 
         /// <summary>Calls <paramref name="callback"/> for every <typeparamref name="T"/> published, until the token is disposed.</summary>
@@ -114,6 +115,61 @@ namespace Threadforge.Threadlink
         /// <summary>Awaits the responder of <typeparamref name="TRequest"/>. Throws <see cref="NoResponderException"/> when there is none.</summary>
         public static UniTask<TResponse> RequestAsync<TRequest, TResponse>(TRequest request, CancellationToken token = default) =>
             Instance.awaited.RequestAsync<TRequest, TResponse>(request, token);
+
+        /// <summary>Whether another driver publishes the frames, through <see cref="DriveFramesExternally"/>.</summary>
+        public static bool FramesAreExternal => Instance.externalDrivers > 0;
+
+        /// <summary>
+        /// Stops Iris's own frame markers, so another simulation (a deterministic or networked one) decides when frames
+        /// happen and publishes them with <see cref="RunUpdate"/>, <see cref="RunFixedUpdate"/> and <see cref="RunLateUpdate"/>.
+        /// Dispose the result to give the frames back to Iris. Frame callbacks and frame events work the same either way.
+        /// </summary>
+        public static IDisposable DriveFramesExternally()
+        {
+            var iris = Instance;
+            if (iris.externalDrivers++ == 0 && iris.ownsFrames && IrisFrames.Installed)
+                IrisFrames.Uninstall();
+            return new ExternalDriver(iris);
+        }
+
+        /// <summary>Publishes an Update frame: posted events, then <see cref="UpdateFrame"/>. Only while frames are external.</summary>
+        public static void RunUpdate(float deltaTime)
+        {
+            var iris = External();
+            iris.bus.DrainPosted();
+            iris.bus.PublishIsolated(new UpdateFrame(deltaTime));
+        }
+
+        /// <summary>Publishes a <see cref="FixedFrame"/>. Only while frames are external.</summary>
+        public static void RunFixedUpdate(float deltaTime) => External().bus.PublishIsolated(new FixedFrame(deltaTime));
+
+        /// <summary>Publishes a <see cref="LateFrame"/>. Only while frames are external.</summary>
+        public static void RunLateUpdate(float deltaTime) => External().bus.PublishIsolated(new LateFrame(deltaTime));
+
+        private static Iris External()
+        {
+            var iris = Instance;
+            if (iris.externalDrivers == 0)
+                throw new InvalidOperationException("Iris publishes frames itself. Call Iris.DriveFramesExternally() first.");
+            return iris;
+        }
+
+        private sealed class ExternalDriver : IDisposable
+        {
+            private Iris iris;
+
+            internal ExternalDriver(Iris iris) => this.iris = iris;
+
+            public void Dispose()
+            {
+                var owner = iris;
+                iris = null;
+                if (owner == null || owner.State == SubsystemState.ShutDown || owner.externalDrivers == 0)
+                    return;
+                if (--owner.externalDrivers == 0 && owner.ownsFrames && !IrisFrames.Installed)
+                    IrisFrames.Install();
+            }
+        }
 
         /// <summary>Calls <paramref name="callback"/> with the frame's delta time after every MonoBehaviour Update.</summary>
         public static SubscriptionToken OnUpdate(MonoBehaviour owner, Action<float> callback)

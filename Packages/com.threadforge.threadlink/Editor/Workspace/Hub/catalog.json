@@ -1,5 +1,5 @@
 {
-  "version": "4.0.0",
+  "version": "4.1.0",
   "framework": "com.threadforge.threadlink",
   "registry": "https://package.openupm.com",
   "scopes": [
@@ -14,7 +14,7 @@
     {
       "name": "com.threadforge.threadlink",
       "displayName": "Threadlink",
-      "description": "The Threadlink core: the subsystem runtime that deploys before the first scene, Iris events, content loading by generated ID through Addressables, Vault typed definitions, generated IDs, engineering settings, memory toolkits and the Editor Workspace with the Runtime monitor, Code Generation and Content pages.",
+      "description": "The Threadlink core: the subsystem runtime that deploys before the first scene, Iris events, Chronos game time, content loading by generated ID through Addressables, Vault typed definitions and field sets, generated IDs, engineering settings, memory toolkits, project setup and the Editor Workspace with the Runtime monitor, Vault, Code Generation and Content pages.",
       "family": "Core",
       "documentationUrl": "https://threadforge.gitbook.io/threadlink-documentation/",
       "dependencies": [],
@@ -34,7 +34,7 @@
     {
       "name": "com.threadforge.threadlink.aura",
       "displayName": "Threadlink Aura",
-      "description": "Audio cues with variations, categories, voice limits, fades and a crossfading music channel, with scene music as designer data.",
+      "description": "Audio cues with variations, categories, voice limits, fades and a crossfading music channel, with scene music and audio zones as designer data.",
       "family": "Audio",
       "documentationUrl": "https://threadforge.gitbook.io/threadlink-documentation/engineer-reference/aura",
       "dependencies": [
@@ -45,7 +45,7 @@
     {
       "name": "com.threadforge.threadlink.dextra",
       "displayName": "Threadlink Dextra",
-      "description": "Per-player input with saved rebinding and prompts, layered screens that block gameplay input while open, and interaction targeting.",
+      "description": "Per-player input with saved rebinding and glyph prompts, layered screens that block gameplay input while open and go back with the Back action, and interaction targeting.",
       "family": "Input and UI",
       "documentationUrl": "https://threadforge.gitbook.io/threadlink-documentation/engineer-reference/dextra",
       "dependencies": [

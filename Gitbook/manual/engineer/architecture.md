@@ -74,7 +74,7 @@ public sealed class Wallet : ThreadlinkSubsystem<Wallet>
 | `Lifetime` | Cancelled when the session ends. |
 | `Report(MonitorReport)` | What the Runtime monitor shows. |
 
-Framework subsystems follow the same pattern and expose their API as static methods on the class: `Iris.Publish`, `Nexus.LoadAsync`, `Aura.Play`, `Dextra.Player`, `Sentinel.Saves.SaveAsync`, `Vault.Get`. Content loading lives on the core: `Content.LoadAsync`.
+Framework subsystems follow the same pattern and expose their API as static methods on the class: `Iris.Publish`, `Chronos.Pause`, `Nexus.LoadAsync`, `Aura.Play`, `Dextra.Player`, `Sentinel.Saves.SaveAsync`, `Vault.Get`. Content loading lives on the core: `Content.LoadAsync`.
 
 ## The core
 

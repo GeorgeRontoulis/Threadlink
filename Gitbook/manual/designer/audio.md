@@ -20,6 +20,15 @@ Players' volume settings adjust category volumes. Mixer snapshots (for example a
 
 Add **Add Component ▸ Threadlink ▸ Aura ▸ Scene Music** to any object in a scene and assign a looping cue. When the scene starts, the music crossfades to it (leave the cue empty to fade the music out). Set a crossfade on the component, or leave it negative to use the project default. When scenes change through Nexus, the music is prepared while the next scene loads and starts as it appears, so a failed transition never interrupts the current track. A music cue that cannot start (for example because its category is full) never affects the scene; use a stealing overflow policy for music.
 
+## Audio zones
+
+An **Audio Zone** turns some sounds down near a place, such as the music under a waterfall, and can play a sound there.
+
+1. Add **Add Component ▸ Threadlink ▸ Aura ▸ Audio Zone** to an object at the place.
+2. Set the **Radius**: beyond it the zone does nothing. The Scene view shows it as a sphere when the object is selected.
+3. Under **Lowers**, choose each category to turn down and how much (1 silences it at the zone's center). The effect grows from nothing at the radius to the full amount at the center.
+4. Optionally assign a looping **Cue** that plays at the zone while it is enabled.
+
 ## Screen sounds
 
-Add **Add Component ▸ Threadlink ▸ Dextra ▸ Screen Sounds** to a screen prefab and assign open, close and focus cues. A screen that fails to open makes no sound, and a sound that cannot play never blocks a screen.
+Add **Add Component ▸ Threadlink ▸ Dextra ▸ Screen Sounds** to a screen prefab and assign open, close and focus cues, and, for UI Toolkit screens, navigate and submit cues played as the player moves between and presses controls. A screen that fails to open makes no sound, and a sound that cannot play never blocks a screen.

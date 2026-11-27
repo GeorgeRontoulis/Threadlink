@@ -2,6 +2,27 @@
 
 All notable changes to this package are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0]
+
+### Added
+
+- `VaultFieldSetAsset` (**Create ▸ Threadlink ▸ Vault ▸ Field Set**): a Vault definition designers build without code, a list of `VaultFields` keys with typed values (numbers, text, vectors, colors, rotations, Unity object references), optionally inheriting from a parent set. Read it with `Vault.Get(set).Get<T>(VaultFields.Name)`.
+- Generated Vault mapping: in a `partial` class deriving from `VaultAsset<T>`, Threadlink generates `BuildRuntime` from the serialized fields; in a `partial` `VaultVariant<T>`, it generates an override field per value with `BuildDefault` and `ApplyOverrides`. When `T` is an empty `partial` type, Threadlink generates its read-only properties and constructor from the definition's fields. Diagnostics TL0002 to TL0004 explain a definition it cannot map.
+- The Workspace's **Vault** page is a browser: search, create, duplicate and delete definitions, and edit the selected one beside the list. **Assets ▸ Threadlink ▸ Open in Vault Page** and the Inspector's context menu open a definition there.
+- `ProjectSetup` and the Hub's **Set Up Project**: the `Threadlink User` folders, a `Threadlink.User` assembly for project code and a `Threadlink.User.Generated` assembly for generated IDs, each referencing the installed Threadlink runtime assemblies. The **Project setup** validator reports what is missing.
+- `VaultFieldSet.Count` and `Contains`; field sets also hold Unity vectors, colors, rotations and object references.
+- `WorkspaceWindow.Refresh()` rebuilds the current page of open workspaces.
+- Chronos: game time for the session. `Chronos.Pause()` returns a claim, and the game is paused while any claim is held; `TimeScale` is the scale while not paused; `Playtime`, `SetPlaytime` and `CountsPlaytime` count real time played. `PauseChanged` is announced on Iris.
+- `Iris.DriveFramesExternally()` with `RunUpdate`, `RunFixedUpdate` and `RunLateUpdate`, for simulations that decide when frames happen.
+- `Content.AssetsOf<T>()`: the mapped assets of a type, without loading them. Applying the Content mapping records each asset's main type in `ContentSettings.AssetTypes`.
+- The **Scenes** dropdown in the main toolbar opens any Build Profile or Addressables scene (`ScenesToolbar`).
+- `[MinMaxRange(min, max)]` draws a `Vector2` or `Vector2Int` as a range slider; `AnimatorHash` holds an Animator parameter or state by name and hash.
+
+### Changed
+
+- `VaultAsset<T>.Schema` defaults to a GUID derived from the runtime type `T`, and `SchemaVersion` to 1; override them only to pin the schema or to version the authoring layout.
+- Generating IDs gives the generated folder its own assembly, `Threadlink.User.Generated`, when no assembly definition compiles it, and adds any missing Threadlink runtime references to the assembly that does.
+
 ## [4.0.0]
 
 ### Added

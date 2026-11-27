@@ -1,6 +1,6 @@
 # Installation and Project Setup
 
-Threadlink is a set of Unity packages published on [OpenUPM](https://openupm.com), a scoped registry that the Unity Package Manager installs from with dependencies resolved automatically. All Threadlink packages share one version; this manual describes **4.0.0**.
+Threadlink is a set of Unity packages published on [OpenUPM](https://openupm.com), a scoped registry that the Unity Package Manager installs from with dependencies resolved automatically. All Threadlink packages share one version; this manual describes **4.1.0**.
 
 ## Install with the OpenUPM command-line tool
 
@@ -10,7 +10,11 @@ With [openupm-cli](https://openupm.com/docs/getting-started-cli.html) installed,
 openupm add com.threadforge.threadlink
 ```
 
-The command adds the OpenUPM registry with the `com.threadforge` and `com.cysharp` scopes and installs the core with its UniTask dependency. Add feature packages the same way, or install them all from the Hub (below).
+The command adds the OpenUPM registry with the `com.threadforge` and `com.cysharp` scopes and installs the core with its UniTask dependency. Add feature packages the same way, or install them all from the Hub (below). To install the whole framework in one command:
+
+```bash
+openupm add com.threadforge.threadlink com.threadforge.threadlink.nexus com.threadforge.threadlink.aura com.threadforge.threadlink.dextra com.threadforge.threadlink.sentinel com.threadforge.threadlink.deterministic
+```
 
 ## Install through the Package Manager
 
@@ -44,6 +48,17 @@ The core includes **Threadlink ▸ Workspace ▸ Hub**: every package with its d
 Installed subsystems join the session automatically: they register at subsystem registration, deploy before the first scene's Awake and are usable from any script. Nothing is added to scenes. Packages with engineering settings work with defaults until you change them in **Project Settings ▸ Threadlink**. Optional integrations inside a package (Aura scene music with Nexus, screen sounds with Aura, uGUI screens) compile only when the package they need is installed.
 
 Scripts in `Assembly-CSharp` see every Threadlink assembly. Assembly definitions reference the assemblies they use, for example `Threadforge.Threadlink` and `Threadforge.Threadlink.Aura`; add `Unity.ResourceManager` when using Addressables scene IDs.
+
+## Set up the project
+
+In the Hub, select **Set Up Project**. It creates the `Assets/Threadforge/Threadlink User` folders and two assembly definitions, each referencing every installed Threadlink runtime assembly:
+
+| Assembly | Folder | Compiles |
+| --- | --- | --- |
+| `Threadlink.User.Generated` | `Engineering/Codebase/Generated` | The generated IDs (`GameScenes`, `GameInput`, `ContentAssets` and the rest), so any assembly can reference them |
+| `Threadlink.User` | `Engineering/Codebase` | The project's code. It also references the generated IDs, UniTask, and the Addressables, Input System and Localization assemblies that are installed |
+
+An assembly definition already in `Engineering/Codebase` keeps its name; Set Up adds the references it lacks. Run Set Up again after installing a package to add its assembly. The Hub's Project row and the **Project setup** validator show what is missing. Generating IDs also gives the generated folder its own assembly when no assembly definition compiles it.
 
 ## Offline installation
 

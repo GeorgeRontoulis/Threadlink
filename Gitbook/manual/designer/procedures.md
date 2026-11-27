@@ -11,9 +11,15 @@
 1. Untick the entry in the Content mapping and press **Apply**. The ID becomes a tombstone, and code still using it produces a warning.
 2. Remove the asset from Addressables only after engineering has updated the code.
 
+## Adding tunable values without code
+
+1. Add the value's ID to an ID domain that extends **Vault fields** (for example `Damage`).
+2. Create a field set (**Create ▸ Threadlink ▸ Vault ▸ Field Set**), add the field, choose its kind and enter the value.
+3. Tell engineering the field set and the ID, such as `VaultFields.Damage`.
+
 ## Tuning a definition
 
-1. Select the definition asset or the variant you want to change.
+1. Select the definition asset or the variant you want to change, in the Project window or on the Workspace's **Vault** page.
 2. In a variant, enable the override for each value you change; leave the others inherited.
 3. Select **Validate Vault Asset** in the Inspector to check it.
 

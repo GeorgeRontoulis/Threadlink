@@ -2,6 +2,16 @@
 
 All notable changes to this package are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0]
+
+### Added
+
+- Input glyphs: `InputGlyphs` (**Create ▸ Threadlink ▸ Dextra ▸ Input Glyphs**) maps controls to sprites per device family; assign it in Project Settings ▸ Threadlink ▸ Dextra. `player.Glyph(id)` returns the glyph for the device used last.
+- The `InputPrompt` UI Toolkit element and, with uGUI, the **Input Prompt** component show an action's glyph or control name and follow device changes and rebinds.
+- Back: the **Back Action** setting (`UI/Cancel` by default) calls `Dextra.Screens.BackAsync()`, which lets `ScreenHandle.BackHandler` or an `IScreenBackHandler` handle it and otherwise closes the focused screen when its `ClosesOnBack` is on (**Closes On Back** on `ToolkitScreen` and `UGuiScreen`). `Dextra.Screens.Focused` is the focused screen.
+- **Pause While Blocked** pauses the game with Chronos while a screen blocks gameplay input.
+- Screen Sounds plays navigate and submit cues on UI Toolkit screens.
+
 ## [4.0.0]
 
 ### Added

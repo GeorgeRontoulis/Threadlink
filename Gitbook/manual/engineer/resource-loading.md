@@ -40,6 +40,7 @@ var forest = await Content.LoadAllAsync<AudioCue>(ContentLabels.Forest, owner: t
 | `Content.LoadSceneAsync(ContentSceneId)` | An additive scene you manage yourself. Use [Nexus](nexus.md) for transitions. |
 | `Content.LoadAllAsync<T>(label[, token])` / `(label, owner)` | Every asset with an Addressables label as one request (`ResourceRequest<IList<T>>`); releasing it releases them all. A component type loads labeled prefabs and holds each root's component. |
 | `ResourceRequest<T>` | `Asset`, `IsReleased`, `Dispose()` (releases; idempotent, so `using` works), `ReleaseAsync()` (releases and awaits backend cleanup). |
+| `Content.AssetsOf<T>()` | The mapped assets whose main type is `T` or derives from it, such as every `AudioCue`, without loading any. Types are recorded when the mapping is applied; the **Content** validator lists mapped assets without a recorded type, which the next Apply records. Assets mapped from code are not included. |
 | `Content.Map(id, key)` | Maps an ID to a backend key from code, for tests, tools and content generated at runtime. |
 | `Content.UseBackend(backend)` | Loads through another `IContentBackend` (Resources, streamed or generated content); `null` returns to Addressables. |
 

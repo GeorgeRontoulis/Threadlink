@@ -5,9 +5,9 @@ This volume covers authoring in the Unity Editor without writing C#. Engineers d
 | Page | Covers |
 |---|---|
 | [Identifiers and Tombstones](identifiers.md) | How content and other identifiers stay stable through renames, moves and removals. |
-| [Vault: Typed Definitions](vault.md) | Authoring Vault assets and variants with inherited overrides. |
-| [Audio Cues](audio.md) | Creating cues, scene music and screen sounds. |
-| [Input Prompts and Rebinding](input-prompts.md) | How prompts choose glyphs and how players rebind controls. |
+| [Vault: Typed Definitions](vault.md) | The Vault page, field sets, and authoring definitions and variants with inherited overrides. |
+| [Audio Cues](audio.md) | Creating cues, scene music, audio zones and screen sounds. |
+| [Input Prompts and Rebinding](input-prompts.md) | Button glyphs, placing prompts, and how players rebind controls. |
 | [Localizing Text](localization.md) | String tables for prompts, names and screen text; adding languages. |
 | [Registering Content](registering-content.md) | Mapping addressable assets, prefabs and scenes for loading by ID. |
 | [Designer Procedures](procedures.md) | Step-by-step tasks. |

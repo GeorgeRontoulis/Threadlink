@@ -27,15 +27,29 @@ namespace Threadforge.Threadlink
                 return new Guid(identity);
             }
         }
-        public abstract override Guid Schema { get; }
-        public abstract override int SchemaVersion { get; }
+        /// <summary>
+        /// The definition type's schema. Defaults to a value derived from the runtime type <typeparamref name="T"/>, so a
+        /// definition and its variants share it; override it to keep the schema when <typeparamref name="T"/> is renamed.
+        /// </summary>
+        public override Guid Schema => VaultSchema.Of(typeof(T));
+
+        /// <summary>The current authoring layout version. Defaults to 1; raise it and implement
+        /// <see cref="MigrateAuthoring"/> when the authored fields change.</summary>
+        public override int SchemaVersion => 1;
         public override int AuthoredVersion => authoredVersion;
         public override VaultAuthoring ParentSource => null;
 
         public override void ValidateDefinition() => new VaultContext().Prepare(this);
 
-        /// <summary>Maps serialized/nested/polymorphic authoring into an immutable DTO. No runtime reflection is required.</summary>
+        /// <summary>
+        /// Maps serialized/nested/polymorphic authoring into an immutable DTO. No runtime reflection is required. In a
+        /// <c>partial</c> class, Threadlink generates it from the serialized fields when it is not written by hand.
+        /// </summary>
         protected abstract T BuildRuntime(VaultContext context);
+
+        /// <summary>A read-only copy of an authored collection, for runtime values; empty for null.</summary>
+        protected static System.Collections.Generic.IReadOnlyList<TItem> ReadOnly<TItem>(System.Collections.Generic.IEnumerable<TItem> items) =>
+            items == null ? Array.Empty<TItem>() : Array.AsReadOnly(System.Linq.Enumerable.ToArray(items));
 
         public T Build(VaultContext context)
         {
@@ -95,10 +109,12 @@ namespace Threadforge.Threadlink
         }
         public override VaultAuthoring ParentSource => parent;
 
-        /// <summary>Builds the root default if no parent is selected.</summary>
+        /// <summary>Builds the root default if no parent is selected. Generated in a <c>partial</c> variant when not
+        /// written by hand: every override's value.</summary>
         protected abstract T BuildDefault(VaultContext context);
 
-        /// <summary>Applies only enabled overrides. Construct a new immutable representation.</summary>
+        /// <summary>Applies only enabled overrides. Construct a new immutable representation. Generated in a
+        /// <c>partial</c> variant when not written by hand.</summary>
         protected abstract T ApplyOverrides(T inherited, VaultContext context);
 
         protected sealed override T BuildRuntime(VaultContext context)

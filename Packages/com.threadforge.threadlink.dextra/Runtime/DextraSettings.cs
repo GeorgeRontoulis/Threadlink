@@ -48,6 +48,39 @@ namespace Threadforge.Threadlink
         [Tooltip("Save each player's rebinds and restore them on the next launch.")]
         public bool SaveBindings = true;
 
+        /// <summary>Button glyphs for prompts, by device family and control.</summary>
+        [Tooltip("Button glyphs that prompts show for the device the player used last. Without them, prompts show the control's name.")]
+        public InputGlyphs Glyphs;
+
+        /// <summary>The action that goes back: it closes the focused screen (stored by action ID; a "Map/Action" path also works).</summary>
+        [InputActionPicker]
+        [Tooltip("Pressing it goes back from the focused screen: a screen set to close on Back closes, unless it handles Back itself (IScreenBackHandler).")]
+        public string BackAction = "UI/Cancel";
+
+        /// <summary>Whether Back closes screens. Off: call Dextra.Screens.BackAsync yourself.</summary>
+        [Tooltip("React to the Back action. Screens close on it only when set to (Closes On Back, or ScreenHandle.ClosesOnBack).")]
+        public bool BackClosesScreens = true;
+
+        /// <summary>Whether the game pauses (Chronos) while a screen blocks gameplay input.</summary>
+        [Tooltip("Pause the game with Chronos while a screen blocks gameplay input, such as a pause menu.")]
+        public bool PauseWhileBlocked;
+
+        /// <summary>The back action in <paramref name="actions"/>, or null.</summary>
+        internal InputAction FindBack(InputActionAsset actions)
+        {
+            if (actions == null || string.IsNullOrEmpty(BackAction))
+                return null;
+            if (System.Guid.TryParse(BackAction, out var id))
+            {
+                var found = actions.FindAction(id);
+                // A player with its own actions matches the project's action by path.
+                if (found == null && Actions != null && Actions.FindAction(id) is InputAction source)
+                    found = actions.FindAction(source.actionMap.name + "/" + source.name);
+                return found;
+            }
+            return actions.FindAction(BackAction);
+        }
+
         /// <inheritdoc />
         public override string Validate()
         {

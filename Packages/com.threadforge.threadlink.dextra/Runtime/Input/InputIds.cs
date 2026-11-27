@@ -134,4 +134,7 @@ namespace Threadforge.Threadlink
 
     /// <summary>Marks a string field that stores an action map of the project's input actions; the Inspector shows a dropdown.</summary>
     public sealed class InputMapReferenceAttribute : UnityEngine.PropertyAttribute { }
+
+    /// <summary>Marks a string field that stores an action of the project's input actions; the Inspector shows a dropdown.</summary>
+    public sealed class InputActionPickerAttribute : UnityEngine.PropertyAttribute { }
 }

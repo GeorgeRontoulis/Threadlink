@@ -111,6 +111,7 @@ namespace Threadforge.Threadlink.Editor
             var assets = new Dictionary<ContentAssetId, AssetReference>();
             var prefabs = new Dictionary<ContentPrefabId, AssetReferenceGameObject>();
             var scenes = new Dictionary<ContentSceneId, AssetReference>();
+            var types = new Dictionary<ContentAssetId, string>();
             foreach (var row in rows.Where(row => row.Mapped).OrderBy(row => row.Path, StringComparer.Ordinal))
             {
                 if (!previous.TryGetValue((row.Kind, row.Guid), out int value))
@@ -131,11 +132,14 @@ namespace Threadforge.Threadlink.Editor
                         break;
                     default:
                         assets[new ContentAssetId(value)] = new AssetReference(row.Guid);
+                        var type = AssetDatabase.GetMainAssetTypeAtPath(row.Path);
+                        if (type != null)
+                            types[new ContentAssetId(value)] = type.FullName + ", " + type.Assembly.GetName().Name;
                         break;
                 }
             }
             Undo.RecordObject(settings, "Apply Content Mapping");
-            settings.ReplaceMapping(assets, prefabs, scenes);
+            settings.ReplaceMapping(assets, prefabs, scenes, types);
         }
 
         /// <summary>Maps the Addressables entries at <paramref name="paths"/>, keeping every existing mapping. False if a path is not an entry of an editable group.</summary>
@@ -326,6 +330,9 @@ namespace Threadforge.Threadlink.Editor
                 .Concat(settings.Prefabs.Values.Select(reference => (reference.AssetGUID, ContentKind.Prefab)))
                 .Concat(settings.Scenes.Values.Select(reference => (reference.AssetGUID, ContentKind.Scene)))
                 .ToList();
+            int untyped = settings.Assets.Keys.Count(id => !settings.AssetTypes.ContainsKey(id));
+            if (untyped > 0)
+                issues.Add(new ValidationIssue("Content", IssueSeverity.Info, $"{untyped} mapped asset(s) were mapped before asset types were recorded; Content.AssetsOf<T>() omits them until the mapping is applied again.", settings));
             if (mapped.Count > 0 && addressables == null)
             {
                 issues.Add(new ValidationIssue("Content", IssueSeverity.Error, "Addressables is not set up, so mapped content cannot load.", settings));

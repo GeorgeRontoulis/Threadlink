@@ -6,14 +6,14 @@ Open **Threadlink ▸ Workspace** for a UI Toolkit window, in the Threadlink the
 
 | Page | Package | Contents |
 | --- | --- | --- |
-| Hub | Core | Every Threadlink package by family with description, installed and release version, documentation, Install, Update and Remove, sample import, Install Complete Framework, the OpenUPM registry check and the Showcase |
+| Hub | Core | Every Threadlink package by family with description, installed and release version, documentation, Install, Update and Remove, sample import, Install Complete Framework, the OpenUPM registry check, **Set Up Project** and the Showcase |
 | Validation | Core | Every installed validator; issues select the affected asset |
 | Configuration | Core | Every configuration asset by category, where it is, the folders new ones go to, Create and Move to folder |
 | Runtime | Core | The Runtime monitor (below) |
 | Code Generation | Core | Every code generator: generated IDs and their sources, ID domains, the Content mapping and subsystem registration |
 | Rendering | Core | The render pipeline: packages, the default and per-quality-level pipeline assets, pipeline and renderer assets |
 | Content | Core | The Content mapping: every Addressables group with a toggle per entry, Apply, labels and problems |
-| Vault | Core | Vault assets, schema and authored versions, pending migrations |
+| Vault | Core | Every Vault definition, searchable and grouped by type, with the selected one's Inspector; New, Duplicate and Delete; pending migrations |
 | Input | Dextra | Input action assets and the Input System settings |
 | Localization | Dextra | Localization setup, locales, string tables and their folders |
 | Starter | Starter | Sample import, build-scene setup and starter content checks |
@@ -72,6 +72,17 @@ The **Rendering** page shows the active pipeline, or the Built-in Render Pipelin
 - the Universal and High Definition Render Pipeline packages, which ship with the Editor: **Install** adds one after confirmation, **New asset** creates a pipeline asset (Universal's with its renderer) in the Render Pipeline folder without making it the default;
 - every pipeline and renderer asset in the project, with **Use as default** and **Move to folder**.
 
+## Scenes toolbar
+
+The **Scenes** dropdown in the main toolbar lists every scene the game can load: the enabled scenes of the active Build Profile, then the Addressables scenes, marked **(Addressables)**. Choosing one offers to save modified scenes and opens it. Its context menu offers Refresh, Build Profiles and Addressables Groups. `ScenesToolbar.Collect()` returns the same list for tools.
+
+## Inspector helpers
+
+| Type | Inspector |
+| --- | --- |
+| `[MinMaxRange(min, max)]` on a `Vector2` or `Vector2Int` | A range slider with editable ends; x is the low end, y the high end. |
+| `AnimatorHash` | A name field. Code passes the hash to Animator methods: `animator.SetFloat(speed, value)`. |
+
 ## Runtime monitor
 
 **Threadlink ▸ Runtime Monitor** opens the Workspace on the Runtime page:
@@ -94,6 +105,8 @@ Threadlink generates typed ID classes into `Assets/Threadforge/Threadlink User/E
 | `ContentAssets`, `ContentPrefabs`, `ContentScenes` | Addressables entries ticked in the [Content mapping](resource-loading.md#content-mapping), nested by group | `ContentAssetId`, `ContentPrefabId`, `ContentSceneId` per entry |
 | `ContentLabels` | Labels in the Addressables settings | `ContentLabel` per label |
 | `Achievements`, `Statistics`, `Leaderboards`, `Products` | What each installed platform authors, such as **Project Settings ▸ Threadlink ▸ Steam** | `AchievementId`, `StatisticId`, `LeaderboardId`, `ProductId` per entry |
+
+Generated classes compile into the assembly definition that owns the folder, `Threadlink.User.Generated` after **Set Up Project** ([Set up the project](../getting-started/installation.md#set-up-the-project)). Before writing, generation gives the folder that assembly when no assembly definition compiles it, and adds the installed Threadlink runtime assemblies the owning definition lacks. `ProjectSetup.SetUp()` and `ProjectSetup.Problems()` do the same from scripts.
 
 Generation runs automatically when a scene, input actions asset, ID domain or engineering setting changes, or when the Build Profile scene list changes; **Threadlink ▸ Generate IDs** runs it on demand. The Workspace's **Code Generation** page lists every generator with its source, output and ID counts, and opens each source. Names become PascalCase identifiers (`first-chest` becomes `FirstChest`). Each member keeps a stable key (a GUID for scenes and input, the name for categories and achievements) recorded in a `.ids.json` ledger beside the class. When a key disappears, its member stays as an `[Obsolete]` tombstone, so code that still uses it warns instead of breaking; see [Identifiers and Tombstones](../designer/identifiers.md). Never edit generated classes or ledgers by hand, and keep them under version control.
 

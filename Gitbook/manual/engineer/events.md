@@ -32,6 +32,7 @@ private void Start() => Iris.Subscribe<DeviceLost>(this, lost => pauseMenu.Open(
 | `SubsystemFailed` | A subsystem fails to boot or initialize, with its type, name and error. For crash reporting. |
 | `SessionEnding` | The session starts to shut down, while every subsystem is still available: the last moment to save. |
 | `ContentLoadFailed` | A content load fails (cancelled loads are not announced), with the content's identity, request kind and error. |
+| `PauseChanged` | The game pauses (the first [Chronos](chronos.md) pause claim) or resumes (the last claim released). |
 
 ## Nexus
 

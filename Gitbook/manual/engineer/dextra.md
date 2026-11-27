@@ -27,6 +27,7 @@ Dextra.RemovePlayer(second);
 | `player.ResetBindings()`, `ExportBindings()`, `ImportBindings(json)` | Binding overrides. |
 | `Dextra.AddPlayer(devices)` / `AddPlayer(actions, devices)` | Joins a player with the project's or explicit actions. |
 | `player.LastDevice` | The device the player used last, which prompts follow. |
+| `player.Prompt(id)`, `player.Glyph(id)` | The control's name, or its sprite from the Input Glyphs in Project Settings (null when none matches), on the device used last. The `InputPrompt` UI Toolkit element and the **Input Prompt** uGUI component show one and update themselves; see [Input Prompts and Rebinding](../designer/input-prompts.md). |
 
 Dextra announces input changes on Iris (see [Framework Events](events.md)):
 
@@ -60,6 +61,15 @@ var map = await Dextra.Screens.OpenAsync(ContentPrefabs.Screens.Map, ScreenLayer
 ```
 
 A screen prepares before it shows, takes focus, and by default blocks gameplay input by claiming the interface map above gameplay. Closing it restores focus and input to what was below. Layers are `Hud`, `Overlay`, `Menu` and `Modal`. Prefab screens carry a `ToolkitScreen` or, with uGUI installed, a `UGuiScreen`. `ScreenHandle.Root` is the root element of a UI Toolkit screen; `ScreenHandle.GameObject` its GameObject. `Dextra.Screens.DefaultPanel` overrides the configured panel settings at runtime.
+
+### Back
+
+The **Back Action** in **Project Settings ▸ Threadlink ▸ Dextra** (`UI/Cancel` by default) goes back from the focused screen, through `Dextra.Screens.BackAsync()`, which code can also call:
+
+1. The screen's `ScreenHandle.BackHandler`, or an `IScreenBackHandler` component on it, may handle Back, for example to leave a sub-panel; returning true keeps the screen open.
+2. Otherwise the screen closes if its `ScreenHandle.ClosesOnBack` is on: the **Closes On Back** setting of a prefab's `ToolkitScreen` or `UGuiScreen`, or set in code on a document screen's handle.
+
+Closing on Back is opt-in, so a main menu never closes by accident; HUD screens never close on Back. Turn off **Back Closes Screens** to handle the action yourself. With **Pause While Blocked** on, the game pauses with [Chronos](chronos.md) while a screen blocks gameplay input.
 
 `ScreenOpened` and `ScreenClosed` announce every screen on Iris, and `GameplayInputBlockChanged` announces when the first blocking screen opens and the last one closes: pause gameplay, show the cursor, hide the HUD.
 

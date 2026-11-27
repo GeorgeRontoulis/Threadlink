@@ -49,13 +49,13 @@ IMAGE = f"https://raw.githubusercontent.com/GeorgeRontoulis/Threadlink/{BRANCH}/
 
 # name suffix: (display name, description, family, manual page, keywords)
 CATALOG = {
-    "": ("Threadlink", "The Threadlink core: the subsystem runtime that deploys before the first scene, Iris events, content loading by generated ID through Addressables, Vault typed definitions, generated IDs, engineering settings, memory toolkits and the Editor Workspace with the Runtime monitor, Code Generation and Content pages.",
+    "": ("Threadlink", "The Threadlink core: the subsystem runtime that deploys before the first scene, Iris events, Chronos game time, content loading by generated ID through Addressables, Vault typed definitions and field sets, generated IDs, engineering settings, memory toolkits, project setup and the Editor Workspace with the Runtime monitor, Vault, Code Generation and Content pages.",
          "Core", "README.md", ["framework", "architecture", "subsystems", "events", "addressables", "definitions"]),
     "nexus": ("Threadlink Nexus", "Scene transitions that load and prepare the next scene before presenting it and keep the current scene on failure, for Build Profile and Addressables scenes.",
               "Scenes", "engineer/nexus.md", ["scenes", "transitions", "loading"]),
-    "aura": ("Threadlink Aura", "Audio cues with variations, categories, voice limits, fades and a crossfading music channel, with scene music as designer data.",
+    "aura": ("Threadlink Aura", "Audio cues with variations, categories, voice limits, fades and a crossfading music channel, with scene music and audio zones as designer data.",
              "Audio", "engineer/aura.md", ["audio", "sound", "music"]),
-    "dextra": ("Threadlink Dextra", "Per-player input with saved rebinding and prompts, layered screens that block gameplay input while open, and interaction targeting.",
+    "dextra": ("Threadlink Dextra", "Per-player input with saved rebinding and glyph prompts, layered screens that block gameplay input while open and go back with the Back action, and interaction targeting.",
                "Input and UI", "engineer/dextra.md", ["input", "rebinding", "ui", "screens", "interaction"]),
     "sentinel": ("Threadlink Sentinel", "Accounts and platform capabilities routed to the installed provider, and per-account saves that are transactional, versioned and recoverable.",
                  "Platform", "engineer/sentinel/README.md", ["platform", "accounts", "achievements", "save", "persistence"]),

@@ -82,6 +82,10 @@ namespace Threadforge.Threadlink.Editor.Tests
             Assert.That(settings.Assets.Values.Single().AssetGUID, Is.EqualTo(text));
             Assert.That(settings.Prefabs.Values.Single().AssetGUID, Is.EqualTo(prefab));
             Assert.That(settings.Scenes.Values.Single().AssetGUID, Is.EqualTo(scene));
+            Assert.That(settings.AssetTypes.Values.Single(), Does.StartWith("UnityEngine.TextAsset, "), "the asset's main type is recorded");
+            Assert.That(Content.AssetsOf<TextAsset>(settings), Is.EqualTo(settings.Assets.Keys.ToList()));
+            Assert.That(Content.AssetsOf<UnityEngine.Object>(settings), Has.Count.EqualTo(1), "a base type finds derived assets");
+            Assert.That(Content.AssetsOf<Sprite>(settings), Is.Empty);
             int value = settings.Prefabs.Keys.Single().Value;
             Assert.That(value, Is.Not.Zero);
             AssetDatabase.MoveAsset(folder + "/Probe.prefab", folder + "/Renamed.prefab");
@@ -91,6 +95,7 @@ namespace Threadforge.Threadlink.Editor.Tests
             ContentMapping.Apply(rows, settings);
             Assert.That(settings.Prefabs.Keys.Single().Value, Is.EqualTo(value), "A renamed asset keeps its ID's value.");
             Assert.That(settings.Assets, Is.Empty, "Unticking removes the entry.");
+            Assert.That(settings.AssetTypes, Is.Empty);
         }
 
         [Test]

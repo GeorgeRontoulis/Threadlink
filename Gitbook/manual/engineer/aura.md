@@ -30,6 +30,10 @@ Aura announces on Iris when the music channel changes cue or stops (`MusicChange
 
 Project categories and their voice limits are engineering settings in **Project Settings ▸ Threadlink ▸ Aura**, together with the default scene-music crossfade. Threadlink generates `AudioCategories` from that list (see [Generated IDs](editor-tooling.md#generated-ids)), so code names a category as `AudioCategories.Music` rather than a string, and a cue's **Category** field is a dropdown of the same list. `cue.Category` is the cue's category as an `AudioCategory` (its name is `cue.CategoryName`); `new AudioCategory(name)` covers categories added at runtime.
 
+## Audio zones
+
+An **Audio Zone** (**Add Component ▸ Threadlink ▸ Aura ▸ Audio Zone**) lowers categories as the listener approaches it, and can play a looping cue at its position. Each lowering names a category and the fraction removed at the zone's center; the effect shrinks to nothing at the zone's radius. Where zones overlap, the strongest lowering of each category applies, on top of the player's volume settings. `Aura.ZoneLowering(category)` reports how much zones lower a category now.
+
 ## Scene music
 
 Scene music is designer data: add **Threadlink ▸ Aura ▸ Scene Music** to a scene and assign a looping cue. When the scene starts, Aura crossfades to it. With Nexus installed, the cue's audio is also loaded while the scene is being prepared and the music starts as the scene is presented.

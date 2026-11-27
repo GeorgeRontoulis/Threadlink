@@ -1,0 +1,22 @@
+{
+    "name": "Threadlink.User.Generated",
+    "rootNamespace": "",
+    "references": [
+        "GUID:d070546ede129d447aee8ce8072b681c",
+        "GUID:e5e593429e76c484d90aebb60c96a623",
+        "GUID:11c3b1b023c53d649bc98e2c163960fb",
+        "GUID:d6b8713594d5ed54f99f43561c2d8adf",
+        "GUID:64110fcb7eb337b4788790aee221c47f",
+        "GUID:ed255920b38342344b5565fc26c6f140",
+        "GUID:3aad33915337c5141b9715ee7adbdd67"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

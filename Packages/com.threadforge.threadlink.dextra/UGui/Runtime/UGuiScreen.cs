@@ -7,8 +7,19 @@ namespace Threadforge.Threadlink
 
     /// <summary>Canvas-based view adapter. Content instance ownership remains with the selected factory.</summary>
     [RequireComponent(typeof(CanvasGroup))]
-    public class UGuiScreen : MonoBehaviour, IScreenView
+    public class UGuiScreen : MonoBehaviour, IScreenView, IBackPolicy
     {
+        [SerializeField]
+        [Tooltip("Close this screen when the player presses Back (Project Settings ▸ Threadlink ▸ Dextra), unless something on it handles Back.")]
+        private bool closesOnBack;
+
+        /// <summary>Whether Back closes this screen; read when the screen opens.</summary>
+        public bool ClosesOnBack
+        {
+            get => closesOnBack;
+            set => closesOnBack = value;
+        }
+
         [SerializeField]
         [Tooltip("Selected when the screen takes focus, for gamepad and keyboard navigation.")]
         private GameObject firstSelected;

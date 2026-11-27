@@ -76,6 +76,17 @@ namespace Threadforge.Threadlink.Editor
         }
 
         private static bool requested;
+        private static bool ensured;
+
+        // Once per Editor update: generated IDs compile in their own assembly with every Threadlink reference they use.
+        private static void EnsureAssembly()
+        {
+            if (ensured)
+                return;
+            ensured = true;
+            EditorApplication.delayCall += () => ensured = false;
+            ProjectSetup.EnsureGeneratedAssembly();
+        }
 
         /// <summary>Generates a static class of typed members. Returns whether the file changed.</summary>
         public static bool Write(string className, string summary, IEnumerable<Member> members, string footer = null) =>
@@ -119,6 +130,8 @@ namespace Threadforge.Threadlink.Editor
 
         private static bool WriteTo(string folder, string className, string summary, IEnumerable<Member> members, string footer, Layout layout)
         {
+            if (folder == Folder)
+                EnsureAssembly();
             var current = members.Select(Clean).ToList();
             string path = folder + "/" + className + ".cs";
             string ledgerPath = path + ".ids.json";
@@ -207,7 +220,7 @@ namespace Threadforge.Threadlink.Editor
         /// </summary>
         public static bool EnsureReference(string assembly)
         {
-            string asmdef = FindAssemblyDefinition(Folder);
+            string asmdef = ProjectSetup.OwnerOf(Folder);
             if (asmdef == null)
                 return false;
             // Reference by GUID ("Use GUIDs"), as every Threadlink assembly definition does, so renaming an assembly
@@ -215,43 +228,7 @@ namespace Threadforge.Threadlink.Editor
             string target = UnityEditor.Compilation.CompilationPipeline.GetAssemblyDefinitionFilePathFromAssemblyName(assembly);
             string guid = string.IsNullOrEmpty(target) ? null : AssetDatabase.AssetPathToGUID(target);
             string reference = string.IsNullOrEmpty(guid) ? assembly : "GUID:" + guid;
-            string text = File.ReadAllText(asmdef);
-            var data = JsonUtility.FromJson<AssemblyDefinition>(text);
-            var references = (data.references ?? Array.Empty<string>()).ToList();
-            if (references.Contains(reference) || references.Contains(assembly))
-                return false;
-            references.Add(reference);
-            int start = text.IndexOf("\"references\"", StringComparison.Ordinal);
-            if (start < 0)
-                return false;
-            int open = text.IndexOf('[', start);
-            int close = text.IndexOf(']', open);
-            // Keep the file's own indentation.
-            int lineStart = text.LastIndexOf('\n', start) + 1;
-            string indent = text.Substring(lineStart, start - lineStart);
-            string list = "[\n" + string.Join(",\n", references.Select(item => indent + indent + "\"" + item + "\"")) + "\n" + indent + "]";
-            File.WriteAllText(asmdef, text.Substring(0, open) + list + text.Substring(close + 1));
-            AssetDatabase.ImportAsset(asmdef);
-            return true;
-        }
-
-        [Serializable]
-        private sealed class AssemblyDefinition
-        {
-            public string[] references;
-        }
-
-        private static string FindAssemblyDefinition(string folder)
-        {
-            for (var directory = new DirectoryInfo(folder); directory != null; directory = directory.Parent)
-            {
-                var found = directory.GetFiles("*.asmdef").FirstOrDefault();
-                if (found != null)
-                    return Path.GetRelativePath(Directory.GetCurrentDirectory(), found.FullName).Replace('\\', '/');
-                if (directory.Name == "Assets")
-                    break;
-            }
-            return null;
+            return ProjectSetup.Complete(asmdef, new[] { (reference, assembly) });
         }
 
         /// <summary>A C# identifier for <paramref name="name"/>: words joined in PascalCase, never starting with a digit.</summary>

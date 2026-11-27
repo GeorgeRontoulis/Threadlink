@@ -101,6 +101,42 @@ namespace Threadforge.Threadlink
         public static async UniTask<ResourceRequest<IList<T>>> LoadAllAsync<T>(ContentLabel label, MonoBehaviour owner) =>
             Own(owner, await Provider.LoadLabelAsync<T>(label, Token(owner)));
 
+        /// <summary>
+        /// The mapped assets whose main type is <typeparamref name="T"/> or derives from it, such as every
+        /// <c>AudioCue</c> or every definition of a kind, without loading any. Types are recorded when the Content mapping
+        /// is applied; assets mapped from code are not included.
+        /// </summary>
+        public static List<ContentAssetId> AssetsOf<T>()
+            where T : Object => AssetsOf<T>(ContentSettings.Current);
+
+        internal static List<ContentAssetId> AssetsOf<T>(ContentSettings settings)
+            where T : Object
+        {
+            var found = new List<ContentAssetId>();
+            foreach (var pair in settings.AssetTypes)
+            {
+                var type = TypeOf(pair.Value);
+                if (type != null && typeof(T).IsAssignableFrom(type))
+                    found.Add(pair.Key);
+            }
+            found.Sort((a, b) => a.Value.CompareTo(b.Value));
+            return found;
+        }
+
+        private static readonly Dictionary<string, System.Type> types = new Dictionary<string, System.Type>(System.StringComparer.Ordinal);
+
+        private static System.Type TypeOf(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+                return null;
+            lock (types)
+            {
+                if (!types.TryGetValue(name, out var type))
+                    types[name] = type = System.Type.GetType(name, false);
+                return type;
+            }
+        }
+
         // ---- Mapping from code ------------------------------------------------------------------------------------------
 
         /// <summary>Maps an asset ID to an Addressables (or custom backend) key from code, for tests, tools and generated content.</summary>

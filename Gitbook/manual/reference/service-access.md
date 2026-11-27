@@ -4,7 +4,7 @@ Every subsystem is reached the same way, from any script, from Awake onwards.
 
 | Need | Call |
 | --- | --- |
-| Use a subsystem's API | Its static methods: `Iris.Publish(…)`, `Aura.Play(…)`, `Wallet.Add(…)` |
+| Use a subsystem's API | Its static methods: `Iris.Publish(…)`, `Chronos.Pause()`, `Aura.Play(…)`, `Wallet.Add(…)` |
 | The instance | `Wallet.Instance` (throws `SubsystemUnavailableException` with the reason when it is not part of the session or failed) |
 | Check existence and linkage to the core | `Wallet.TryGetSingleton(out var wallet)`; it never starts a subsystem |
 | The core | `Threadlink.TryGetSingleton(out var core)`, `Threadlink.Instance`, `Threadlink.IsDeployed` |

@@ -252,6 +252,39 @@ namespace Threadforge.Threadlink
             return PromptFor(Actions.FindAction(actionName, true), glyph);
         }
 
+        /// <summary>
+        /// The glyph of the control the player would use for <paramref name="action"/> on the device used last, from the
+        /// Input Glyphs in Project Settings ▸ Threadlink ▸ Dextra (or <paramref name="glyphs"/>). Null when none matches;
+        /// show <see cref="Prompt"/> instead.
+        /// </summary>
+        public UnityEngine.Sprite Glyph(InputId action, InputGlyphs glyphs = null)
+        {
+            glyphs ??= DextraSettings.Current.Glyphs;
+            return glyphs == null ? null : glyphs.Find(PromptControl(Action(action)));
+        }
+
+        /// <summary>The control a prompt shows: the action's control on the device used last, else its first paired control.</summary>
+        internal InputControl PromptControl(InputAction action)
+        {
+            InputControl fallback = null;
+            foreach (var control in action.controls)
+            {
+                bool paired = false;
+                foreach (var device in user.pairedDevices)
+                    if (control.device == device)
+                    {
+                        paired = true;
+                        break;
+                    }
+                if (!paired)
+                    continue;
+                fallback ??= control;
+                if (control.device == LastDevice)
+                    return control;
+            }
+            return fallback;
+        }
+
         private string PromptFor(InputAction action, Func<InputControl, string> glyph)
         {
             InputControl fallback = null;

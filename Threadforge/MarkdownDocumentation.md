@@ -7,7 +7,7 @@
 
 ![Powered by Threadlink. Weaving worlds together.](Threadlink_Banner.png)
 
-**Threadlink** is a Unity framework for the systems every game rebuilds: events, content loading, scene transitions, input and screens, audio, typed definitions, transactional saves, platform services, deterministic simulation and diagnostics. Each feature is a **subsystem** that Threadlink deploys before the first scene and reaches from anywhere: `Iris.Publish`, `Nexus.LoadAsync`, `Aura.Play`, `Dextra.Player`, `Sentinel.Saves`, `Vault.Get`, `Content.LoadAsync`. Your own systems are subsystems too.
+**Threadlink** is a Unity framework for the systems every game rebuilds: events, game time and pausing, content loading, scene transitions, input and screens, audio, typed definitions, transactional saves, platform services, deterministic simulation and diagnostics. Each feature is a **subsystem** that Threadlink deploys before the first scene and reaches from anywhere: `Iris.Publish`, `Chronos.Pause`, `Nexus.LoadAsync`, `Aura.Play`, `Dextra.Player`, `Sentinel.Saves`, `Vault.Get`, `Content.LoadAsync`. Your own systems are subsystems too.
 
 This is the reference for the Threadlink packages, their Editor tooling and their authoring workflows.
 
@@ -80,7 +80,7 @@ Threadlink targets .NET Standard 2.1 APIs, uses [UniTask](https://github.com/Cys
 
 ## Installation and Project Setup
 
-Threadlink is a set of Unity packages published on [OpenUPM](https://openupm.com), a scoped registry that the Unity Package Manager installs from with dependencies resolved automatically. All Threadlink packages share one version; this manual describes **4.0.0**.
+Threadlink is a set of Unity packages published on [OpenUPM](https://openupm.com), a scoped registry that the Unity Package Manager installs from with dependencies resolved automatically. All Threadlink packages share one version; this manual describes **4.1.0**.
 
 ### Install with the OpenUPM command-line tool
 
@@ -90,7 +90,11 @@ With [openupm-cli](https://openupm.com/docs/getting-started-cli.html) installed,
 openupm add com.threadforge.threadlink
 ```
 
-The command adds the OpenUPM registry with the `com.threadforge` and `com.cysharp` scopes and installs the core with its UniTask dependency. Add feature packages the same way, or install them all from the Hub (below).
+The command adds the OpenUPM registry with the `com.threadforge` and `com.cysharp` scopes and installs the core with its UniTask dependency. Add feature packages the same way, or install them all from the Hub (below). To install the whole framework in one command:
+
+```bash
+openupm add com.threadforge.threadlink com.threadforge.threadlink.nexus com.threadforge.threadlink.aura com.threadforge.threadlink.dextra com.threadforge.threadlink.sentinel com.threadforge.threadlink.deterministic
+```
 
 ### Install through the Package Manager
 
@@ -124,6 +128,17 @@ The core includes **Threadlink ▸ Workspace ▸ Hub**: every package with its d
 Installed subsystems join the session automatically: they register at subsystem registration, deploy before the first scene's Awake and are usable from any script. Nothing is added to scenes. Packages with engineering settings work with defaults until you change them in **Project Settings ▸ Threadlink**. Optional integrations inside a package (Aura scene music with Nexus, screen sounds with Aura, uGUI screens) compile only when the package they need is installed.
 
 Scripts in `Assembly-CSharp` see every Threadlink assembly. Assembly definitions reference the assemblies they use, for example `Threadforge.Threadlink` and `Threadforge.Threadlink.Aura`; add `Unity.ResourceManager` when using Addressables scene IDs.
+
+### Set up the project
+
+In the Hub, select **Set Up Project**. It creates the `Assets/Threadforge/Threadlink User` folders and two assembly definitions, each referencing every installed Threadlink runtime assembly:
+
+| Assembly | Folder | Compiles |
+| --- | --- | --- |
+| `Threadlink.User.Generated` | `Engineering/Codebase/Generated` | The generated IDs (`GameScenes`, `GameInput`, `ContentAssets` and the rest), so any assembly can reference them |
+| `Threadlink.User` | `Engineering/Codebase` | The project's code. It also references the generated IDs, UniTask, and the Addressables, Input System and Localization assemblies that are installed |
+
+An assembly definition already in `Engineering/Codebase` keeps its name; Set Up adds the references it lacks. Run Set Up again after installing a package to add its assembly. The Hub's Project row and the **Project setup** validator show what is missing. Generating IDs also gives the generated folder its own assembly when no assembly definition compiles it.
 
 ### Offline installation
 
@@ -277,9 +292,11 @@ All Threadlink packages share one version. MessagePack comes as `com.threadforge
 | `Threadlink User/Engineering/Codebase` | Project subsystems and code |
 | `Threadlink User/Engineering/Configs` | Engineering configuration: settings assets (edited in Project Settings ▸ Threadlink), Addressables, input, Localization settings and render pipelines |
 | `Threadlink User/Design/Configs` | Designer configuration: locales and string tables |
-| `Threadlink User/Design` | Designer data: cues, definitions, documents, ID domains |
+| `Threadlink User/Design` | Designer data: cues, definitions (new ones from the Vault page go to `Design/Definitions`), documents, ID domains |
 
 The configuration folders are defaults: choose others, per asset kind too, in **Threadlink ▸ Workspace ▸ Configuration** ([Configuration assets and folders](#configuration-assets-and-folders)).
+
+The Hub's **Set Up Project** creates these folders and two assembly definitions: `Threadlink.User` for `Engineering/Codebase` and `Threadlink.User.Generated` for its `Generated` folder ([Set up the project](#set-up-the-project)).
 
 Generated outputs, such as the content ID classes with their `.ids.json` ledgers, are written to `Threadlink User/Engineering/Codebase/Generated` ([Content mapping](#content-mapping)). Preserve `.meta` files and identity ledgers with the assets they describe.
 
@@ -293,9 +310,9 @@ This volume covers authoring in the Unity Editor without writing C#. Engineers d
 | Page | Covers |
 |---|---|
 | [Identifiers and Tombstones](#identifiers-and-tombstones) | How content and other identifiers stay stable through renames, moves and removals. |
-| [Vault: Typed Definitions](#vault-typed-definitions) | Authoring Vault assets and variants with inherited overrides. |
-| [Audio Cues](#audio-cues) | Creating cues, scene music and screen sounds. |
-| [Input Prompts and Rebinding](#input-prompts-and-rebinding) | How prompts choose glyphs and how players rebind controls. |
+| [Vault: Typed Definitions](#vault-typed-definitions) | The Vault page, field sets, and authoring definitions and variants with inherited overrides. |
+| [Audio Cues](#audio-cues) | Creating cues, scene music, audio zones and screen sounds. |
+| [Input Prompts and Rebinding](#input-prompts-and-rebinding) | Button glyphs, placing prompts, and how players rebind controls. |
 | [Localizing Text](#localizing-text) | String tables for prompts, names and screen text; adding languages. |
 | [Registering Content](#registering-content) | Mapping addressable assets, prefabs and scenes for loading by ID. |
 | [Designer Procedures](#designer-procedures) | Step-by-step tasks. |
@@ -332,11 +349,31 @@ A StatelessRNG domain separates the random numbers of one system from another. E
 
 ## Vault: Typed Definitions
 
-**Vault** holds the game's typed definitions. A Vault asset is an authored definition (an enemy's stats, an item, a level's rules) that the game prepares into an immutable runtime value. Engineers create the definition types; designers create and tune the assets. Definitions are part of the Threadlink core; code reads them with `Vault.Get`.
+**Vault** holds the game's typed definitions. A Vault asset is an authored definition (an enemy's stats, an item, a level's rules) that the game prepares into an immutable runtime value. Engineers create definition types; designers create and tune the assets, and can build **field sets** with no code at all. Definitions are part of the Threadlink core; code reads them with `Vault.Get`.
 
-### Creating definitions
+### The Vault page
 
-Use the asset creation menu entry the engineering team added for the type (for example **Create ▸ Game ▸ Enemy Definition**). A new asset receives a permanent identity and the type's current schema version. Moving or renaming the asset keeps its identity.
+**Threadlink ▸ Workspace ▸ Vault** lists every definition in the project, grouped by type. Type in the filter to narrow it by name, type or folder, and select a definition to edit it beside the list. ⚠ marks a definition that needs an authoring migration.
+
+- **New** creates a definition of any type that has a creation menu entry, beside the selected one (or in `Threadlink User/Design/Definitions`).
+- Right-click a definition to ping, duplicate or delete it. A duplicate gets its own identity.
+- To open a definition on the page, right-click it in the Project window and choose **Threadlink ▸ Open in Vault Page**, or use **Open in Vault Page** in its Inspector's context menu.
+
+Edits made in Play mode change the asset and are kept after Play mode ends; the running game keeps the value it already prepared.
+
+### Field sets
+
+A **field set** is a definition made of named values, for data that does not need its own type: an enemy's damage and portrait, a weapon's range, a level's par time.
+
+1. Create one with **Create ▸ Threadlink ▸ Vault ▸ Field Set**, or **New ▸ Threadlink ▸ Vault ▸ Field Set** on the Vault page.
+2. Add a field, pick its ID from the dropdown and choose its kind: a number, text, true/false, a vector, color or rotation, or a reference to an asset such as a sprite or prefab.
+3. Enter the value.
+
+The field IDs come from an [ID domain](#your-own-id-domains) that extends **Vault fields**: add an entry there to make a new field available. Each field may appear once in a set. To make a family of similar sets, set a **Parent**: the set inherits every field of its parent, and fields you add replace the inherited ones of the same ID. **Create Typed Variant** in the Inspector makes such a child.
+
+### Creating typed definitions
+
+Use the asset creation menu entry the engineering team added for the type (for example **Create ▸ Game ▸ Enemy Definition**), or **New** on the Vault page. A new asset receives a permanent identity and the type's current schema version. Moving or renaming the asset keeps its identity.
 
 The Inspector shows the identity, schema and authored version. **Validate Vault Asset** checks the asset; a definition that fails validation also fails explicitly when the game prepares it, never silently.
 
@@ -378,9 +415,18 @@ Players' volume settings adjust category volumes. Mixer snapshots (for example a
 
 Add **Add Component ▸ Threadlink ▸ Aura ▸ Scene Music** to any object in a scene and assign a looping cue. When the scene starts, the music crossfades to it (leave the cue empty to fade the music out). Set a crossfade on the component, or leave it negative to use the project default. When scenes change through Nexus, the music is prepared while the next scene loads and starts as it appears, so a failed transition never interrupts the current track. A music cue that cannot start (for example because its category is full) never affects the scene; use a stealing overflow policy for music.
 
+### Audio zones
+
+An **Audio Zone** turns some sounds down near a place, such as the music under a waterfall, and can play a sound there.
+
+1. Add **Add Component ▸ Threadlink ▸ Aura ▸ Audio Zone** to an object at the place.
+2. Set the **Radius**: beyond it the zone does nothing. The Scene view shows it as a sphere when the object is selected.
+3. Under **Lowers**, choose each category to turn down and how much (1 silences it at the zone's center). The effect grows from nothing at the radius to the full amount at the center.
+4. Optionally assign a looping **Cue** that plays at the zone while it is enabled.
+
 ### Screen sounds
 
-Add **Add Component ▸ Threadlink ▸ Dextra ▸ Screen Sounds** to a screen prefab and assign open, close and focus cues. A screen that fails to open makes no sound, and a sound that cannot play never blocks a screen.
+Add **Add Component ▸ Threadlink ▸ Dextra ▸ Screen Sounds** to a screen prefab and assign open, close and focus cues, and, for UI Toolkit screens, navigate and submit cues played as the player moves between and presses controls. A screen that fails to open makes no sound, and a sound that cannot play never blocks a screen.
 
 ## Input Prompts and Rebinding
 
@@ -389,6 +435,25 @@ Input uses Unity Input System action assets. Each player gets their own copy of 
 ### Prompts
 
 A prompt names the control for an action on the device the player used last. If the team supplies glyphs (button icons), prompts show the glyph; otherwise they show the control's readable name, such as `Space` or `Button South`. Prompts switch automatically when the player changes device.
+
+### Glyphs
+
+To show button images instead of names, create **Create ▸ Threadlink ▸ Dextra ▸ Input Glyphs** and add an entry per control:
+
+| Setting | Meaning |
+| --- | --- |
+| Device | Keyboard & mouse, Xbox, PlayStation, Switch, any gamepad, or any device. The device's own family wins, then "any gamepad", then "any device". |
+| Control | An Input System control path, such as `<Gamepad>/buttonSouth` or `<Keyboard>/space`. |
+| Sprite | The image. |
+
+Engineering assigns the asset to **Glyphs** in **Project Settings ▸ Threadlink ▸ Dextra**. Prompts then show the glyph of the device the player used last, and the control's name where no glyph matches.
+
+To place a prompt:
+
+- In a UI Toolkit document, add the **Input Prompt** element (`Threadforge.Threadlink.InputPrompt`) and set its **Action** to the action's "Map/Action" path.
+- On a uGUI canvas, add **Add Component ▸ Threadlink ▸ Dextra ▸ Input Prompt**, assign the action, an Image for the glyph and, optionally, a Text for the name.
+
+Both follow device changes and rebinds by themselves.
 
 ### Rebinding
 
@@ -483,9 +548,15 @@ Removing or renaming content follows the rules in [Identifiers and Tombstones](#
 1. Untick the entry in the Content mapping and press **Apply**. The ID becomes a tombstone, and code still using it produces a warning.
 2. Remove the asset from Addressables only after engineering has updated the code.
 
+### Adding tunable values without code
+
+1. Add the value's ID to an ID domain that extends **Vault fields** (for example `Damage`).
+2. Create a field set (**Create ▸ Threadlink ▸ Vault ▸ Field Set**), add the field, choose its kind and enter the value.
+3. Tell engineering the field set and the ID, such as `VaultFields.Damage`.
+
 ### Tuning a definition
 
-1. Select the definition asset or the variant you want to change.
+1. Select the definition asset or the variant you want to change, in the Project window or on the Workspace's **Vault** page.
 2. In a variant, enable the override for each value you change; leave the others inherited.
 3. Select **Validate Vault Asset** in the Inspector to check it.
 
@@ -516,18 +587,20 @@ This volume documents every package's API and the contracts behind it.
 |---|---|
 | [Architecture](#architecture) | The core, subsystems, the session, design and engineering, asynchronous work and failure reporting. |
 | [Lifetimes](#lifetimes) | Subscriptions and content bound to the game object that needs them. |
-| [Iris](#iris-event-dispatch) | Synchronous and awaited events, requests, frame callbacks. |
+| [Iris](#iris-event-dispatch) | Synchronous and awaited events, requests, frame callbacks and externally driven frames. |
+| [Framework Events](#framework-events) | What the framework announces on Iris, and when to subscribe. |
+| [Chronos](#chronos-time) | Pause claims, the time scale and playtime. |
 | [Nexus](#nexus-scene-management) | Scene transitions, holds and transition steps. |
-| [Dextra](#dextra-input-screens-and-interaction) | Players and input, rebinding, screens and interaction. |
-| [Aura](#aura-audio) | Audio cues, voices, categories, fades, music and scene music. |
+| [Dextra](#dextra-input-screens-and-interaction) | Players and input, rebinding, prompts and glyphs, screens and Back, interaction. |
+| [Aura](#aura-audio) | Audio cues, voices, categories, fades, music, scene music and audio zones. |
 | [Sentinel](#sentinel-platform-services) | Accounts, capabilities, providers, saving, cloud sync and invitations. |
-| [Vault Runtime API](#vault-runtime-api) | Typed definitions and their preparation. |
+| [Vault Runtime API](#vault-runtime-api) | Typed definitions, generated mapping, variants, field sets and preparation. |
 | [Serialization](#serialization) | Snapshot envelopes, the MessagePack codec and versions. |
-| [Resource Loading](#resource-loading) | Typed content requests, catalogs and labels. |
+| [Resource Loading](#resource-loading) | Typed content requests, the Content mapping, labels and finding assets by type. |
 | [Deterministic Toolkit](#deterministic-toolkit) | Fixed point and StatelessRNG. |
 | [Memory](#memory) | Native allocation, hashing and inline collections. |
 | [Diagnostics](#diagnostics) | Subsystem reports and the operation log. |
-| [Editor Tooling](#editor-tooling) | The Workspace, the Runtime monitor, engineering settings, validators and development tools. |
+| [Editor Tooling](#editor-tooling) | The Workspace, project setup, the Scenes toolbar, the Runtime monitor, generated IDs, engineering settings, inspector helpers, validators and development tools. |
 | [Performance](#performance) | Measured costs and allocation guidance. |
 | [Engineering Procedures](#engineering-procedures) | Common tasks step by step. |
 
@@ -607,7 +680,7 @@ public sealed class Wallet : ThreadlinkSubsystem<Wallet>
 | `Lifetime` | Cancelled when the session ends. |
 | `Report(MonitorReport)` | What the Runtime monitor shows. |
 
-Framework subsystems follow the same pattern and expose their API as static methods on the class: `Iris.Publish`, `Nexus.LoadAsync`, `Aura.Play`, `Dextra.Player`, `Sentinel.Saves.SaveAsync`, `Vault.Get`. Content loading lives on the core: `Content.LoadAsync`.
+Framework subsystems follow the same pattern and expose their API as static methods on the class: `Iris.Publish`, `Chronos.Pause`, `Nexus.LoadAsync`, `Aura.Play`, `Dextra.Player`, `Sentinel.Saves.SaveAsync`, `Vault.Get`. Content loading lives on the core: `Content.LoadAsync`.
 
 ### The core
 
@@ -708,6 +781,19 @@ Additions during a publication take effect for the next publication; removals ta
 
 `Iris.OnUpdate(owner, deltaTime => …)`, `OnFixedUpdate` and `OnLateUpdate` run after the corresponding MonoBehaviour phase and end with their owner. Iris also publishes `UpdateFrame`, `FixedFrame` and `LateFrame` (each with `DeltaTime`) for `Iris.Subscribe`. Iris inserts its markers into the PlayerLoop while it is linked and removes only its own markers at shutdown; a test session inside Play mode reuses the running session's markers.
 
+#### Driving frames from another simulation
+
+When another framework owns the simulation, such as a deterministic or networked one, it decides when frames happen. `Iris.DriveFramesExternally()` removes Iris's markers until the returned object is disposed; meanwhile the simulation publishes each frame with `Iris.RunUpdate(deltaTime)`, `RunFixedUpdate` and `RunLateUpdate`. Frame callbacks, frame events and posted events work the same either way. `Iris.FramesAreExternal` tells which mode is active, and calling `RunUpdate` while Iris publishes frames itself throws.
+
+```csharp
+private IDisposable frames;
+
+protected override void OnSubsystemInit() => frames = Iris.DriveFramesExternally();
+protected override void OnSubsystemDeinit() => frames.Dispose();
+
+private void OnSimulationTicked(float step) => Iris.RunFixedUpdate(step);
+```
+
 ### Awaited events and requests
 
 ```csharp
@@ -761,6 +847,7 @@ private void Start() => Iris.Subscribe<DeviceLost>(this, lost => pauseMenu.Open(
 | `SubsystemFailed` | A subsystem fails to boot or initialize, with its type, name and error. For crash reporting. |
 | `SessionEnding` | The session starts to shut down, while every subsystem is still available: the last moment to save. |
 | `ContentLoadFailed` | A content load fails (cancelled loads are not announced), with the content's identity, request kind and error. |
+| `PauseChanged` | The game pauses (the first [Chronos](#chronos-time) pause claim) or resumes (the last claim released). |
 
 ### Nexus
 
@@ -807,6 +894,47 @@ private void Start() => Iris.Subscribe<DeviceLost>(this, lost => pauseMenu.Open(
 Follow the same shape for your subsystems' events: a `readonly struct` named in the past tense, published with `Iris.TryPublish` when the change happens.
 
 Subscribe in `OnSubsystemBoot`, but publish events other subsystems react to from `OnSubsystemInit` or later. Subsystems boot in no set order, so an event published during boot can miss a subsystem that has not subscribed yet, and Iris does not replay it. By the time any subsystem initializes, every subsystem has booted and subscribed.
+
+## Chronos: Time
+
+Chronos is the session's game time, in the core package (`com.threadforge.threadlink`): pausing, the time scale and playtime.
+
+### Pausing
+
+Pausing is a claim. The game is paused while any claim is held, so a pause menu, a disconnected gamepad and a cutscene each pause and resume without undoing each other:
+
+```csharp
+private IDisposable pause;
+
+private void OnDeviceLost(DeviceLost lost) => pause ??= Chronos.Pause();
+
+private void OnDeviceRegained(DeviceRegained regained)
+{
+    pause?.Dispose();
+    pause = null;
+}
+```
+
+| API | Behavior |
+| --- | --- |
+| `Chronos.Pause()` | Pauses until the returned claim is disposed. Disposing a claim twice releases it once. |
+| `Chronos.IsPaused`, `PauseClaims` | Whether any claim is held, and how many. |
+| `Chronos.TimeScale` | The game's time scale while it is not paused, such as 0.5 for slow motion. Set the time scale here, not on `Time.timeScale`. |
+
+While paused, `Time.timeScale` is 0; otherwise it is `Chronos.TimeScale`. Unscaled time keeps running, so UI, Aura fades and screen transitions work in a pause menu. `PauseChanged` is announced on Iris when the first claim is taken and when the last is released. When the session ends, the time scale returns to what it was before the session.
+
+To pause whenever a screen blocks gameplay, such as a pause menu, turn on **Pause While Blocked** in **Project Settings ▸ Threadlink ▸ Dextra** ([Dextra](#screens)).
+
+### Playtime
+
+`Chronos.Playtime` is the real time played while the game is not paused. Store it in your save and restore it with `Chronos.SetPlaytime` when the save loads. Set `Chronos.CountsPlaytime` to false where time should not count, such as the title screen.
+
+```csharp
+save.Playtime = Chronos.Playtime.TotalSeconds;                      // when saving
+Chronos.SetPlaytime(TimeSpan.FromSeconds(loaded.Playtime));          // when loading
+```
+
+The [Runtime monitor](#runtime-monitor) shows the pause claims, time scale and playtime.
 
 ## Nexus: Scene Management
 
@@ -891,6 +1019,7 @@ Dextra.RemovePlayer(second);
 | `player.ResetBindings()`, `ExportBindings()`, `ImportBindings(json)` | Binding overrides. |
 | `Dextra.AddPlayer(devices)` / `AddPlayer(actions, devices)` | Joins a player with the project's or explicit actions. |
 | `player.LastDevice` | The device the player used last, which prompts follow. |
+| `player.Prompt(id)`, `player.Glyph(id)` | The control's name, or its sprite from the Input Glyphs in Project Settings (null when none matches), on the device used last. The `InputPrompt` UI Toolkit element and the **Input Prompt** uGUI component show one and update themselves; see [Input Prompts and Rebinding](#input-prompts-and-rebinding). |
 
 Dextra announces input changes on Iris (see [Framework Events](#framework-events)):
 
@@ -924,6 +1053,15 @@ var map = await Dextra.Screens.OpenAsync(ContentPrefabs.Screens.Map, ScreenLayer
 ```
 
 A screen prepares before it shows, takes focus, and by default blocks gameplay input by claiming the interface map above gameplay. Closing it restores focus and input to what was below. Layers are `Hud`, `Overlay`, `Menu` and `Modal`. Prefab screens carry a `ToolkitScreen` or, with uGUI installed, a `UGuiScreen`. `ScreenHandle.Root` is the root element of a UI Toolkit screen; `ScreenHandle.GameObject` its GameObject. `Dextra.Screens.DefaultPanel` overrides the configured panel settings at runtime.
+
+#### Back
+
+The **Back Action** in **Project Settings ▸ Threadlink ▸ Dextra** (`UI/Cancel` by default) goes back from the focused screen, through `Dextra.Screens.BackAsync()`, which code can also call:
+
+1. The screen's `ScreenHandle.BackHandler`, or an `IScreenBackHandler` component on it, may handle Back, for example to leave a sub-panel; returning true keeps the screen open.
+2. Otherwise the screen closes if its `ScreenHandle.ClosesOnBack` is on: the **Closes On Back** setting of a prefab's `ToolkitScreen` or `UGuiScreen`, or set in code on a document screen's handle.
+
+Closing on Back is opt-in, so a main menu never closes by accident; HUD screens never close on Back. Turn off **Back Closes Screens** to handle the action yourself. With **Pause While Blocked** on, the game pauses with [Chronos](#chronos-time) while a screen blocks gameplay input.
 
 `ScreenOpened` and `ScreenClosed` announce every screen on Iris, and `GameplayInputBlockChanged` announces when the first blocking screen opens and the last one closes: pause gameplay, show the cursor, hide the HUD.
 
@@ -985,6 +1123,10 @@ Aura announces on Iris when the music channel changes cue or stops (`MusicChange
 ### Categories
 
 Project categories and their voice limits are engineering settings in **Project Settings ▸ Threadlink ▸ Aura**, together with the default scene-music crossfade. Threadlink generates `AudioCategories` from that list (see [Generated IDs](#generated-ids-1)), so code names a category as `AudioCategories.Music` rather than a string, and a cue's **Category** field is a dropdown of the same list. `cue.Category` is the cue's category as an `AudioCategory` (its name is `cue.CategoryName`); `new AudioCategory(name)` covers categories added at runtime.
+
+### Audio zones
+
+An **Audio Zone** (**Add Component ▸ Threadlink ▸ Aura ▸ Audio Zone**) lowers categories as the listener approaches it, and can play a looping cue at its position. Each lowering names a category and the fraction removed at the zone's center; the effect shrinks to nothing at the zone's radius. Where zones overlap, the strongest lowering of each category applies, on top of the player's volume settings. `Aura.ZoneLowering(category)` reports how much zones lower a category now.
 
 ### Scene music
 
@@ -1196,16 +1338,44 @@ Vault turns designer-edited assets into immutable values that game code reads. I
 
 ### Defining a type
 
-A definition has two halves: an immutable **runtime type** that game code reads, and an **authoring class** that designers edit. The authoring class derives from `VaultAsset<T>`, declares a schema and its version, and builds the runtime value from its fields:
+A definition has two halves: an immutable **runtime type** that game code reads, and an **authoring class** that designers edit. In the short form you write only the authoring class's fields; Threadlink generates the rest:
+
+```csharp
+public sealed partial class EnemyStats { }   // filled in by Threadlink
+
+[CreateAssetMenu(menuName = "Game/Enemy Definition")]
+public sealed partial class EnemyDefinition : VaultAsset<EnemyStats>
+{
+    [Tooltip("Name shown in the bestiary.")]
+    public string DisplayName = "Slime";
+    [Min(1)] public int Health = 30;
+    public float Speed = 2;
+    public List<ItemDefinition> Drops = new List<ItemDefinition>();
+}
+```
+
+Because both classes are `partial`, Threadlink generates:
+
+- on `EnemyStats`, one read-only property per serialized field (`DisplayName`, `Health`, `Speed`, and `Drops` as an `IReadOnlyList<ItemDefinition>`), documented with the field's tooltip, and a constructor;
+- on `EnemyDefinition`, `BuildRuntime`, which copies the fields into a new `EnemyStats`. Arrays and lists are copied, so the runtime value never changes with the asset.
+
+Serialized fields are the class's own public fields and `[SerializeField]` private ones, without `[NonSerialized]`. A runtime type with members of its own is not generated: write its constructor with parameters named after its properties, and Threadlink generates `BuildRuntime` to call it, matching each parameter to the field of the same name. Write `BuildRuntime` yourself to validate, compute or reshape values; Threadlink then generates nothing for that class.
+
+| Diagnostic | Meaning |
+| --- | --- |
+| TL0002 | The mapping cannot be generated, for example because no field matches a constructor parameter. The message names it. |
+| TL0003 | The definition (or a class containing it) is not `partial`, so nothing is generated. |
+| TL0004 | Several definition classes use one empty `partial` runtime type; give it members by hand, or use one definition class. |
+
+`Schema` identifies the definition type and defaults to a value derived from the runtime type, so definitions and variants of one runtime type share it. `SchemaVersion` defaults to 1. Override `Schema` with a fixed GUID only to keep it when the runtime type is renamed, and raise `SchemaVersion` when the authored fields change (see [Authoring versions](#authoring-versions)). The explicit form writes everything by hand:
 
 ```csharp
 public sealed class EnemyStats
 {
-    public EnemyStats(string name, int health, float speed) => (Name, Health, Speed) = (name, health, speed);
+    public EnemyStats(string name, int health) => (Name, Health) = (name, health);
 
     public string Name { get; }
     public int Health { get; }
-    public float Speed { get; }
 }
 
 [CreateAssetMenu(menuName = "Game/Enemy Definition")]
@@ -1213,16 +1383,12 @@ public sealed class EnemyDefinition : VaultAsset<EnemyStats>
 {
     public string DisplayName = "Slime";
     [Min(1)] public int Health = 30;
-    public float Speed = 2;
-
-    public override Guid Schema => new Guid("8a1f2c3d-4e5f-4061-8273-94a5b6c7d8e9");   // fixed forever
-    public override int SchemaVersion => 1;                                             // raised when fields change
 
     protected override EnemyStats BuildRuntime(VaultContext context)
     {
         if (Health < 1)
             throw new InvalidOperationException("Health must be positive.");
-        return new EnemyStats(DisplayName, Health, Speed);
+        return new EnemyStats(DisplayName, Health);
     }
 }
 ```
@@ -1251,7 +1417,16 @@ Preparing a definition checks its schema and version, that its identity is set a
 
 ### Variants
 
-A variant inherits its values from a parent asset of the same type and overrides some of them. Derive from `VaultVariant<T>`, store each overridable value in a `VaultOverride<T>` field, and implement two methods:
+A variant inherits its values from a parent asset of the same runtime type and overrides some of them. In the short form, declare an empty `partial` class:
+
+```csharp
+[CreateAssetMenu(menuName = "Game/Enemy Variant")]
+public sealed partial class EnemyVariant : VaultVariant<EnemyStats> { }
+```
+
+Threadlink generates a `VaultOverride<T>` field for each value of `EnemyStats`, `BuildDefault` (every override's value, used when the variant has no parent) and `ApplyOverrides` (the parent's value with every enabled override applied). A `VaultOverride<T>` field you declare yourself, named after a value, is used instead of a generated one; write either method yourself to replace the generated one.
+
+By hand, store each overridable value in a `VaultOverride<T>` field and implement both methods:
 
 | Method | Returns |
 | --- | --- |
@@ -1263,13 +1438,10 @@ public sealed class EnemyVariant : VaultVariant<EnemyStats>
 {
     public VaultOverride<int> Health;
 
-    public override Guid Schema => new Guid("8a1f2c3d-4e5f-4061-8273-94a5b6c7d8e9");   // the parent's schema
-    public override int SchemaVersion => 1;
-
-    protected override EnemyStats BuildDefault(VaultContext context) => new EnemyStats("Enemy", 10, 1);
+    protected override EnemyStats BuildDefault(VaultContext context) => new EnemyStats("Enemy", 10);
 
     protected override EnemyStats ApplyOverrides(EnemyStats inherited, VaultContext context) =>
-        new EnemyStats(inherited.Name, Health.Resolve(inherited.Health), inherited.Speed);
+        new EnemyStats(inherited.Name, Health.Resolve(inherited.Health));
 }
 ```
 
@@ -1285,11 +1457,29 @@ A new asset gets a permanent identity (a GUID) and its type's current `SchemaVer
 
 Players never upgrade definitions on their own, so migrate every asset before building. Authoring versions are unrelated to save-file versions ([Serialization](#versions-and-migrations)).
 
-### Vault fields
+### Field sets
 
-`VaultFieldSet` is an optional bag of named, immutable scalar values, for data that does not deserve its own field. Read it with generated keys: an [ID domain](#id-domains) that extends **Vault fields** generates `VaultFields.Name` (a `VaultField`), so `fields.Get<int>(VaultFields.Damage)` and `fields.TryGet(VaultFields.Damage, out int damage)` are checked by the compiler. A key is the entry's name in PascalCase.
+`VaultFieldSetAsset` (**Create ▸ Threadlink ▸ Vault ▸ Field Set**) is a definition designers build without code: a list of fields, each a generated `VaultFields` key with a typed value. Its runtime value is a `VaultFieldSet`:
 
-`VaultContext`, `VaultRecord<T>`, `IVaultSource<T>`, `VaultOverride<T>` and `VaultFieldSet` are public for tools and tests.
+```csharp
+VaultFieldSet goblin = Vault.Get(goblinFields);
+int damage = goblin.Get<int>(VaultFields.Damage);
+if (goblin.TryGet(VaultFields.Portrait, out Sprite portrait))
+    icon.sprite = portrait;
+```
+
+| Kind | Read as |
+| --- | --- |
+| Integer, Long, Float, Double, Boolean, Text | `int`, `long`, `float`, `double`, `bool`, `string` |
+| Vector2, Vector3, Vector4, Vector2Int, Vector3Int, Color | The Unity type of the same name |
+| Rotation | `Quaternion` (authored as Euler angles) |
+| Object | The referenced asset, such as a `Sprite`, `AudioCue` or prefab |
+
+The keys are generated: an [ID domain](#id-domains) that extends **Vault fields** generates `VaultFields.Name` (a `VaultField`), so a misspelled field is a compile error. A key is the entry's name in PascalCase.
+
+A set can name a **Parent** set: it inherits every parent field, and its own fields add to or replace them. A field may appear once per set. `Get` throws when the field is missing or holds another type; `TryGet` returns false; `Contains` and `Count` describe the set. The **Vault** validator warns about a field no ID domain defines. Tools and tests edit sets with `Set(field, value)` and `Remove(field)`.
+
+`VaultContext`, `VaultRecord<T>`, `IVaultSource<T>` and `VaultOverride<T>` are public for tools and tests.
 
 ## Serialization
 
@@ -1380,6 +1570,7 @@ var forest = await Content.LoadAllAsync<AudioCue>(ContentLabels.Forest, owner: t
 | `Content.LoadSceneAsync(ContentSceneId)` | An additive scene you manage yourself. Use [Nexus](#nexus-scene-management) for transitions. |
 | `Content.LoadAllAsync<T>(label[, token])` / `(label, owner)` | Every asset with an Addressables label as one request (`ResourceRequest<IList<T>>`); releasing it releases them all. A component type loads labeled prefabs and holds each root's component. |
 | `ResourceRequest<T>` | `Asset`, `IsReleased`, `Dispose()` (releases; idempotent, so `using` works), `ReleaseAsync()` (releases and awaits backend cleanup). |
+| `Content.AssetsOf<T>()` | The mapped assets whose main type is `T` or derives from it, such as every `AudioCue`, without loading any. Types are recorded when the mapping is applied; the **Content** validator lists mapped assets without a recorded type, which the next Apply records. Assets mapped from code are not included. |
 | `Content.Map(id, key)` | Maps an ID to a backend key from code, for tests, tools and content generated at runtime. |
 | `Content.UseBackend(backend)` | Loads through another `IContentBackend` (Resources, streamed or generated content); `null` returns to Addressables. |
 
@@ -1649,14 +1840,14 @@ Open **Threadlink ▸ Workspace** for a UI Toolkit window, in the Threadlink the
 
 | Page | Package | Contents |
 | --- | --- | --- |
-| Hub | Core | Every Threadlink package by family with description, installed and release version, documentation, Install, Update and Remove, sample import, Install Complete Framework, the OpenUPM registry check and the Showcase |
+| Hub | Core | Every Threadlink package by family with description, installed and release version, documentation, Install, Update and Remove, sample import, Install Complete Framework, the OpenUPM registry check, **Set Up Project** and the Showcase |
 | Validation | Core | Every installed validator; issues select the affected asset |
 | Configuration | Core | Every configuration asset by category, where it is, the folders new ones go to, Create and Move to folder |
 | Runtime | Core | The Runtime monitor (below) |
 | Code Generation | Core | Every code generator: generated IDs and their sources, ID domains, the Content mapping and subsystem registration |
 | Rendering | Core | The render pipeline: packages, the default and per-quality-level pipeline assets, pipeline and renderer assets |
 | Content | Core | The Content mapping: every Addressables group with a toggle per entry, Apply, labels and problems |
-| Vault | Core | Vault assets, schema and authored versions, pending migrations |
+| Vault | Core | Every Vault definition, searchable and grouped by type, with the selected one's Inspector; New, Duplicate and Delete; pending migrations |
 | Input | Dextra | Input action assets and the Input System settings |
 | Localization | Dextra | Localization setup, locales, string tables and their folders |
 | Starter | Starter | Sample import, build-scene setup and starter content checks |
@@ -1715,6 +1906,17 @@ The **Rendering** page shows the active pipeline, or the Built-in Render Pipelin
 - the Universal and High Definition Render Pipeline packages, which ship with the Editor: **Install** adds one after confirmation, **New asset** creates a pipeline asset (Universal's with its renderer) in the Render Pipeline folder without making it the default;
 - every pipeline and renderer asset in the project, with **Use as default** and **Move to folder**.
 
+### Scenes toolbar
+
+The **Scenes** dropdown in the main toolbar lists every scene the game can load: the enabled scenes of the active Build Profile, then the Addressables scenes, marked **(Addressables)**. Choosing one offers to save modified scenes and opens it. Its context menu offers Refresh, Build Profiles and Addressables Groups. `ScenesToolbar.Collect()` returns the same list for tools.
+
+### Inspector helpers
+
+| Type | Inspector |
+| --- | --- |
+| `[MinMaxRange(min, max)]` on a `Vector2` or `Vector2Int` | A range slider with editable ends; x is the low end, y the high end. |
+| `AnimatorHash` | A name field. Code passes the hash to Animator methods: `animator.SetFloat(speed, value)`. |
+
 ### Runtime monitor
 
 **Threadlink ▸ Runtime Monitor** opens the Workspace on the Runtime page:
@@ -1737,6 +1939,8 @@ Threadlink generates typed ID classes into `Assets/Threadforge/Threadlink User/E
 | `ContentAssets`, `ContentPrefabs`, `ContentScenes` | Addressables entries ticked in the [Content mapping](#content-mapping), nested by group | `ContentAssetId`, `ContentPrefabId`, `ContentSceneId` per entry |
 | `ContentLabels` | Labels in the Addressables settings | `ContentLabel` per label |
 | `Achievements`, `Statistics`, `Leaderboards`, `Products` | What each installed platform authors, such as **Project Settings ▸ Threadlink ▸ Steam** | `AchievementId`, `StatisticId`, `LeaderboardId`, `ProductId` per entry |
+
+Generated classes compile into the assembly definition that owns the folder, `Threadlink.User.Generated` after **Set Up Project** ([Set up the project](#set-up-the-project)). Before writing, generation gives the folder that assembly when no assembly definition compiles it, and adds the installed Threadlink runtime assemblies the owning definition lacks. `ProjectSetup.SetUp()` and `ProjectSetup.Problems()` do the same from scripts.
 
 Generation runs automatically when a scene, input actions asset, ID domain or engineering setting changes, or when the Build Profile scene list changes; **Threadlink ▸ Generate IDs** runs it on demand. The Workspace's **Code Generation** page lists every generator with its source, output and ID counts, and opens each source. Names become PascalCase identifiers (`first-chest` becomes `FirstChest`). Each member keeps a stable key (a GUID for scenes and input, the name for categories and achievements) recorded in a `.ids.json` ledger beside the class. When a key disappears, its member stays as an `[Obsolete]` tombstone, so code that still uses it warns instead of breaking; see [Identifiers and Tombstones](#identifiers-and-tombstones). Never edit generated classes or ledgers by hand, and keep them under version control.
 
@@ -1857,10 +2061,13 @@ Diagnostics, Editor Mono, same machine, Unity 6000.6.9f1, 101 samples after warm
 
 ### Adding a definition type
 
-1. Define an immutable runtime type.
-2. Derive the authoring class from `VaultAsset<T>` or `VaultVariant<T>` with a new schema GUID and version 1, and map fields in `BuildRuntime`.
-3. Add a `CreateAssetMenu` entry for designers; read values with `Vault.Get(definition)`.
-4. When the layout changes, raise `SchemaVersion` and implement `MigrateAuthoring`.
+1. Declare the runtime type as an empty `public sealed partial class`.
+2. Derive a `partial` authoring class from `VaultAsset<T>` with the serialized fields designers edit; Threadlink generates the runtime type's properties and `BuildRuntime` ([Vault Runtime API](#defining-a-type)). Write `BuildRuntime` yourself when values need validation or computing.
+3. For variants, add an empty `partial` class deriving from `VaultVariant<T>`.
+4. Add a `CreateAssetMenu` entry for designers; read values with `Vault.Get(definition)`.
+5. When the layout changes, raise `SchemaVersion` and implement `MigrateAuthoring`.
+
+Values that need no type of their own go in a field set, which designers build without code ([Field sets](#field-sets-1)).
 
 ### Adding a save type
 
@@ -1888,7 +2095,7 @@ Every subsystem is reached the same way, from any script, from Awake onwards.
 
 | Need | Call |
 | --- | --- |
-| Use a subsystem's API | Its static methods: `Iris.Publish(…)`, `Aura.Play(…)`, `Wallet.Add(…)` |
+| Use a subsystem's API | Its static methods: `Iris.Publish(…)`, `Chronos.Pause()`, `Aura.Play(…)`, `Wallet.Add(…)` |
 | The instance | `Wallet.Instance` (throws `SubsystemUnavailableException` with the reason when it is not part of the session or failed) |
 | Check existence and linkage to the core | `Wallet.TryGetSingleton(out var wallet)`; it never starts a subsystem |
 | The core | `Threadlink.TryGetSingleton(out var core)`, `Threadlink.Instance`, `Threadlink.IsDeployed` |
@@ -1919,6 +2126,7 @@ Entries appear only when their package is installed.
 | **Threadlink ▸ Generate IDs** | core | Regenerates `GameScenes`, `GameInput`, `AudioCategories`, the platform IDs (`Achievements`, `Statistics`, `Leaderboards`, `Products`) and the ID domains; also runs automatically when their sources change. See [Generated IDs](#generated-ids-1). |
 | **Threadlink ▸ Content Mapping** | core | Opens the Workspace's Content page: tick the Addressables entries to map, then Apply. |
 | **Assets ▸ Threadlink ▸ Map for Loading by ID** | core | Maps the selected addressable assets, as ticking them on the Content page does. |
+| **Assets ▸ Threadlink ▸ Open in Vault Page** | core | Opens the selected definition on the Workspace's Vault page; also in a definition's Inspector context menu. |
 | **Threadlink ▸ Starter ▸ Open Bootstrap Scene** | `starter` | Opens the imported starter's bootstrap scene. |
 | **Threadlink ▸ Starter ▸ Add Starter Scenes To Build Profile** | `starter` | Adds the starter scenes to the active build profile. |
 
@@ -1932,14 +2140,18 @@ Under **Assets ▸ Create ▸ Threadlink**:
 |---|---|---|
 | **Aura ▸ Audio Cue** | `aura` | An `AudioCue`. |
 | **ID Domain** | core | An `IdDomain`. |
+| **Vault ▸ Field Set** | core | A `VaultFieldSetAsset`: named values designers author without code. |
+| **Dextra ▸ Input Glyphs** | `dextra` | An `InputGlyphs`: button images by device family and control. |
 | **Starter ▸ Starter Content** | `starter` | The starter's designer data. |
 | **Starter ▸ Level Definition** | `starter` | A starter level definition. |
 
-Definition assets are game-defined types; their creation entries come from your project's code. Engineering settings and the Unity packages' configuration assets are created from **Project Settings ▸ Threadlink** or the Workspace's **Configuration** page, not from this menu.
+Other definition assets are game-defined types; their creation entries come from your project's code, and the Vault page's **New** lists them. Engineering settings and the Unity packages' configuration assets are created from **Project Settings ▸ Threadlink** or the Workspace's **Configuration** page, not from this menu.
 
 ### Components
 
-Under **Add Component ▸ Threadlink**: **Aura ▸ Scene Music**, **Dextra ▸ Screen Sounds** (with Aura) and **Dextra ▸ Interaction Sensor**.
+Under **Add Component ▸ Threadlink**: **Aura ▸ Scene Music**, **Aura ▸ Audio Zone**, **Dextra ▸ Screen Sounds** (with Aura), **Dextra ▸ Input Prompt** (with uGUI) and **Dextra ▸ Interaction Sensor**.
+
+The main toolbar's **Scenes** dropdown opens any Build Profile or Addressables scene.
 
 ## Terminology
 
@@ -1962,10 +2174,14 @@ Under **Add Component ▸ Threadlink**: **Aura ▸ Scene Music**, **Dextra ▸ S
 | **ID domain** | A project-defined list of IDs that generates an enumeration or extends a native domain (see [ID domains](#id-domains)). |
 | **Generated ID** | A typed, stable reference generated from a project source, such as `GameScenes.Forest` or `GameInput.Gameplay.Jump` (see [Generated IDs](#generated-ids-1)). |
 | **Tombstone** | A removed identifier kept as an `[Obsolete]` member so existing data and code still resolve (see [Identifiers and Tombstones](#identifiers-and-tombstones)). |
-| **Claim** | A held right: a scene hold, an input map claim or a screen's input block, released by disposing it. |
+| **Claim** | A held right: a scene hold, an input map claim, a screen's input block or a Chronos pause, released by disposing it. |
 | **Transition** | A Nexus operation that prepares a scene before presenting it and keeps the previous scene if preparation fails. |
 | **Definition** | An authored asset prepared into an immutable runtime value (see [Vault: Typed Definitions](#vault-typed-definitions)). |
 | **Variant** | A definition that inherits from a parent and overrides selected values. |
+| **Field set** | A definition made of named, typed values keyed by generated `VaultFields` IDs, authored without code (see [Field sets](#field-sets)). |
+| **Glyph** | The image a prompt shows for a control on a family of devices, from an Input Glyphs asset (see [Input Prompts and Rebinding](#glyphs)). |
+| **Audio zone** | A place that lowers audio categories as the listener approaches (see [Audio Cues](#audio-zones)). |
+| **Playtime** | Real time played while the game is not paused, counted by Chronos (see [Chronos](#playtime)). |
 | **Save type** | A `[Save("name", version)]` type: a versioned identity for saved data, with explicit migration readers (see [Transactional Saving](#transactional-saving)). |
 | **Provider** | A Sentinel implementation of platform capabilities, such as `LocalProvider` or `SteamProvider`. |
 | **Capability** | A typed platform contract, such as accounts, achievements or cloud storage, reported as supported and available separately. |

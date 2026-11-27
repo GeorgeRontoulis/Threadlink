@@ -104,6 +104,7 @@ namespace Threadforge.Threadlink
         {
             internal int Limit = 32;
             internal float Volume = 1;
+            internal float Duck;
             internal bool Muted;
             internal UniTaskCompletionSource<bool> Fade;
             internal float Start,
@@ -515,7 +516,7 @@ namespace Threadforge.Threadlink
             var category = GetCategory(voice.Cue.CategoryName);
             voice.Source.volume = category.Muted
                 ? 0
-                : voice.BaseVolume * voice.Gain * category.Volume;
+                : voice.BaseVolume * voice.Gain * category.Volume * (1 - category.Duck);
         }
 
         private void ApplyVolumes()
@@ -537,8 +538,54 @@ namespace Threadforge.Threadlink
             }
         }
 
+        private AudioListener zoneListener;
+
+        /// <summary>The audio zones in loaded scenes; they lower categories near the listener.</summary>
+        internal static readonly List<AudioZone> Zones = new List<AudioZone>();
+
+        /// <summary>How much a category is lowered by zones now, from 0 to 1.</summary>
+        internal float DuckOf(string category) => categories.TryGetValue(category, out var found) ? found.Duck : 0;
+
+        // Each category is lowered by the strongest zone around the listener.
+        internal void DuckForZones()
+        {
+            foreach (var category in categories.Values)
+                category.Duck = 0;
+            if (Zones.Count == 0)
+                return;
+            if (zoneListener == null || !zoneListener.isActiveAndEnabled)
+            {
+                zoneListener = null;
+                foreach (var listener in UnityEngine.Object.FindObjectsByType<AudioListener>())
+                    if (listener.isActiveAndEnabled)
+                    {
+                        zoneListener = listener;
+                        break;
+                    }
+            }
+            if (zoneListener == null)
+                return;
+            var position = zoneListener.transform.position;
+            foreach (var zone in Zones)
+            {
+                float strength = zone.Strength(position);
+                if (strength <= 0)
+                    continue;
+                foreach (var lowering in zone.Lowers)
+                {
+                    if (string.IsNullOrEmpty(lowering.Category))
+                        continue;
+                    float amount = Mathf.Clamp01(lowering.Amount) * strength;
+                    var category = GetCategory(lowering.Category);
+                    if (amount > category.Duck)
+                        category.Duck = amount;
+                }
+            }
+        }
+
         private void Tick()
         {
+            DuckForZones();
             foreach (var category in categories.Values)
                 if (category.Fade != null)
                 {

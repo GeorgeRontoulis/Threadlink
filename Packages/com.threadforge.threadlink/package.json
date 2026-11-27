@@ -1,8 +1,8 @@
 {
   "name": "com.threadforge.threadlink",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "displayName": "Threadlink",
-  "description": "The Threadlink core: the subsystem runtime that deploys before the first scene, Iris events, content loading by generated ID through Addressables, Vault typed definitions, generated IDs, engineering settings, memory toolkits and the Editor Workspace with the Runtime monitor, Code Generation and Content pages.",
+  "description": "The Threadlink core: the subsystem runtime that deploys before the first scene, Iris events, Chronos game time, content loading by generated ID through Addressables, Vault typed definitions and field sets, generated IDs, engineering settings, memory toolkits, project setup and the Editor Workspace with the Runtime monitor, Vault, Code Generation and Content pages.",
   "unity": "6000.6",
   "author": {
     "name": "Threadforge",

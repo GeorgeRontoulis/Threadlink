@@ -11,6 +11,7 @@ Entries appear only when their package is installed.
 | **Threadlink ▸ Generate IDs** | core | Regenerates `GameScenes`, `GameInput`, `AudioCategories`, the platform IDs (`Achievements`, `Statistics`, `Leaderboards`, `Products`) and the ID domains; also runs automatically when their sources change. See [Generated IDs](../engineer/editor-tooling.md#generated-ids). |
 | **Threadlink ▸ Content Mapping** | core | Opens the Workspace's Content page: tick the Addressables entries to map, then Apply. |
 | **Assets ▸ Threadlink ▸ Map for Loading by ID** | core | Maps the selected addressable assets, as ticking them on the Content page does. |
+| **Assets ▸ Threadlink ▸ Open in Vault Page** | core | Opens the selected definition on the Workspace's Vault page; also in a definition's Inspector context menu. |
 | **Threadlink ▸ Starter ▸ Open Bootstrap Scene** | `starter` | Opens the imported starter's bootstrap scene. |
 | **Threadlink ▸ Starter ▸ Add Starter Scenes To Build Profile** | `starter` | Adds the starter scenes to the active build profile. |
 
@@ -24,11 +25,15 @@ Under **Assets ▸ Create ▸ Threadlink**:
 |---|---|---|
 | **Aura ▸ Audio Cue** | `aura` | An `AudioCue`. |
 | **ID Domain** | core | An `IdDomain`. |
+| **Vault ▸ Field Set** | core | A `VaultFieldSetAsset`: named values designers author without code. |
+| **Dextra ▸ Input Glyphs** | `dextra` | An `InputGlyphs`: button images by device family and control. |
 | **Starter ▸ Starter Content** | `starter` | The starter's designer data. |
 | **Starter ▸ Level Definition** | `starter` | A starter level definition. |
 
-Definition assets are game-defined types; their creation entries come from your project's code. Engineering settings and the Unity packages' configuration assets are created from **Project Settings ▸ Threadlink** or the Workspace's **Configuration** page, not from this menu.
+Other definition assets are game-defined types; their creation entries come from your project's code, and the Vault page's **New** lists them. Engineering settings and the Unity packages' configuration assets are created from **Project Settings ▸ Threadlink** or the Workspace's **Configuration** page, not from this menu.
 
 ## Components
 
-Under **Add Component ▸ Threadlink**: **Aura ▸ Scene Music**, **Dextra ▸ Screen Sounds** (with Aura) and **Dextra ▸ Interaction Sensor**.
+Under **Add Component ▸ Threadlink**: **Aura ▸ Scene Music**, **Aura ▸ Audio Zone**, **Dextra ▸ Screen Sounds** (with Aura), **Dextra ▸ Input Prompt** (with uGUI) and **Dextra ▸ Interaction Sensor**.
+
+The main toolbar's **Scenes** dropdown opens any Build Profile or Addressables scene.

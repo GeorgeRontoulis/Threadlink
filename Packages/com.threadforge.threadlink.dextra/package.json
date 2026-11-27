@@ -1,8 +1,8 @@
 {
   "name": "com.threadforge.threadlink.dextra",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "displayName": "Threadlink Dextra",
-  "description": "Per-player input with saved rebinding and prompts, layered screens that block gameplay input while open, and interaction targeting.",
+  "description": "Per-player input with saved rebinding and glyph prompts, layered screens that block gameplay input while open and go back with the Back action, and interaction targeting.",
   "unity": "6000.6",
   "author": {
     "name": "Threadforge",
@@ -21,7 +21,7 @@
   "changelogUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.dextra/CHANGELOG.md",
   "licensesUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.dextra/LICENSE.md",
   "dependencies": {
-    "com.threadforge.threadlink": "4.0.0",
+    "com.threadforge.threadlink": "4.1.0",
     "com.unity.inputsystem": "1.20.1",
     "com.unity.modules.uielements": "1.0.0",
     "com.unity.modules.physics": "1.0.0",

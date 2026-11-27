@@ -1,42 +1,42 @@
 {
-  "set": "threadlink-4.0.0",
+  "set": "threadlink-4.1.0",
   "unity": "6000.6.9f1",
   "packages": [
     {
       "name": "com.threadforge.threadlink",
-      "version": "4.0.0"
+      "version": "4.1.0"
     },
     {
       "name": "com.threadforge.threadlink.aura",
-      "version": "4.0.0"
+      "version": "4.1.0"
     },
     {
       "name": "com.threadforge.threadlink.deterministic",
-      "version": "4.0.0"
+      "version": "4.1.0"
     },
     {
       "name": "com.threadforge.threadlink.dextra",
-      "version": "4.0.0"
+      "version": "4.1.0"
     },
     {
       "name": "com.threadforge.threadlink.nexus",
-      "version": "4.0.0"
+      "version": "4.1.0"
     },
     {
       "name": "com.threadforge.threadlink.sentinel",
-      "version": "4.0.0"
+      "version": "4.1.0"
     },
     {
       "name": "com.threadforge.threadlink.sentinel.steam",
-      "version": "4.0.0"
+      "version": "4.1.0"
     },
     {
       "name": "com.threadforge.threadlink.showcase",
-      "version": "4.0.0"
+      "version": "4.1.0"
     },
     {
       "name": "com.threadforge.threadlink.starter",
-      "version": "4.0.0"
+      "version": "4.1.0"
     }
   ]
 }

@@ -7,8 +7,19 @@ namespace Threadforge.Threadlink
 
     /// <summary>UI Toolkit view adapter for an explicitly configured UIDocument and PanelSettings.</summary>
     [RequireComponent(typeof(UIDocument))]
-    public class ToolkitScreen : MonoBehaviour, IScreenView
+    public class ToolkitScreen : MonoBehaviour, IScreenView, IBackPolicy
     {
+        [SerializeField]
+        [Tooltip("Close this screen when the player presses Back (Project Settings ▸ Threadlink ▸ Dextra), unless something on it handles Back.")]
+        private bool closesOnBack;
+
+        /// <summary>Whether Back closes this screen; read when the screen opens.</summary>
+        public bool ClosesOnBack
+        {
+            get => closesOnBack;
+            set => closesOnBack = value;
+        }
+
         private VisualElement root;
         private Focusable previous;
 

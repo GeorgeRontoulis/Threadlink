@@ -19,10 +19,14 @@
 | **ID domain** | A project-defined list of IDs that generates an enumeration or extends a native domain (see [ID domains](../engineer/editor-tooling.md#id-domains)). |
 | **Generated ID** | A typed, stable reference generated from a project source, such as `GameScenes.Forest` or `GameInput.Gameplay.Jump` (see [Generated IDs](../engineer/editor-tooling.md#generated-ids)). |
 | **Tombstone** | A removed identifier kept as an `[Obsolete]` member so existing data and code still resolve (see [Identifiers and Tombstones](../designer/identifiers.md)). |
-| **Claim** | A held right: a scene hold, an input map claim or a screen's input block, released by disposing it. |
+| **Claim** | A held right: a scene hold, an input map claim, a screen's input block or a Chronos pause, released by disposing it. |
 | **Transition** | A Nexus operation that prepares a scene before presenting it and keeps the previous scene if preparation fails. |
 | **Definition** | An authored asset prepared into an immutable runtime value (see [Vault: Typed Definitions](../designer/vault.md)). |
 | **Variant** | A definition that inherits from a parent and overrides selected values. |
+| **Field set** | A definition made of named, typed values keyed by generated `VaultFields` IDs, authored without code (see [Field sets](../designer/vault.md#field-sets)). |
+| **Glyph** | The image a prompt shows for a control on a family of devices, from an Input Glyphs asset (see [Input Prompts and Rebinding](../designer/input-prompts.md#glyphs)). |
+| **Audio zone** | A place that lowers audio categories as the listener approaches (see [Audio Cues](../designer/audio.md#audio-zones)). |
+| **Playtime** | Real time played while the game is not paused, counted by Chronos (see [Chronos](../engineer/chronos.md#playtime)). |
 | **Save type** | A `[Save("name", version)]` type: a versioned identity for saved data, with explicit migration readers (see [Transactional Saving](../engineer/sentinel/saving.md)). |
 | **Provider** | A Sentinel implementation of platform capabilities, such as `LocalProvider` or `SteamProvider`. |
 | **Capability** | A typed platform contract, such as accounts, achievements or cloud storage, reported as supported and available separately. |
