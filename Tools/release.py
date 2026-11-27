@@ -46,8 +46,6 @@ TOPICS = {
 }
 HUNTER = "GeorgeRontoulis"
 IMAGE = f"https://raw.githubusercontent.com/GeorgeRontoulis/Threadlink/{BRANCH}/Threadforge/Threadlink_Banner.png"
-# Assemblies of optional packages a project may not install; they cannot be referenced by GUID until present.
-OPTIONAL_ASSEMBLIES = {"com.rlabrecque.steamworks.net"}
 
 # name suffix: (display name, description, family, manual page, keywords)
 CATALOG = {
@@ -197,10 +195,10 @@ def check():
                 continue
             if not Path(str(item) + ".meta").exists():
                 problems.append(f"{name}: no .meta for {relative.as_posix()}")
-        # Assembly definitions reference by GUID ("Use GUIDs"); optional wrappers stay named until installed.
+        # Assembly definitions reference by GUID ("Use GUIDs"), optional packages included (Tools/asmdef_guids.py).
         for asmdef in folder.rglob("*.asmdef"):
             named = [ref for ref in json.loads(asmdef.read_text(encoding="utf-8-sig")).get("references", [])
-                     if not ref.startswith("GUID:") and ref not in OPTIONAL_ASSEMBLIES]
+                     if not ref.startswith("GUID:")]
             if named:
                 problems.append(f"{name}: {asmdef.name} references {', '.join(named)} by name (run python Tools/asmdef_guids.py)")
     if len(versions) > 1:

@@ -4,7 +4,8 @@
     python Tools/asmdef_guids.py --check  # fail when any first-party asmdef still references by name
 
 Names resolve through the .meta files of every asmdef in Packages/ and Library/PackageCache/, so it runs without the
-Editor. A reference to an assembly that is not installed stays a name and is reported.
+Editor. Optional packages a project may not install resolve through EXTERNAL; any other reference to an assembly that
+is not installed stays a name and is reported.
 """
 import json
 import re
@@ -13,8 +14,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FIRST_PARTY = [p for p in (ROOT / "Packages").glob("com.threadforge.threadlink*/**/*.asmdef")] + list((ROOT / "Assets/Threadforge").rglob("*.asmdef"))
-# Optional wrappers that a project may not install; their names stay until the package is present.
-OPTIONAL = {"com.rlabrecque.steamworks.net"}
+# Assemblies of optional packages a project may not install, by the GUID of their published asmdef .meta. Unity
+# resolves the reference once the package is present. Steamworks.NET keeps this GUID from 2024.8.0 onwards.
+EXTERNAL = {"com.rlabrecque.steamworks.net": "68bd7fdb68ef2684e982e8a9825b18a5"}
 
 
 def guid_of(asmdef: Path):
@@ -40,6 +42,8 @@ def known_assemblies():
             guid = guid_of(asmdef)
             if guid:
                 found.setdefault(name, guid)
+    for name, guid in EXTERNAL.items():
+        found.setdefault(name, guid)
     return found
 
 
@@ -55,9 +59,7 @@ def main():
         if not pending:
             continue
         if check:
-            missing = [ref for ref in pending if ref not in OPTIONAL]
-            if missing:
-                named.append(f"{asmdef.relative_to(ROOT)}: {', '.join(missing)}")
+            named.append(f"{asmdef.relative_to(ROOT)}: {', '.join(pending)}")
             continue
         start = text.index('"references"')
         open_bracket = text.index("[", start)
@@ -81,7 +83,7 @@ def main():
         return
     print(f"Converted {len(changed)} assembly definition(s).")
     for item in unresolved:
-        print("  kept by name (not installed): " + item)
+        print("  kept by name (not installed; add it to EXTERNAL if it is optional): " + item)
 
 
 if __name__ == "__main__":

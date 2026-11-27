@@ -49,7 +49,7 @@ namespace Threadforge.Threadlink.Tests
                     ),
                     Is.True
                 );
-                Assert.That(candidates.Exists(item => item.Target == interactable), Is.True);
+                Assert.That(candidates.Exists(item => ReferenceEquals(item.Target, interactable)), Is.True);
                 Assert.That(
                     PhysicsTargets.Collect2D(
                         sensor.scene.GetPhysicsScene2D(),
@@ -62,7 +62,7 @@ namespace Threadforge.Threadlink.Tests
                     Is.True
                 );
                 Assert.That(
-                    candidates.Exists(item => item.Target == interactable),
+                    candidates.Exists(item => ReferenceEquals(item.Target, interactable)),
                     Is.True,
                     "2D query scene="
                         + sensor.scene.name
