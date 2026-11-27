@@ -19,7 +19,7 @@ var second = Dextra.AddPlayer(Gamepad.all[1]);      // local multiplayer
 Dextra.RemovePlayer(second);
 ```
 
-| API | Behaviour |
+| API | Behavior |
 | --- | --- |
 | `player.Action(id)`, `WasPressed`, `WasReleased`, `IsPressed`, `Read(InputId<T>)` | Action queries by `InputId`. `Read` returns the action's value type. |
 | `player.Claim(priority, blocksLower, maps)` | Enables `InputMapId` maps by priority while the returned claim lives; a blocking claim suspends lower maps. |

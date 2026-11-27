@@ -6,7 +6,7 @@ Entries appear only when their package is installed.
 
 | Menu path | Package | Action |
 |---|---|---|
-| **Threadlink ▸ Workspace** | core | Opens the workspace window on the Hub (on the Runtime page in Play mode). |
+| **Threadlink ▸ Workspace** | core | Opens the Workspace on the last page used (the Hub the first time; the Runtime page in Play mode). |
 | **Threadlink ▸ Runtime Monitor** | core | Opens the workspace on the Runtime monitor. |
 | **Threadlink ▸ Generate IDs** | core | Regenerates `GameScenes`, `GameInput`, `AudioCategories`, the platform IDs (`Achievements`, `Statistics`, `Leaderboards`, `Products`) and the ID domains; also runs automatically when their sources change. See [Generated IDs](../engineer/editor-tooling.md#generated-ids). |
 | **Threadlink ▸ Content Mapping** | core | Opens the Workspace's Content page: tick the Addressables entries to map, then Apply. |
@@ -27,7 +27,7 @@ Under **Assets ▸ Create ▸ Threadlink**:
 | **Starter ▸ Starter Content** | `starter` | The starter's designer data. |
 | **Starter ▸ Level Definition** | `starter` | A starter level definition. |
 
-Definition assets are game-defined types; their creation entries come from your project's code. Engineering settings are created from **Project Settings ▸ Threadlink**, not from this menu.
+Definition assets are game-defined types; their creation entries come from your project's code. Engineering settings and the Unity packages' configuration assets are created from **Project Settings ▸ Threadlink** or the Workspace's **Configuration** page, not from this menu.
 
 ## Components
 

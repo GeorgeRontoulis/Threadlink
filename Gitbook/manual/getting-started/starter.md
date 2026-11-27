@@ -13,7 +13,7 @@ Move with WASD or the left stick, interact with **E** or the south button, pause
 
 ## How it is built
 
-The whole game flow is one subsystem, `StarterGame`. It requires Nexus, Aura, Dextra and Sentinel, so all of them are running when the bootstrap scene starts. `StarterBootstrap` passes it the designer data and the menu appears; nothing waits for readiness.
+The whole game flow is one subsystem, `StarterGame`. It uses Nexus, Aura, Dextra and Sentinel, which, like every subsystem, are running before the bootstrap scene starts. `StarterBootstrap` passes it the designer data and the menu appears at once; nothing waits for anything to become ready.
 
 | Piece | Kind | Role |
 | --- | --- | --- |

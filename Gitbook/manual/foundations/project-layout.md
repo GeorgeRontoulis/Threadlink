@@ -6,7 +6,7 @@ Threadlink is nine packages. Every package is named `com.threadforge.threadlink[
 
 | Package | Responsibilities |
 |---|---|
-| `com.threadforge.threadlink` | The core: subsystems and the session, Iris events, content loading, Vault definitions, engineering settings, diagnostics, memory toolkits, ownership, the source generator, and the Editor workspace with the Hub and Runtime monitor. |
+| `com.threadforge.threadlink` | The core: subsystems and the session, Iris events, content loading, Vault definitions, engineering settings, diagnostics, memory toolkits, the source generator, and the Editor workspace with the Hub and Runtime monitor. |
 | `.nexus` | Scene transitions. |
 | `.aura` | Audio; scene music, with a Nexus integration. |
 | `.dextra` | Players and input, screens, interaction; screen sounds (with Aura) and uGUI screens (with uGUI). |
@@ -22,7 +22,7 @@ All Threadlink packages share one version. MessagePack comes as `com.threadforge
 - Feature packages depend on the core; the core depends on no feature package.
 - Integrations between features (Aura with Nexus, Dextra with Aura, Dextra with uGUI) are assemblies inside the package that compile only when the other package is installed.
 - Runtime packages never reference project code. Generated project code (content IDs, subsystem registration) references packages, never the reverse.
-- Diagnostics and the Workspace observe; removing their use never changes behaviour.
+- Diagnostics and the Workspace observe; removing them never changes behavior.
 
 ## Design and engineering in the project
 

@@ -5,6 +5,9 @@ The Threadlink core owns every subsystem for the session (see [Architecture](arc
 ```csharp
 public sealed class CoinLabel : MonoBehaviour
 {
+    [SerializeField] private Text label;
+    [SerializeField] private Image image;
+
     private async void Start()
     {
         Iris.Subscribe<CoinsChanged>(this, change => label.text = change.Total.ToString());

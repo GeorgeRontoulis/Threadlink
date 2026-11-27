@@ -14,7 +14,7 @@ Aura.SetVolume(AudioCategories.Music, 0.7f);
 await Aura.FadeVolumeAsync(AudioCategories.Effects, 0, 0.5f);
 ```
 
-| API | Behaviour |
+| API | Behavior |
 | --- | --- |
 | `Aura.Play(cue[, position \| emitter])` | Returns a `PlaybackHandle`, or null when the category or cue voice limit rejects the voice. |
 | `Aura.PlayAsync(ContentAssetId)` | Loads a mapped cue, such as `ContentAssets.Audio.Thunder`; it stays loaded while it plays. |

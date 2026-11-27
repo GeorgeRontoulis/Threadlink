@@ -75,4 +75,6 @@ private void Start() => Iris.Subscribe<DeviceLost>(this, lost => pauseMenu.Open(
 
 ## Announcing your own
 
-Follow the same shape for your subsystems' events: a `readonly struct` named in the past tense, announced with `Iris.TryPublish` when the change happens. Announce what other subsystems react to from `OnSubsystemInit` or later, never from `OnSubsystemBoot`, so every subsystem is subscribed.
+Follow the same shape for your subsystems' events: a `readonly struct` named in the past tense, published with `Iris.TryPublish` when the change happens.
+
+Subscribe in `OnSubsystemBoot`, but publish events other subsystems react to from `OnSubsystemInit` or later. Subsystems boot in no set order, so an event published during boot can miss a subsystem that has not subscribed yet, and Iris does not replay it. By the time any subsystem initializes, every subsystem has booted and subscribed.

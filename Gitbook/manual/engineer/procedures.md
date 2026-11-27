@@ -3,7 +3,7 @@
 ## Adding a subsystem
 
 1. Derive a `public sealed class` from `ThreadlinkSubsystem<T>` with a public parameterless constructor. It registers automatically.
-2. Set up its own state and subscribe to Iris events in `OnSubsystemBoot`; use other subsystems through their `Instance` in `OnSubsystemInit`. Mirror both in `OnSubsystemDeinit` and `OnSubsystemShutdown`. See [Architecture](architecture.md#two-phases-instead-of-a-dependency-order).
+2. Set up its own state and subscribe to Iris events in `OnSubsystemBoot`; use other subsystems through their `Instance` in `OnSubsystemInit`. Undo them in reverse: disconnect from other subsystems in `OnSubsystemDeinit`, release your own state and subscriptions in `OnSubsystemShutdown`. See [Architecture](architecture.md#two-phases-instead-of-a-dependency-order).
 3. Expose its API as static methods built on `Instance`, and describe it in `Report`.
 4. Check **Threadlink ▸ Runtime Monitor** in Play mode: the node, its edges and its report.
 
@@ -11,13 +11,13 @@
 
 1. Derive `public sealed class MySettings : ThreadlinkSettings<MySettings>` with serialized fields, in its own file.
 2. Read `MySettings.Current` from code; override `Validate()` to report problems.
-3. Open **Project Settings ▸ Threadlink ▸ My**; the first edit creates the asset.
+3. Open **Project Settings ▸ Threadlink ▸ My** and select **Create settings** (or **Create** on the Workspace's Configuration page). The asset goes to the engineering configs folder.
 
 ## Adding an event
 
 1. Declare a payload type, usually a `readonly struct` named in the past tense.
 2. Subscribe with `Iris.Subscribe<T>(owner, callback)` so the subscription ends with its owner. A subsystem subscribes in `OnSubsystemBoot`, so it hears what other subsystems announce while they initialize.
-3. Announce a change with `Iris.TryPublish`, as the framework does. An event reaches only the subscribers listening at that moment, so subscribers subscribe first: a subsystem in `OnSubsystemBoot`.
+3. Publish a change with `Iris.TryPublish`, as the framework does. An event reaches only the subscribers listening at that moment, so a subsystem publishes from `OnSubsystemInit` or later, after every subsystem has subscribed in `OnSubsystemBoot`.
 4. For work that must finish before the caller continues, use `Iris.PublishAsync`; for a single answer, `Iris.Respond`/`RequestAsync`.
 
 ## Adding a scene

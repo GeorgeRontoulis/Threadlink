@@ -21,7 +21,7 @@ public sealed class CoinLabel : MonoBehaviour
 Iris.Publish(new CoinsChanged(12));
 ```
 
-| API | Behaviour |
+| API | Behavior |
 | --- | --- |
 | `Iris.Subscribe<T>(callback)` | Returns a `SubscriptionToken`; dispose it to stop delivery. Copies and repeated disposal never remove another listener. |
 | `Iris.Subscribe<T>(owner, callback)` | Ends when the `MonoBehaviour` owner is destroyed. |
@@ -47,7 +47,7 @@ Iris.Respond<NextLevel, int>(this, (request, token) => UniTask.FromResult(reques
 int next = await Iris.RequestAsync<NextLevel, int>(new NextLevel(3));
 ```
 
-| API | Behaviour |
+| API | Behavior |
 | --- | --- |
 | `PublishAsync` | Awaits listeners one after another in subscription order. Cancellation is checked before each listener and passed to every listener. A failure stops the sequence and propagates. |
 | `PublishConcurrentAsync` | Starts every listener and awaits all; one failure is rethrown, several are aggregated. |

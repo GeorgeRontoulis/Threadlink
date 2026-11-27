@@ -24,24 +24,24 @@ var portrait = await Content.LoadAsync<Sprite>(ContentAssets.Characters.HeroPort
 icon.sprite = portrait.Asset;
 
 var slime = await Content.InstantiateAsync<Enemy>(ContentPrefabs.Characters.Slime, spawn.position, spawn.rotation);
-slime.Asset.Alert();                       // the prefab's root component, typed
+Enemy enemy = slime.Asset;                 // the instance's root component, as your Enemy type
 slime.Dispose();                           // releases it: destroys the instance
 
 var cave = await Content.LoadSceneAsync(ContentScenes.Levels.Cave);              // or Nexus.LoadAsync for a transition
 var forest = await Content.LoadAllAsync<AudioCue>(ContentLabels.Forest, owner: this); // every asset with the label
 ```
 
-| API | Behaviour |
+| API | Behavior |
 | --- | --- |
 | `Content.LoadAsync<T>(ContentAssetId[, token])` / `(id, owner)` | Loads an asset as `T`, any `UnityEngine.Object` type it can load as. One request per call; the asset stays loaded until the request is released, or until the `MonoBehaviour` owner is destroyed. |
 | `Content.LoadAllAsync<T>(ids)` | Loads several assets; if any fails, the others are released. |
 | `Content.LoadAsync(ContentPrefabId)` / `LoadAsync<T>(ContentPrefabId)` | Loads a prefab without instantiating it, as a `GameObject` or its root component `T`. |
 | `Content.InstantiateAsync(ContentPrefabId[, position, rotation, parent])`, `InstantiateAsync<T>(…)` / `(id, owner)` | Instantiates a prefab, as a `GameObject` or its root component `T`; releasing the request destroys the instance. |
 | `Content.LoadSceneAsync(ContentSceneId)` | An additive scene you manage yourself. Use [Nexus](nexus.md) for transitions. |
-| `Content.LoadAllAsync<T>(label[, token])` / `(label, owner)` | Every asset with an Addressables label as one request (`ResourceRequest<IList<T>>`); releasing it releases them all. A component type loads labelled prefabs and holds each root's component. |
+| `Content.LoadAllAsync<T>(label[, token])` / `(label, owner)` | Every asset with an Addressables label as one request (`ResourceRequest<IList<T>>`); releasing it releases them all. A component type loads labeled prefabs and holds each root's component. |
 | `ResourceRequest<T>` | `Asset`, `IsReleased`, `Dispose()` (releases; idempotent, so `using` works), `ReleaseAsync()` (releases and awaits backend cleanup). |
 | `Content.Map(id, key)` | Maps an ID to a backend key from code, for tests, tools and content generated at runtime. |
 | `Content.UseBackend(backend)` | Loads through another `IContentBackend` (Resources, streamed or generated content); `null` returns to Addressables. |
 
-Requests never share a hidden cache: two loads are two obligations, and Addressables keeps the reference counting. An unmapped ID throws `KeyNotFoundException`; loading an asset as a component, or a prefab as an asset type, throws before anything loads; a prefab without the requested root component is released and throws `InvalidOperationException`. A custom `IContentBackend` implements `Acquire` and, for labels, `AcquireLabel`. Outstanding requests appear in the Runtime monitor under Content, and any still held when the session ends are logged. A load that fails (not one that is cancelled) is also announced as `ContentLoadFailed` on Iris, with the content's identity, the kind of request and the error, for diagnostics.
+Each call is its own request, with no hidden cache: loading the same asset twice gives two requests, each released separately, and Addressables counts the references. An unmapped ID throws `KeyNotFoundException`; loading an asset as a component, or a prefab as an asset type, throws before anything loads; a prefab without the requested root component is released and throws `InvalidOperationException`. A custom `IContentBackend` implements `Acquire` and, for labels, `AcquireLabel`. Outstanding requests appear in the Runtime monitor under Content, and any still held when the session ends are logged. A load that fails (not one that is cancelled) is also announced as `ContentLoadFailed` on Iris, with the content's identity, the kind of request and the error, for diagnostics.
 

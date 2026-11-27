@@ -14,7 +14,7 @@ if (Sentinel.TryGet<IStatistics>(out var statistics))
     await statistics.WriteAsync(Statistics.LanternsFound, lanterns, Sentinel.Accounts.Capture().Token);
 ```
 
-| API | Behaviour |
+| API | Behavior |
 | --- | --- |
 | `Sentinel.Account`, `Sentinel.Accounts` | The signed-in account and the `AccountSession`. `Accounts.Capture()` returns a lease whose token is cancelled when the player switches account. |
 | `Sentinel.SelectProfile(name)` | Selects a local profile. The default profile is set in **Project Settings ▸ Threadlink ▸ Sentinel**. |
@@ -34,7 +34,7 @@ Sentinel does not know where platform data comes from. Each platform authors its
 | `LeaderboardId` | `Leaderboards` | `ILeaderboards` |
 | `ProductId` | `Products` | `IEntitlements`, `ICommerce`, `CatalogItem.Product`, `PurchaseReceipt.Product` |
 
-Sentinel passes an ID to the selected provider unchanged, and the provider resolves it against its own authoring, much as a boxed value is unboxed to its concrete type. An ID a platform does not author fails there with `NotFound`, so the same game code runs on every platform. Products the provider reports (catalog items, receipts) come back translated to `ProductId`.
+Sentinel passes an ID to the selected provider unchanged, and the provider looks it up in its own authoring to find the platform's native name. An ID a platform does not author fails there with `NotFound`, so the same game code runs on every platform. Products the provider reports (catalog items, receipts) come back translated to `ProductId`.
 
 The generated classes are the union of what installed platforms author (see [Generated IDs](../editor-tooling.md#generated-ids)): an entry named `first-chest` becomes `Achievements.FirstChest`, and its documentation lists each platform's native name. Give an achievement the same name on every platform; the **Platform services** validator warns when an ID is authored on some installed platforms but not others. `new AchievementId(name)` and its siblings cover names known only at runtime.
 
@@ -42,7 +42,7 @@ A platform package reports its authoring to the generator by implementing `IPlat
 
 ## Accounts
 
-`AccountIdentity` pairs a provider and an account string; equal strings from different providers are different accounts. Changing account invalidates earlier leases; adapters observe the cancellation and recheck before applying results. Operations that may already have committed natively are reconciled, never blindly retried.
+`AccountIdentity` pairs a provider and an account string; equal strings from different providers are different accounts. When the player switches account, the token of every earlier `Accounts.Capture()` lease is cancelled, so work started for the old account stops before it applies its results. An operation that may already have reached the platform reports that (`MayHaveCommitted`) instead of being retried.
 
 ## Events
 

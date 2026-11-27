@@ -24,7 +24,12 @@ Boot and initialization split what a subsystem does to itself from what it does 
 | Deinitialize | `OnSubsystemDeinit()` | Disconnects from other subsystems. | Every subsystem: none has shut down yet. |
 | Shut down | `OnSubsystemShutdown()` | Releases the subsystem's own state. | Itself and Iris. |
 
-A subsystem that reaches a state only while it initializes (Steam signing in, a platform taking over accounts) announces it on Iris. Subscribe while booting, and the announcement arrives whichever subsystem initializes first. State another subsystem reaches during its initialization arrives through its events, not from `OnSubsystemInit`. An event reaches only the subscribers listening when it is announced; Iris never replays one. See [Framework Events](events.md).
+Some state only exists once a subsystem has initialized: Steam signed in, or a platform's account selected. You can't read it reliably from your own `OnSubsystemInit`, because the other subsystem may initialize after yours. Instead, that subsystem announces the change on Iris, and you react to the event:
+
+- **Subscribe in `OnSubsystemBoot`.** Every subsystem boots before any initializes, so all subscriptions exist before the first announcement.
+- **Publish from `OnSubsystemInit` or later.** Subsystems boot in no set order, so an event published during boot can reach a subsystem that has not subscribed yet.
+
+An event reaches only the subscribers listening when it is published; Iris never replays one. See [Framework Events](events.md).
 
 Keep both phases to the work that has to happen before the first scene: wiring, subscriptions, starting an SDK that must start early. Loading, waiting and reading files belong to the asynchronous APIs, after startup.
 
@@ -86,7 +91,7 @@ Framework subsystems follow the same pattern and expose their API as static meth
 
 | Kind | Lives in | Edited by |
 | --- | --- | --- |
-| Composition and behaviour | Code: subsystems, components, save types | Engineers |
+| Composition and behavior | Code: subsystems, components, save types | Engineers |
 | Engineering settings | `ThreadlinkSettings<T>` assets in `Engineering/Configs` or the folder chosen on the Workspace's Configuration page, edited only in **Project Settings ▸ Threadlink**, read-only in the Inspector, preloaded in players | Engineers |
 | Designer data | Assets and scene components: `AudioCue`, `SceneMusic`, `VaultAsset`, screen documents, tuning values | Designers |
 

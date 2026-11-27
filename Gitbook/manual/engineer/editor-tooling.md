@@ -18,7 +18,7 @@ Open **Threadlink ▸ Workspace** for a UI Toolkit window, in the Threadlink the
 | Localization | Dextra | Localization setup, locales, string tables and their folders |
 | Starter | Starter | Sample import, build-scene setup and starter content checks |
 
-The Hub opens first; in Play mode the Workspace switches to the Runtime page. The Hub's package list comes from a catalog shipped with the core for its release, so it lists packages that are not installed yet. Install and Update request the release version through the Package Manager; Remove is offered only for packages added directly to the project and not required by another installed Threadlink package. When `Packages/manifest.json` lacks the OpenUPM registry or the `com.threadforge` scope, **Add Registry** adds it after confirmation and leaves every other entry unchanged.
+The Workspace opens on the last page used (the Hub the first time) and switches to the Runtime page in Play mode. The Hub's package list comes from a catalog shipped with the core for its release, so it lists packages that are not installed yet. Install and Update request the release version through the Package Manager; Remove is offered only for packages added directly to the project and not required by another installed Threadlink package. When `Packages/manifest.json` lacks the OpenUPM registry or the `com.threadforge` scope, **Add Registry** adds it after confirmation and leaves every other entry unchanged.
 
 ## Configuration assets and folders
 
@@ -118,11 +118,11 @@ A package adds a native domain by implementing `IIdDomainTarget` in an Editor as
 
 ## Engineering settings
 
-**Project Settings ▸ Threadlink** itself is a read-only overview: the framework version, the session state, and every settings page with its owning package and status (defaults, configured, or the problem its validation reports). The core has no settings of its own. Below it, Threadlink has one page per settings type (Aura, Dextra, Sentinel, Steam and any project type deriving from `ThreadlinkSettings<T>`). The first edit creates the asset in `Assets/Threadforge/Threadlink User/Engineering/Configs`; the asset is read-only in the Inspector and added to the player's preloaded assets at build. Problems reported by `Validate()` show on the page and in the Validation page.
+**Project Settings ▸ Threadlink** itself is a read-only overview: the framework version, the session state, and every settings page with its owning package and status (defaults, configured, or the problem its validation reports). The core has no settings of its own. Below it, Threadlink has one page per settings type (Aura, Dextra, Sentinel, Steam and any project type deriving from `ThreadlinkSettings<T>`). A page without an asset shows **Create settings**, which creates it in the engineering configs folder ([Configuration assets and folders](#configuration-assets-and-folders)); settings without an asset use their defaults. The asset is read-only in the Inspector and added to the player's preloaded assets at build. Problems reported by `Validate()` show on the page and in the Validation page.
 
 ## Extending the Workspace
 
-Derive a public class from `WorkspacePage` (implement `IFillsWorkspace` for a page that fills the window instead of scrolling) or implement `IWorkspaceValidator`, with a public parameterless constructor, in an Editor assembly that references `Threadforge.Threadlink.Editor`. Use `WorkspaceUI` and `ThreadlinkTheme.Apply` for consistent styling. Pages and validators are discovered with `TypeCache`; runtime assemblies are never scanned. Validators report issues and never modify assets; `WorkspaceValidation.RunAll()` runs them from scripts and continuous integration.
+Derive a public class from `WorkspacePage` (implement `IFillsWorkspace` for a page that fills the window instead of scrolling) or implement `IWorkspaceValidator`, with a public parameterless constructor, in an Editor assembly that references `Threadforge.Threadlink.Editor`. Use `WorkspaceUI`, `ConfigUI` and `ThreadlinkTheme` for consistent styling: `ThreadlinkTheme.Apply` on an element you own, or `ThreadlinkTheme.Host(parent)` where the parent is shared, such as the root a Project Settings page receives. Pages and validators are discovered with `TypeCache`; runtime assemblies are never scanned. Validators report issues and never modify assets; `WorkspaceValidation.RunAll()` runs them from scripts and continuous integration.
 
 ## Framework development tools
 

@@ -15,7 +15,7 @@
 
 1. Select the definition asset or the variant you want to change.
 2. In a variant, enable the override for each value you change; leave the others inherited.
-3. Use **Validate Definition** before saving.
+3. Select **Validate Vault Asset** in the Inspector to check it.
 
 ## Adding a sound
 

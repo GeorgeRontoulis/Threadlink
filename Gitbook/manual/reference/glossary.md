@@ -2,7 +2,7 @@
 
 | Term | Definition |
 |---|---|
-| **Package** | One installable `com.threadforge.threadlink.*` unit with its own version and declared dependencies. |
+| **Package** | One installable `com.threadforge.threadlink.*` unit with its declared dependencies. All Threadlink packages share one version. |
 | **Integration** | An assembly inside a package that connects it to another package, such as Aura's scene music for Nexus, and compiles only when that package is installed. |
 | **Core** | The `Threadlink` runtime that owns the session's subsystems (see [Architecture](../engineer/architecture.md)). |
 | **Subsystem** | A `ThreadlinkSubsystem<T>` that lives for the whole session: registered automatically, started before the first scene, reached through `Instance` or `TryGetSingleton` (see [Subsystem Access](service-access.md)). |

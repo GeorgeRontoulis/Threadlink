@@ -14,7 +14,7 @@ public sealed class Portal : MonoBehaviour
 }
 ```
 
-| API | Behaviour |
+| API | Behavior |
 | --- | --- |
 | `Nexus.LoadAsync(SceneId)` | Loads a Build Profile scene, prepares it, presents it, unloads the previous one. Returns the `SceneTransition`. A `SceneReference` converts to its `SceneId`. |
 | `Nexus.LoadAsync(ContentSceneId)` | The same for a mapped Addressables scene (see [Resource Loading](resource-loading.md#content-mapping)). |

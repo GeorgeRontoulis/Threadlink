@@ -11,7 +11,7 @@
 
 This is the reference for the Threadlink packages, their Editor tooling and their authoring workflows.
 
-## Organisation
+## How this manual is organized
 
 | Part | Audience | Contents |
 |---|---|---|
@@ -21,7 +21,7 @@ This is the reference for the Threadlink packages, their Editor tooling and thei
 | [Engineer Reference](#engineer-reference) | Programmers | Architecture and the API of every package, saving and platform providers, deterministic and memory tooling, diagnostics, Editor tooling and performance. |
 | [Reference](#subsystem-access) | All | Subsystem access, menus and asset-creation entries, terminology. |
 
-> All API names, menu paths and asset-creation entries in this manual are drawn from package source. Capabilities that need hardware, accounts or SDKs that were not available for verification are identified as such.
+> API names, menu paths and asset-creation entries in this manual come from the package source. Where a capability needs hardware, an account or an SDK to verify, the page says so.
 
 ## Where to start
 
@@ -80,7 +80,7 @@ Threadlink targets .NET Standard 2.1 APIs, uses [UniTask](https://github.com/Cys
 
 ## Installation and Project Setup
 
-Threadlink is a set of Unity packages published on [OpenUPM](https://openupm.com), a scoped registry that the Unity Package Manager installs from with dependencies resolved automatically. All Threadlink packages share one version; this manual describes **3.0.0**.
+Threadlink is a set of Unity packages published on [OpenUPM](https://openupm.com), a scoped registry that the Unity Package Manager installs from with dependencies resolved automatically. All Threadlink packages share one version; this manual describes **4.0.0**.
 
 ### Install with the OpenUPM command-line tool
 
@@ -159,7 +159,7 @@ Move with WASD or the left stick, interact with **E** or the south button, pause
 
 ### How it is built
 
-The whole game flow is one subsystem, `StarterGame`. It requires Nexus, Aura, Dextra and Sentinel, so all of them are running when the bootstrap scene starts. `StarterBootstrap` passes it the designer data and the menu appears; nothing waits for readiness.
+The whole game flow is one subsystem, `StarterGame`. It uses Nexus, Aura, Dextra and Sentinel, which, like every subsystem, are running before the bootstrap scene starts. `StarterBootstrap` passes it the designer data and the menu appears at once; nothing waits for anything to become ready.
 
 | Piece | Kind | Role |
 | --- | --- | --- |
@@ -252,7 +252,7 @@ Threadlink is nine packages. Every package is named `com.threadforge.threadlink[
 
 | Package | Responsibilities |
 |---|---|
-| `com.threadforge.threadlink` | The core: subsystems and the session, Iris events, content loading, Vault definitions, engineering settings, diagnostics, memory toolkits, ownership, the source generator, and the Editor workspace with the Hub and Runtime monitor. |
+| `com.threadforge.threadlink` | The core: subsystems and the session, Iris events, content loading, Vault definitions, engineering settings, diagnostics, memory toolkits, the source generator, and the Editor workspace with the Hub and Runtime monitor. |
 | `.nexus` | Scene transitions. |
 | `.aura` | Audio; scene music, with a Nexus integration. |
 | `.dextra` | Players and input, screens, interaction; screen sounds (with Aura) and uGUI screens (with uGUI). |
@@ -268,7 +268,7 @@ All Threadlink packages share one version. MessagePack comes as `com.threadforge
 - Feature packages depend on the core; the core depends on no feature package.
 - Integrations between features (Aura with Nexus, Dextra with Aura, Dextra with uGUI) are assemblies inside the package that compile only when the other package is installed.
 - Runtime packages never reference project code. Generated project code (content IDs, subsystem registration) references packages, never the reverse.
-- Diagnostics and the Workspace observe; removing their use never changes behaviour.
+- Diagnostics and the Workspace observe; removing them never changes behavior.
 
 ### Design and engineering in the project
 
@@ -300,7 +300,7 @@ This volume covers authoring in the Unity Editor without writing C#. Engineers d
 | [Registering Content](#registering-content) | Mapping addressable assets, prefabs and scenes for loading by ID. |
 | [Designer Procedures](#designer-procedures) | Step-by-step tasks. |
 
-Designer data never selects code: engineering settings live in Project Settings and are not edited from the Inspector. Open **Threadlink ▸ Workspace** for one window with the project's content, definitions, input and validation pages, and **Threadlink ▸ Runtime Monitor** in Play mode to see the running game.
+Designer data never selects code: engineering settings live in Project Settings and are not edited from the Inspector. Open **Threadlink ▸ Workspace** for one window with the project's content, definitions, input, localization, configuration and validation pages, and **Threadlink ▸ Runtime Monitor** in Play mode to see the running game.
 
 ## Identifiers and Tombstones
 
@@ -487,7 +487,7 @@ Removing or renaming content follows the rules in [Identifiers and Tombstones](#
 
 1. Select the definition asset or the variant you want to change.
 2. In a variant, enable the override for each value you change; leave the others inherited.
-3. Use **Validate Definition** before saving.
+3. Select **Validate Vault Asset** in the Inspector to check it.
 
 ### Adding a sound
 
@@ -557,7 +557,12 @@ Boot and initialization split what a subsystem does to itself from what it does 
 | Deinitialize | `OnSubsystemDeinit()` | Disconnects from other subsystems. | Every subsystem: none has shut down yet. |
 | Shut down | `OnSubsystemShutdown()` | Releases the subsystem's own state. | Itself and Iris. |
 
-A subsystem that reaches a state only while it initializes (Steam signing in, a platform taking over accounts) announces it on Iris. Subscribe while booting, and the announcement arrives whichever subsystem initializes first. State another subsystem reaches during its initialization arrives through its events, not from `OnSubsystemInit`. An event reaches only the subscribers listening when it is announced; Iris never replays one. See [Framework Events](#framework-events).
+Some state only exists once a subsystem has initialized: Steam signed in, or a platform's account selected. You can't read it reliably from your own `OnSubsystemInit`, because the other subsystem may initialize after yours. Instead, that subsystem announces the change on Iris, and you react to the event:
+
+- **Subscribe in `OnSubsystemBoot`.** Every subsystem boots before any initializes, so all subscriptions exist before the first announcement.
+- **Publish from `OnSubsystemInit` or later.** Subsystems boot in no set order, so an event published during boot can reach a subsystem that has not subscribed yet.
+
+An event reaches only the subscribers listening when it is published; Iris never replays one. See [Framework Events](#framework-events).
 
 Keep both phases to the work that has to happen before the first scene: wiring, subscriptions, starting an SDK that must start early. Loading, waiting and reading files belong to the asynchronous APIs, after startup.
 
@@ -619,7 +624,7 @@ Framework subsystems follow the same pattern and expose their API as static meth
 
 | Kind | Lives in | Edited by |
 | --- | --- | --- |
-| Composition and behaviour | Code: subsystems, components, save types | Engineers |
+| Composition and behavior | Code: subsystems, components, save types | Engineers |
 | Engineering settings | `ThreadlinkSettings<T>` assets in `Engineering/Configs` or the folder chosen on the Workspace's Configuration page, edited only in **Project Settings ▸ Threadlink**, read-only in the Inspector, preloaded in players | Engineers |
 | Designer data | Assets and scene components: `AudioCue`, `SceneMusic`, `VaultAsset`, screen documents, tuning values | Designers |
 
@@ -644,6 +649,9 @@ The Threadlink core owns every subsystem for the session (see [Architecture](#ar
 ```csharp
 public sealed class CoinLabel : MonoBehaviour
 {
+    [SerializeField] private Text label;
+    [SerializeField] private Image image;
+
     private async void Start()
     {
         Iris.Subscribe<CoinsChanged>(this, change => label.text = change.Total.ToString());
@@ -685,7 +693,7 @@ public sealed class CoinLabel : MonoBehaviour
 Iris.Publish(new CoinsChanged(12));
 ```
 
-| API | Behaviour |
+| API | Behavior |
 | --- | --- |
 | `Iris.Subscribe<T>(callback)` | Returns a `SubscriptionToken`; dispose it to stop delivery. Copies and repeated disposal never remove another listener. |
 | `Iris.Subscribe<T>(owner, callback)` | Ends when the `MonoBehaviour` owner is destroyed. |
@@ -711,7 +719,7 @@ Iris.Respond<NextLevel, int>(this, (request, token) => UniTask.FromResult(reques
 int next = await Iris.RequestAsync<NextLevel, int>(new NextLevel(3));
 ```
 
-| API | Behaviour |
+| API | Behavior |
 | --- | --- |
 | `PublishAsync` | Awaits listeners one after another in subscription order. Cancellation is checked before each listener and passed to every listener. A failure stops the sequence and propagates. |
 | `PublishConcurrentAsync` | Starts every listener and awaits all; one failure is rethrown, several are aggregated. |
@@ -796,7 +804,9 @@ private void Start() => Iris.Subscribe<DeviceLost>(this, lost => pauseMenu.Open(
 
 ### Announcing your own
 
-Follow the same shape for your subsystems' events: a `readonly struct` named in the past tense, announced with `Iris.TryPublish` when the change happens. Announce what other subsystems react to from `OnSubsystemInit` or later, never from `OnSubsystemBoot`, so every subsystem is subscribed.
+Follow the same shape for your subsystems' events: a `readonly struct` named in the past tense, published with `Iris.TryPublish` when the change happens.
+
+Subscribe in `OnSubsystemBoot`, but publish events other subsystems react to from `OnSubsystemInit` or later. Subsystems boot in no set order, so an event published during boot can miss a subsystem that has not subscribed yet, and Iris does not replay it. By the time any subsystem initializes, every subsystem has booted and subscribed.
 
 ## Nexus: Scene Management
 
@@ -814,7 +824,7 @@ public sealed class Portal : MonoBehaviour
 }
 ```
 
-| API | Behaviour |
+| API | Behavior |
 | --- | --- |
 | `Nexus.LoadAsync(SceneId)` | Loads a Build Profile scene, prepares it, presents it, unloads the previous one. Returns the `SceneTransition`. A `SceneReference` converts to its `SceneId`. |
 | `Nexus.LoadAsync(ContentSceneId)` | The same for a mapped Addressables scene (see [Resource Loading](#content-mapping)). |
@@ -873,7 +883,7 @@ var second = Dextra.AddPlayer(Gamepad.all[1]);      // local multiplayer
 Dextra.RemovePlayer(second);
 ```
 
-| API | Behaviour |
+| API | Behavior |
 | --- | --- |
 | `player.Action(id)`, `WasPressed`, `WasReleased`, `IsPressed`, `Read(InputId<T>)` | Action queries by `InputId`. `Read` returns the action's value type. |
 | `player.Claim(priority, blocksLower, maps)` | Enables `InputMapId` maps by priority while the returned claim lives; a blocking claim suspends lower maps. |
@@ -960,7 +970,7 @@ Aura.SetVolume(AudioCategories.Music, 0.7f);
 await Aura.FadeVolumeAsync(AudioCategories.Effects, 0, 0.5f);
 ```
 
-| API | Behaviour |
+| API | Behavior |
 | --- | --- |
 | `Aura.Play(cue[, position \| emitter])` | Returns a `PlaybackHandle`, or null when the category or cue voice limit rejects the voice. |
 | `Aura.PlayAsync(ContentAssetId)` | Loads a mapped cue, such as `ContentAssets.Audio.Thunder`; it stays loaded while it plays. |
@@ -982,7 +992,7 @@ Scene music is designer data: add **Threadlink ▸ Aura ▸ Scene Music** to a s
 
 ## Sentinel: Platform Services
 
-Sentinel (`com.threadforge.threadlink.sentinel`) owns accounts, platform capabilities and saves for the session. A local profile is selected before the first scene; a platform package such as [Steam](#modules) adds its provider and capabilities route to it. Saves are described in [Transactional Saving](#transactional-saving).
+Sentinel (`com.threadforge.threadlink.sentinel`) owns accounts, platform capabilities and saves for the session. A local profile is selected before the first scene; a platform package such as [Steam](#providers-1) adds its provider and capabilities route to it. Saves are described in [Transactional Saving](#transactional-saving).
 
 ```csharp
 var account = Sentinel.Account;                                   // provider-qualified identity, or null
@@ -996,7 +1006,7 @@ if (Sentinel.TryGet<IStatistics>(out var statistics))
     await statistics.WriteAsync(Statistics.LanternsFound, lanterns, Sentinel.Accounts.Capture().Token);
 ```
 
-| API | Behaviour |
+| API | Behavior |
 | --- | --- |
 | `Sentinel.Account`, `Sentinel.Accounts` | The signed-in account and the `AccountSession`. `Accounts.Capture()` returns a lease whose token is cancelled when the player switches account. |
 | `Sentinel.SelectProfile(name)` | Selects a local profile. The default profile is set in **Project Settings ▸ Threadlink ▸ Sentinel**. |
@@ -1016,7 +1026,7 @@ Sentinel does not know where platform data comes from. Each platform authors its
 | `LeaderboardId` | `Leaderboards` | `ILeaderboards` |
 | `ProductId` | `Products` | `IEntitlements`, `ICommerce`, `CatalogItem.Product`, `PurchaseReceipt.Product` |
 
-Sentinel passes an ID to the selected provider unchanged, and the provider resolves it against its own authoring, much as a boxed value is unboxed to its concrete type. An ID a platform does not author fails there with `NotFound`, so the same game code runs on every platform. Products the provider reports (catalog items, receipts) come back translated to `ProductId`.
+Sentinel passes an ID to the selected provider unchanged, and the provider looks it up in its own authoring to find the platform's native name. An ID a platform does not author fails there with `NotFound`, so the same game code runs on every platform. Products the provider reports (catalog items, receipts) come back translated to `ProductId`.
 
 The generated classes are the union of what installed platforms author (see [Generated IDs](#generated-ids-1)): an entry named `first-chest` becomes `Achievements.FirstChest`, and its documentation lists each platform's native name. Give an achievement the same name on every platform; the **Platform services** validator warns when an ID is authored on some installed platforms but not others. `new AchievementId(name)` and its siblings cover names known only at runtime.
 
@@ -1024,7 +1034,7 @@ A platform package reports its authoring to the generator by implementing `IPlat
 
 ### Accounts
 
-`AccountIdentity` pairs a provider and an account string; equal strings from different providers are different accounts. Changing account invalidates earlier leases; adapters observe the cancellation and recheck before applying results. Operations that may already have committed natively are reconciled, never blindly retried.
+`AccountIdentity` pairs a provider and an account string; equal strings from different providers are different accounts. When the player switches account, the token of every earlier `Accounts.Capture()` lease is cancelled, so work started for the old account stops before it applies its results. An operation that may already have reached the platform reports that (`MayHaveCommitted`) instead of being retried.
 
 ### Events
 
@@ -1076,13 +1086,13 @@ else if (loaded.Error == PersistenceError.CorruptData)
     await Sentinel.Saves.RestorePreviousAsync<GameSave>(0);
 ```
 
-| API | Behaviour |
+| API | Behavior |
 | --- | --- |
 | `Sentinel.Saves.SaveAsync(slot, data, title)` | Writes a slot atomically for the current account. Fails with `Conflict` if the slot changed since this session last read or wrote it. |
 | `LoadAsync<T>(slot)` | `NotFound` for an empty slot, `CorruptData` for damaged data; older versions are migrated. |
 | `List<T>()` | Slots that hold a save of the type. |
 | `DeleteAsync<T>(slot)` | Deletes a slot; earlier versions stay recoverable. |
-| `RestorePreviousAsync<T>(slot)` | Republishes the newest earlier version after validating it. |
+| `RestorePreviousAsync<T>(slot)` | Makes the newest earlier version of the slot current again, after checking it reads correctly. |
 | `AddMigration<T>(fromVersion, read)` | Reads payloads written by an older version. Call it from your save subsystem's `OnSubsystemInit`. |
 
 Slots are numbered from 0 per save type. Saves live under `persistentDataPath/Threadlink/<Save Folder>` in a separate folder per account; switching account switches folders and never moves data. The folder name and size limit are engineering settings (**Project Settings ▸ Threadlink ▸ Sentinel**).
@@ -1122,11 +1132,15 @@ The caller owns the join data: create, authorize, expire and revoke it in the ne
 
 `SteamProvider` implements presence, friends, invites and join intents. Launch connect data and accepted invites are captured as join intents; `SendAsync` invites a Steam friend with a connect string. See [Providers](#steam-provider).
 
-## Modules
+## Providers
+
+A provider connects Sentinel to one platform. Threadlink ships the local provider (in Sentinel) and the Steam provider (`sentinel.steam`, below); other platforms need their own provider, built on the same contracts.
 
 ### Provider requirements
 
-Native integrations implement `ISentinelProvider` and the selected typed capability interfaces. Keep SDK imports in optional adapters. A build should validate its actual selected capabilities through `ProviderRequirements.ValidateSelection`, then apply adapter-specific SDK/configuration validation. Compiling a contract or finding SDK files does not verify a native capability.
+A provider implements `ISentinelProvider` and the capability interfaces it supports. Keep the platform SDK in an optional adapter assembly, so a project without the SDK still compiles. Before shipping, check the capabilities a build selects with `ProviderRequirements.ValidateSelection`, then the adapter's own SDK and configuration checks. A capability counts as verified only once it has run against the real platform: compiling or finding SDK files proves nothing.
+
+What each target needs before its capabilities can be trusted:
 
 | Target | Implementation boundary | Required verification |
 | --- | --- | --- |
@@ -1142,7 +1156,7 @@ Native integrations implement `ISentinelProvider` and the selected typed capabil
 | Xbox Console | Extension contracts and integration groundwork | Authorized console tooling/title/hardware plus native capability tests |
 | Nintendo / Sony | Extension contracts/test doubles | Separately supplied authorized native implementation and device tests |
 
-The public requirement catalog describes these integration boundaries; it does not mark unavailable integrations as installed providers. Test doubles exercise cancellation, conflicts, account isolation and transaction handling without claiming storefront/backend/device verification.
+This table describes what an integration requires; it does not mean a provider exists for every target. Only the local and Steam providers ship with Threadlink. Test doubles exercise cancellation, conflicts, account isolation and transactions, but they do not verify a storefront, backend or device.
 
 Steam's initialization requirements include native SDK integration, a usable client and a configured application/account. See the [Steamworks API overview](https://partner.steamgames.com/doc/sdk/api). PC GDK setup also requires the relevant development/runtime environment; see [Microsoft's development PC requirements](https://learn.microsoft.com/gaming/gdk/docs/gdk-dev/get-started/overviews/set-up-dev-pc). Console and service access must be verified independently of public documentation or SDK installation.
 
@@ -1178,25 +1192,104 @@ Verification uses scripted backends for every capability contract, and clean Mon
 
 ## Vault Runtime API
 
-### Typed definitions
+Vault turns designer-edited assets into immutable values that game code reads. It is part of the core. Designers' side of it is described in [Vault: Typed Definitions](#vault-typed-definitions).
 
-Vault is part of the core. Its types share the codename: authoring classes derive from `VaultAsset<T>` or `VaultVariant<T>`, and preparation uses `VaultContext`, `VaultRecord<T>`, `IVaultSource<T>`, `VaultOverride<T>` and `VaultFieldSet`. `Vault.Get(definition)` returns a definition's prepared, immutable value, prepared once and shared for the session; `Vault.Prepare(definition)` returns it with its identity, schema and version. `VaultContext`, `VaultRecord<T>`, `IVaultSource<T>`, `VaultOverride<T>` and the field containers are available for tools and tests.
+### Defining a type
 
-Derive an authoring class from `VaultAsset<T>` or `VaultVariant<T>`. Declare stable `Schema` and `SchemaVersion` values and explicitly map serialized fields to `T`. The runtime type must expose read-only state and copy mutable collections; returning a mutable asset or list does not become immutable automatically. Nested serialized data and `[SerializeReference]` polymorphism remain native authoring features. No runtime reflection serializer or behavior graph is supplied.
+A definition has two halves: an immutable **runtime type** that game code reads, and an **authoring class** that designers edit. The authoring class derives from `VaultAsset<T>`, declares a schema and its version, and builds the runtime value from its fields:
+
+```csharp
+public sealed class EnemyStats
+{
+    public EnemyStats(string name, int health, float speed) => (Name, Health, Speed) = (name, health, speed);
+
+    public string Name { get; }
+    public int Health { get; }
+    public float Speed { get; }
+}
+
+[CreateAssetMenu(menuName = "Game/Enemy Definition")]
+public sealed class EnemyDefinition : VaultAsset<EnemyStats>
+{
+    public string DisplayName = "Slime";
+    [Min(1)] public int Health = 30;
+    public float Speed = 2;
+
+    public override Guid Schema => new Guid("8a1f2c3d-4e5f-4061-8273-94a5b6c7d8e9");   // fixed forever
+    public override int SchemaVersion => 1;                                             // raised when fields change
+
+    protected override EnemyStats BuildRuntime(VaultContext context)
+    {
+        if (Health < 1)
+            throw new InvalidOperationException("Health must be positive.");
+        return new EnemyStats(DisplayName, Health, Speed);
+    }
+}
+```
+
+Game code reads the prepared value:
 
 ```csharp
 EnemyStats stats = Vault.Get(enemyDefinition);
 ```
 
-Preparation validates schema/version, stable identity, duplicate identities and recursive cycles. Variants prepare their typed parent through the same context, then apply enabled overrides to construct a new runtime value. Parent schemas and versions must match. `VaultOverride<T>.Resolve` inherits when disabled; `Reset` restores inheritance. A prepared result remains independent of later authoring changes when its mapping copies data correctly. Mutable gameplay state belongs in separate objects.
+| API | Behavior |
+| --- | --- |
+| `Vault.Get(definition)` | The definition's runtime value. It is prepared once, on first use, and shared for the session. |
+| `Vault.Prepare(definition)` | The same value as a `VaultRecord<T>`, with its identity, schema and version. |
+| `BuildRuntime(context)` | Builds the runtime value. Throw to reject invalid data; preparation fails with your message. |
+| `ValidateAuthoring()` | Optional checks that run before every preparation and after a migration. Throw to reject the asset. |
+| `MigrateAuthoring(sourceVersion)` | Converts an asset authored with an older `SchemaVersion`; see below. |
 
-New assets receive a persistent authoring GUID and current schema version. Keep that identity through moves and migrations. Existing version mismatches fail explicitly. Implement old-version conversion in `MigrateAuthoring`; run **Apply Explicit Authoring Migration** in Edit mode before building. The Inspector records Undo and restores on failure. Player preparation never silently upgrades authored data. These definition versions are separate from persistence save-schema migrations and identifier tombstones.
+The runtime type must be truly immutable: expose read-only state and copy lists and arrays instead of handing out the asset's own. A prepared value does not change when the asset is edited later. Keep state that changes during play, such as an enemy's current health, in separate objects.
 
-The UI Toolkit Inspector displays identity, schema and authored version, validates the mapping, creates a typed child variant, and reports each `VaultOverride` origin through its parent chain. **Inherit** disables only that override. Package samples include typed nested/polymorphic mapping; consumers may define additional engineering-controlled authoring types.
+Nested serializable data and `[SerializeReference]` polymorphism work as usual in authoring classes; Vault adds no reflection-based serializer.
+
+### Preparation
+
+Preparing a definition checks its schema and version, that its identity is set and unique, and that variants do not form a cycle. Any failure throws, naming the asset; nothing is silently skipped. A definition whose authored version differs from its type's `SchemaVersion` fails until it is migrated.
+
+### Variants
+
+A variant inherits its values from a parent asset of the same type and overrides some of them. Derive from `VaultVariant<T>`, store each overridable value in a `VaultOverride<T>` field, and implement two methods:
+
+| Method | Returns |
+| --- | --- |
+| `BuildDefault(context)` | The value used when the variant has no parent. |
+| `ApplyOverrides(inherited, context)` | A new value: the parent's, with each enabled override applied through `field.Resolve(inherited.Value)`. |
+
+```csharp
+public sealed class EnemyVariant : VaultVariant<EnemyStats>
+{
+    public VaultOverride<int> Health;
+
+    public override Guid Schema => new Guid("8a1f2c3d-4e5f-4061-8273-94a5b6c7d8e9");   // the parent's schema
+    public override int SchemaVersion => 1;
+
+    protected override EnemyStats BuildDefault(VaultContext context) => new EnemyStats("Enemy", 10, 1);
+
+    protected override EnemyStats ApplyOverrides(EnemyStats inherited, VaultContext context) =>
+        new EnemyStats(inherited.Name, Health.Resolve(inherited.Health), inherited.Speed);
+}
+```
+
+A variant must have its parent's schema and version. `VaultOverride<T>.Resolve` returns the inherited value while the override is disabled; `Reset` disables it again. The Inspector shows where each value comes from along the parent chain, and **Inherit** disables one override.
+
+### Authoring versions
+
+A new asset gets a permanent identity (a GUID) and its type's current `SchemaVersion`; moving or renaming it keeps both. When you change an authoring class's fields:
+
+1. Raise `SchemaVersion`.
+2. Override `MigrateAuthoring(sourceVersion)` to convert fields from each older version.
+3. Have designers run **Apply Explicit Authoring Migration** on the listed assets in Edit mode (the Workspace's Vault page lists them). It records Undo and restores the asset if the conversion throws.
+
+Players never upgrade definitions on their own, so migrate every asset before building. Authoring versions are unrelated to save-file versions ([Serialization](#versions-and-migrations)).
 
 ### Vault fields
 
-`VaultFieldSet` is an opt-in bag of immutable scalar values keyed by name. Read it with generated keys: an [ID domain](#id-domains) that extends **Vault fields** generates `VaultFields.Name` (a `VaultField`), so `fields.Get<int>(VaultFields.Damage)` and `fields.TryGet(VaultFields.Damage, out int damage)` are checked by the compiler. A field key is the entry's name in PascalCase.
+`VaultFieldSet` is an optional bag of named, immutable scalar values, for data that does not deserve its own field. Read it with generated keys: an [ID domain](#id-domains) that extends **Vault fields** generates `VaultFields.Name` (a `VaultField`), so `fields.Get<int>(VaultFields.Damage)` and `fields.TryGet(VaultFields.Damage, out int damage)` are checked by the compiler. A key is the entry's name in PascalCase.
+
+`VaultContext`, `VaultRecord<T>`, `IVaultSource<T>`, `VaultOverride<T>` and `VaultFieldSet` are public for tools and tests.
 
 ## Serialization
 
@@ -1271,26 +1364,26 @@ var portrait = await Content.LoadAsync<Sprite>(ContentAssets.Characters.HeroPort
 icon.sprite = portrait.Asset;
 
 var slime = await Content.InstantiateAsync<Enemy>(ContentPrefabs.Characters.Slime, spawn.position, spawn.rotation);
-slime.Asset.Alert();                       // the prefab's root component, typed
+Enemy enemy = slime.Asset;                 // the instance's root component, as your Enemy type
 slime.Dispose();                           // releases it: destroys the instance
 
 var cave = await Content.LoadSceneAsync(ContentScenes.Levels.Cave);              // or Nexus.LoadAsync for a transition
 var forest = await Content.LoadAllAsync<AudioCue>(ContentLabels.Forest, owner: this); // every asset with the label
 ```
 
-| API | Behaviour |
+| API | Behavior |
 | --- | --- |
 | `Content.LoadAsync<T>(ContentAssetId[, token])` / `(id, owner)` | Loads an asset as `T`, any `UnityEngine.Object` type it can load as. One request per call; the asset stays loaded until the request is released, or until the `MonoBehaviour` owner is destroyed. |
 | `Content.LoadAllAsync<T>(ids)` | Loads several assets; if any fails, the others are released. |
 | `Content.LoadAsync(ContentPrefabId)` / `LoadAsync<T>(ContentPrefabId)` | Loads a prefab without instantiating it, as a `GameObject` or its root component `T`. |
 | `Content.InstantiateAsync(ContentPrefabId[, position, rotation, parent])`, `InstantiateAsync<T>(…)` / `(id, owner)` | Instantiates a prefab, as a `GameObject` or its root component `T`; releasing the request destroys the instance. |
 | `Content.LoadSceneAsync(ContentSceneId)` | An additive scene you manage yourself. Use [Nexus](#nexus-scene-management) for transitions. |
-| `Content.LoadAllAsync<T>(label[, token])` / `(label, owner)` | Every asset with an Addressables label as one request (`ResourceRequest<IList<T>>`); releasing it releases them all. A component type loads labelled prefabs and holds each root's component. |
+| `Content.LoadAllAsync<T>(label[, token])` / `(label, owner)` | Every asset with an Addressables label as one request (`ResourceRequest<IList<T>>`); releasing it releases them all. A component type loads labeled prefabs and holds each root's component. |
 | `ResourceRequest<T>` | `Asset`, `IsReleased`, `Dispose()` (releases; idempotent, so `using` works), `ReleaseAsync()` (releases and awaits backend cleanup). |
 | `Content.Map(id, key)` | Maps an ID to a backend key from code, for tests, tools and content generated at runtime. |
 | `Content.UseBackend(backend)` | Loads through another `IContentBackend` (Resources, streamed or generated content); `null` returns to Addressables. |
 
-Requests never share a hidden cache: two loads are two obligations, and Addressables keeps the reference counting. An unmapped ID throws `KeyNotFoundException`; loading an asset as a component, or a prefab as an asset type, throws before anything loads; a prefab without the requested root component is released and throws `InvalidOperationException`. A custom `IContentBackend` implements `Acquire` and, for labels, `AcquireLabel`. Outstanding requests appear in the Runtime monitor under Content, and any still held when the session ends are logged. A load that fails (not one that is cancelled) is also announced as `ContentLoadFailed` on Iris, with the content's identity, the kind of request and the error, for diagnostics.
+Each call is its own request, with no hidden cache: loading the same asset twice gives two requests, each released separately, and Addressables counts the references. An unmapped ID throws `KeyNotFoundException`; loading an asset as a component, or a prefab as an asset type, throws before anything loads; a prefab without the requested root component is released and throws `InvalidOperationException`. A custom `IContentBackend` implements `Acquire` and, for labels, `AcquireLabel`. Outstanding requests appear in the Runtime monitor under Content, and any still held when the session ends are logged. A load that fails (not one that is cancelled) is also announced as `ContentLoadFailed` on Iris, with the content's identity, the kind of request and the error, for diagnostics.
 
 ## Deterministic Toolkit
 
@@ -1465,7 +1558,7 @@ Hashes of raw memory: the same bytes give the same hash on every machine and run
 
 The inline collections are views over a fixed number of slots inside another value's memory, such as a simulation component. Each is a `ref struct` over a pointer, because it points into memory that can be copied or moved (a frame rolled back): it cannot be stored, boxed or captured, so no pointer outlives the call that made it. Elements are `unmanaged`.
 
-| Type | Behaviour |
+| Type | Behavior |
 |---|---|
 | `InlineArray<T>(memory, length)` | `Length` slots, always present. Indexer by reference, `Clear()`, enumeration. |
 | `InlineList<T>(memory, capacity)` | `Count`, indexer, `Add`, `RemoveAt` (moves the last element into the gap), `Clear()`, enumeration. |
@@ -1506,7 +1599,7 @@ NativeAllocator.Free(block);
 
 ## Diagnostics
 
-Threadlink observes itself without changing behaviour: every subsystem reports its state, and the session keeps an operation log. Both appear live in the [Runtime monitor](#runtime-monitor).
+Threadlink observes itself without changing behavior: every subsystem reports its state, and the session keeps an operation log. Both appear live in the [Runtime monitor](#runtime-monitor).
 
 ### Subsystem reports
 
@@ -1568,7 +1661,7 @@ Open **Threadlink ▸ Workspace** for a UI Toolkit window, in the Threadlink the
 | Localization | Dextra | Localization setup, locales, string tables and their folders |
 | Starter | Starter | Sample import, build-scene setup and starter content checks |
 
-The Hub opens first; in Play mode the Workspace switches to the Runtime page. The Hub's package list comes from a catalog shipped with the core for its release, so it lists packages that are not installed yet. Install and Update request the release version through the Package Manager; Remove is offered only for packages added directly to the project and not required by another installed Threadlink package. When `Packages/manifest.json` lacks the OpenUPM registry or the `com.threadforge` scope, **Add Registry** adds it after confirmation and leaves every other entry unchanged.
+The Workspace opens on the last page used (the Hub the first time) and switches to the Runtime page in Play mode. The Hub's package list comes from a catalog shipped with the core for its release, so it lists packages that are not installed yet. Install and Update request the release version through the Package Manager; Remove is offered only for packages added directly to the project and not required by another installed Threadlink package. When `Packages/manifest.json` lacks the OpenUPM registry or the `com.threadforge` scope, **Add Registry** adds it after confirmation and leaves every other entry unchanged.
 
 ### Configuration assets and folders
 
@@ -1668,11 +1761,11 @@ A package adds a native domain by implementing `IIdDomainTarget` in an Editor as
 
 ### Engineering settings
 
-**Project Settings ▸ Threadlink** itself is a read-only overview: the framework version, the session state, and every settings page with its owning package and status (defaults, configured, or the problem its validation reports). The core has no settings of its own. Below it, Threadlink has one page per settings type (Aura, Dextra, Sentinel, Steam and any project type deriving from `ThreadlinkSettings<T>`). The first edit creates the asset in `Assets/Threadforge/Threadlink User/Engineering/Configs`; the asset is read-only in the Inspector and added to the player's preloaded assets at build. Problems reported by `Validate()` show on the page and in the Validation page.
+**Project Settings ▸ Threadlink** itself is a read-only overview: the framework version, the session state, and every settings page with its owning package and status (defaults, configured, or the problem its validation reports). The core has no settings of its own. Below it, Threadlink has one page per settings type (Aura, Dextra, Sentinel, Steam and any project type deriving from `ThreadlinkSettings<T>`). A page without an asset shows **Create settings**, which creates it in the engineering configs folder ([Configuration assets and folders](#configuration-assets-and-folders)); settings without an asset use their defaults. The asset is read-only in the Inspector and added to the player's preloaded assets at build. Problems reported by `Validate()` show on the page and in the Validation page.
 
 ### Extending the Workspace
 
-Derive a public class from `WorkspacePage` (implement `IFillsWorkspace` for a page that fills the window instead of scrolling) or implement `IWorkspaceValidator`, with a public parameterless constructor, in an Editor assembly that references `Threadforge.Threadlink.Editor`. Use `WorkspaceUI` and `ThreadlinkTheme.Apply` for consistent styling. Pages and validators are discovered with `TypeCache`; runtime assemblies are never scanned. Validators report issues and never modify assets; `WorkspaceValidation.RunAll()` runs them from scripts and continuous integration.
+Derive a public class from `WorkspacePage` (implement `IFillsWorkspace` for a page that fills the window instead of scrolling) or implement `IWorkspaceValidator`, with a public parameterless constructor, in an Editor assembly that references `Threadforge.Threadlink.Editor`. Use `WorkspaceUI`, `ConfigUI` and `ThreadlinkTheme` for consistent styling: `ThreadlinkTheme.Apply` on an element you own, or `ThreadlinkTheme.Host(parent)` where the parent is shared, such as the root a Project Settings page receives. Pages and validators are discovered with `TypeCache`; runtime assemblies are never scanned. Validators report issues and never modify assets; `WorkspaceValidation.RunAll()` runs them from scripts and continuous integration.
 
 ### Framework development tools
 
@@ -1733,7 +1826,7 @@ Diagnostics, Editor Mono, same machine, Unity 6000.6.9f1, 101 samples after warm
 ### Adding a subsystem
 
 1. Derive a `public sealed class` from `ThreadlinkSubsystem<T>` with a public parameterless constructor. It registers automatically.
-2. Set up its own state and subscribe to Iris events in `OnSubsystemBoot`; use other subsystems through their `Instance` in `OnSubsystemInit`. Mirror both in `OnSubsystemDeinit` and `OnSubsystemShutdown`. See [Architecture](#two-phases-instead-of-a-dependency-order).
+2. Set up its own state and subscribe to Iris events in `OnSubsystemBoot`; use other subsystems through their `Instance` in `OnSubsystemInit`. Undo them in reverse: disconnect from other subsystems in `OnSubsystemDeinit`, release your own state and subscriptions in `OnSubsystemShutdown`. See [Architecture](#two-phases-instead-of-a-dependency-order).
 3. Expose its API as static methods built on `Instance`, and describe it in `Report`.
 4. Check **Threadlink ▸ Runtime Monitor** in Play mode: the node, its edges and its report.
 
@@ -1741,13 +1834,13 @@ Diagnostics, Editor Mono, same machine, Unity 6000.6.9f1, 101 samples after warm
 
 1. Derive `public sealed class MySettings : ThreadlinkSettings<MySettings>` with serialized fields, in its own file.
 2. Read `MySettings.Current` from code; override `Validate()` to report problems.
-3. Open **Project Settings ▸ Threadlink ▸ My**; the first edit creates the asset.
+3. Open **Project Settings ▸ Threadlink ▸ My** and select **Create settings** (or **Create** on the Workspace's Configuration page). The asset goes to the engineering configs folder.
 
 ### Adding an event
 
 1. Declare a payload type, usually a `readonly struct` named in the past tense.
 2. Subscribe with `Iris.Subscribe<T>(owner, callback)` so the subscription ends with its owner. A subsystem subscribes in `OnSubsystemBoot`, so it hears what other subsystems announce while they initialize.
-3. Announce a change with `Iris.TryPublish`, as the framework does. An event reaches only the subscribers listening at that moment, so subscribers subscribe first: a subsystem in `OnSubsystemBoot`.
+3. Publish a change with `Iris.TryPublish`, as the framework does. An event reaches only the subscribers listening at that moment, so a subsystem publishes from `OnSubsystemInit` or later, after every subsystem has subscribed in `OnSubsystemBoot`.
 4. For work that must finish before the caller continues, use `Iris.PublishAsync`; for a single answer, `Iris.Respond`/`RequestAsync`.
 
 ### Adding a scene
@@ -1821,7 +1914,7 @@ Entries appear only when their package is installed.
 
 | Menu path | Package | Action |
 |---|---|---|
-| **Threadlink ▸ Workspace** | core | Opens the workspace window on the Hub (on the Runtime page in Play mode). |
+| **Threadlink ▸ Workspace** | core | Opens the Workspace on the last page used (the Hub the first time; the Runtime page in Play mode). |
 | **Threadlink ▸ Runtime Monitor** | core | Opens the workspace on the Runtime monitor. |
 | **Threadlink ▸ Generate IDs** | core | Regenerates `GameScenes`, `GameInput`, `AudioCategories`, the platform IDs (`Achievements`, `Statistics`, `Leaderboards`, `Products`) and the ID domains; also runs automatically when their sources change. See [Generated IDs](#generated-ids-1). |
 | **Threadlink ▸ Content Mapping** | core | Opens the Workspace's Content page: tick the Addressables entries to map, then Apply. |
@@ -1842,7 +1935,7 @@ Under **Assets ▸ Create ▸ Threadlink**:
 | **Starter ▸ Starter Content** | `starter` | The starter's designer data. |
 | **Starter ▸ Level Definition** | `starter` | A starter level definition. |
 
-Definition assets are game-defined types; their creation entries come from your project's code. Engineering settings are created from **Project Settings ▸ Threadlink**, not from this menu.
+Definition assets are game-defined types; their creation entries come from your project's code. Engineering settings and the Unity packages' configuration assets are created from **Project Settings ▸ Threadlink** or the Workspace's **Configuration** page, not from this menu.
 
 ### Components
 
@@ -1852,7 +1945,7 @@ Under **Add Component ▸ Threadlink**: **Aura ▸ Scene Music**, **Dextra ▸ S
 
 | Term | Definition |
 |---|---|
-| **Package** | One installable `com.threadforge.threadlink.*` unit with its own version and declared dependencies. |
+| **Package** | One installable `com.threadforge.threadlink.*` unit with its declared dependencies. All Threadlink packages share one version. |
 | **Integration** | An assembly inside a package that connects it to another package, such as Aura's scene music for Nexus, and compiles only when that package is installed. |
 | **Core** | The `Threadlink` runtime that owns the session's subsystems (see [Architecture](#architecture)). |
 | **Subsystem** | A `ThreadlinkSubsystem<T>` that lives for the whole session: registered automatically, started before the first scene, reached through `Instance` or `TryGetSingleton` (see [Subsystem Access](#subsystem-access)). |

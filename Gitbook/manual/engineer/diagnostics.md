@@ -1,6 +1,6 @@
 # Diagnostics
 
-Threadlink observes itself without changing behaviour: every subsystem reports its state, and the session keeps an operation log. Both appear live in the [Runtime monitor](editor-tooling.md#runtime-monitor).
+Threadlink observes itself without changing behavior: every subsystem reports its state, and the session keeps an operation log. Both appear live in the [Runtime monitor](editor-tooling.md#runtime-monitor).
 
 ## Subsystem reports
 

@@ -1,8 +1,12 @@
-# Modules
+# Providers
+
+A provider connects Sentinel to one platform. Threadlink ships the local provider (in Sentinel) and the Steam provider (`sentinel.steam`, below); other platforms need their own provider, built on the same contracts.
 
 ## Provider requirements
 
-Native integrations implement `ISentinelProvider` and the selected typed capability interfaces. Keep SDK imports in optional adapters. A build should validate its actual selected capabilities through `ProviderRequirements.ValidateSelection`, then apply adapter-specific SDK/configuration validation. Compiling a contract or finding SDK files does not verify a native capability.
+A provider implements `ISentinelProvider` and the capability interfaces it supports. Keep the platform SDK in an optional adapter assembly, so a project without the SDK still compiles. Before shipping, check the capabilities a build selects with `ProviderRequirements.ValidateSelection`, then the adapter's own SDK and configuration checks. A capability counts as verified only once it has run against the real platform: compiling or finding SDK files proves nothing.
+
+What each target needs before its capabilities can be trusted:
 
 | Target | Implementation boundary | Required verification |
 | --- | --- | --- |
@@ -18,7 +22,7 @@ Native integrations implement `ISentinelProvider` and the selected typed capabil
 | Xbox Console | Extension contracts and integration groundwork | Authorized console tooling/title/hardware plus native capability tests |
 | Nintendo / Sony | Extension contracts/test doubles | Separately supplied authorized native implementation and device tests |
 
-The public requirement catalog describes these integration boundaries; it does not mark unavailable integrations as installed providers. Test doubles exercise cancellation, conflicts, account isolation and transaction handling without claiming storefront/backend/device verification.
+This table describes what an integration requires; it does not mean a provider exists for every target. Only the local and Steam providers ship with Threadlink. Test doubles exercise cancellation, conflicts, account isolation and transactions, but they do not verify a storefront, backend or device.
 
 Steam's initialization requirements include native SDK integration, a usable client and a configured application/account. See the [Steamworks API overview](https://partner.steamgames.com/doc/sdk/api). PC GDK setup also requires the relevant development/runtime environment; see [Microsoft's development PC requirements](https://learn.microsoft.com/gaming/gdk/docs/gdk-dev/get-started/overviews/set-up-dev-pc). Console and service access must be verified independently of public documentation or SDK installation.
 
