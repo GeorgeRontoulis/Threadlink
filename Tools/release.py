@@ -9,6 +9,7 @@ Usage (from the repository root):
     python Tools/release.py check              # fails on any inconsistency
     python Tools/release.py pack OUTPUT_DIR    # one npm-style .tgz per package (registry or offline install)
     python Tools/release.py openupm OUTPUT_DIR # OpenUPM metadata files, one per package
+    python Tools/release.py tags               # the Git tag of each package's current version
 
 Requires Python 3.8+ and nothing else.
 """
@@ -29,6 +30,21 @@ LICENSE_SOURCE = ROOT / "Assets/Threadforge/LICENSE"
 UNITY = "6000.6"
 # Third-party distributions keep their upstream versions and licenses.
 THIRD_PARTY = {"com.threadforge.dependencies.messagepack"}
+# OpenUPM topic slugs (github.com/openupm/openupm data/topics.yml) and the GitHub user who submits the packages.
+TOPICS = {
+    "": ["frameworks", "code-generation"],
+    "nexus": ["frameworks"],
+    "aura": ["audio"],
+    "dextra": ["input-management", "gui"],
+    "sentinel": ["services", "data-management"],
+    "sentinel.steam": ["integration", "services"],
+    "deterministic": ["utilities"],
+    "starter": ["frameworks"],
+    "showcase": ["frameworks"],
+    "dependencies.messagepack": ["data-management"],
+}
+HUNTER = "GeorgeRontoulis"
+IMAGE = f"https://raw.githubusercontent.com/GeorgeRontoulis/Threadlink/{BRANCH}/Threadforge/Threadlink_Banner.png"
 # Assemblies of optional packages a project may not install; they cannot be referenced by GUID until present.
 OPTIONAL_ASSEMBLIES = {"com.rlabrecque.steamworks.net"}
 
@@ -212,22 +228,45 @@ def pack(output):
     print(f"Packed {len(archives)} archives into {output}.")
 
 
+def tag(name, version):
+    """The Git tag OpenUPM builds a package version from. Each package has its own prefix, since the repository holds
+    several packages and the MessagePack distribution keeps its upstream version."""
+    return f"{name}/{version}"
+
+
+def tags():
+    for name, folder in folders().items():
+        print(tag(name, json.loads((folder / "package.json").read_text(encoding="utf-8"))["version"]))
+
+
 def openupm(output):
+    """One metadata file per package for github.com/openupm/openupm (data/packages/<name>.yml). OpenUPM merges a
+    submission automatically when its pull request holds one file titled "chore(data): new package <name>"."""
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     for name, folder in folders().items():
         data = json.loads((folder / "package.json").read_text(encoding="utf-8"))
-        topics = ["framework"] if name == PREFIX else ["utilities"]
+        suffix = "dependencies.messagepack" if name in THIRD_PARTY else suffix_of(name)
+        readme = f"{BRANCH}:Packages/{name}/README.md" if (folder / "README.md").exists() else f"{BRANCH}:README.md"
         lines = [
             f"name: {name}",
+            "aliases: []",
             f"displayName: {data['displayName']}",
             "description: >-",
             f"  {data['description']}",
             f"repoUrl: '{REPOSITORY}'",
+            "parentRepoUrl: null",
             "licenseSpdxId: MIT",
             "licenseName: " + ("MIT License (MessagePack, StringTools, Immutable), with lz4net BSD and Apache-2.0 notices" if name in THIRD_PARTY else "MIT License"),
             "topics:",
-            *[f"  - {t}" for t in topics],
+            *[f"  - {topic}" for topic in TOPICS.get(suffix, ["utilities"])],
+            f"hunter: {HUNTER}",
+            f"gitTagPrefix: '{name}/'",
+            "gitTagIgnore: ''",
+            "trackingMode: git",
+            f"image: '{IMAGE}'",
+            "imageFit: contain",
+            f"readme: '{readme}'",
         ]
         (output / f"{name}.yml").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"Wrote OpenUPM metadata for {len(folders())} packages into {output}.")
@@ -243,6 +282,8 @@ if __name__ == "__main__":
         pack(sys.argv[2])
     elif command == "openupm" and len(sys.argv) == 3:
         openupm(sys.argv[2])
+    elif command == "tags":
+        tags()
     else:
         print(__doc__)
         sys.exit(2)

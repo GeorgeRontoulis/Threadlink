@@ -77,7 +77,7 @@ The repository mirrors the framework's development project:
 | [`Tools`](Tools) | `release.py` (versions, checks, registry archives, OpenUPM metadata), `asmdef_guids.py` and the source generator |
 
 - Change versions only with `python Tools/release.py apply <version>`, then `python Tools/release.py check`, which also verifies `.meta` files, changelogs and GUID references in assembly definitions.
-- `python Tools/release.py pack <folder>` writes registry archives; `python Tools/release.py openupm <folder>` writes OpenUPM metadata.
+- `python Tools/release.py pack <folder>` writes registry archives; `python Tools/release.py openupm <folder>` writes OpenUPM metadata. Each package is released on OpenUPM from its own Git tag, `<name>/<version>`, which `python Tools/release.py tags` lists.
 - Assembly definitions reference other assemblies by GUID. After an automated edit, run `python Tools/asmdef_guids.py`.
 - Rebuild the source generator with `python Tools/Generators/build.py --offline`; never edit its DLL by hand.
 
