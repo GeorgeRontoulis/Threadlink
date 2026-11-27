@@ -1,15 +1,24 @@
-# Ownership
+# Lifetimes
 
-## Disposable ownership
-
-Subsystems are owned by the Threadlink core for the session (see [Architecture](architecture.md)). Inside game objects, prefer owner-bound APIs: `Iris.Subscribe(owner, …)`, `Iris.OnUpdate(owner, …)`, `Threadlink.LoadAsync(id, owner)` and `InstantiateAsync(id, owner)` end when the owner is destroyed. For plain C# resources, the core provides `ResourceOwner` and `StableId`.
+The Threadlink core owns every subsystem for the session (see [Architecture](architecture.md)). Inside game objects, bind what you subscribe to or load to the object that needs it: the subscription or the content is released when that object is destroyed, so a destroyed component never receives events or keeps content loaded.
 
 ```csharp
-using var resources = new ResourceOwner();
-var reader = resources.Own(new System.IO.StreamReader(path));
-string text = reader.ReadToEnd();
+public sealed class CoinLabel : MonoBehaviour
+{
+    private async void Start()
+    {
+        Iris.Subscribe<CoinsChanged>(this, change => label.text = change.Total.ToString());
+        var icon = await Threadlink.LoadAsync<Sprite>(ContentAssets.Interface.Coin, this);
+        image.sprite = icon.Asset;
+    }
+}
 ```
 
-Ownership is optional. Ordinary `using` statements remain appropriate for individual resources. Each `Own` call transfers one cleanup obligation. Disposal closes admission, then attempts every cleanup in reverse order and aggregates failures. Repeated and reentrant disposal is harmless. Concurrent disposal calls do not wait for another caller's cleanup. Admission after closure immediately disposes the supplied resource and throws; if that cleanup fails, its exception propagates. Do not admit a non-idempotent resource twice.
+| API | Released when the owner is destroyed |
+| --- | --- |
+| `Iris.Subscribe<T>(owner, callback)`, `Iris.SubscribeAsync<T>(owner, listener)`, `Iris.Respond(owner, responder)` | The subscription or responder. |
+| `Iris.OnUpdate(owner, …)`, `OnFixedUpdate`, `OnLateUpdate` | The frame callback. |
+| `Threadlink.LoadAsync(id, owner)`, `LoadAllAsync(label, owner)` | The loaded content. |
+| `Threadlink.InstantiateAsync(id, owner)` | The instance and the content it came from. |
 
-`StableId` holds an existing nonempty GUID independently of an asset's name or path. Persist its canonical `ToString()` representation or `Value`, never its hash code. `TryParse` accepts canonical GUID text; an uninitialized identity cannot be persisted.
+Without an owner, the call returns what you release yourself: dispose the `SubscriptionToken`, the responder or the `ResourceRequest`, usually with `using` or in `OnDestroy`.

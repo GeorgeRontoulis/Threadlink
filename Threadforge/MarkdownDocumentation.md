@@ -78,7 +78,7 @@ Threadlink targets .NET Standard 2.1 APIs, uses [UniTask](https://github.com/Cys
 
 ## Installation and Project Setup
 
-Threadlink is a set of Unity packages published on [OpenUPM](https://openupm.com), a scoped registry that the Unity Package Manager installs from with dependencies resolved automatically. All Threadlink packages share one version; this manual describes **1.1.0**.
+Threadlink is a set of Unity packages published on [OpenUPM](https://openupm.com), a scoped registry that the Unity Package Manager installs from with dependencies resolved automatically. All Threadlink packages share one version; this manual describes **2.0.0**.
 
 ### Install with the OpenUPM command-line tool
 
@@ -463,7 +463,7 @@ This volume documents every package's API and the contracts behind it.
 | Page | Covers |
 |---|---|
 | [Architecture](#architecture) | The core, subsystems, the session, design and engineering, asynchronous work and failure reporting. |
-| [Ownership](#ownership) | Owner-bound subscriptions and requests, `ResourceOwner` and stable identities. |
+| [Lifetimes](#lifetimes) | Subscriptions and content bound to the game object that needs them. |
 | [Iris](#iris-event-dispatch) | Synchronous and awaited events, requests, frame callbacks. |
 | [Nexus](#nexus-scene-management) | Scene transitions, holds and transition steps. |
 | [Dextra](#dextra-input-screens-and-interaction) | Players and input, rebinding, screens and interaction. |
@@ -552,16 +552,6 @@ public sealed class Wallet : ThreadlinkSubsystem<Wallet>
 
 Framework subsystems follow the same pattern and expose their API as static methods on the class: `Iris.Publish`, `Nexus.LoadAsync`, `Aura.Play`, `Dextra.Player`, `Sentinel.Saves.SaveAsync`, `Vault.Get`. Content loading lives on the core: `Threadlink.LoadAsync`.
 
-#### Subsystems written for 1.0
-
-`OnInitialize()`, `OnShutdown()` and `Require<T>()` are obsolete and still work, with compiler warnings that name their replacements:
-
-- `OnInitialize()` runs in the initialization phase. A subsystem that overrides it is initialized as soon as another one uses it, so its setup has run before it is used, as before.
-- `OnShutdown()` runs in the deinitialization phase, while every subsystem is still available.
-- `Require<T>()` returns the subsystem after initializing it, and still rejects cycles between `OnInitialize` methods with the full chain.
-
-To migrate, move a subsystem's own setup from `OnInitialize` into `OnSubsystemBoot`, replace `Require<T>()` with `T.Instance` in `OnSubsystemInit`, and split `OnShutdown` the same way.
-
 ### The core
 
 | API | Meaning |
@@ -595,21 +585,30 @@ Every asynchronous API returns [UniTask](https://github.com/Cysharp/UniTask) (`U
 
 Operations report how they failed. Content requests, transitions, saves and platform calls return or throw explicit states (cancelled, failed, conflict, corrupt data, unsupported, unavailable) and never succeed silently.
 
-## Ownership
+## Lifetimes
 
-### Disposable ownership
-
-Subsystems are owned by the Threadlink core for the session (see [Architecture](#architecture)). Inside game objects, prefer owner-bound APIs: `Iris.Subscribe(owner, …)`, `Iris.OnUpdate(owner, …)`, `Threadlink.LoadAsync(id, owner)` and `InstantiateAsync(id, owner)` end when the owner is destroyed. For plain C# resources, the core provides `ResourceOwner` and `StableId`.
+The Threadlink core owns every subsystem for the session (see [Architecture](#architecture)). Inside game objects, bind what you subscribe to or load to the object that needs it: the subscription or the content is released when that object is destroyed, so a destroyed component never receives events or keeps content loaded.
 
 ```csharp
-using var resources = new ResourceOwner();
-var reader = resources.Own(new System.IO.StreamReader(path));
-string text = reader.ReadToEnd();
+public sealed class CoinLabel : MonoBehaviour
+{
+    private async void Start()
+    {
+        Iris.Subscribe<CoinsChanged>(this, change => label.text = change.Total.ToString());
+        var icon = await Threadlink.LoadAsync<Sprite>(ContentAssets.Interface.Coin, this);
+        image.sprite = icon.Asset;
+    }
+}
 ```
 
-Ownership is optional. Ordinary `using` statements remain appropriate for individual resources. Each `Own` call transfers one cleanup obligation. Disposal closes admission, then attempts every cleanup in reverse order and aggregates failures. Repeated and reentrant disposal is harmless. Concurrent disposal calls do not wait for another caller's cleanup. Admission after closure immediately disposes the supplied resource and throws; if that cleanup fails, its exception propagates. Do not admit a non-idempotent resource twice.
+| API | Released when the owner is destroyed |
+| --- | --- |
+| `Iris.Subscribe<T>(owner, callback)`, `Iris.SubscribeAsync<T>(owner, listener)`, `Iris.Respond(owner, responder)` | The subscription or responder. |
+| `Iris.OnUpdate(owner, …)`, `OnFixedUpdate`, `OnLateUpdate` | The frame callback. |
+| `Threadlink.LoadAsync(id, owner)`, `LoadAllAsync(label, owner)` | The loaded content. |
+| `Threadlink.InstantiateAsync(id, owner)` | The instance and the content it came from. |
 
-`StableId` holds an existing nonempty GUID independently of an asset's name or path. Persist its canonical `ToString()` representation or `Value`, never its hash code. `TryParse` accepts canonical GUID text; an uninitialized identity cannot be persisted.
+Without an owner, the call returns what you release yourself: dispose the `SubscriptionToken`, the responder or the `ResourceRequest`, usually with `using` or in `OnDestroy`.
 
 ## Iris: Event Dispatch
 

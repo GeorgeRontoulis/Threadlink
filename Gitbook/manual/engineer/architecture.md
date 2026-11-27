@@ -71,16 +71,6 @@ public sealed class Wallet : ThreadlinkSubsystem<Wallet>
 
 Framework subsystems follow the same pattern and expose their API as static methods on the class: `Iris.Publish`, `Nexus.LoadAsync`, `Aura.Play`, `Dextra.Player`, `Sentinel.Saves.SaveAsync`, `Vault.Get`. Content loading lives on the core: `Threadlink.LoadAsync`.
 
-### Subsystems written for 1.0
-
-`OnInitialize()`, `OnShutdown()` and `Require<T>()` are obsolete and still work, with compiler warnings that name their replacements:
-
-- `OnInitialize()` runs in the initialization phase. A subsystem that overrides it is initialized as soon as another one uses it, so its setup has run before it is used, as before.
-- `OnShutdown()` runs in the deinitialization phase, while every subsystem is still available.
-- `Require<T>()` returns the subsystem after initializing it, and still rejects cycles between `OnInitialize` methods with the full chain.
-
-To migrate, move a subsystem's own setup from `OnInitialize` into `OnSubsystemBoot`, replace `Require<T>()` with `T.Instance` in `OnSubsystemInit`, and split `OnShutdown` the same way.
-
 ## The core
 
 | API | Meaning |

@@ -2,6 +2,13 @@
 
 All notable changes to this package are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0]
+
+### Removed
+
+- `OnInitialize`, `OnShutdown` and `Require<T>()`, obsolete since 1.1.0. Set up a subsystem in `OnSubsystemBoot`, use other subsystems through their `Instance` in `OnSubsystemInit`, and mirror both in `OnSubsystemDeinit` and `OnSubsystemShutdown`.
+- `ResourceOwner` and `StableId`, which nothing in the framework used. Dispose resources with `using`, or bind subscriptions and content to their game object with the owner-bound APIs.
+
 ## [1.1.0]
 
 ### Added

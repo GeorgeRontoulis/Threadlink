@@ -2,7 +2,6 @@ namespace Threadforge.Threadlink
 {
     using System;
     using System.Collections.Generic;
-    using System.Text;
     using System.Threading;
     using UnityEngine;
 
@@ -14,8 +13,6 @@ namespace Threadforge.Threadlink
     /// </summary>
     public sealed partial class Threadlink : IMonitorable, IDisposable
     {
-        private const string CyclePrefix = "Threadlink subsystem dependency cycle: ";
-
         private sealed class Registration
         {
             internal readonly Type Type;
@@ -132,7 +129,7 @@ namespace Threadforge.Threadlink
             ThreadlinkSubsystem<T>.UseFactory(static () => new T());
             if (subsystems.TryGetValue(typeof(T), out var existing))
             {
-                Initialize(existing, null);
+                Initialize(existing);
                 return (T)existing;
             }
             return (T)Start(typeof(T), static () => new T());
@@ -211,12 +208,12 @@ namespace Threadforge.Threadlink
             if (iris != null)
             {
                 Boot(iris);
-                Initialize(iris, null);
+                Initialize(iris);
             }
             foreach (var subsystem in created)
                 Boot(subsystem);
             foreach (var subsystem in created)
-                Initialize(subsystem, null);
+                Initialize(subsystem);
             deployed = true;
             Announce(ReadyEvent());
         }
@@ -361,11 +358,6 @@ namespace Threadforge.Threadlink
                 core.CheckThread();
                 subsystem = core.Start(type, create);
             }
-            else if (subsystem.legacy && subsystem.State == SubsystemState.Booted && !trying && !core.disposed)
-            {
-                // A 1.0 subsystem sets itself up in OnInitialize, so it initializes as soon as another one uses it.
-                core.Initialize(subsystem, requester);
-            }
             switch (subsystem.State)
             {
                 case SubsystemState.Booting:
@@ -391,29 +383,6 @@ namespace Threadforge.Threadlink
             if (requester != null && !ReferenceEquals(requester, subsystem) && !requester.dependencies.Contains(type))
                 requester.dependencies.Add(type);
             return subsystem;
-        }
-
-        // The obsolete Require: initializes the required subsystem first and rejects cycles, as 1.0 did.
-        internal T Require<T>(ThreadlinkSubsystem requester)
-            where T : ThreadlinkSubsystem<T>, new()
-        {
-            CheckOpen();
-            ThreadlinkSubsystem<T>.UseFactory(static () => new T());
-            if (booting != null && booting.GetType() != typeof(T) && typeof(T) != typeof(Iris))
-                throw new BootPhaseException(booting.Name + " required " + typeof(T).Name + " in OnSubsystemBoot. Use other subsystems from OnSubsystemInit.");
-            if (!requester.dependencies.Contains(typeof(T)))
-                requester.dependencies.Add(typeof(T));
-            if (!subsystems.TryGetValue(typeof(T), out var subsystem))
-                subsystem = Start(typeof(T), static () => new T());
-            else if (subsystem.State == SubsystemState.Initializing && !ReferenceEquals(subsystem, requester))
-                throw new InvalidOperationException(CyclePrefix + Chain(subsystem) + ".");
-            else
-                Initialize(subsystem, requester);
-            if (subsystem.State == SubsystemState.Failed)
-                throw new SubsystemUnavailableException(typeof(T), requester.Name + " requires " + subsystem.Name + ", which failed to start: " + subsystem.Error?.Message, subsystem.Error);
-            if (subsystem.State != SubsystemState.Ready && subsystem.State != SubsystemState.Initializing && subsystem.State != SubsystemState.Booted)
-                throw new SubsystemUnavailableException(typeof(T), requester.Name + " requires " + subsystem.Name + ", which is " + subsystem.State + ".");
-            return (T)subsystem;
         }
 
         // Delivers a framework event when this session's Iris is up; listener failures are reported, not thrown.
@@ -456,7 +425,7 @@ namespace Threadforge.Threadlink
             {
                 Boot(subsystem);
             }
-            Initialize(subsystem, null);
+            Initialize(subsystem);
             return subsystem;
         }
 
@@ -474,7 +443,6 @@ namespace Threadforge.Threadlink
             }
             subsystem.core = this;
             subsystem.State = SubsystemState.Registered;
-            subsystem.legacy = ThreadlinkSubsystem.IsLegacy(type);
             subsystems.Add(type, subsystem);
             if (subsystem is Iris created)
                 iris = created;
@@ -507,7 +475,7 @@ namespace Threadforge.Threadlink
             }
         }
 
-        private void Initialize(ThreadlinkSubsystem subsystem, ThreadlinkSubsystem requester)
+        private void Initialize(ThreadlinkSubsystem subsystem)
         {
             if (subsystem.State != SubsystemState.Booted)
                 return;
@@ -539,20 +507,11 @@ namespace Threadforge.Threadlink
         {
             subsystem.State = SubsystemState.Failed;
             subsystem.Error = error;
-            if (error is SubsystemUnavailableException || error is BootPhaseException || error.Message.StartsWith(CyclePrefix, StringComparison.Ordinal))
+            if (error is SubsystemUnavailableException || error is BootPhaseException)
                 Debug.LogError("Threadlink: " + subsystem.Name + " failed to " + phase + ". " + error.Message);
             else
                 Debug.LogException(new InvalidOperationException("Threadlink: " + subsystem.Name + " failed to " + phase + ".", error));
             Announce(new SubsystemFailed(subsystem.GetType(), subsystem.Name, error));
-        }
-
-        private string Chain(ThreadlinkSubsystem repeated)
-        {
-            var text = new StringBuilder();
-            int start = initializing.IndexOf(repeated);
-            for (int i = Math.Max(0, start); i < initializing.Count; i++)
-                text.Append(initializing[i].Name).Append(" → ");
-            return text.Append(repeated.Name).ToString();
         }
 
         private void Relink()

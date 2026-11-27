@@ -28,7 +28,7 @@
 
 * [Engineer Reference](engineer/README.md "Overview")
 * [Architecture](engineer/architecture.md)
-* [Ownership](engineer/lifecycle.md)
+* [Lifetimes](engineer/lifecycle.md)
 * [Iris: Event Dispatch](engineer/iris.md "Iris")
 * [Framework Events](engineer/events.md)
 * [Nexus: Scene Management](engineer/nexus.md "Nexus")

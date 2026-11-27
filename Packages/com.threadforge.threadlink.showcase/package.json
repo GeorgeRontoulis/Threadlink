@@ -1,6 +1,6 @@
 {
   "name": "com.threadforge.threadlink.showcase",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "displayName": "Threadlink Showcase",
   "description": "A gallery of runnable demos for every Threadlink feature, opened from the Threadlink Hub.",
   "unity": "6000.6",
@@ -19,12 +19,12 @@
   "changelogUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.showcase/CHANGELOG.md",
   "licensesUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.showcase/LICENSE.md",
   "dependencies": {
-    "com.threadforge.threadlink": "1.1.0",
-    "com.threadforge.threadlink.nexus": "1.1.0",
-    "com.threadforge.threadlink.aura": "1.1.0",
-    "com.threadforge.threadlink.dextra": "1.1.0",
-    "com.threadforge.threadlink.sentinel": "1.1.0",
-    "com.threadforge.threadlink.deterministic": "1.1.0"
+    "com.threadforge.threadlink": "2.0.0",
+    "com.threadforge.threadlink.nexus": "2.0.0",
+    "com.threadforge.threadlink.aura": "2.0.0",
+    "com.threadforge.threadlink.dextra": "2.0.0",
+    "com.threadforge.threadlink.sentinel": "2.0.0",
+    "com.threadforge.threadlink.deterministic": "2.0.0"
   },
   "samples": [
     {

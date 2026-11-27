@@ -5,7 +5,7 @@ This volume documents every package's API and the contracts behind it.
 | Page | Covers |
 |---|---|
 | [Architecture](architecture.md) | The core, subsystems, the session, design and engineering, asynchronous work and failure reporting. |
-| [Ownership](lifecycle.md) | Owner-bound subscriptions and requests, `ResourceOwner` and stable identities. |
+| [Lifetimes](lifecycle.md) | Subscriptions and content bound to the game object that needs them. |
 | [Iris](iris.md) | Synchronous and awaited events, requests, frame callbacks. |
 | [Nexus](nexus.md) | Scene transitions, holds and transition steps. |
 | [Dextra](dextra.md) | Players and input, rebinding, screens and interaction. |

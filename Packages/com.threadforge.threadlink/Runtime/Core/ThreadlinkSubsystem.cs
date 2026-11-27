@@ -2,7 +2,6 @@ namespace Threadforge.Threadlink
 {
     using System;
     using System.Collections.Generic;
-    using System.Reflection;
     using System.Threading;
 
     /// <summary>Where a subsystem is in its session.</summary>
@@ -57,11 +56,8 @@ namespace Threadforge.Threadlink
     /// </remarks>
     public abstract class ThreadlinkSubsystem : IMonitorable
     {
-        private static readonly Dictionary<Type, bool> legacyTypes = new Dictionary<Type, bool>();
-
         internal Threadlink core;
         internal readonly List<Type> dependencies = new List<Type>();
-        internal bool legacy;
 
         /// <summary>The display name: the class name by default.</summary>
         public virtual string Name => GetType().Name;
@@ -105,61 +101,16 @@ namespace Threadforge.Threadlink
         /// <summary>Phase two of shutdown: release this subsystem's own state. Runs in reverse boot order. Must not throw.</summary>
         protected virtual void OnSubsystemShutdown() { }
 
-        /// <summary>Called during the initialization phase. Its subsystem is initialized as soon as another uses it.</summary>
-        [Obsolete("Split it: set up the subsystem itself in OnSubsystemBoot, connect to other subsystems in OnSubsystemInit.")]
-        protected virtual void OnInitialize() { }
-
-        /// <summary>Called during the first shutdown phase, while every subsystem is still available.</summary>
-        [Obsolete("Split it: disconnect from other subsystems in OnSubsystemDeinit, release the subsystem's own state in OnSubsystemShutdown.")]
-        protected virtual void OnShutdown() { }
-
-        /// <summary>Returns another subsystem, initializing it first when it has not been.</summary>
-        [Obsolete("Use T.Instance from OnSubsystemInit: every subsystem has booted by then, so no startup order needs declaring.")]
-        protected T Require<T>()
-            where T : ThreadlinkSubsystem<T>, new()
-        {
-            if (core == null)
-                throw new InvalidOperationException(Name + " is not linked to a Threadlink core.");
-            return core.Require<T>(this);
-        }
-
         /// <summary>Describes this subsystem to the Runtime monitor. Defaults to its state.</summary>
         public virtual void Report(MonitorReport report) => report.Summary(State == SubsystemState.Ready ? "Ready" : State.ToString(), State == SubsystemState.Failed);
 
         internal void RunBoot() => OnSubsystemBoot();
 
-        internal void RunInit()
-        {
-            OnSubsystemInit();
-#pragma warning disable CS0618 // The obsolete hook still runs for subsystems written against 1.0.
-            OnInitialize();
-#pragma warning restore CS0618
-        }
+        internal void RunInit() => OnSubsystemInit();
 
-        internal void RunDeinit()
-        {
-            OnSubsystemDeinit();
-#pragma warning disable CS0618
-            OnShutdown();
-#pragma warning restore CS0618
-        }
+        internal void RunDeinit() => OnSubsystemDeinit();
 
         internal void RunShutdown() => OnSubsystemShutdown();
-
-        // A subsystem that still overrides OnInitialize does its own setup there, so it is initialized as soon as another
-        // subsystem uses it, as 1.0 guaranteed.
-        internal static bool IsLegacy(Type type)
-        {
-            lock (legacyTypes)
-            {
-                if (legacyTypes.TryGetValue(type, out bool legacy))
-                    return legacy;
-                var method = type.GetMethod("OnInitialize", BindingFlags.Instance | BindingFlags.NonPublic, null, Type.EmptyTypes, null);
-                legacy = method != null && method.DeclaringType != typeof(ThreadlinkSubsystem);
-                legacyTypes.Add(type, legacy);
-                return legacy;
-            }
-        }
 
         internal abstract void Link();
 
