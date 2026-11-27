@@ -1,0 +1,25 @@
+{
+  "name": "com.threadforge.threadlink.aura",
+  "version": "1.0.0",
+  "displayName": "Threadlink Aura",
+  "description": "Audio cues with variations, categories, voice limits, fades and a crossfading music channel, with scene music as designer data.",
+  "unity": "6000.6",
+  "author": {
+    "name": "Threadforge",
+    "url": "https://github.com/GeorgeRontoulis/Threadlink"
+  },
+  "license": "MIT",
+  "keywords": [
+    "threadlink",
+    "audio",
+    "sound",
+    "music"
+  ],
+  "documentationUrl": "https://threadforge.gitbook.io/threadlink-documentation/engineer-reference/aura",
+  "changelogUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.aura/CHANGELOG.md",
+  "licensesUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.aura/LICENSE.md",
+  "dependencies": {
+    "com.threadforge.threadlink": "1.0.0",
+    "com.unity.modules.audio": "1.0.0"
+  }
+}

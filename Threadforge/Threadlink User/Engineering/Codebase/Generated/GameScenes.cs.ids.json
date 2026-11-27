@@ -1,0 +1,12 @@
+{
+    "Members": [
+        {
+            "Group": "",
+            "Name": "SampleScene",
+            "Type": "global::Threadforge.Threadlink.SceneId",
+            "Key": "9fc0d401-0bbf-28b4-5940-72e72b8655ab",
+            "Value": "new global::Threadforge.Threadlink.SceneId(new global::System.Guid(\"9fc0d401-0bbf-28b4-5940-72e72b8655ab\"), \"Assets/Scenes/SampleScene.unity\")",
+            "Summary": "Assets/Scenes/SampleScene.unity"
+        }
+    ]
+}

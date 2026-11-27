@@ -1,52 +1,25 @@
-# The Vault
+# Vault: Typed Definitions
 
-A **Vault** is a polymorphic data asset holding a set of named, typed **fields**: the authoring unit for any game entity, such as an enemy, a weapon, a level or an item.
+**Vault** holds the game's typed definitions. A Vault asset is an authored definition (an enemy's stats, an item, a level's rules) that the game prepares into an immutable runtime value. Engineers create the definition types; designers create and tune the assets. Definitions are part of the Threadlink core; code reads them with `Vault.Get`.
 
-## Creation
+## Creating definitions
 
-1. In the Project window, select **Create ▸ Threadlink ▸ Vault**.
-2. Assign a descriptive name (`Vault_Enemy_Goblin`, `Vault_Weapon_Longsword`).
-3. Select the asset to expose its data-field map in the Inspector.
+Use the asset creation menu entry the engineering team added for the type (for example **Create ▸ Game ▸ Enemy Definition**). A new asset receives a permanent identity and the type's current schema version. Moving or renaming the asset keeps its identity.
 
-## Field composition
+The Inspector shows the identity, schema and authored version. **Validate Vault Asset** checks the asset; a definition that fails validation also fails explicitly when the game prepares it, never silently.
 
-Each field comprises two elements:
+## Variants and overrides
 
-1. A **field identifier**, selected from the Vault Fields dropdown (declared in `Vault.Fields.User.txt`, see [The Identifier Workflow](identifiers.md)).
-2. A **typed value**, whose type is selected from a dropdown prior to entry.
+**Create Typed Variant** in the Inspector makes a child asset of the same type. A variant inherits every value from its parent and changes only the fields whose override is enabled:
 
-Available field types:
+- Enable an override to replace the inherited value.
+- **Inherit** (shown per field) disables that override again; the parent's value applies.
+- The Inspector shows where each value comes from along the parent chain.
 
-| Type | Representation |
-|---|---|
-| `Integer` | 32-bit integer |
-| `Float` | Single-precision floating point |
-| `Boolean` | Boolean |
-| `Double` | Double-precision floating point |
-| `Long` | 64-bit integer |
-| `Integer2D` | Integer pair (`int2`) |
-| `Float2D` | Float pair (`float2`) |
-| `Vector2D` | Two-component vector |
-| `Vector3D` | Three-component vector |
-| `Rotation` | Quaternion |
-| `UnityGameObject` | GameObject reference |
-| `LocalizedText` | Localised string; requires the Unity Localization package |
+Variants can have variants. A variant whose parent changes schema becomes invalid until it is migrated with the parent.
 
-Additional field types are introduced through a minor engineering task (see [Vault Runtime API](../engineer/vault.md#custom-field-types)).
+## Authoring migrations
 
-## Serialised and transient backings
+When engineers change a definition type, they raise its schema version and write a conversion. Older assets then show a version mismatch. Select them and use **Apply Explicit Authoring Migration** in Edit mode; the Inspector records Undo and restores the asset if conversion fails. Builds never upgrade definitions silently, so migrate every listed asset before building.
 
-Each field is assigned one of two value backings:
-
-- **Serialised**: persisted with the asset. Appropriate for authored values such as base health or weapon damage. This is the backing for design data.
-- **Transient**: runtime-only, never persisted, reset each session. Appropriate for scratch values populated during play.
-
-Authored values are serialised; runtime scratch values are transient.
-
-> Unity [Asset Presets](https://docs.unity3d.com/Manual/Presets.html) may be applied to guarantee that every Vault of a given class is instantiated with its complete field set.
-
-## Runtime consumption
-
-Engineering reads and writes fields by identifier at runtime. Renaming a field identifier invalidates those references; engineering must be notified.
-
-A Timeline can carry Vault values on markers (see [Vault Runtime API](../engineer/vault.md#timeline-integration)), and an animation event can pass a Vault to code through an `AnimationEventsReceiver` (see [Collections and Utilities](../engineer/collections-and-utilities.md#animation-helpers)).
+Definition versions are separate from save-file migrations: changing a definition does not change saved games.

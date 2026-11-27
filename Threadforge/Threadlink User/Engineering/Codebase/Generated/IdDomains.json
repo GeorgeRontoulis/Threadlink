@@ -1,0 +1,8 @@
+{
+    "Enumerations": [
+        "EnemyKind"
+    ],
+    "Targets": [
+        "RandomDomains"
+    ]
+}

@@ -1,0 +1,8 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="Starter.uss" />
+    <ui:VisualElement class="starter-backdrop starter-loading">
+        <ui:Label name="status" text="Loading…" class="starter-title" />
+        <ui:Button name="retry" text="Retry" class="starter-button" />
+        <ui:Button name="quit" text="Quit" class="starter-button" />
+    </ui:VisualElement>
+</ui:UXML>

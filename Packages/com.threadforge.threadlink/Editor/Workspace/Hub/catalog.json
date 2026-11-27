@@ -1,0 +1,123 @@
+{
+  "version": "1.0.0",
+  "framework": "com.threadforge.threadlink",
+  "registry": "https://package.openupm.com",
+  "scopes": [
+    "com.threadforge",
+    "com.cysharp"
+  ],
+  "framework_excludes": [
+    "com.threadforge.threadlink.showcase",
+    "com.threadforge.threadlink.starter"
+  ],
+  "packages": [
+    {
+      "name": "com.threadforge.threadlink",
+      "displayName": "Threadlink",
+      "description": "The Threadlink core: the subsystem runtime that deploys before the first scene, Iris events, content loading by generated ID through Addressables, Vault typed definitions, generated IDs, engineering settings, memory toolkits and the Editor Workspace with the Runtime monitor, Code Generation and Content pages.",
+      "family": "Core",
+      "documentationUrl": "https://threadforge.gitbook.io/threadlink-documentation/",
+      "dependencies": [],
+      "samples": []
+    },
+    {
+      "name": "com.threadforge.threadlink.nexus",
+      "displayName": "Threadlink Nexus",
+      "description": "Scene transitions that load and prepare the next scene before presenting it and keep the current scene on failure, for Build Profile and Addressables scenes.",
+      "family": "Scenes",
+      "documentationUrl": "https://threadforge.gitbook.io/threadlink-documentation/engineer-reference/nexus",
+      "dependencies": [
+        "com.threadforge.threadlink"
+      ],
+      "samples": []
+    },
+    {
+      "name": "com.threadforge.threadlink.aura",
+      "displayName": "Threadlink Aura",
+      "description": "Audio cues with variations, categories, voice limits, fades and a crossfading music channel, with scene music as designer data.",
+      "family": "Audio",
+      "documentationUrl": "https://threadforge.gitbook.io/threadlink-documentation/engineer-reference/aura",
+      "dependencies": [
+        "com.threadforge.threadlink"
+      ],
+      "samples": []
+    },
+    {
+      "name": "com.threadforge.threadlink.dextra",
+      "displayName": "Threadlink Dextra",
+      "description": "Per-player input with saved rebinding and prompts, layered screens that block gameplay input while open, and interaction targeting.",
+      "family": "Input and UI",
+      "documentationUrl": "https://threadforge.gitbook.io/threadlink-documentation/engineer-reference/dextra",
+      "dependencies": [
+        "com.threadforge.threadlink"
+      ],
+      "samples": []
+    },
+    {
+      "name": "com.threadforge.threadlink.sentinel",
+      "displayName": "Threadlink Sentinel",
+      "description": "Accounts and platform capabilities routed to the installed provider, and per-account saves that are transactional, versioned and recoverable.",
+      "family": "Platform",
+      "documentationUrl": "https://threadforge.gitbook.io/threadlink-documentation/engineer-reference/sentinel",
+      "dependencies": [
+        "com.threadforge.threadlink"
+      ],
+      "samples": []
+    },
+    {
+      "name": "com.threadforge.threadlink.sentinel.steam",
+      "displayName": "Threadlink Sentinel Steam",
+      "description": "Steam accounts, achievements, statistics, leaderboards, presence, friends, invites, DLC, join intents and Steam Cloud, through Unity's Steamworks package or Steamworks.NET.",
+      "family": "Platform",
+      "documentationUrl": "https://threadforge.gitbook.io/threadlink-documentation/engineer-reference/sentinel/modules",
+      "dependencies": [
+        "com.threadforge.threadlink.sentinel"
+      ],
+      "samples": []
+    },
+    {
+      "name": "com.threadforge.threadlink.deterministic",
+      "displayName": "Threadlink Deterministic",
+      "description": "Fixed-point numbers, vectors and rotations, and stateless seeded random streams that give identical results on every machine.",
+      "family": "Toolkits",
+      "documentationUrl": "https://threadforge.gitbook.io/threadlink-documentation/engineer-reference/deterministic",
+      "dependencies": [],
+      "samples": []
+    },
+    {
+      "name": "com.threadforge.threadlink.starter",
+      "displayName": "Threadlink Starter",
+      "description": "A small complete game on Threadlink: menu and gameplay scenes, saves with recovery, settings with rebinding, audio and screens.",
+      "family": "Samples",
+      "documentationUrl": "https://threadforge.gitbook.io/threadlink-documentation/getting-started/starter",
+      "dependencies": [
+        "com.threadforge.threadlink",
+        "com.threadforge.threadlink.aura",
+        "com.threadforge.threadlink.dextra",
+        "com.threadforge.threadlink.nexus",
+        "com.threadforge.threadlink.sentinel"
+      ],
+      "samples": [
+        "Starter"
+      ]
+    },
+    {
+      "name": "com.threadforge.threadlink.showcase",
+      "displayName": "Threadlink Showcase",
+      "description": "A gallery of runnable demos for every Threadlink feature, opened from the Threadlink Hub.",
+      "family": "Samples",
+      "documentationUrl": "https://threadforge.gitbook.io/threadlink-documentation/getting-started/showcase",
+      "dependencies": [
+        "com.threadforge.threadlink",
+        "com.threadforge.threadlink.aura",
+        "com.threadforge.threadlink.deterministic",
+        "com.threadforge.threadlink.dextra",
+        "com.threadforge.threadlink.nexus",
+        "com.threadforge.threadlink.sentinel"
+      ],
+      "samples": [
+        "Showcase"
+      ]
+    }
+  ]
+}

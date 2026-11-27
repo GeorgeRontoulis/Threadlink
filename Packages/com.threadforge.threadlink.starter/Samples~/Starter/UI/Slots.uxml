@@ -1,0 +1,10 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="Starter.uss" />
+    <ui:VisualElement class="starter-backdrop">
+        <ui:VisualElement class="starter-panel">
+            <ui:Label name="title" text="Load Game" class="starter-title" />
+            <ui:ScrollView name="slots-scroll" class="starter-list"><ui:VisualElement name="slots" /></ui:ScrollView>
+            <ui:Button name="back" text="Back" class="starter-button" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

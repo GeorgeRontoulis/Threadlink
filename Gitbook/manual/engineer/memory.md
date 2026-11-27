@@ -1,8 +1,10 @@
 # Memory
 
-`Threadlink.Memory` (namespace `Threadlink.Memory`) is the toolkit for long-lived state that is copied, hashed and saved as raw bytes, such as a simulation's frames. It allocates native memory, hashes it identically on every machine, and lays collections out inside it so that a collection is copied, hashed and saved with the bytes that hold it.
+The memory toolkit is for long-lived state that is copied, hashed and saved as raw bytes, such as a simulation's frames. It allocates native memory, hashes it identically on every machine, and lays collections out inside it so that a collection is copied, hashed and saved with the bytes that hold it.
 
-The assembly has no Threadlink dependencies and nothing in the framework references it. Project code that uses it adds a reference to `Threadlink.Memory` in its assembly definition and enables unsafe code.
+## Package
+
+The memory toolkit is part of the core (`Threadforge.Threadlink`); enable unsafe code in the consuming assembly. It uses Unity Collections 6.6.0.
 
 ## NativeAllocator
 
@@ -22,7 +24,7 @@ Hashes of raw memory: the same bytes give the same hash on every machine and run
 
 | Member | Use |
 |---|---|
-| `XxHash64(byte* data, long length, long seed = 0)` | Fingerprints whole blocks, for example a simulation frame, to detect divergence. Gives exactly the value of `System.IO.Hashing.XxHash64`, computed directly over raw memory, which is many times faster than the library in the Editor's Mono runtime. Big-endian runtimes fall back to the library. |
+| `XxHash64(byte* data, long length, long seed = 0)` | Fingerprints whole blocks, for example a simulation frame, to detect divergence. Gives exactly the value of `System.IO.Hashing.XxHash64`, computed directly over raw memory. Big-endian runtimes fall back to the library. |
 | `XxHash32(byte* data, int length)`, `XxHash32<T>(in T value)` | Places keys in hash tables. A value's padding must be zeroed. |
 
 ## Inline collections

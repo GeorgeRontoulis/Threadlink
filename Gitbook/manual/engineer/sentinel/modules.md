@@ -1,84 +1,53 @@
 # Modules
 
-A **module** implements Sentinel for exact platform/distribution pairs. It has a runtime half, which registers a platform factory with `SentinelModuleRegistry`, and an editor half, an `ISentinelBuildModule` that configures and validates builds for the same pairs.
+## Provider requirements
 
-## Shipped modules
+Native integrations implement `ISentinelProvider` and the selected typed capability interfaces. Keep SDK imports in optional adapters. A build should validate its actual selected capabilities through `ProviderRequirements.ValidateSelection`, then apply adapter-specific SDK/configuration validation. Compiling a contract or finding SDK files does not verify a native capability.
 
-| Module | ID | Keys | Capabilities |
-|---|---|---|---|
-| **Threadlink Local** | `threadlink.local` | Windows, macOS, Linux / `Local` | `Accounts`, `LocalSaves`, `SaveTransactions`, `Achievements`, `AchievementProgress` |
-| **Steam** | `threadlink.steam` | Windows, macOS, Linux / `Steam` | `Accounts`, `LocalSaves`, `SaveTransactions`, `Achievements`, `AchievementProgress`, `Presence`, `Friends`, `Invites`; `CloudSaves` when Steam Cloud is enabled for the app and the account |
+| Target | Implementation boundary | Required verification |
+| --- | --- | --- |
+| Windows Local | SDK-free profiles, optional local storage adapter | Target filesystem atomic replacement, account isolation and recovery |
+| Linux / macOS Local | Same ordinary C# local adapter | Native target runtime/filesystem checks |
+| Steam | `sentinel.steam` with a Unity Steamworks API or Steamworks.NET backend | Native libraries, a running signed-in client, configured App ID and per-capability Steamworks configuration tests |
+| Android Local | Application-private local storage adapter | Android module/device and filesystem checks |
+| Google Play | Separate optional adapter | Target SDK/device, application/account configuration and service-specific tests |
+| Apple local / services | Local storage or separate service adapter | Apple toolchain/device, sandbox, identifiers, entitlements and selected services |
+| Microsoft Store Windows | Separate optional adapter | Store/package identity, relevant SDK, account and service tests |
+| Public PC GDK | Separate optional adapter | GDK/runtime, title/account/backend configuration and selected capability tests |
+| GOG | Separate optional adapter | Authorized Galaxy SDK/account and game-service configuration |
+| Xbox Console | Extension contracts and integration groundwork | Authorized console tooling/title/hardware plus native capability tests |
+| Nintendo / Sony | Extension contracts/test doubles | Separately supplied authorized native implementation and device tests |
 
-### Local
+The public requirement catalog describes these integration boundaries; it does not mark unavailable integrations as installed providers. Test doubles exercise cancellation, conflicts, account isolation and transaction handling without claiming storefront/backend/device verification.
 
-The Local module needs no platform SDK or storefront configuration.
+Steam's initialization requirements include native SDK integration, a usable client and a configured application/account. See the [Steamworks API overview](https://partner.steamgames.com/doc/sdk/api). PC GDK setup also requires the relevant development/runtime environment; see [Microsoft's development PC requirements](https://learn.microsoft.com/gaming/gdk/docs/gdk-dev/get-started/overviews/set-up-dev-pc). Console and service access must be verified independently of public documentation or SDK installation.
 
-- **One implicit account**, `local-user` ("Local User"), always `SignedIn` and primary. `PickAccountAsync` fails with `Unsupported`, and the account events never fire.
-- **Saves** are generation-based files under `Application.persistentDataPath/Sentinel` (see [Transactional Saving](saving.md#storage-by-module)).
-- **Achievements** are held in memory for the session and are not persisted. Progress only increases.
+## Steam provider
 
-### Steam
+`com.threadforge.threadlink.sentinel.steam` supplies `SteamProvider`, which implements accounts, achievements (with optional progress statistics), statistics, leaderboards, rich presence, friends, invites, DLC entitlements, join intents and Steam Cloud slots. It works with either Steam wrapper through `ISteamBackend`:
 
-The Steam module requires Steamworks.NET (`com.rlabrecque.steamworks.net`, validated against 2025.165.0) and the `STEAMWORKS_NET` scripting define; its assembly compiles only for standalone platforms and the Editor.
+| Wrapper | Package | Adapter assembly | Backend |
+| --- | --- | --- | --- |
+| Unity Steamworks API | `com.unity.steamworks-api` | `Threadforge.Threadlink.Sentinel.Steam.Unity` | `UnitySteamworksBackend` |
+| Steamworks.NET | `com.rlabrecque.steamworks.net` (2024.8.0 or later) | `Threadforge.Threadlink.Sentinel.Steam.SteamworksNet` | `SteamworksNetBackend` |
 
-- **Sole lifecycle owner.** The module initialises and shuts down the Steam API itself, and pumps Steam callbacks every frame from a hidden persistent object. If Steamworks.NET was initialised by other code first, deployment fails with `Conflict`.
-- **The account follows the client's connection to Steam's servers.** It is `SignedIn` when connected and `Suspended` in offline mode or without a connection, and `AccountStateChanged` reports each change.
-- **The Steam client shutting down** reports the platform lost.
-- **App ID:** the project-root `steam_appid.txt` is the one App ID source.
-  - At startup the expected App ID is resolved from the `SteamAppId` environment variable (which Steam sets when it launches the game), then `steam_appid.txt` in the working directory, then beside the executable. If one resolves and Steam initialises under a different App ID, deployment fails.
-  - Development builds get a copy of `steam_appid.txt` beside the executable.
-  - Release builds ship without it, as Valve requires, and get the App ID in `<Data>/threadlink_steam_appid.txt` instead: a file the Steam client never reads.
-  - With it, a release build started outside Steam calls `SteamAPI.RestartAppIfNecessary` and Steam relaunches it.
-- **Saves** use Steam Remote Storage (see [Transactional Saving](saving.md#storage-by-module)).
-- **Achievements.** A Threadlink achievement ID maps to the Steam API name `TL_ACH_<ID as 8 hex digits>` unless registered otherwise. Partial progress is persisted only through a registered progress stat; without one, `SetProgressAsync` below 1 fails with `Unsupported`. Progress only increases.
+Each adapter compiles only when its wrapper is installed; the provider core has no Unity or SDK reference. Choose one wrapper per project, because each brings its own native `steam_api` libraries. With Unity's package, import the SDK libraries through **Project Settings ▸ Steamworks** and keep the SDK folder itself outside `Assets`. Steamworks.NET ships its libraries and needs `steam_appid.txt` during development.
 
-`SteamSentinelSettings` (in `Threadlink.Sentinel.Steam.Shared`) configures the module in code, before Sentinel deploys:
-
-| Member | Default | Semantics |
-|---|---|---|
-| `RestartAppIfNecessary` | `true` | Whether a player build started outside Steam asks Steam to relaunch it. |
-| `RetainedSaveGenerations` | 3 | Published save generations kept per save; at least 1. |
-| `RegisterAchievement(id, apiName, progressStatAPIName, progressMaximum)` | — | Maps an achievement ID to an explicit Steam API name and, optionally, an integer progress stat with its maximum. |
-| `RemoveAchievement(id)`, `ClearAchievementOverrides()` | — | Remove explicit mappings. |
-| `ResolveAchievement(id)`, `BuildDefaultAchievementAPIName(id)` | — | The mapping in effect, and the default name. |
-
-## Writing a runtime module
-
-1. Derive a platform from `SentinelPlatform` (or implement `ISentinelPlatform`) for one exact `SentinelPlatformMarker` + `SentinelDistribution` pair. Implement `Capabilities` and `InitializeAsync()`, which returns a `SentinelResult`.
-2. In `InitializeAsync`, register platform-level services with the protected `RegisterService<T>`, and account-scoped services on `SentinelAccount` implementations the same way. `ReplaceService<T>` swaps a service, discarding the previous one; `UnregisterService<T>` removes one.
-3. Advertise only capabilities actually implemented.
-4. If the platform can go away after initialising, call `ReportLost(result)`; it is safe to call from an SDK callback.
-5. Register a `SentinelModuleDescriptor` (platform, distribution, module ID, display name, platform factory) through `SentinelModuleRegistry.Register` from an `[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]` hook. The registry is cleared at `SubsystemRegistration`, and Sentinel resolves it during preloading.
+Steam is configured in **Project Settings ▸ Threadlink ▸ Steam**: enable it, set the App ID, and author the game's Steam achievements, statistics, leaderboards and DLC. Each entry pairs the name game code uses (which generates `Achievements.Name`, `Statistics.Name`, `Leaderboards.Name` or `Products.Name`) with its Steamworks name; an empty Steamworks name uses the entry's name. It is off by default, so tests and the Editor never touch Steam unless a project enables it. When enabled, the `SteamPlatform` subsystem starts Steam with the session through the installed wrapper and adds the provider to Sentinel, so the code below talks to Steam:
 
 ```csharp
-[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
-private static void Register()
-{
-    SentinelModuleRegistry.Register(new SentinelModuleDescriptor
-    (
-        SentinelPlatformMarker.Windows,
-        SentinelDistribution.Epic,
-        "studio.epic",
-        "Epic Games",
-        static () => new EpicSentinelPlatform()
-    ));
-}
+await Sentinel.UnlockAchievementAsync(Achievements.FirstChest);
+if (Sentinel.TryGet<IStatistics>(out var statistics))
+    await statistics.WriteAsync(Statistics.LanternsFound, lanterns, Sentinel.Accounts.Capture().Token);
+var provider = SteamPlatform.Provider;        // null while Steam is disabled or did not start
 ```
 
-`Register` returns a failed `SentinelResult` for an unknown platform or `None` distribution, a pair the distribution policy does not allow, an empty module ID or display name, or a key another module has already registered (`Conflict`).
+`SteamPlatform` owns the Steam API lifecycle: nothing initializes on installation, Steam starts once with the session and shuts down with it. A start that reports `ClientNotRunning`, `RestartRequired`, `AppIdMismatch`, `AlreadyInitialized` or `Failed` is logged and leaves Sentinel on the local provider; a `RestartRequired` player should quit. On success the signed-in user becomes the `steam` account.
 
-## The build pipeline
+`Status` keeps supported and available separate. Before `Start` capabilities are `Initializing`; without a client they are `TemporarilyUnavailable`; offline users are `Offline`; another selected account means `AccountRequired`; Steam Cloud is unavailable when disabled for the account or app. Commerce is unsupported, because Steam microtransactions require a trusted server.
 
-Before every build, Sentinel resolves the target the same way the runtime does: Unity build target to `SentinelPlatformMarker`, `SentinelConfig` to `SentinelDistribution`, and the exact key to exactly one installed `ISentinelBuildModule`. The build fails if:
+`SteamProvider` resolves each platform-agnostic ID against this authoring; an ID not authored for Steam reports `NotFound`. Partial achievement progress requires a progress statistic and never moves backwards. Stores wait for Steam's `UserStatsStored` result. A store cancelled after it was requested reports `Cancelled` with `MayHaveCommitted`, because Steam may still persist it. EResult codes map to Sentinel errors, and nothing retries automatically.
 
-- the build target is not supported;
-- there is not exactly one `SentinelConfig` asset, or the Native Config's `SentinelConfig` resource does not reference it;
-- the config holds no valid distribution for the platform;
-- no build module, or more than one, implements the key;
-- the module throws, or reports an error diagnostic.
+Launch connect data and accepted invites are captured in `JoinIntents` for the game to consume when ready. `SendAsync` invites a Steam friend with a connect string. `SteamCloudStorage` stores each slot as one versioned file (`{CloudFilePrefix}{slot}.tlc`) with compare-and-publish. Steam Cloud keeps one copy, so `ExposesDivergentVersions` is false and stale publications fail with `Conflict`. Use it with `CloudSynchronization`; it accepts only the signed-in Steam account's addresses.
 
-An `ISentinelBuildModule` exposes `ModuleID`, `DisplayName`, `Implements(in SentinelModuleKey)`, `ConfigureBuild` and `ValidateBuild`. The last two receive a `SentinelBuildContext` (the `BuildReport`, the key, the output path, and `GetSubtarget<T>()`) and append `SentinelBuildDiagnostic.Info`, `Warning` or `Error` entries, which are logged. Build modules are found through the `TypeCache` and must expose a public parameterless constructor.
-
-The Steam build module checks that Steamworks.NET is installed and that `steam_appid.txt` holds a valid App ID, and warns if it is Valve's test App ID 480.
-
-The Sentinel Config's Inspector shows the current build target, its Sentinel platform, and the distribution choice the target allows.
+Verification uses scripted backends for every capability contract, and clean Mono and IL2CPP player builds for each wrapper. Native Steam behavior needs a running signed-in client, a configured App ID and the matching Steamworks achievements, statistics, leaderboards, DLC and Cloud settings. Verify each capability your game uses against Steam.

@@ -1,0 +1,10 @@
+{
+  "name": "Threadlink.Development.Showcase",
+  "references": [
+    "GUID:6075f388792684f4a89c7de66fbeb297"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "autoReferenced": false
+}

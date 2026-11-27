@@ -1,0 +1,10 @@
+{
+  "name": "Threadforge.Threadlink.Deterministic",
+  "rootNamespace": "Threadforge.Threadlink",
+  "references": [],
+  "autoReferenced": true,
+  "overrideReferences": true,
+  "precompiledReferences": [],
+  "allowUnsafeCode": true,
+  "noEngineReferences": true
+}

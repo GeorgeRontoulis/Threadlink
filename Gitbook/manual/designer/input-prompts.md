@@ -1,12 +1,15 @@
-# Input Prompts
+# Input Prompts and Rebinding
 
-Threadlink resolves the correct button glyph for the active input device and substitutes it automatically on device change. Four device families are distinguished: mouse and keyboard, Xbox controller, PlayStation controller, and Switch Pro controller.
+Input uses Unity Input System action assets. Each player gets their own copy of the actions, paired with that player's devices, so prompts and rebinds for one player never affect another.
 
-1. Add a **`DextraInputIcon`** component to a UI Image.
-2. Configure the control it represents (its input control path).
+## Prompts
 
-Inside one of Dextra's interfaces, that is all. Anywhere else, an engineer's component must boot and discard it (see [Dextra](../engineer/dextra.md#device-resolution)).
+A prompt names the control for an action on the device the player used last. If the team supplies glyphs (button icons), prompts show the glyph; otherwise they show the control's readable name, such as `Space` or `Button South`. Prompts switch automatically when the player changes device.
 
-The control-and-device to sprite mapping resides on the Dextra Config asset. Populating it is shared work: designers supply and assign sprites, engineers configure control paths. Sprites are Addressable assets; see [Registering Scenes, Prefabs and Assets](registering-content.md).
+## Rebinding
 
-If no sprite is assigned for the active device, the image is hidden and an error is logged.
+Rebinding listens for the next control on the player's own devices. Composite bindings such as WASD are rebound one part at a time. Cancelling restores the previous bindings. When a new binding conflicts with another action, the game decides whether to accept it and clear the other binding. Rebinds are saved for each player automatically and restored the next time the game starts; resetting restores the action asset's defaults.
+
+## Contexts
+
+Gameplay, menus and cutscenes enable different action maps through claims with priorities. A blocking claim (for example an open menu) suspends lower-priority input until it is released, then the earlier input returns unchanged.

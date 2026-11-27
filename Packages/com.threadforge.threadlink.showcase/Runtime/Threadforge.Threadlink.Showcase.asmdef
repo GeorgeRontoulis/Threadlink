@@ -1,0 +1,19 @@
+{
+  "name": "Threadforge.Threadlink.Showcase",
+  "rootNamespace": "Threadforge.Threadlink.Showcase",
+  "references": [
+    "GUID:d070546ede129d447aee8ce8072b681c",
+    "GUID:64110fcb7eb337b4788790aee221c47f",
+    "GUID:e5e593429e76c484d90aebb60c96a623",
+    "GUID:d6b8713594d5ed54f99f43561c2d8adf",
+    "GUID:ed255920b38342344b5565fc26c6f140",
+    "GUID:11c3b1b023c53d649bc98e2c163960fb",
+    "GUID:75469ad4d38634e559750d17036d5f7c",
+    "GUID:e0cd26848372d4e5c891c569017e11f1",
+    "GUID:9e24947de15b9834991c9d8411ea37cf",
+    "GUID:84651a3751eca9349aac36a66bba901b",
+    "GUID:f51ebe6a0ceec4240a699833d6309b23"
+  ],
+  "autoReferenced": true,
+  "allowUnsafeCode": true
+}

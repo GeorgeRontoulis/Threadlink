@@ -1,0 +1,28 @@
+{
+    "Members": [
+        {
+            "Group": "",
+            "Name": "Slime",
+            "Type": "",
+            "Key": "733101947",
+            "Value": "733101947",
+            "Summary": "Slow, splits when hit."
+        },
+        {
+            "Group": "",
+            "Name": "Goblin",
+            "Type": "",
+            "Key": "2112080798",
+            "Value": "2112080798",
+            "Summary": "Fast melee."
+        },
+        {
+            "Group": "",
+            "Name": "Wraith",
+            "Type": "",
+            "Key": "662271174",
+            "Value": "662271174",
+            "Summary": "Ignores walls."
+        }
+    ]
+}

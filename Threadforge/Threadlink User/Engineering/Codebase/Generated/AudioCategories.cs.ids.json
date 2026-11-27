@@ -1,0 +1,36 @@
+{
+    "Members": [
+        {
+            "Group": "",
+            "Name": "Music",
+            "Type": "global::Threadforge.Threadlink.AudioCategory",
+            "Key": "Music",
+            "Value": "new global::Threadforge.Threadlink.AudioCategory(\"Music\")",
+            "Summary": "The Music category (4 voices)."
+        },
+        {
+            "Group": "",
+            "Name": "Effects",
+            "Type": "global::Threadforge.Threadlink.AudioCategory",
+            "Key": "Effects",
+            "Value": "new global::Threadforge.Threadlink.AudioCategory(\"Effects\")",
+            "Summary": "The Effects category (32 voices)."
+        },
+        {
+            "Group": "",
+            "Name": "Interface",
+            "Type": "global::Threadforge.Threadlink.AudioCategory",
+            "Key": "Interface",
+            "Value": "new global::Threadforge.Threadlink.AudioCategory(\"Interface\")",
+            "Summary": "The Interface category (8 voices)."
+        },
+        {
+            "Group": "",
+            "Name": "Ambience",
+            "Type": "global::Threadforge.Threadlink.AudioCategory",
+            "Key": "Ambience",
+            "Value": "new global::Threadforge.Threadlink.AudioCategory(\"Ambience\")",
+            "Summary": "The Ambience category (8 voices)."
+        }
+    ]
+}

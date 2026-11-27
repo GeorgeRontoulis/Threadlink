@@ -1,0 +1,15 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="Starter.uss" />
+    <ui:VisualElement class="starter-backdrop">
+        <ui:VisualElement class="starter-panel starter-wide">
+            <ui:Label text="Settings" class="starter-title" />
+            <ui:Label text="Audio" class="starter-heading" />
+            <ui:VisualElement name="volumes" />
+            <ui:Toggle name="muted" label="Mute all" />
+            <ui:Label text="Controls" class="starter-heading" />
+            <ui:ScrollView class="starter-list"><ui:VisualElement name="bindings" /></ui:ScrollView>
+            <ui:Button name="reset-bindings" text="Reset Controls" class="starter-button" />
+            <ui:Button name="back" text="Back" class="starter-button" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -7,7 +7,7 @@ pages into links to anchors within the file, so it reads correctly on its own (f
 Unity project, where it ships as Assets/Threadforge/MarkdownDocumentation.md).
 
 Usage (from the repository root):
-    python Gitbook/tools/build_single_file.py            # writes Threadforge/MarkdownDocumentation.md
+    python Gitbook/tools/build_single_file.py            # writes the local working-project or repository manual
     python Gitbook/tools/build_single_file.py --check    # exits 1 if that file is out of date
     python Gitbook/tools/build_single_file.py -o out.md  # writes elsewhere
 
@@ -21,7 +21,8 @@ import sys
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 MANUAL_ROOT = os.path.join(REPO_ROOT, "Gitbook", "manual")
-DEFAULT_OUTPUT = os.path.join(REPO_ROOT, "Threadforge", "MarkdownDocumentation.md")
+OUTPUT_ROOT = os.path.join(REPO_ROOT, "Assets", "Threadforge") if os.path.isdir(os.path.join(REPO_ROOT, "Assets", "Threadforge")) else os.path.join(REPO_ROOT, "Threadforge")
+DEFAULT_OUTPUT = os.path.join(OUTPUT_ROOT, "MarkdownDocumentation.md")
 TITLE = "Threadlink Framework — Reference Manual"
 SITE_URL = "https://threadforge.gitbook.io/threadlink-documentation/"
 

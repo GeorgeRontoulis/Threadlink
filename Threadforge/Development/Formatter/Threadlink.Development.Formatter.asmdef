@@ -1,0 +1,9 @@
+{
+    "name": "Threadlink.Development.Formatter",
+    "rootNamespace": "Threadforge.Threadlink.Development",
+    "references": [],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "autoReferenced": false
+}

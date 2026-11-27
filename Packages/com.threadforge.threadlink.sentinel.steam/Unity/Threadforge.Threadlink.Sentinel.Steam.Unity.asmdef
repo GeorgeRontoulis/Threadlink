@@ -1,0 +1,28 @@
+{
+  "name": "Threadforge.Threadlink.Sentinel.Steam.Unity",
+  "rootNamespace": "Threadforge.Threadlink",
+  "references": [
+    "GUID:d070546ede129d447aee8ce8072b681c",
+    "GUID:ed255920b38342344b5565fc26c6f140",
+    "GUID:3aad33915337c5141b9715ee7adbdd67",
+    "GUID:ebe1c219560ea6b4591505d405a7372c",
+    "GUID:f51ebe6a0ceec4240a699833d6309b23"
+  ],
+  "autoReferenced": true,
+  "defineConstraints": [
+    "THREADLINK_STEAM_UNITY_API"
+  ],
+  "versionDefines": [
+    {
+      "name": "com.unity.steamworks-api",
+      "expression": "1.0.0",
+      "define": "THREADLINK_STEAM_UNITY_API"
+    }
+  ],
+  "includePlatforms": [
+    "Editor",
+    "LinuxStandalone64",
+    "macOSStandalone",
+    "WindowsStandalone64"
+  ]
+}

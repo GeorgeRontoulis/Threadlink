@@ -1,0 +1,26 @@
+{
+  "name": "Threadforge.Threadlink.Starter.Tests",
+  "rootNamespace": "Threadforge.Threadlink.Starter.Tests",
+  "references": [
+    "GUID:d070546ede129d447aee8ce8072b681c",
+    "GUID:d6720c0284e98b74983aba005cb113d6",
+    "GUID:d6b8713594d5ed54f99f43561c2d8adf",
+    "GUID:64110fcb7eb337b4788790aee221c47f",
+    "GUID:ed255920b38342344b5565fc26c6f140",
+    "GUID:75469ad4d38634e559750d17036d5f7c",
+    "GUID:f51ebe6a0ceec4240a699833d6309b23"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "nunit.framework.dll",
+    "MessagePack.dll",
+    "MessagePack.Annotations.dll"
+  ],
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
+  "autoReferenced": false
+}

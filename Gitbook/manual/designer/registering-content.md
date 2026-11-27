@@ -1,25 +1,28 @@
-# Registering Scenes, Prefabs and Assets
+# Registering Content
 
-Runtime-loaded content (scenes, prefabs, audio clips, sprites) is referenced through Addressables and surfaced as a dropdown identifier. Registration is performed through a dedicated tool.
+Content the game loads at runtime is managed by **Addressables**: its Groups window decides which assets are addressable, their addresses, labels, groups and how they are built and delivered. Threadlink does not duplicate any of that. The **Content mapping** only decides which addressable entries game code loads by ID.
 
-Every scene is Addressable except the bootstrap scene, which is the only one in Build Settings (see [Deployment Overview](../foundations/deployment-overview.md)). A new scene therefore never goes into Build Settings.
+## Map an entry
 
-1. Ensure the asset belongs to an Addressable group.
-2. Open **`Threadlink ▸ Addressables ▸ Mapping Window`**.
-3. Locate the asset within its group and enable its checkbox. The toolbar's search field filters entries by name; **All** and **None** toggle a whole group; **Ping** locates the asset in the Project window.
-4. Select **Apply**.
+1. Make the asset addressable in **Window ▸ Asset Management ▸ Addressables ▸ Groups** (or tick **Addressable** in its Inspector).
+2. Open **Threadlink ▸ Content Mapping** (the Workspace's **Content** page). Every editable Addressables group is listed with its entries.
+3. Tick the entry, then **Apply**. **All** and **None** tick every shown entry of a group; the filter narrows the list by name.
+4. Tell engineering the ID: a prefab `Slime` in the group `Characters` becomes `ContentPrefabs.Characters.Slime`.
 
-The window classifies assets by type automatically (scenes yield Scene identifiers, prefabs yield Prefab identifiers, all others yield Asset identifiers) and writes the corresponding reference into the User Config. The reference maps on the User Config are read-only in the Inspector and are owned exclusively by this window. Read-only Addressable groups are not listed.
+Threadlink sorts each entry by how it loads:
 
-Two properties govern the resulting identifier:
+| Kind | Entries | Generated class |
+|---|---|---|
+| Asset | Sprites, clips, cues, materials, any other asset | `ContentAssets` |
+| Prefab | Prefabs | `ContentPrefabs` |
+| Scene | Scenes | `ContentScenes` |
 
-- **The identifier derives from the asset name.** An audio clip named `Music_BossTheme` yields the identifier `Music_BossTheme`. Assets should carry stable, code-safe names prior to mapping.
-- **The Addressable group participates in identity.** Two assets named `Splash` in distinct groups coexist; the second is qualified as `GroupName_Splash`. Relocating a mapped asset to a different group alters its identifier. Group assignment should be settled before mapping.
+You can also select assets in the Project window and choose **Assets ▸ Threadlink ▸ Map for Loading by ID**. Fields that refer to content, such as a level's music, show a dropdown of the mapped entries.
 
-Disabling an asset's checkbox unmaps it. The identifier is retained as a tombstone.
+The mapping itself is in **Project Settings ▸ Threadlink ▸ Content**: three read-only dictionaries of IDs and Addressables references, written when you apply.
 
-Renaming a mapped asset, or moving it to another group, gives it a new identifier and makes the old one a tombstone. Applying the mappings again records the old identifier as an alias of the new one, so engineering can resolve data saved under the old identifier (see [Resource Loading](../engineer/resource-loading.md#renamed-assets)). References in assets and code still require reassignment.
+## Labels
 
-Group names become part of the identity too: two groups whose names reduce to the same code-safe form (for example `Test Assets` and `Test_Assets`) are reported, and Apply refuses to run until one is renamed.
+Addressables labels need no mapping: each label generates `ContentLabels.Name`, which loads every asset with that label in one request.
 
-The **Scenes** dropdown in the Editor's main toolbar lists every scene that ships, both those in Build Settings and those in Addressable groups, and opens the selected one.
+Removing or renaming content follows the rules in [Identifiers and Tombstones](identifiers.md).

@@ -1,0 +1,21 @@
+{
+  "name": "Threadforge.Threadlink.Sentinel.Steam.Tests",
+  "rootNamespace": "Threadforge.Threadlink.Tests",
+  "references": [
+    "GUID:d070546ede129d447aee8ce8072b681c",
+    "GUID:ed255920b38342344b5565fc26c6f140",
+    "GUID:3aad33915337c5141b9715ee7adbdd67",
+    "GUID:f51ebe6a0ceec4240a699833d6309b23"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "nunit.framework.dll"
+  ],
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
+  "autoReferenced": false
+}

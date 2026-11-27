@@ -3,9 +3,10 @@
 The one source of random numbers for gameplay, simulation, procedural generation and presentation alike. A **stream** is a pure function of the world's seed, a **domain** (what the numbers are for) and **identity parts** (whose, and when: an entity, a tick, a map cell), folded in order. The same inputs give the same numbers on every machine, in any order and on any thread, however many draws happen elsewhere. Nothing is shared or advanced globally.
 
 ```csharp
-StatelessRNG.SetSeed(worldSeed);   // once per world; the world's save keeps it
+static readonly StatelessRNG.Domain Loot = StatelessRNG.Domain.Named("Loot");
 
-var loot = StatelessRNG.CreateStream(ThreadlinkIDs.StatelessRNG.Domains.Loot, chestID, day);
+var rng = new StatelessRNG.Source(worldSeed);     // one per world; the world's save keeps the seed
+var loot = rng.CreateStream(Loot, chestID, day);
 
 int gold = loot.Range(10, 50);                    // [10, 50), every value equally likely
 bool rare = loot.Chance(FP.FromFraction(1, 20));  // exact to the raw unit
@@ -20,16 +21,7 @@ var item = loot.Fork(itemIndex);                  // a finer identity: independe
 
 ## Sources and seeds
 
-`StatelessRNG.Seed` is the process-wide seed, set through `SetSeed`. Every machine simulating a world must use the same one, and the world's save keeps it. The static `CreateStream` overloads draw from `StatelessRNG.Global`, the source of that seed.
-
-A world that can share its process with another (a host's authoritative simulation and its prediction, two worlds in a test, a world and a preview of another) keeps its own **`StatelessRNG.Source`** instead, so the worlds never share randomness:
-
-```csharp
-var rng = new StatelessRNG.Source(worldSeed);
-var loot = rng.CreateStream(ThreadlinkIDs.StatelessRNG.Domains.Loot, chestID, day);
-```
-
-For the same seed, a source gives exactly the streams the static methods give for `StatelessRNG.Seed`. A `default` source is the source of seed 0.
+A `StatelessRNG.Source` holds a world's seed. Every machine simulating a world uses the same seed, and the world's save keeps it. There is no process-wide seed: a host's authoritative simulation and its prediction, two worlds in a test, or a world and a preview each keep their own source, so they never share randomness. Sources are values; two sources with the same seed give the same streams, and a `default` source is the source of seed 0.
 
 ## Streams and identity
 
@@ -73,6 +65,10 @@ Every sampler is unbiased (Lemire's method, redrawing the rare biased case), and
 
 ## Domains
 
-Domains partition streams: systems drawing from one seed under distinct domains do not interfere. New domains are declared in `StatelessRNG.Domains.User.txt` and surface as `ThreadlinkIDs.StatelessRNG.Domains`.
+Domains partition streams: systems drawing from one seed under distinct domains do not interfere. A `StatelessRNG.Domain` is a 32-bit value. Create one with an explicit number, `new StatelessRNG.Domain(17)`, or from a name, `StatelessRNG.Domain.Named("Loot")`, which hashes the name the same way as `Part`. Keep domains in static fields so the name is hashed once.
 
-> Domain values are name hashes. Renaming a domain alters its stream, causing divergence in anything reproducing a prior sequence from a stored seed or replay. Domain names constitute part of the save format, as does the stream format itself.
+> A domain's value is part of the save and replay format, as is the stream format itself. Changing a domain's number or the name it is hashed from changes its streams, causing divergence in anything that reproduces a sequence from a stored seed or replay. Rename the C# field freely, but keep the value.
+
+## Generated domains
+
+Instead of calling `StatelessRNG.Domain.Named` in code, list the domains in an [ID domain](../editor-tooling.md#id-domains) that extends **Random domains**. It generates `RandomDomains.Name`, each a `StatelessRNG.Domain` with a fixed id. A new entry starts with the id `Domain.Named(name)` would give, so replacing a named domain with its generated one keeps every stream identical, and renaming the entry later keeps the id.

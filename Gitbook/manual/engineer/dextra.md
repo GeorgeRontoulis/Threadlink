@@ -1,99 +1,71 @@
-# Dextra: Input and UI
+# Dextra: Input, Screens and Interaction
 
-Dextra is built on Unity's Input System and uGUI. Its preloader loads the Dextra Config, every interface prefab it lists, and the **Dextra Components** prefab, whose `EventSystem` (with an `InputSystemUIInputModule`) Dextra instantiates as a `DontDestroyOnLoad` object, hidden in the Hierarchy when the config's hide flag is set.
+Dextra (`com.threadforge.threadlink.dextra`) covers player input, screens and interaction. Assign the project's input actions, choose the gameplay and interface maps from their dropdowns and set the screen panel settings in **Project Settings ▸ Threadlink ▸ Dextra**.
 
-## Device resolution
+## Players
 
-`Dextra.InputDevice` enumerates `MouseAndKeyboard`, `XBOXController`, `PSController` and `SwitchProController`. `CurrentInputDevice` updates automatically from the first control that changes on any device: DualShock and DualSense gamepads resolve to `PSController`, Switch Pro controllers to `SwitchProController`, any other gamepad to `XBOXController`, and keyboard or mouse to `MouseAndKeyboard`. On a change, every gamepad's rumble is stopped and `OnInputDeviceChanged` is published.
-
-`TryGetInputIcon(device, controlPath, out Sprite)` resolves the corresponding glyph from the Dextra Config, where a `DextraInputControlPath` is an Input System control path.
-
-A `DextraInputIcon` is a bootable `LinkableBehaviour`, not a discoverable one. It shows the glyph of its control from `Boot` until it is discarded, and hides its image when no glyph exists for the active device:
-
-- In one of Dextra's interfaces, the interface boots it and discards it.
-- Anywhere else, the developer's code that owns it does.
-
-## Input modes
+Player 0 exists before the first Awake, with its own copy of the input actions, paired to every device, and the gameplay map enabled.
 
 ```csharp
-dextra.SetInputMapActive(ThreadlinkIDs.Dextra.InputModes.Gameplay, true);
-dextra.TryGetInputMap(mode, out InputActionMap map);
+var player = Dextra.Player();                              // player 0
+Vector2 move = player.Read(GameInput.Gameplay.Move);       // InputId<Vector2>: the value type comes with the ID
+if (player.WasPressed(GameInput.Gameplay.Jump)) Jump();
+jumpPrompt.text = player.Prompt(GameInput.Gameplay.Jump);  // follows the last used device
+
+using (player.Claim(200, true, GameInput.Maps.UI)) { }     // a blocking interface claim
+var conflicts = await player.RebindAsync(GameInput.Gameplay.Jump);
+
+var second = Dextra.AddPlayer(Gamepad.all[1]);      // local multiplayer
+Dextra.RemovePlayer(second);
 ```
 
-The mode-to-`InputActionReference` mapping resides on the Dextra Config as a `FieldHashMap`. A mode resolves to the action map that its referenced action belongs to. `InputModes.Unresponsive` (zero) is the reserved sentinel.
+| API | Behaviour |
+| --- | --- |
+| `player.Action(id)`, `WasPressed`, `WasReleased`, `IsPressed`, `Read(InputId<T>)` | Action queries by `InputId`. `Read` returns the action's value type. |
+| `player.Claim(priority, blocksLower, maps)` | Enables `InputMapId` maps by priority while the returned claim lives; a blocking claim suspends lower maps. |
+| `player.RebindAsync(id, binding = 0)`, `GetConflicts(id, binding = 0)` | Interactive rebinding on the player's own devices; returns conflicts. |
+| `player.ResetBindings()`, `ExportOverrides()`, `ImportOverrides(json)` | Binding overrides. |
+| `Dextra.AddPlayer(devices)` / `AddPlayer(actions, devices)` | Joins a player with the project's or explicit actions. |
 
-## Pointer and selection
+## Input IDs
 
-| Member | Semantics |
-|---|---|
-| `CurrentPointedObject`, `OnPointerEnter`, `OnPointerExit` | The `Selectable` under the mouse, from the UI input module's last raycast, polled once per frame after late update. A change must persist for three polls before it is reported, which absorbs the module's double-firing. |
-| `SelectUIElement(GameObject)` | Selects an element through the EventSystem and publishes `OnUIElementSelected`. Returns a `UniTaskVoid`; call `.Forget()`. Passing `null` clears the selection. |
-| `ClearEventSystemSelection()` | Clears the selection and publishes `OnUIElementSelected` with `null`. |
-| `SetEventSystemActive(bool)`, `SetUIInputModuleActive(bool)` | Enable or disable the EventSystem, or activate or deactivate its UI input module. |
-| `TryGetEventSystem(out EventSystem)`, `TryGetUIInputModule(out InputSystemUIInputModule)` | Access to the instantiated objects. |
+Threadlink generates `GameInput` from the input actions in **Project Settings ▸ Threadlink ▸ Dextra** (see [Generated IDs](editor-tooling.md#generated-ids)):
 
-A selection made natively by the EventSystem is accepted only while the top interface is interactable (`IInteractableInterface`); otherwise it is cleared on the next frame.
+| Member | Type | Example |
+| --- | --- | --- |
+| `GameInput.Maps.<Map>` | `InputMapId` | `GameInput.Maps.Gameplay` |
+| `GameInput.<Map>.<Action>` | `InputId<T>` with the value type of the action's control type (`Vector2`, `float`, …), or `InputId` when the action has none | `GameInput.Gameplay.Move` |
 
-## The UI stack
+IDs are the actions' stable IDs, so renaming an action or map in the asset keeps code working; the generated member follows the new name and the old one stays as an obsolete tombstone. A player whose actions come from another asset, such as a sample's own actions, resolves an ID by its `Map/Action` path instead; an ID found neither way fails with an `ArgumentException` naming the action. `id.Find(asset)` applies the same lookup to any actions asset. Actions created at runtime have IDs too: `InputId<Vector2>.Of(action)` and `InputMapId.Of(map)`. Settings fields that name a map use `[InputMapReference]`, which shows a dropdown of the project's maps.
 
-Interfaces derive from `UserInterface`, or `UserInterface<S>` for a singleton, and require a `CanvasGroup`. They are not discovered by Initium: Dextra instantiates them from `DextraConfig.interfacePointers` (Addressable prefab identifiers), marks them `DontDestroyOnLoad`, forces their alpha to zero, makes them non-interactable, and boots and initialises them. One instance exists per concrete interface type. Dextra discards them in its own `Discard`. Each interface discards its selectables, and boots and discards its input icons.
+Rebinds are saved per player under `persistentDataPath/Threadlink/Input` and restored on the next run (turn off with **Save Bindings**).
 
-Introducing a stacked interface therefore requires constructing the prefab, mapping it through the Addressables Mapping Window, and adding its identifier to `interfacePointers`.
+## Screens
 
 ```csharp
-dextra.Stack<PauseMenuUI>();
-dextra.Stack<ShopUI, ShopData>(data);   // ShopUI implements IStackingDataPreprocessor<ShopData>
-dextra.PopTopInterface();
-dextra.Cancel();
-dextra.ClearStackedInterfaces();
-Dextra.IsTopInterface<PauseMenuUI>();
-Dextra.IsStacked<PauseMenuUI>();
-bool interactable = dextra.TopInterfaceIsInteractable;
+var pause = await Dextra.Screens.OpenAsync(pauseDocument);               // a UI Toolkit document
+pause.Root.Q<Button>("resume").clicked += () => Dextra.Screens.CloseAsync(pause).Forget();
+
+var map = await Dextra.Screens.OpenAsync(ContentPrefabs.Screens.Map, ScreenLayer.Overlay);   // a mapped prefab
 ```
 
-- **Stacking** an interface that is already on top does nothing. Otherwise the current top is covered, and the new interface is pushed and notified. `Stack<U, D>` hands the payload to `IStackingDataPreprocessor<D>.Preprocess` before the interface is shown, and logs a warning if the interface is not a preprocessor of that type.
-- **Popping** removes the top interface and resurfaces the one beneath it.
-- **Cancelling** acts only on an `ICancellableInterface` on top. If it reports `IsInSubPanel`, it receives `OnSubPanelCancelled()` and stays. Otherwise it is popped, the interface beneath resurfaces, it receives `OnCancelled()`, and `OnUICancelled` is published with it as payload. Either way Aura's cancel sound plays.
-- **Clearing** pops every stacked interface.
+A screen prepares before it shows, takes focus, and by default blocks gameplay input by claiming the interface map above gameplay. Closing it restores focus and input to what was below. Layers are `Hud`, `Overlay`, `Menu` and `Modal`. Prefab screens carry a `ToolkitScreen` or, with uGUI installed, a `UGuiScreen`. `ScreenHandle.Root` is the root element of a UI Toolkit screen; `ScreenHandle.Instance` its GameObject. `Dextra.Screens.DefaultPanel` overrides the configured panel settings at runtime.
 
-### Interface lifecycle
+Components implementing `IScreenListener` on a screen hear when it shows, hides and regains focus. With Aura installed, **Threadlink ▸ Dextra ▸ Screen Sounds** plays open, close and focus cues; a rejected sound never affects the screen.
 
-`UserInterface` reacts to the stack through protected virtual hooks:
+## Interaction
 
-| Hook | Default behaviour |
-|---|---|
-| `OnStacked()` | Fades in; becomes interactable if it is an `IInteractableInterface`. |
-| `OnCovered()` | Fades out unless it is an `IPersistentInterface`; becomes non-interactable. |
-| `OnResurfaced()` | Fades in; becomes interactable if it is an `IInteractableInterface`. |
-| `OnPopped()` | Fades out; becomes non-interactable. |
+```csharp
+public sealed class Chest : Interactable
+{
+    public override string Prompt => "Open chest";
 
-Fades run on `OnUpdate` at unscaled time, over the Dextra Config's fade-in and fade-out durations. `Display()` and `Hide()` start them from derived code; `ForceCanvasGroupAlphaTo(float)` sets alpha immediately, and `SetInteractableState(bool)` toggles interactivity and raycast blocking. `IsVisible` and `IsHidden` report a fully shown or fully hidden interface. An interface with a `Canvas` disables it while fully transparent.
+    protected override async UniTask InteractAsync(GameObject actor, CancellationToken token)
+    {
+        await animator.PlayOpenAsync(token);
+        Inventory.Add(loot);
+    }
+}
+```
 
-### Marker interfaces
-
-| Interface | Effect |
-|---|---|
-| `ICancellableInterface` | Receives `OnCancelled()` and `OnSubPanelCancelled()`; reports `IsInSubPanel` |
-| `IPersistentInterface` | Exempt from concealment when covered |
-| `IInteractableInterface`, `IInteractableInterface<T>` | Declares selectable content; the generic form exposes `Selectables` and `LastSelectable` |
-| `IStackingDataPreprocessor<T>` | Preprocesses the stacking payload |
-
-### Selectables
-
-`DextraSelectable` wraps a uGUI `Selectable`, raising `OnSelected` and `OnDeselected`, and turns mouse hover into selection so gamepad and mouse navigation behave alike. `DextraSelectable<T>` exposes the wrapped component as `GenericUnitySelectable`; `DextraButton` wraps a `Button` and exposes its `OnClick`. `ClearSelectionListeners()` detaches selection listeners without a full discard, for pooled selectables.
-
-`InteractableUserInterface<Singleton, Selectable>` is the base for an interactable singleton interface. It registers its `Selectables` at boot, remembers the last one selected, reselects it when stacked or resurfaced, and discards its selectables in its own `Discard`.
-
-`NonDrawingGraphic` is a raycast target that draws nothing.
-
-Scene-placed interfaces outside the stack are not managed by it. `ClearStackedInterfaces()` does not affect them, and `DontDestroyOnLoad` instances persist across transitions. Concealment must be invoked explicitly.
-
-## Interactables
-
-`Interactable` derives from `LinkableBehaviour` and carries an `InteractableConfig`; `Interactable2D` and `Interactable3D` bind it to a 2D or 3D collider on the same GameObject, which acts as its active area. Like every framework type it isn't discoverable: the developer's code discards it, which disables its collider and stops it answering `OnInteract`.
-
-`InteractablesDetector2D` (a `CapsuleCollider2D`) and `InteractablesDetector3D` (a `CapsuleCollider`) are the trigger components that find them, publishing `OnInteractableDetected` and `OnInteractableOutOfRange` with the interactable as payload. Both derive from the generic `EntityDetector2D<Area, Entity>` and `EntityDetector3D<Area, Entity>`, which project code can extend for other entity types.
-
-On detection, an interactable subscribes its `Interact` method as `Func<bool>` to `OnInteract`, and unsubscribes when out of range. Project code publishes `OnInteract`, typically from an input action, to interact with whatever is in range. An `InteractableConfig` with `InteractionOptions.InteractOnContact` interacts immediately on detection instead. `InteractionPrompt` exposes the config's prompt text, localised when `THREADLINK_LOCALIZATION` is defined.
-
-`OnInteract` is a `Func` event, so at most one interactable may be in range at any time. Overlapping active areas violate this constraint and throw.
+Add **Threadlink ▸ Dextra ▸ Interaction Sensor** to the player. Every frame it finds interactables through 3D or 2D physics within its radius and selects the closest available one; `sensor.Prompt` is the selected target's prompt and `await sensor.InteractAsync()` runs one interaction at a time. Iris publishes `InteractionTargetChanged` when the selection changes. Objects that cannot derive from `Interactable` implement `IInteractable`.

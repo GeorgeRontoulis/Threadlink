@@ -1,5 +1,0 @@
-///Use this file to define custom data fields for Vaults as showcased below:
-///
-///UserDefinedDataFieldID1
-///UserDefinedDataFieldID2
-///...

@@ -1,0 +1,10 @@
+{
+  "name": "Threadforge.Threadlink.Sentinel.Steam",
+  "rootNamespace": "Threadforge.Threadlink",
+  "references": [
+    "GUID:d070546ede129d447aee8ce8072b681c",
+    "GUID:ed255920b38342344b5565fc26c6f140",
+    "GUID:f51ebe6a0ceec4240a699833d6309b23"
+  ],
+  "autoReferenced": true
+}

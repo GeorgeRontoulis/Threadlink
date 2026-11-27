@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 171f6249a41901640ae94682086cb383, type: 3}
+  m_Name: Forest
+  m_EditorClassIdentifier: Threadforge.Threadlink.Starter::Threadforge.Threadlink.Starter.LevelDefinition
+  identity: 
+  authoredVersion: 1
+  DisplayName: Forest
+  Scene:
+    guid: 1cd47321-be47-79d4-983b-67f70b44b815
+    path: Starter Forest
+  Music: {fileID: 11400000, guid: e33741f7a68f98746b284ede6cf6ee20, type: 2}
+  Spawn: {x: 0, y: 1.1, z: -8}
+  RequiredItems: 3

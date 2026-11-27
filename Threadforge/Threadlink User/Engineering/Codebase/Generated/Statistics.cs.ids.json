@@ -1,0 +1,12 @@
+{
+    "Members": [
+        {
+            "Group": "",
+            "Name": "LanternsFound",
+            "Type": "global::Threadforge.Threadlink.StatisticId",
+            "Key": "lanterns-found",
+            "Value": "new global::Threadforge.Threadlink.StatisticId(\"lanterns-found\")",
+            "Summary": "Steam: STAT_LANTERNS."
+        }
+    ]
+}

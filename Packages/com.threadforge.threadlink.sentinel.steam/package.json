@@ -1,0 +1,24 @@
+{
+  "name": "com.threadforge.threadlink.sentinel.steam",
+  "version": "1.0.0",
+  "displayName": "Threadlink Sentinel Steam",
+  "description": "Steam accounts, achievements, statistics, leaderboards, presence, friends, invites, DLC, join intents and Steam Cloud, through Unity's Steamworks package or Steamworks.NET.",
+  "unity": "6000.6",
+  "author": {
+    "name": "Threadforge",
+    "url": "https://github.com/GeorgeRontoulis/Threadlink"
+  },
+  "license": "MIT",
+  "keywords": [
+    "threadlink",
+    "steam",
+    "steamworks",
+    "platform"
+  ],
+  "documentationUrl": "https://threadforge.gitbook.io/threadlink-documentation/engineer-reference/sentinel/modules",
+  "changelogUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.sentinel.steam/CHANGELOG.md",
+  "licensesUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.sentinel.steam/LICENSE.md",
+  "dependencies": {
+    "com.threadforge.threadlink.sentinel": "1.0.0"
+  }
+}

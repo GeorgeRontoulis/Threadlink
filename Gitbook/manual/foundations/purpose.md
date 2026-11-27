@@ -1,26 +1,11 @@
 # Purpose
 
-Threadlink is a modular runtime framework layered over Unity, providing a unified backbone for games and interactive applications. It supplies:
+Threadlink packages the systems most Unity games rebuild for every project: event dispatch, session-wide systems and their startup, content loading with clear ownership, scene transitions, input contexts and screen navigation, audio cues, typed definitions, transactional saves with recovery, platform services, deterministic numbers and randomness, and operation diagnostics.
 
-- A self-deploying core that needs no scene-placed initialiser. Its one scene requirement is a bootstrap scene: the build's entry point, which stays loaded while Nexus loads every other scene through Addressables (see [Deployment Overview](deployment-overview.md)).
-- Native subsystems covering event dispatch, time, scene management, input and UI, audio, and cross-platform platform services such as accounts, saves, achievements, and social/session affordances.
-- A type-safe identifier system in which scenes, assets, prefabs, events, input modes, spawn points, RNG domains and data fields are C# enumerations generated from plain-text declarations, eliminating string-keyed lookup.
-- The **Vault**, a polymorphic data container for designer-authored game data.
-- A deterministic arithmetic and stateless RNG toolkit for reproducible simulation, replay-sensitive logic and procedural generation, and a native-memory toolkit for state that is copied, hashed and saved as raw bytes.
+Three rules shape every package:
 
-Threadlink does not supersede Unity. Scenes, prefabs and components are authored conventionally. Threadlink supersedes the intermediate infrastructure: manager singletons, event wiring, asset-reference bookkeeping, and persistence abstraction.
+- **The framework answers where things live.** Session-wide systems are subsystems owned by the Threadlink core: registered automatically, ready before the first Awake, shut down in reverse order, reached from anywhere. Game code never constructs a framework system or decides where to keep it.
+- **Engineers own code, designers own data.** Composition is code; engineering settings live in Project Settings; designers edit cues, definitions, scene music, screens and tuning, which never select code. SDKs such as Steam stay off until an engineer enables them.
+- **Unity stays authoritative.** Packages build on Unity's Input System, Addressables, AudioSource and AudioMixer, SceneManager, UI Toolkit and UGUI, and the profiler. Addressables keeps its own resource accounting; Threadlink adds request ownership and typed identities, not a second cache.
 
-## Authored data, implemented behaviour
-
-The framework maintains a single dividing line:
-
-- **Designers author data.** They create Vault assets, populate configuration ScriptableObjects, place components in scenes, and declare identifiers in text files.
-- **Engineers implement behaviour.** They author subsystems, implement scene logic, subscribe to events, and consume authored data.
-
-Neither discipline encodes the other's concerns. Designers do not edit `.cs` files; engineers do not hard-code values belonging in a Vault.
-
-## Content-addressed identity
-
-Generated identifier values derive from a hash of the entry name rather than from its position in a declaration list. Consequently, removing an entry cannot alter the value of any other entry, and removed entries persist as obsolete tombstones so that previously serialised references remain resolvable.
-
-This property underpins the safety of the identifier workflow. A single domain, Iris events, operates on positional allocation instead, and is identified as such at every point where the distinction is material. See [Identifier Domains and Code Generation](../engineer/code-generation.md).
+Operations that can fail report how they failed. Cancellation, partial failure, account changes and interrupted saves have defined outcomes, and [Diagnostics](../engineer/diagnostics.md) records them without changing behavior. Install only what you use: features are separate packages, and integrations between them compile only when both are installed.

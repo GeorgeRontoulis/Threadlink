@@ -1,0 +1,13 @@
+{
+  "name": "Threadforge.Threadlink.Aura.Editor",
+  "rootNamespace": "Threadforge.Threadlink.Editor",
+  "references": [
+    "GUID:d070546ede129d447aee8ce8072b681c",
+    "GUID:7ffcb2c3656d32b4784c0c03c761d569",
+    "GUID:e5e593429e76c484d90aebb60c96a623"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "autoReferenced": false
+}

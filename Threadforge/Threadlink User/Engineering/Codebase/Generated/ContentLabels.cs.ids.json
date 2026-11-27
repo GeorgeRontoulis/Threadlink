@@ -1,0 +1,12 @@
+{
+    "Members": [
+        {
+            "Group": "",
+            "Name": "Default",
+            "Type": "global::Threadforge.Threadlink.ContentLabel",
+            "Key": "default",
+            "Value": "new global::Threadforge.Threadlink.ContentLabel(\"default\")",
+            "Summary": "Addressables label default."
+        }
+    ]
+}

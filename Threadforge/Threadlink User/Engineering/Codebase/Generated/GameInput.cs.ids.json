@@ -1,0 +1,132 @@
+{
+    "Members": [
+        {
+            "Group": "Maps",
+            "Name": "Gameplay",
+            "Type": "global::Threadforge.Threadlink.InputMapId",
+            "Key": "b32cf525-3155-4f7c-829a-2a3b0e9a66d8",
+            "Value": "new global::Threadforge.Threadlink.InputMapId(new global::System.Guid(\"b32cf525-3155-4f7c-829a-2a3b0e9a66d8\"), \"Gameplay\")",
+            "Summary": "The Gameplay action map."
+        },
+        {
+            "Group": "Gameplay",
+            "Name": "Move",
+            "Type": "global::Threadforge.Threadlink.InputId<global::UnityEngine.Vector2>",
+            "Key": "bede4403-32ff-4e95-b1b2-76fc2b4d7779",
+            "Value": "new global::Threadforge.Threadlink.InputId<global::UnityEngine.Vector2>(new global::System.Guid(\"bede4403-32ff-4e95-b1b2-76fc2b4d7779\"), \"Gameplay/Move\")",
+            "Summary": "Value (Vector2) action Gameplay/Move."
+        },
+        {
+            "Group": "Gameplay",
+            "Name": "Jump",
+            "Type": "global::Threadforge.Threadlink.InputId<float>",
+            "Key": "8eb0024e-3830-439b-ae8e-d081b35431c4",
+            "Value": "new global::Threadforge.Threadlink.InputId<float>(new global::System.Guid(\"8eb0024e-3830-439b-ae8e-d081b35431c4\"), \"Gameplay/Jump\")",
+            "Summary": "Button (Button) action Gameplay/Jump."
+        },
+        {
+            "Group": "Gameplay",
+            "Name": "Interact",
+            "Type": "global::Threadforge.Threadlink.InputId<float>",
+            "Key": "9fb4c590-b27c-4662-8256-2d80065a2c30",
+            "Value": "new global::Threadforge.Threadlink.InputId<float>(new global::System.Guid(\"9fb4c590-b27c-4662-8256-2d80065a2c30\"), \"Gameplay/Interact\")",
+            "Summary": "Button (Button) action Gameplay/Interact."
+        },
+        {
+            "Group": "Gameplay",
+            "Name": "Pause",
+            "Type": "global::Threadforge.Threadlink.InputId<float>",
+            "Key": "48d07e12-662f-42e4-874e-412a3600a3ed",
+            "Value": "new global::Threadforge.Threadlink.InputId<float>(new global::System.Guid(\"48d07e12-662f-42e4-874e-412a3600a3ed\"), \"Gameplay/Pause\")",
+            "Summary": "Button (Button) action Gameplay/Pause."
+        },
+        {
+            "Group": "Maps",
+            "Name": "UI",
+            "Type": "global::Threadforge.Threadlink.InputMapId",
+            "Key": "272f6d14-89ba-496f-b7ff-215263d3219f",
+            "Value": "new global::Threadforge.Threadlink.InputMapId(new global::System.Guid(\"272f6d14-89ba-496f-b7ff-215263d3219f\"), \"UI\")",
+            "Summary": "The UI action map."
+        },
+        {
+            "Group": "UI",
+            "Name": "Navigate",
+            "Type": "global::Threadforge.Threadlink.InputId<global::UnityEngine.Vector2>",
+            "Key": "c95b2375-e6d9-4b88-9c4c-c5e76515df4b",
+            "Value": "new global::Threadforge.Threadlink.InputId<global::UnityEngine.Vector2>(new global::System.Guid(\"c95b2375-e6d9-4b88-9c4c-c5e76515df4b\"), \"UI/Navigate\")",
+            "Summary": "Value (Vector2) action UI/Navigate."
+        },
+        {
+            "Group": "UI",
+            "Name": "Submit",
+            "Type": "global::Threadforge.Threadlink.InputId<float>",
+            "Key": "7607c7b6-cd76-4816-beef-bd0341cfe950",
+            "Value": "new global::Threadforge.Threadlink.InputId<float>(new global::System.Guid(\"7607c7b6-cd76-4816-beef-bd0341cfe950\"), \"UI/Submit\")",
+            "Summary": "Button action UI/Submit."
+        },
+        {
+            "Group": "UI",
+            "Name": "Cancel",
+            "Type": "global::Threadforge.Threadlink.InputId<float>",
+            "Key": "15cef263-9014-4fd5-94d9-4e4a6234a6ef",
+            "Value": "new global::Threadforge.Threadlink.InputId<float>(new global::System.Guid(\"15cef263-9014-4fd5-94d9-4e4a6234a6ef\"), \"UI/Cancel\")",
+            "Summary": "Button action UI/Cancel."
+        },
+        {
+            "Group": "UI",
+            "Name": "Point",
+            "Type": "global::Threadforge.Threadlink.InputId<global::UnityEngine.Vector2>",
+            "Key": "32b35790-4ed0-4e9a-aa41-69ac6d629449",
+            "Value": "new global::Threadforge.Threadlink.InputId<global::UnityEngine.Vector2>(new global::System.Guid(\"32b35790-4ed0-4e9a-aa41-69ac6d629449\"), \"UI/Point\")",
+            "Summary": "Value (Vector2) action UI/Point."
+        },
+        {
+            "Group": "UI",
+            "Name": "Click",
+            "Type": "global::Threadforge.Threadlink.InputId<float>",
+            "Key": "3c7022bf-7922-4f7c-a998-c437916075ad",
+            "Value": "new global::Threadforge.Threadlink.InputId<float>(new global::System.Guid(\"3c7022bf-7922-4f7c-a998-c437916075ad\"), \"UI/Click\")",
+            "Summary": "PassThrough (Button) action UI/Click."
+        },
+        {
+            "Group": "UI",
+            "Name": "ScrollWheel",
+            "Type": "global::Threadforge.Threadlink.InputId<global::UnityEngine.Vector2>",
+            "Key": "0489e84a-4833-4c40-bfae-cea84b696689",
+            "Value": "new global::Threadforge.Threadlink.InputId<global::UnityEngine.Vector2>(new global::System.Guid(\"0489e84a-4833-4c40-bfae-cea84b696689\"), \"UI/ScrollWheel\")",
+            "Summary": "Value (Vector2) action UI/ScrollWheel."
+        },
+        {
+            "Group": "UI",
+            "Name": "MiddleClick",
+            "Type": "global::Threadforge.Threadlink.InputId<float>",
+            "Key": "dad70c86-b58c-4b17-88ad-f5e53adf419e",
+            "Value": "new global::Threadforge.Threadlink.InputId<float>(new global::System.Guid(\"dad70c86-b58c-4b17-88ad-f5e53adf419e\"), \"UI/MiddleClick\")",
+            "Summary": "PassThrough (Button) action UI/MiddleClick."
+        },
+        {
+            "Group": "UI",
+            "Name": "RightClick",
+            "Type": "global::Threadforge.Threadlink.InputId<float>",
+            "Key": "44b200b1-1557-4083-816c-b22cbdf77ddf",
+            "Value": "new global::Threadforge.Threadlink.InputId<float>(new global::System.Guid(\"44b200b1-1557-4083-816c-b22cbdf77ddf\"), \"UI/RightClick\")",
+            "Summary": "PassThrough (Button) action UI/RightClick."
+        },
+        {
+            "Group": "UI",
+            "Name": "TrackedDevicePosition",
+            "Type": "global::Threadforge.Threadlink.InputId<global::UnityEngine.Vector3>",
+            "Key": "24908448-c609-4bc3-a128-ea258674378a",
+            "Value": "new global::Threadforge.Threadlink.InputId<global::UnityEngine.Vector3>(new global::System.Guid(\"24908448-c609-4bc3-a128-ea258674378a\"), \"UI/TrackedDevicePosition\")",
+            "Summary": "Value (Vector3) action UI/TrackedDevicePosition."
+        },
+        {
+            "Group": "UI",
+            "Name": "TrackedDeviceOrientation",
+            "Type": "global::Threadforge.Threadlink.InputId<global::UnityEngine.Quaternion>",
+            "Key": "9caa3d8a-6b2f-4e8e-8bad-6ede561bd9be",
+            "Value": "new global::Threadforge.Threadlink.InputId<global::UnityEngine.Quaternion>(new global::System.Guid(\"9caa3d8a-6b2f-4e8e-8bad-6ede561bd9be\"), \"UI/TrackedDeviceOrientation\")",
+            "Summary": "Value (Quaternion) action UI/TrackedDeviceOrientation."
+        }
+    ]
+}

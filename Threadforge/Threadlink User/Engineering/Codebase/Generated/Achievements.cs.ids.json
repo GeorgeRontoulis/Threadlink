@@ -1,0 +1,20 @@
+{
+    "Members": [
+        {
+            "Group": "",
+            "Name": "FirstChest",
+            "Type": "global::Threadforge.Threadlink.AchievementId",
+            "Key": "first-chest",
+            "Value": "new global::Threadforge.Threadlink.AchievementId(\"first-chest\")",
+            "Summary": "Steam: ACH_FIRST_CHEST."
+        },
+        {
+            "Group": "",
+            "Name": "AllLanterns",
+            "Type": "global::Threadforge.Threadlink.AchievementId",
+            "Key": "all-lanterns",
+            "Value": "new global::Threadforge.Threadlink.AchievementId(\"all-lanterns\")",
+            "Summary": "Steam: ACH_ALL_LANTERNS."
+        }
+    ]
+}

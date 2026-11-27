@@ -1,47 +1,55 @@
 # Engineering Procedures
 
-## Introducing a subsystem
+## Adding a subsystem
 
-- [ ] Declare `class X : ThreadlinkSubsystem<X>` with the required lifecycle interfaces.
-- [ ] Provide a public parameterless constructor or a `WeavingFactory<X>.OnCreate` delegate.
-- [ ] Register the factory in `UserWeavingFactory.Register()`.
-- [ ] Weave the subsystem in `UserSubsystemsConfig.WeaveSubsystems()`, after the subsystems it depends on.
-- [ ] Subscribe in `Initialize()`; unsubscribe in `Discard()`, then call `base.Discard()`.
+1. Derive a `public sealed class` from `ThreadlinkSubsystem<T>` with a public parameterless constructor. It registers automatically.
+2. Call `Require<T>()` in `OnInitialize` for every subsystem it uses; release what it owns in `OnShutdown`.
+3. Expose its API as static methods built on `Instance`, and describe it in `Report`.
+4. Check **Threadlink ▸ Runtime Monitor** in Play mode: the node, its edges and its report.
 
-See [Implementing a Subsystem](implementing-a-subsystem.md).
+## Adding engineering settings
 
-## Introducing an Iris event
+1. Derive `public sealed class MySettings : ThreadlinkSettings<MySettings>` with serialized fields, in its own file.
+2. Read `MySettings.Current` from code; override `Validate()` to report problems.
+3. Open **Project Settings ▸ Threadlink ▸ My**; the first edit creates the asset.
 
-- [ ] Declare it in `Iris.Events.User.txt` and save.
-- [ ] Document the delegate signature and apply it consistently; mismatched subscriptions log an error, while mismatched publications are a no-op.
+## Adding an event
 
-## Introducing a scene
+1. Declare a payload type, usually a `readonly struct`.
+2. Subscribe with `Iris.Subscribe<T>(owner, callback)` so the subscription ends with its owner.
+3. For work that must finish before the caller continues, use `Iris.PublishAsync`; for a single answer, `Iris.Respond`/`RequestAsync`.
 
-- [ ] Map the scene through the Addressables Mapping Window, and keep it out of Build Settings: only the bootstrap scene belongs there (see [Configuration](configuration.md#bootstrap-scene)).
-- [ ] Implement `Nexus.ISceneEntry` binding it to its music and ambience; override `OnFinishedLoadingAsync` for setup.
-- [ ] Choose its `PhysicsMode`: a scene resident alongside others needs its own physics scene.
-- [ ] Provide a listener for the four fader and loading-screen `Func` events.
-- [ ] Reach it through Nexus only: `TransitionAsync` / `PresentAsync` to show it, `HoldAsync` to keep it resident. Nexus discards its objects whenever it unloads (see [Nexus](nexus.md#residency-holds)); release every hold.
+## Adding a scene
 
-## Introducing a stacked interface
+1. Add the scene to the Build Profile, or make it addressable and map it in **Threadlink ▸ Content Mapping**.
+2. Move to it with `Nexus.LoadAsync`. Add a transition step for anything that must be ready before it is shown.
+3. Add a **Scene Music** component for its music.
 
-- [ ] Construct the prefab with a `CanvasGroup`, deriving its component from `UserInterface` or `UserInterface<S>`.
-- [ ] Map it through the Addressables Mapping Window.
-- [ ] Add its prefab identifier to `DextraConfig.interfacePointers`.
+## Adding a screen
 
-## Using a custom update loop
+1. Author a UI Toolkit document, or a prefab with `ToolkitScreen` or `UGuiScreen` mapped in the Content mapping.
+2. Open it with `Dextra.Screens.OpenAsync` and bind controls through `handle.Root`.
+3. Close it with `Dextra.Screens.CloseAsync`; focus and input return automatically.
 
-- [ ] Set the User Config update-loop mode to `Custom`.
-- [ ] Do not install `ThreadlinkPlayerLoop` yourself; it is internal, and Native mode owns it.
-- [ ] Publish `OnUpdate`, `OnFixedUpdate` and `OnLateUpdate` from the external driver at the intended phases.
-- [ ] Preserve the same event contract expected by Chronos, Aura, Dextra and project listeners.
+## Adding a definition type
 
-## Introducing a Sentinel runtime module
+1. Define an immutable runtime type.
+2. Derive the authoring class from `VaultAsset<T>` or `VaultVariant<T>` with a new schema GUID and version 1, and map fields in `BuildRuntime`.
+3. Add a `CreateAssetMenu` entry for designers; read values with `Vault.Get(definition)`.
+4. When the layout changes, raise `SchemaVersion` and implement `MigrateAuthoring`.
 
-- [ ] Implement an `ISentinelPlatform` / `SentinelPlatform` for one exact `SentinelPlatformMarker` + `SentinelDistribution` pair.
-- [ ] Register a `SentinelModuleDescriptor` through `SentinelModuleRegistry.Register` at `AfterAssembliesLoaded`.
-- [ ] Advertise only capabilities actually implemented.
-- [ ] Register platform-level services on the platform and account-scoped services on `ISentinelAccount` implementations.
-- [ ] Provide an `ISentinelBuildModule` for the same pair; without one, builds for that pair fail.
+## Adding a save type
 
-See [Sentinel Modules](sentinel/modules.md).
+1. Declare a `[Save("name", 1)]`, `[MessagePackObject]` partial class with stable `[Key]` indices.
+2. Save and load with `Sentinel.Saves`.
+3. Never change the name. Raise the version and register `Sentinel.Saves.AddMigration` when the payload changes.
+
+## Adding a platform provider
+
+1. Implement `ISentinelProvider` and the capability interfaces the platform supports; report `Supported` and `Status` honestly.
+2. Add a subsystem that requires `Sentinel`, starts the SDK, and calls `Sentinel.AddProvider(provider, capabilities)`; give it engineering settings that keep it off until enabled.
+3. Verify every advertised capability against the real platform before treating it as stable.
+
+## Testing
+
+Tests and tools deploy their own core: `using var core = Threadlink.DeployIsolated(); core.Add<Wallet>();`. Mark test subsystems `[ManualRegistration]` so they never join the game's session.

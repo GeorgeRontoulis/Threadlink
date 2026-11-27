@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af1387d794073d4458e144fa1dd0c10a, type: 3}
+  m_Name: SteamSettings
+  m_EditorClassIdentifier: Threadforge.Threadlink.Sentinel.Steam::Threadforge.Threadlink.SteamSettings
+  Enabled: 0
+  AppId: 0
+  RestartThroughSteam: 0
+  Achievements:
+  - Name: first-chest
+    ApiName: ACH_FIRST_CHEST
+    ProgressStat: 
+    ProgressMaximum: 0
+  - Name: all-lanterns
+    ApiName: ACH_ALL_LANTERNS
+    ProgressStat: STAT_LANTERNS
+    ProgressMaximum: 3
+  Statistics:
+  - Name: lanterns-found
+    ApiName: STAT_LANTERNS
+    Type: 0
+  Leaderboards: []
+  Dlc: []

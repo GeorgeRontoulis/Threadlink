@@ -1,28 +1,22 @@
 # Social and Invitations
 
-The account-scoped `IMultiplayerService` exposes platform-native social and session affordances only. Networking owns the creation, serialisation and interpretation of join payloads; Sentinel carries them as opaque strings. The contract lives in the `Threadlink.Sentinel.Multiplayer.Contracts` assembly, which project code references explicitly.
+Sentinel carries platform-native social affordances only. Networking owns lobbies, matchmaking, transport and the meaning of join data; Sentinel passes join data as opaque strings.
 
-| Member | Semantics |
-|---|---|
-| `GetFriendsAsync()` | The friend list as `SentinelFriend` values: `ID`, `DisplayName`, `Presence`, `IsPlayingThisGame`, `IsJoinable`, and the friend's public `JoinPayload`. |
-| `SetSessionPresenceAsync(SentinelSessionPresence)` | Publishes the local player's session: a public `JoinPayload`, plus optional `Status`, `GroupID` and `GroupSize`. |
-| `ClearSessionPresenceAsync()` | Clears the published session. |
-| `InviteFriendAsync(friendID)` | Invites a friend to the published session. |
-| `InviteFriendAsync(friendID, joinPayload)` | Sends a private opaque payload to one friend without publishing it. |
-| `JoinRequested`, `TryDequeueJoinRequest(out SentinelJoinRequest)` | Join requests: `SourceUserID`, `SourceDisplayName` and the `JoinPayload` to join with. |
+| Contract | Member | Meaning |
+|---|---|---|
+| `IPresence` | `SetAsync(state, token)` | Publishes the local player's presence or rich-presence state. |
+| `IFriends` | `ListAsync(token)` | The friend list as provider-qualified `AccountIdentity` values. |
+| `IInvites` | `SendAsync(recipient, joinData, token)` | Invites one friend with opaque join data. |
+| `IJoinIntents` | `TryTake(out JoinIntent)`, `Pending` | Takes the oldest captured request to join; counts waiting requests. |
 
-`SentinelFriendPresence` enumerates `Unknown`, `Offline`, `Online`, `Busy`, `Away`, `Snooze`, `LookingToTrade` and `LookingToPlay`.
+Presence, friends and invites return a `PlatformResult<T>`. Resolve the contract through `Sentinel.Resolve<T>()` or `Sentinel.TryGet<T>()`: an unsupported capability reports Unsupported, and a supported one that is not ready reports Unavailable.
 
-## Private invitations
+## Join intents
 
-`InviteFriendAsync(friendID)` uses the published session presence; `InviteFriendAsync(friendID, joinPayload)` sends a private payload instead. The caller owns token creation, authorisation, expiration and revocation. Both use the same `SentinelJoinRequest` delivery, including cold launches.
+A `JoinIntent` carries the provider, an identity and the opaque payload. Providers capture intents as they arrive; the Steam provider also captures the connect data a game was launched with. With the local provider, the game captures intents explicitly. `JoinIntentBuffer` holds them until the game is ready: `Capture` adds one, `TryTake` removes the oldest, `Pending` and `Rejected` report the queue, and the capacity (32 by default) bounds it. Recent duplicates are suppressed. The game decides when to consume intents and whether to join.
 
-A `SentinelSessionPresence` with a null or empty `JoinPayload` retains status and group information but clears the joinable connect key, making the session non-joinable.
-
-## Join requests
-
-A join request is delivered to `JoinRequested` if it has a subscriber, and queued otherwise, so a request that arrives before the game is ready to handle it is not lost: the game drains the queue with `TryDequeueJoinRequest` once it is. A game launched by accepting an invitation (a cold launch) receives the request the same way; its source user is unknown.
+The caller owns the join data: create, authorize, expire and revoke it in the networking layer. Treat received payloads as untrusted input.
 
 ## Steam
 
-Steam remains the only current provider. The join payload is published as the `connect` rich-presence value, encoded as `+threadlink_join <payload>` with the payload in URL-safe Base64, and must fit within Steam's rich-presence value limit. Cold-launch requests are recovered from Steam's launch command line. `status`, `steam_player_group` and `steam_player_group_size` carry the optional presence fields. Sentinel continues to own the Steam lifecycle and its callbacks.
+`SteamProvider` implements presence, friends, invites and join intents. Launch connect data and accepted invites are captured as join intents; `SendAsync` invites a Steam friend with a connect string. See [Providers](modules.md#steam-provider).

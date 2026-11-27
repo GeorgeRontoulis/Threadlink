@@ -1,0 +1,21 @@
+{
+  "name": "Threadforge.Threadlink.Dextra.UGui",
+  "rootNamespace": "Threadforge.Threadlink",
+  "references": [
+    "GUID:d070546ede129d447aee8ce8072b681c",
+    "GUID:d6b8713594d5ed54f99f43561c2d8adf",
+    "GUID:2bafac87e7f4b9b418d9448d219b01ab",
+    "GUID:f51ebe6a0ceec4240a699833d6309b23"
+  ],
+  "autoReferenced": true,
+  "defineConstraints": [
+    "THREADLINK_UGUI"
+  ],
+  "versionDefines": [
+    {
+      "name": "com.unity.ugui",
+      "expression": "0.0.1",
+      "define": "THREADLINK_UGUI"
+    }
+  ]
+}

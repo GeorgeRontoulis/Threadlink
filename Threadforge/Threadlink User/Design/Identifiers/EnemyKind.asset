@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a85aa49e6039d804bae4a84db9ddcf1b, type: 3}
+  m_Name: EnemyKind
+  m_EditorClassIdentifier: Threadforge.Threadlink.Editor::Threadforge.Threadlink.Editor.IdDomain
+  owner: 0
+  extends: 
+  summary: 
+  entries:
+  - Name: Slime
+    Value: 733101947
+    Summary: Slow, splits when hit.
+  - Name: Goblin
+    Value: 2112080798
+    Summary: Fast melee.
+  - Name: Wraith
+    Value: 662271174
+    Summary: Ignores walls.

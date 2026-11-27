@@ -1,31 +1,33 @@
 # Aura: Audio
 
-Aura's preloader loads the Aura Config and the **Aura Components** prefab, which it instantiates as a `DontDestroyOnLoad` object. The prefab must contain three children named `Music`, `Atmos` and `SFX`, each carrying an `AudioSource`; without them, deployment fails during preloading. At boot Aura silences the music and ambience channels and creates its own hidden `AudioListener`.
+Aura (`com.threadforge.threadlink.aura`) plays `AudioCue` assets on pooled Unity audio sources. No audio component needs to be placed; playback needs exactly one active `AudioListener` (`Aura.UseListener` selects one).
 
 ```csharp
-aura.DriveAudioListener(position, rotation);     // position-only and rotation-only overloads exist
-aura.PlayUISFX(Aura.UISFX.Confirm);              // Cancel, Navigate or Confirm; optional oneShot and volume
-await aura.FadeAudioListenerVolumeAsync(0f);
-await aura.TransitionToAudioScenarioAsync(music, atmos, musicVolume, atmosVolume);
-aura.SetGlobalVolumesMax(musicVolume, atmosVolume);
-aura.TryGetMixerValue(name, out float value);
-aura.TrySetMixerValue(name, value);
-await aura.FadeAudiosourceVolumeAsync(source, target);
-aura.MoveTowardsVolume(source, target);
+Aura.Play(footstep, transform);          // follows the emitter, stops when it is destroyed
+Aura.Play(explosion, hitPoint);          // at a position
+var voice = Aura.Play(chime);            // 2D
+if (voice != null)
+    await voice.FadeToAsync(0, 1f, stopWhenFinished: true);
+
+Aura.PlayMusic(forestTheme, crossfadeSeconds: 2f);
+Aura.SetVolume(AudioCategories.Music, 0.7f);
+await Aura.FadeVolumeAsync(AudioCategories.Effects, 0, 0.5f);
 ```
 
-- **The listener.** The AudioListener transform is driven rather than parented: some component must invoke `DriveAudioListener` each frame, conventionally a camera controller on `OnLateUpdate`. Absent a driver, the listener retains its last assigned transform. Scene transitions require particular attention, as the previous driver is destroyed before its successor exists.
-- **Fades** advance at the config's Volume Fade Speed on unscaled time, one step per frame, and clamp their targets to 0–1.
-- **Audio scenarios.** `TransitionToAudioScenarioAsync` fades both channels out, swaps their clips, and fades them in to the requested volumes, capped by the maxima set through `SetGlobalVolumesMax`. Nexus calls both when a scene is presented (see [Nexus](nexus.md#the-isceneentry-contract)).
-- **UI sounds.** `PlayUISFX` loads the config's navigation, confirm or cancel clip and plays it on the SFX channel. With `oneShot: false`, the channel is stopped first.
-- **Mixer parameters.** `TryGetMixerValue` and `TrySetMixerValue` read and write exposed parameters of the config's master mixer.
+| API | Behaviour |
+| --- | --- |
+| `Aura.Play(cue[, position \| emitter])` | Returns a `PlaybackHandle`, or null when the category or cue voice limit rejects the voice. |
+| `Aura.PlayAsync(ContentAssetId)` | Loads a mapped cue, such as `ContentAssets.Audio.Thunder`; it stays loaded while it plays. |
+| `PlaybackHandle` | `IsPlaying`, `RemainingSeconds`, `Stop()`, `FadeToAsync(gain, seconds, stopWhenFinished)`, `WaitAsync()` (how the voice ended). |
+| `Aura.PlayMusic(cue, crossfade)` / `StopMusic(fade)` / `CurrentMusic` | One looping music channel with crossfades. Playing the current music again does nothing. |
+| `Aura.SetVolume`, `SetMute`, `FadeVolumeAsync`, `SetVoiceLimit` | Per-category player volume, mute and limits, by `AudioCategory`. |
 
-## Spatial objects
+`AuraPlaylist` (a component) crossfades through a list of cues; `AmbienceLayers` keeps several looping layers.
 
-Aura links the `AuraSpatialObject`s (including `AuraZone`s) of the **presented** scene only: once the core has deployed, and on every `OnScenePresented`, it disconnects all spatial objects and links the active ones in the active scene. Spatial objects of other resident scenes are never linked, so a scene kept loaded for another player is inaudible.
+## Categories
 
-While anything is linked, Aura sums the linked objects' influence at the listener's position on each `OnUpdate` and moves the music and ambience volumes toward their maxima minus that influence. An object's influence falls linearly from its `Influence` at its source to zero at its radius, which is the AudioSource's maximum distance scaled by the Radius Coefficient, read at runtime from the object's `Source` field or, if that is unassigned, the AudioSource on its GameObject. Custom spatial objects derive from `AuraSpatialObject`, supply `SourcePosition`, and may assign `Radius` themselves or override `GetSpatialInfluence`.
+Project categories and their voice limits are engineering settings in **Project Settings ▸ Threadlink ▸ Aura**, together with the default scene-music crossfade. Threadlink generates `AudioCategories` from that list (see [Generated IDs](editor-tooling.md#generated-ids)), so code names a category as `AudioCategories.Music` rather than a string, and a cue's **Category** field is a dropdown of the same list. `cue.CategoryId` is the cue's category as an `AudioCategory`; `new AudioCategory(name)` covers categories added at runtime.
 
-Aura never tears its links down on a scene event. A spatial object unlinks itself when discarded, stopping its source. It isn't discoverable, so the developer's code that owns it discards it before its scene unloads; otherwise Aura keeps evaluating a destroyed object until the next presentation relinks. Aura's own `Discard` disconnects whatever is left, such as the persistent scene's.
+## Scene music
 
-The registry is keyed by `LinkableBehaviour.ID`, a hash of the object's name that ignores case. Spatial object names must therefore be unique within a scene: a colliding object is not linked, and a warning names both objects.
+Scene music is designer data: add **Threadlink ▸ Aura ▸ Scene Music** to a scene and assign a looping cue. When the scene starts, Aura crossfades to it. With Nexus installed, the cue's audio is also loaded while the scene is being prepared and the music starts as the scene is presented.

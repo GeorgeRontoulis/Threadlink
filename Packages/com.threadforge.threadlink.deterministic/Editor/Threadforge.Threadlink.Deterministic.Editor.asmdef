@@ -1,0 +1,12 @@
+{
+  "name": "Threadforge.Threadlink.Deterministic.Editor",
+  "rootNamespace": "Threadforge.Threadlink.Editor",
+  "references": [
+    "GUID:7ffcb2c3656d32b4784c0c03c761d569",
+    "GUID:11c3b1b023c53d649bc98e2c163960fb"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "autoReferenced": false
+}

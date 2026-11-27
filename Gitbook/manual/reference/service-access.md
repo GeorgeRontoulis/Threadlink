@@ -1,33 +1,23 @@
-# Service Access
+# Subsystem Access
 
-| Service | Category | Access |
-|---|---|---|
-| `Threadlink` | Core (Weaver) | `Threadlink.TryGetSingleton(out var core)` |
-| `Iris` | Static | `Iris.Publish(...)`, `Iris.Subscribe<T>(...)` |
-| `Nexus` | Static | `Nexus.TransitionAsync(...)`, `Nexus.HoldAsync(...)` |
-| `Initium` | Static | `Initium.BootAndInitSceneObjectsAsync(...)`, `Initium.BootAndInitAsync(...)` |
-| `Scribe` | Static | `this.Send(...)`, `Scribe.Send<T>(...)` |
-| `Sentinel` | Native subsystem | `Sentinel.TryGetSingleton(out var sentinel)` |
-| `Chronos` | Native subsystem (static time members) | `Chronos.TimeScale`, `Chronos.DeltaTime`; `Chronos.TryGetSingleton(out var chronos)` for `Start` / `Stop` |
-| `Dextra` | Native subsystem | `Dextra.TryGetSingleton(out var dextra)`; `Dextra.IsTopInterface<T>()` |
-| `Aura` | Native subsystem (Linker) | `Aura.TryGetSingleton(out var aura)` |
-| `StatelessRNG` | Static | `StatelessRNG.CreateStream(...)`, or a `StatelessRNG.Source` per world |
-| `Vault` | Asset | A `LinkableAsset` instance |
+Every subsystem is reached the same way, from any script, from Awake onwards.
 
-Namespaces:
+| Need | Call |
+| --- | --- |
+| Use a subsystem's API | Its static methods: `Iris.Publish(…)`, `Aura.Play(…)`, `Wallet.Add(…)` |
+| The instance | `Wallet.Instance` (throws `SubsystemUnavailableException` with the reason when not linked) |
+| Check existence and linkage to the core | `Wallet.TryGetSingleton(out var wallet)` |
+| The core | `Threadlink.TryGetSingleton(out var core)`, `Threadlink.Instance`, `Threadlink.IsDeployed` |
+| Another subsystem from a subsystem | `Require<T>()` in `OnInitialize` (records and orders the dependency) |
+| Everything in the session | `Threadlink.Instance.Subsystems` |
+| Work bound to the session | `Threadlink.Lifetime` (cancelled at shutdown) |
 
-| Namespace | Contents |
-|---|---|
-| `Threadlink.Core` | `Threadlink`, `ThreadlinkSubsystem<T>` and the register hierarchy, `LinkableBehaviour`, `LinkableAsset` and their singletons, configs |
-| `Threadlink.Core.NativeSubsystems.Iris` / `.Nexus` / `.Initium` / `.Scribe` | The static services |
-| `Threadlink.Core.NativeSubsystems.Sentinel` / `.Chronos` / `.Dextra` / `.Aura` | The native subsystems and their types |
-| `Threadlink.Shared` | Lifecycle contracts, `WeavingFactory`, hashing, Addressables helpers |
-| `Threadlink.Generated` | `ThreadlinkIDs` |
-| `Threadlink.Vault`, `Threadlink.Vault.DataFields` | The Vault and its field types |
-| `Threadlink.Collections` | Serialisable maps and collections |
-| `Threadlink.Deterministic` | `FP`, vectors, `FPQuaternion`, `StatelessRNG`, `Bits`, `FixedPointConversions` |
-| `Threadlink.Memory` | `NativeAllocator`, `MemoryHash`, inline collections |
-| `Threadlink.Animation` | `AnimatorHash`, `AnimationEventsReceiver` |
-| `Threadlink.Utilities.*` | Extension libraries and attributes |
-| `Threadlink.SentinelModules.Local`, `Threadlink.SentinelModules.Steam` | The shipped Sentinel modules |
-| `Threadlink.User` | Project code and project-defined domains |
+`Instance` and `TryGetSingleton` fail outside Play mode and players unless a core was deployed explicitly with `Threadlink.DeployIsolated()`. A subsystem that failed to initialize stays visible in the Runtime monitor with its error; `Instance` reports that error.
+
+## Registration
+
+Subsystems register through generated code at `SubsystemRegistration`; no assemblies are scanned at runtime. A subsystem the generator cannot register (private, generic, or without a public parameterless constructor) produces warning TL0001. `[ManualRegistration]` keeps a subsystem out of the session; register it yourself with `Threadlink.Register<T>()` or add it to a core with `core.Add<T>()`. A subsystem registered after deployment joins the running session immediately.
+
+## Domain reload and code reload
+
+Sessions do not rely on domain reload: the session shuts down when the Editor returns to Edit mode and before code reloads, registration repeats at every `SubsystemRegistration`, and statics owned by the core are reset with it. Projects can enter Play mode with domain reload disabled.

@@ -1,0 +1,20 @@
+{
+    "Members": [
+        {
+            "Group": "",
+            "Name": "Loot",
+            "Type": "global::Threadforge.Threadlink.StatelessRNG.Domain",
+            "Key": "-66319625",
+            "Value": "new global::Threadforge.Threadlink.StatelessRNG.Domain(4228647671u)",
+            "Summary": "Drop tables."
+        },
+        {
+            "Group": "",
+            "Name": "Spawns",
+            "Type": "global::Threadforge.Threadlink.StatelessRNG.Domain",
+            "Key": "1649759978",
+            "Value": "new global::Threadforge.Threadlink.StatelessRNG.Domain(1649759978u)",
+            "Summary": "Enemy spawn rolls."
+        }
+    ]
+}

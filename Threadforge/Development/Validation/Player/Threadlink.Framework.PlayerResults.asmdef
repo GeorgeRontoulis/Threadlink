@@ -1,0 +1,12 @@
+{
+  "name": "Threadlink.Framework.PlayerResults",
+  "references": [],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "autoReferenced": false,
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "nunit.framework.dll"
+  ]
+}

@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f96298f90f2b7504db0e02ab0a10540f, type: 3}
+  m_Name: AuraSettings
+  m_EditorClassIdentifier: Threadforge.Threadlink.Aura::Threadforge.Threadlink.AuraSettings
+  Categories:
+  - Name: Music
+    VoiceLimit: 4
+    Group: {fileID: -7677955939202177372, guid: b55b202805331be448521ac7235c6b8a, type: 2}
+  - Name: Effects
+    VoiceLimit: 32
+    Group: {fileID: 5717869975669681419, guid: b55b202805331be448521ac7235c6b8a, type: 2}
+  - Name: Interface
+    VoiceLimit: 8
+    Group: {fileID: 5717869975669681419, guid: b55b202805331be448521ac7235c6b8a, type: 2}
+  - Name: Ambience
+    VoiceLimit: 8
+    Group: {fileID: -6885200929688973258, guid: b55b202805331be448521ac7235c6b8a, type: 2}
+  MusicCrossfadeSeconds: 1.5

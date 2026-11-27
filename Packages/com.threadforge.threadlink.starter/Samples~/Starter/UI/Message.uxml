@@ -1,0 +1,10 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="Starter.uss" />
+    <ui:VisualElement class="starter-backdrop">
+        <ui:VisualElement class="starter-panel">
+            <ui:Label name="title" text="" class="starter-title" />
+            <ui:Label name="body" text="" class="starter-text" />
+            <ui:Button name="ok" text="OK" class="starter-button" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

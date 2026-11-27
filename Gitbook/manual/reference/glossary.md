@@ -2,24 +2,28 @@
 
 | Term | Definition |
 |---|---|
-| **Core** | The `Threadlink` singleton; a Weaver of subsystems. |
-| **Subsystem** | A service the core owns and drives through a lifecycle. |
-| **Weaving** | Construction and lifecycle ownership of an object. |
-| **Linking** | Tracking of an externally-constructed object. |
-| **Domain** | A generated enumeration of identifiers. |
-| **Injector** | A declaration file appending entries to an existing domain; its name supplies the entries' scope. |
-| **Domain definition** | A declaration file declaring an entirely new enumeration. |
-| **Shell** | The C# scaffolding into which a generated enumeration is emitted. |
-| **Manifest** | The JSON record of a domain's assigned member names and values. |
-| **Tombstone** | A removed entry retained as `[Obsolete]` to preserve resolution of existing references. |
-| **Scope** | The qualifier folded into an entry's hash key: an injector name or an Addressable group. |
-| **Scene entry** | An `ISceneEntry` implementation binding a scene to its audio scenario, physics mode and unload delay. |
-| **Hold** | A claim on a scene that keeps it resident until released. |
-| **Presented scene** | The resident scene the local player sees and hears. |
-| **Bootstrap scene** | The one non-Addressable scene, first in Build Settings: the build's entry point, loaded for the whole run (see [Deployment Overview](../foundations/deployment-overview.md)). |
-| **Discoverable** | A scene component Initium boots automatically when its scene loads and discards before it unloads. |
-| **Distribution** | The storefront or ecosystem Sentinel deploys on a platform, such as Steam or Local. |
-| **Module** | An implementation of Sentinel for exact platform/distribution pairs. |
+| **Package** | One installable `com.threadforge.threadlink.*` unit with its own version and declared dependencies. |
+| **Integration** | An assembly inside a package that connects it to another package, such as Aura's scene music for Nexus, and compiles only when that package is installed. |
+| **Core** | The `Threadlink` runtime that owns the session's subsystems (see [Architecture](../engineer/architecture.md)). |
+| **Subsystem** | A `ThreadlinkSubsystem<T>` that lives for the whole session: registered automatically, initialized before the first scene, reached through `Instance` or `TryGetSingleton` (see [Subsystem Access](service-access.md)). |
+| **Session** | One deployment of the core, from before the first scene until Play mode ends, code reloads or the player quits. |
+| **Engineering settings** | A `ThreadlinkSettings<T>` asset edited only in Project Settings ▸ Threadlink. |
+| **Designer data** | Assets and scene components designers edit: cues, definitions, scene music, screen documents, tuning values. |
+| **Event** | A typed payload delivered by Iris to its subscribers, synchronously or awaited (see [Iris](../engineer/iris.md)). |
+| **Request** | A `ResourceRequest<T>`: one acquisition of content, released by disposing it (see [Resource Loading](../engineer/resource-loading.md)). |
+| **Content mapping** | Which Addressables entries game code loads by ID, generated as three read-only dictionaries; Addressables owns everything else. |
+| **Identity** | A permanent GUID for content or a definition, independent of names and paths. |
+| **ID domain** | A project-defined list of IDs that generates an enumeration or extends a native domain (see [ID domains](../engineer/editor-tooling.md#id-domains)). |
+| **Generated ID** | A typed, stable reference generated from a project source, such as `GameScenes.Forest` or `GameInput.Gameplay.Jump` (see [Generated IDs](../engineer/editor-tooling.md#generated-ids)). |
+| **Tombstone** | A removed identifier kept as an `[Obsolete]` member so existing data and code still resolve (see [Identifiers and Tombstones](../designer/identifiers.md)). |
+| **Claim** | A held right: a scene hold, an input map claim or a screen's input block, released by disposing it. |
+| **Transition** | A Nexus operation that prepares a scene before presenting it and keeps the previous scene if preparation fails. |
+| **Definition** | An authored asset prepared into an immutable runtime value (see [Vault: Typed Definitions](../designer/vault.md)). |
+| **Variant** | A definition that inherits from a parent and overrides selected values. |
+| **Save type** | A `[Save("name", version)]` type: a versioned identity for saved data, with explicit migration readers (see [Transactional Saving](../engineer/sentinel/saving.md)). |
+| **Provider** | A Sentinel implementation of platform capabilities, such as `LocalProvider` or `SteamProvider`. |
+| **Capability** | A typed platform contract, such as accounts, achievements or cloud storage, reported as supported and available separately. |
+| **Join intent** | A captured request to join another player's session, held until the game is ready. |
 | **FP** | Deterministic Q32.32 fixed-point number type (see [Fixed Point](../engineer/deterministic/fixed-point.md)). |
 | **Stream** | A sequence of random numbers that is a pure function of a seed, a domain and identity parts (see [StatelessRNG](../engineer/deterministic/stateless-rng.md)). |
 | **Inline collection** | A collection laid out inside another value's memory (see [Memory](../engineer/memory.md)). |

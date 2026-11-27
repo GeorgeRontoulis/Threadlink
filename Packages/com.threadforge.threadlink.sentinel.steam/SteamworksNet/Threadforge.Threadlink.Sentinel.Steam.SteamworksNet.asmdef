@@ -1,0 +1,29 @@
+{
+  "name": "Threadforge.Threadlink.Sentinel.Steam.SteamworksNet",
+  "rootNamespace": "Threadforge.Threadlink",
+  "references": [
+    "GUID:d070546ede129d447aee8ce8072b681c",
+    "GUID:ed255920b38342344b5565fc26c6f140",
+    "GUID:3aad33915337c5141b9715ee7adbdd67",
+    "com.rlabrecque.steamworks.net",
+    "GUID:f51ebe6a0ceec4240a699833d6309b23"
+  ],
+  "autoReferenced": true,
+  "defineConstraints": [
+    "THREADLINK_STEAMWORKS_NET"
+  ],
+  "versionDefines": [
+    {
+      "name": "com.rlabrecque.steamworks.net",
+      "expression": "2024.8.0",
+      "define": "THREADLINK_STEAMWORKS_NET"
+    }
+  ],
+  "includePlatforms": [
+    "Editor",
+    "LinuxStandalone64",
+    "macOSStandalone",
+    "WindowsStandalone64",
+    "WindowsStandalone32"
+  ]
+}

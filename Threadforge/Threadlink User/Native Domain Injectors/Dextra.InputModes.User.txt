@@ -1,5 +1,0 @@
-///Use this file to define custom input modes for Dextra as showcased below:
-///
-///UserDefinedInputMode
-///UserDefinedInputMode
-///...

@@ -1,5 +1,0 @@
-///Use this file to define custom events for Iris as showcased below:
-///
-///UserDefinedEvent1
-///UserDefinedEvent2
-///...

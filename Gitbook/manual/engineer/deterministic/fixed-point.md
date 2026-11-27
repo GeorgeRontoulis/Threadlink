@@ -33,9 +33,11 @@ Converting a literal or an authored value (a serialized field) is deterministic,
 
 ## Conversions
 
-`FixedPointConversions`, in `Threadlink.Runtime` (namespace `Threadlink.Deterministic`), converts between these and Unity's types:
+The package has no engine types, so conversions are explicit casts: `(FP)value` from `int` (implicit), `long`, `float` or `double`, and `(float)fp`, `(double)fp` or `(int)fp` back. Converting from floating point rounds once to the nearest raw unit; do it only for authored data and setup, never inside the simulation. Convert to Unity types for presentation only:
 
-| Direction | Members | Use |
-|---|---|---|
-| To fixed point | `ToFP()` on `float`, `Vector2`, `Vector3`, `Vector2Int`, `Vector3Int` and `Quaternion` (renormalized after conversion) | Authored data and setup |
-| To Unity types | `ToFloat()`, `ToVector2()`, `ToVector3()` (from `FPVector3`, or from `FPVector2` in the xy plane) and `ToQuaternion()` | Presentation only |
+```csharp
+Vector3 ToUnity(FPVector3 v) => new Vector3((float)v.X, (float)v.Y, (float)v.Z);
+FPVector3 FromUnity(Vector3 v) => new FPVector3((FP)v.x, (FP)v.y, (FP)v.z);
+```
+
+Renormalize a rotation converted from a Unity `Quaternion`, since its components were rounded.

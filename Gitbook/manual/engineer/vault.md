@@ -1,38 +1,21 @@
 # Vault Runtime API
 
-`Vault` (namespace `Threadlink.Vault`) is a `LinkableAsset`. Its fields are read and written by identifier:
+## Typed definitions
+
+Vault is part of the core. Its types share the codename: authoring classes derive from `VaultAsset<T>` or `VaultVariant<T>`, and preparation uses `VaultContext`, `VaultRecord<T>`, `IVaultSource<T>`, `VaultOverride<T>` and `VaultFieldSet`. `Vault.Get(definition)` returns a definition's prepared, immutable value, prepared once and shared for the session; `Vault.Prepare(definition)` returns it with its identity, schema and version. `VaultContext`, `VaultRecord<T>`, `IVaultSource<T>`, `VaultOverride<T>` and the field containers are available for tools and tests.
+
+Derive an authoring class from `VaultAsset<T>` or `VaultVariant<T>`. Declare stable `Schema` and `SchemaVersion` values and explicitly map serialized fields to `T`. The runtime type must expose read-only state and copy mutable collections; returning a mutable asset or list does not become immutable automatically. Nested serialized data and `[SerializeReference]` polymorphism remain native authoring features. No runtime reflection serializer or behavior graph is supplied.
 
 ```csharp
-vault.Has(fieldID);
-vault.TryGetDataField(fieldID, out DataField field);
-vault.TryGetGenericDataField<float>(fieldID, out DataField<float> field);
-vault.TryGetConcreteDataField<Float>(fieldID, out Float field);
-vault.TryGet<float>(fieldID, out float value);
-vault.TrySet<float>(fieldID, value);
+EnemyStats stats = Vault.Get(enemyDefinition);
 ```
 
-`TryGet<T>` fails when the field is absent, is not a `DataField<T>`, or holds `null`. `TrySet<T>` fails when the field is absent or is not a `DataField<T>`. Every member is virtual, so a derived Vault can intercept access.
+Preparation validates schema/version, stable identity, duplicate identities and recursive cycles. Variants prepare their typed parent through the same context, then apply enabled overrides to construct a new runtime value. Parent schemas and versions must match. `VaultOverride<T>.Resolve` inherits when disabled; `Reset` restores inheritance. A prepared result remains independent of later authoring changes when its mapping copies data correctly. Mutable gameplay state belongs in separate objects.
 
-Fields are stored in a `RefHashMap<ThreadlinkIDs.Vault.Fields, DataField>`, backed by `[SerializeReference]` to permit polymorphic field types. The shipped field types reside in `Threadlink.Vault.DataFields` and are listed in [The Vault](../designer/vault.md#field-composition).
+New assets receive a persistent authoring GUID and current schema version. Keep that identity through moves and migrations. Existing version mismatches fail explicitly. Implement old-version conversion in `MigrateAuthoring`; run **Apply Explicit Authoring Migration** in Edit mode before building. The Inspector records Undo and restores on failure. Player preparation never silently upgrades authored data. These definition versions are separate from persistence save-schema migrations and identifier tombstones.
 
-`DataField<T>` exposes `Value` and an `OnValueChanged` event, raised on every assignment. The backing is either `SerializedValue<T>` or `TransientValue<T>`; the transient variant is `[NonSerialized]` and resets per session. As a Vault is a ScriptableObject, transient state persists across editor play-mode sessions unless explicitly reset. Discarding a field clears its backing and raises `OnValueChanged` with `default` before removing its listeners. `TryApplyValueTo(vault, fieldID)` copies a field's value into another Vault's field of the same type.
+The UI Toolkit Inspector displays identity, schema and authored version, validates the mapping, creates a typed child variant, and reports each `VaultOverride` origin through its parent chain. **Inherit** disables only that override. Package samples include typed nested/polymorphic mapping; consumers may define additional engineering-controlled authoring types.
 
-## Custom field types
+## Vault fields
 
-A new field type is a serialisable subclass of `DataField<T>` in a runtime assembly:
-
-```csharp
-[Serializable] public sealed class Colour : DataField<Color> { }
-```
-
-It then appears in the Inspector's field-type dropdown.
-
-## Timeline integration
-
-Under `THREADLINK_TIMELINE`, a Timeline can carry Vault values:
-
-- **`VaultMarker`** is a Timeline marker holding a list of field identifiers with typed values, and notification flags.
-- **`VaultTrack`** is a marker track bound to a `VaultReceiver`.
-- **`VaultReceiver`** is a component that raises `OnMarkerReceived(PlayableDirector, VaultMarker)` when a marker fires. `ClearCallback()` removes its listeners.
-
-Applying the values is the listener's decision: `marker.TryApplyConfigTo(vault)` writes every value of the marker into the given Vault, logging each field it could not set.
+`VaultFieldSet` is an opt-in bag of immutable scalar values keyed by name. Read it with generated keys instead of strings: an [ID domain](editor-tooling.md#id-domains) that extends **Vault fields** generates `VaultFields.Name` (a `VaultField`), so `fields.Get<int>(VaultFields.Damage)` and `fields.TryGet(VaultFields.Damage, out int damage)` are checked by the compiler. A field key is the entry's name in PascalCase.

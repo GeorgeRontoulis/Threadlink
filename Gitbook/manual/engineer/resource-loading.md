@@ -1,64 +1,47 @@
 # Resource Loading
 
-Two parallel APIs exist: one keyed by generated identifier on the core instance, one accepting an Addressables reference directly as static members.
+Content loads by generated, typed IDs through the core (`com.threadforge.threadlink`), with Addressables as the default backend.
+
+## Content mapping
+
+Addressables is the source of truth for content: groups, addresses, labels, delivery and builds. The **Content mapping** (**Threadlink ▸ Content Mapping**, the Workspace's Content page) ticks the Addressables entries game code loads by ID. Applying writes three read-only dictionaries in **Project Settings ▸ Threadlink ▸ Content** (`ContentSettings`), one per load strategy, and generates their IDs:
+
+| Load strategy | Dictionary | Generated class |
+| --- | --- | --- |
+| Any asset (`UnityEngine.Object`) | `ContentAssetId` → `AssetReference` | `ContentAssets.Group.Name` |
+| Prefab (`GameObject` or a root component) | `ContentPrefabId` → `AssetReferenceGameObject` | `ContentPrefabs.Group.Name` |
+| Scene (`SceneInstance`) | `ContentSceneId` → `AssetReference` | `ContentScenes.Group.Name` |
+
+- An ID's value derives from the entry's asset GUID when it is first mapped and never changes, so renaming, moving or regrouping the asset keeps serialized fields and saves valid. The generated member follows the asset's current group and name; an unmapped entry stays as an obsolete tombstone.
+- Fields of type `ContentAssetId`, `ContentPrefabId` or `ContentSceneId` show a dropdown of the mapped entries, so designer data refers to content without strings.
+- Tools map entries through `ContentMapping.Map(paths)`, `Unmap`, `IsMapped` and `Apply`, exactly as ticking them on the page does.
+- Assets load through their Addressables reference. The **Content** validator reports mapped entries that are no longer addressable, whose kind changed, or whose group excludes GUIDs from the catalog (**Include GUIDs in Catalog**).
+
+## Loading
 
 ```csharp
-core.LoadAsset<T>(ThreadlinkIDs.Addressables.Assets id);
-Threadlink.LoadAsset<T>(AssetReference reference);
-await core.LoadAssetAsync<T>(id);
-await Threadlink.LoadAssetAsync<T>(reference);
+var portrait = await Threadlink.LoadAsync<Sprite>(ContentAssets.Characters.HeroPortrait, owner: this);  // released with this
+icon.sprite = portrait.Asset;
 
-core.LoadPrefab<T>(ThreadlinkIDs.Addressables.Prefabs id);       // T : Component
-Threadlink.LoadPrefab<T>(AssetReferenceGameObject reference);
-await core.LoadPrefabAsync<T>(id);
-await Threadlink.LoadPrefabAsync<T>(reference);
+var slime = await Threadlink.InstantiateAsync<Enemy>(ContentPrefabs.Characters.Slime, spawn.position, spawn.rotation);
+slime.Asset.Alert();                       // the prefab's root component, typed
+slime.Release();                           // destroys the instance
 
-await core.LoadSceneAsync(ThreadlinkIDs.Addressables.Scenes id, LoadSceneMode mode);
-await core.LoadSceneAsync(id, new LoadSceneParameters(LoadSceneMode.Additive, LocalPhysicsMode.Physics2D));
-await core.UnloadSceneAsync(id);
-
-core.ReleaseAsset(id);
-core.ReleasePrefab(id);
+var cave = await Threadlink.LoadSceneAsync(ContentScenes.Levels.Cave);              // or Nexus.LoadAsync for a transition
+var forest = await Threadlink.LoadAllAsync<AudioCue>(ContentLabels.Forest, owner: this); // every asset with the label
 ```
 
-Asset and prefab loads return `null` when the identifier is unmapped or its reference invalid; a prefab load also returns `null` when the prefab carries no `T`. Synchronous loads block until the Addressables operation completes. A failed load is logged and its handle released. Loading a reference whose asset is already loaded, or loading, reuses that operation.
+| API | Behaviour |
+| --- | --- |
+| `Threadlink.LoadAsync<T>(ContentAssetId[, token])` / `(id, owner)` | Loads an asset as `T`, any `UnityEngine.Object` type it can load as. One request per call; the asset stays loaded until the request is released, or until the `MonoBehaviour` owner is destroyed. |
+| `Threadlink.LoadAllAsync<T>(ids)` | Loads several assets; if any fails, the others are released. |
+| `Threadlink.LoadAsync(ContentPrefabId)` / `LoadAsync<T>(ContentPrefabId)` | Loads a prefab without instantiating it, as a `GameObject` or its root component `T`. |
+| `Threadlink.InstantiateAsync(ContentPrefabId[, position, rotation, parent])`, `InstantiateAsync<T>(…)` / `(id, owner)` | Instantiates a prefab, as a `GameObject` or its root component `T`; releasing the request destroys the instance. |
+| `Threadlink.LoadSceneAsync(ContentSceneId)` | An additive scene you manage yourself. Use [Nexus](nexus.md) for transitions. |
+| `Threadlink.LoadAllAsync<T>(label[, token])` / `(label, owner)` | Every asset with an Addressables label as one request (`ResourceRequest<IList<T>>`); releasing it releases them all. A component type loads labelled prefabs and holds each root's component. |
+| `ResourceRequest<T>` | `Asset`, `IsReleased`, `Release()` (idempotent), `ReleaseAsync()` (awaits backend cleanup), `Dispose()`. |
+| `Threadlink.MapContent(id, key)` | Maps an ID to a backend key from code, for tests, tools and content generated at runtime. |
+| `Threadlink.UseContentBackend(backend)` | Loads through another `IContentBackend` (Resources, streamed or generated content); `null` returns to Addressables. |
 
-Scenes are loaded through [Nexus](nexus.md) in normal use. The scene members here are the layer beneath it, for code that manages a scene by other means and therefore also boots and discards its objects (see [Deployment and Initialisation](deployment.md#initialisation-pipeline)).
+Requests never share a hidden cache: two loads are two obligations, and Addressables keeps the reference counting. An unmapped ID throws `KeyNotFoundException`; loading an asset as a component, or a prefab as an asset type, throws before anything loads; a prefab without the requested root component is released and throws `InvalidOperationException`. A custom `IContentBackend` implements `Acquire` and, for labels, `AcquireLabel`. Outstanding requests appear in the Runtime monitor under Content, and any still held when the session ends are logged.
 
-## Queries and validation
-
-```csharp
-core.TryGetAssetReference(id, out AssetReference reference);
-core.TryGetPrefabReference(id, out AssetReferenceGameObject reference);
-core.TryGetSceneReference(id, out SceneAssetReference reference);
-core.TryGetLoadedScene(ThreadlinkIDs.Addressables.Scenes id, out Scene scene);
-core.CheckIDValidity(id);                                                  // scenes, assets or prefabs
-int found = core.CollectAssetIDs<T>(List<ThreadlinkIDs.Addressables.Assets> result);   // mapped assets of type T, none loaded
-```
-
-All lookups resolve through the User Config's keyed maps and validate `RuntimeKeyIsValid()`, reporting failure through Scribe.
-
-`CollectAssetIDs<T>` appends every mapped asset whose main type is `T` or derives from it, without loading any, and returns how many it appended. When the Mapping Window applies, it records each asset's main type in the User Config (`assetTypes`, as `"Namespace.Type, Assembly"`) beside its reference. A consumer that needs every asset of a kind (a game's simulation content, say) asks for their IDs and loads them, and keeps no catalogue of its own. Assets mapped before types were recorded are found once the mappings are applied again.
-
-## Renamed assets
-
-An asset ID is a hash of the group and the asset's name, so renaming an asset or moving it to another group gives it a new ID, and the old one becomes a tombstone. The manifest records each mapped asset's GUID, so applying the mappings finds the asset again under its new name and records the old ID as an alias of the new one in the User Config (`assetAliases`).
-
-```csharp
-core.TryResolveRenamedAsset(oldID, out ThreadlinkIDs.Addressables.Assets currentID);
-core.CollectRenamedAssets(List<(ThreadlinkIDs.Addressables.Assets OldID, ThreadlinkIDs.Addressables.Assets CurrentID)> result);
-```
-
-Data that stored the old ID (a save) can resolve it or rewrite it. Aliases exist only for renames made after GUIDs were recorded: entries mapped earlier get theirs the next time the mappings are applied.
-
-## Scene references
-
-Scene loads are "load or get": loading a scene that is already loaded (or loading) returns that instance, whatever parameters are passed. `UnloadSceneAsync` completes once the scene has actually unloaded. A failed scene load or unload is reported through Scribe and returns a default `SceneInstance` instead of throwing.
-
-`SceneAssetReference` tracks its load through `SceneOperation` rather than `AssetReference.OperationHandle`, which Addressables only populates for `LoadSceneMode` loads. `LoadSceneAsync(LoadSceneParameters)`, `UnloadSceneAsync(bool autoReleaseHandle)` and `TryGetLoadedScene(out Scene)` extend the base API. The base `LoadSceneAsync(LoadSceneMode)`, `UnLoadScene()` and `ReleaseAsset()` are routed through the same operation.
-
-The reference overloads exist for portable modules: a module may hold its own references without depending on the consuming project's generated `Assets` enumeration. The underlying extension methods (`LoadSynchronously<T>`, `LoadAsync<T>`, and the scene `LoadAsync` / `UnloadAsync`) are public in `Threadlink.Shared.AssetReferenceExtensions`.
-
-## Native resource batches
-
-For framework-owned resource batches, `ThreadlinkNativeConfig.LoadNativeResourcesAsync` accepts an `AddressablesRequest<NativeResources>` and fills a caller-provided dictionary. The request uses a fixed-capacity `UnsafeList<T>` (`new AddressablesRequest<T>(count, allocator)`, `Add`, `Dispose`), and the loader batches Addressables operations through pooled task storage before collecting results. Single native resources load through `LoadNativeResourceAsync<T>(id)`.

@@ -1,50 +1,58 @@
 # Iris: Event Dispatch
 
-`Iris` is a static class backed by `object[] EventRegistry`, dimensioned at type load to span the highest value of `ThreadlinkIDs.Iris.Events` (values can have gaps, see [Domain kinds](code-generation.md#domain-kinds)). Each slot holds a `DelegateList<T>` allocated on first subscription.
+Iris is the session's event system, in the core package (`com.threadforge.threadlink`). Use it from the main thread; workers queue events with `TryPost`.
 
-## Dispatch signatures
-
-```csharp
-Iris.Publish(eventID);                          // Action
-Iris.Publish<Input>(eventID, input);            // Action<Input>
-Iris.Publish<Output>(eventID);                  // Func<Output>        (single listener)
-Iris.Publish<Input, Output>(eventID, input);    // Func<Input, Output> (single listener)
-```
-
-Subscription and unsubscription state the delegate type explicitly:
+## Synchronous events
 
 ```csharp
-Iris.Subscribe<Action<Nexus.ISceneEntry>>(ThreadlinkIDs.Iris.Events.OnScenePresented, OnScenePresented);
-Iris.Unsubscribe<Action<Nexus.ISceneEntry>>(ThreadlinkIDs.Iris.Events.OnScenePresented, OnScenePresented);
+public readonly struct CoinsChanged
+{
+    public readonly int Total;
+    public CoinsChanged(int total) => Total = total;
+}
+
+public sealed class CoinLabel : MonoBehaviour
+{
+    private void Start() => Iris.Subscribe<CoinsChanged>(this, change => text.text = change.Total.ToString());
+}
+
+Iris.Publish(new CoinsChanged(12));
 ```
 
-Subscribing a delegate that is already subscribed has no effect.
+| API | Behaviour |
+| --- | --- |
+| `Iris.Subscribe<T>(callback)` | Returns a `SubscriptionToken`; dispose it to stop delivery. Copies and repeated disposal never remove another listener. |
+| `Iris.Subscribe<T>(owner, callback)` | Ends when the `MonoBehaviour` owner is destroyed. |
+| `Iris.Publish<T>(value)` | Delivers now, in subscription order. A listener's exception stops delivery and propagates. |
+| `Iris.Notify<T>(value)` | Delivers now; listener exceptions are logged and delivery continues. |
+| `Iris.TryPost<T>(value)` | From any thread: queues the event for the next Update. Returns false when the bounded queue is full or Iris is not linked. |
+| `Iris.ListenerCount<T>()` | Current synchronous listeners. |
 
-Diagnostic members: `TryGetListenerCount(eventID, out int)`, `ContainsListener<T>(eventID, listener)`, `Clear(eventID)`.
+Additions during a publication take effect for the next publication; removals take effect immediately. Warm synchronous delivery allocates nothing.
 
-## Constraints
+## Frame callbacks
 
-- **The delegate type constitutes the contract and is not enforced across subscribers at compile time.** Subscribing `Action<Foo>` to a slot holding `Action<Bar>` logs a type-mismatch error and discards the subscription. Publishing under a mismatched type is a no-op. Signature agreement remains a project discipline; the native signatures are listed in [Native Iris Events](../reference/iris-events.md).
-- **`Func` events throw `InvalidOperationException` beyond a single listener.** They model a single provider rather than a broadcast. With no listener, a `Func` publication returns `default`.
-- **Action dispatch iterates in reverse registration order with a fixed publication bound.** Removal or clearing immediately skips affected listeners; additions wait until the next publication (a nested publication counts as new). Slots are compacted after the outermost dispatch, including when a listener throws. Dispatch allocates no snapshot array.
-- **Unsubscription belongs in `Discard()`.** A retained delegate keeps a destroyed object reachable and dispatches to stale state.
-- Dispatch to an event without listeners is a no-op.
-- Every listener is cleared when Play Mode exits.
+`Iris.OnUpdate(owner, deltaTime => …)`, `OnFixedUpdate` and `OnLateUpdate` run after the corresponding MonoBehaviour phase and end with their owner. Iris also publishes `UpdateFrame`, `FixedFrame` and `LateFrame` (each with `DeltaTime`) for `Iris.Subscribe`. Iris inserts its markers into the PlayerLoop while it is linked and removes only its own markers at shutdown.
 
-## Update events
+## Awaited events and requests
 
-When the update loop is configured as `Native`, `ThreadlinkPlayerLoop` injects three marker systems into Unity's **current** `PlayerLoop` and publishes the Iris events directly; no `GameObject` or `MonoBehaviour` exists.
+```csharp
+Iris.SubscribeAsync<LevelCompleted>(this, async (done, token) => await fader.FadeOutAsync(token));
+Iris.SubscribeAsync<LevelCompleted>(this, async (done, token) => await SaveAsync(token));
+await Iris.PublishAsync(new LevelCompleted(3));     // each listener in order, each awaited
 
-| Iris event | Native PlayerLoop position |
-|---|---|
-| `OnUpdate` | Immediately **before** `Update.ScriptRunBehaviourUpdate` |
-| `OnFixedUpdate` | Immediately **after** `FixedUpdate.ScriptRunBehaviourFixedUpdate` |
-| `OnLateUpdate` | Immediately **after** `PreLateUpdate.ScriptRunBehaviourLateUpdate` |
+Iris.Respond<NextLevel, int>(this, (request, token) => UniTask.FromResult(request.After + 1));
+int next = await Iris.RequestAsync<NextLevel, int>(new NextLevel(3));
+```
 
-Installation removes stale Threadlink markers first, then fails fast if any expected Unity anchor cannot be found. The loop is uninstalled when the core is discarded or the application quits, and an entering-play-mode reset protects against stale PlayerLoop state when Domain Reload is disabled. `Custom` mode installs nothing; the project is responsible for publishing the three Iris update events (see [Update loop modes](configuration.md#update-loop-modes)).
+| API | Behaviour |
+| --- | --- |
+| `PublishAsync` | Awaits listeners one after another in subscription order. Cancellation is checked before each listener and passed to every listener. A failure stops the sequence and propagates. |
+| `PublishConcurrentAsync` | Starts every listener and awaits all; one failure is rethrown, several are aggregated. |
+| `Respond` / `RequestAsync` | Exactly one responder per request and response type. A request without a responder throws `NoResponderException`. |
 
-## Declaring events
+Listeners return `UniTask`. Publication adds no allocation: warmed sequential and concurrent publications reuse their buffers, and listeners written as `async UniTask` use UniTask's pooled machinery.
 
-Declare the identifier in `Threadlink User/Native Domain Injectors/Iris.Events.User.txt` and save.
+## Isolated buses
 
-Iris events are the framework's sole **ordinal** domain: values are array indices allocated in source order, native entries preceding injector entries, and kept by the domain's manifest. Values are never serialised, so removal produces compilation failure at every subscription site. Tombstoning is disabled for this domain accordingly.
+`EventBus` and `AsyncEventBus` are ordinary classes for tools and tests that need a bus outside the session; `Iris.Instance.Bus` and `AwaitedBus` are the session's buses.

@@ -1,58 +1,27 @@
-# The Identifier Workflow
+# Identifiers and Tombstones
 
-Threadlink compiles plain-text declaration lists into C# enumerations. The declaration files reside in **`Threadlink User/Native Domain Injectors/`**. Three are designer-owned:
+Saves, replays and generated code refer to content by identity, not by name or path. An identity is assigned once and never reused, so renaming or moving an asset never breaks existing data.
 
-| File | Resulting dropdown | Purpose |
-|---|---|---|
-| `Dextra.InputModes.User.txt` | Input Modes | Control contexts (`Gameplay`, `Menu`, `Cutscene`). |
-| `Nexus.SpawnPoints.User.txt` | Spawn Points | Locations at which entities may be placed. |
-| `Vault.Fields.User.txt` | Vault Fields | Data fields available to Vault assets. |
+## Content identities
 
-These files are termed **injectors**: each injects entries into an enumeration the framework declares. Two further injectors in the same directory are engineer-owned (`Iris.Events.User.txt`, `StatelessRNG.Domains.User.txt`).
+Every entry ticked in the [Content mapping](registering-content.md) receives a value derived from its asset's GUID when it is first mapped.
 
-## Declaration syntax
+- **Renaming, moving or regrouping** an asset keeps the value, so fields and saves that refer to it keep working; only the generated member's name and group follow the asset.
+- **Unticking** an entry leaves its ID in the generated code as a **tombstone**, marked obsolete; code that still uses it produces a compiler warning, and loading it fails. The `.ids.json` ledger beside the generated class remembers it, and its value is never handed to other content.
+- Never edit generated IDs, the ledger or the mapping in Project Settings by hand. Keep the ledger, the Content settings asset and `.meta` files under version control.
 
-Each file opens with comment lines prefixed `///`. Declarations follow, one identifier per line:
+## Generated IDs
 
-```text
-///Use this file to define custom player spawn points for Nexus as showcased below:
-///
-///UserDefinedSpawnPoint1
-///UserDefinedSpawnPoint2
-///...
-PlayerStart
-BossArenaEntrance
-SecretRoom_North
-CheckpointAlpha
-```
+Scenes, input actions, audio categories and platform data (achievements, statistics, leaderboards, products) also have generated IDs. Scenes and input actions keep the identity Unity gives them (the scene asset's GUID, the action's ID), so renaming them keeps every reference working. Audio categories and platform data are identified by their names in Project Settings (platform data on each platform's page): renaming one removes the old ID. A removed ID stays in the generated code as an obsolete tombstone, recorded in the `.ids.json` ledger beside the class, until the code that uses it is updated. Fields that pick one of these, such as a level's scene or a cue's category, show a dropdown of what exists.
 
-Constraints:
+## Your own ID domains
 
-- One identifier per line. Leading and trailing whitespace is ignored.
-- Identifiers begin with a letter or underscore and comprise letters, digits and underscores. Any other character is substituted with an underscore during generation; declaring `Checkpoint_Alpha` directly is preferred to relying on substitution.
-- Lines prefixed `//`, including `///`, are treated as comments.
-- Blank lines are ignored.
-- Identifier comparison is case-insensitive: `Alpha` and `alpha` denote the same entry, and only the first is kept.
+When the game needs a fixed list of names, such as enemy kinds, spawn points or quest flags, ask for (or create) an **ID domain**: **Create ▸ Threadlink ▸ ID Domain**, or **Threadlink ▸ Workspace ▸ Code Generation ▸ New domain**. Add entries in the Inspector, with an optional description each. Engineers use the generated type in code, and fields of that type become dropdowns in the Inspector.
 
-## Regeneration
+- An entry's value is fixed when you add it; renaming it keeps the value, so anything that already uses it keeps working.
+- Removing an entry keeps it as an obsolete tombstone in the code until engineers update the code that uses it. Its value is never reused.
+- Set **Owner** to **Design** for lists designers maintain; the asset then lives in `Design/Identifiers`.
 
-Saving the file is sufficient. The injector directory is monitored, generation runs automatically, and Unity recompiles. New identifiers appear in the corresponding dropdowns.
+## Deterministic domains
 
-**`Threadlink ▸ CodeGen ▸ Run Domain CodeGen`** forces a generation pass on demand.
-
-## Removal semantics
-
-Entries may be removed by deleting the corresponding line. Values are content-addressed, with the following consequences:
-
-- Removing an entry does not alter the value of any other entry.
-- The removed identifier is retained in the generated enumeration as an obsolete tombstone, preserving resolution for assets that still reference it. Code referencing it produces a compiler warning.
-- Declaring a removed identifier again revives it with its original value.
-- Reordering declarations has no effect; declaration order is not significant.
-
-Iris events constitute the sole exception and fall under engineering ownership. Their values are positional, so removal produces compilation failures at every subscription site rather than a tombstone. This behaviour is intentional.
-
-## Rename semantics
-
-A rename is equivalent to a removal followed by an addition: the former identifier becomes a tombstone and the new identifier receives a distinct value. References to the former identifier require reassignment. Engineering must be notified of any rename affecting an identifier referenced in code.
-
-Each generation pass that changes a domain emits a console summary enumerating additions, removals, renames, rescopes and collisions. Consulting this summary is the most direct means of detecting an unintended rename.
+A StatelessRNG domain separates the random numbers of one system from another. Engineers declare domains in code as `StatelessRNG.Domain` values, either with an explicit number or from a name. A domain's value is part of the save and replay format: changing it changes every number drawn under it. Rename a domain's code accessor freely, but keep its value.

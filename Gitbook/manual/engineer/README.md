@@ -1,28 +1,22 @@
 # Engineer Reference
 
-> This volume assumes C# proficiency and familiarity with Unity, Addressables and asynchronous programming. Threadlink uses **UniTask** exclusively in place of `System.Threading.Tasks`, and relies on runtime-initialisation hooks (`[RuntimeInitializeOnLoadMethod]` and Unity's lifecycle-management attributes), generic constraints, generated identifier domains, and direct Unity PlayerLoop integration.
-
-## In this volume
+This volume documents every package's API and the contracts behind it.
 
 | Page | Covers |
 |---|---|
-| [Architecture](architecture.md) | Subsystems and static services, the register hierarchy, lifecycle contracts, base object types, ownership, subsystem access. |
-| [Deployment and Initialisation](deployment.md) | The deployment sequence, the Initium pipeline, shutdown. |
-| [Iris](iris.md) | Event dispatch and the update loop. |
-| [Scribe](scribe.md) | Logging. |
-| [Chronos](chronos.md) | Time, timescale, playtime, manual physics. |
-| [Nexus](nexus.md) | Scene residency, presentation and transitions. |
-| [Dextra](dextra.md) | Input devices, input modes, the UI stack, interactables. |
-| [Aura](aura.md) | Audio mixing, the listener, spatial objects. |
-| [Sentinel](sentinel/README.md) | Platform services: accounts, saves, achievements, social affordances, modules. |
-| [Vault Runtime API](vault.md) | Reading and writing Vault fields; Timeline integration. |
-| [Resource Loading](resource-loading.md) | Loading by identifier or by reference; queries; renamed assets. |
-| [Implementing a Subsystem](implementing-a-subsystem.md) | Registering and weaving project subsystems. |
-| [Deterministic Toolkit](deterministic/README.md) | `FP`, its vectors and rotations, `StatelessRNG`. |
-| [Memory](memory.md) | Native allocation, raw-memory hashing, inline collections. |
-| [Identifier Domains and Code Generation](code-generation.md) | Domain kinds, sources, manifests, the Mapping Window. |
-| [Collections and Utilities](collections-and-utilities.md) | Serialisable maps and collections, extension libraries, attributes. |
-| [Configuration and Project Setup](configuration.md) | Configuration assets, update loop modes, scripting defines. |
-| [Editor Tooling](editor-tooling.md) | Menu commands, the scene dropdown, the code formatter, diagnostics. |
-| [Performance Constraints](performance.md) | Rules for hot paths. |
-| [Engineering Procedures](procedures.md) | Checklists for common engineering tasks. |
+| [Architecture](architecture.md) | The core, subsystems, the session, design and engineering, asynchronous work and failure reporting. |
+| [Ownership](lifecycle.md) | Owner-bound subscriptions and requests, `ResourceOwner` and stable identities. |
+| [Iris](iris.md) | Synchronous and awaited events, requests, frame callbacks. |
+| [Nexus](nexus.md) | Scene transitions, holds and transition steps. |
+| [Dextra](dextra.md) | Players and input, rebinding, screens and interaction. |
+| [Aura](aura.md) | Audio cues, voices, categories, fades, music and scene music. |
+| [Sentinel](sentinel/README.md) | Accounts, capabilities, providers, saving, cloud sync and invitations. |
+| [Vault Runtime API](vault.md) | Typed definitions and their preparation. |
+| [Serialization](serialization.md) | Snapshot envelopes, the MessagePack codec and versions. |
+| [Resource Loading](resource-loading.md) | Typed content requests, catalogs and labels. |
+| [Deterministic Toolkit](deterministic/README.md) | Fixed point and StatelessRNG. |
+| [Memory](memory.md) | Native allocation, hashing and inline collections. |
+| [Diagnostics](diagnostics.md) | Subsystem reports and the operation log. |
+| [Editor Tooling](editor-tooling.md) | The Workspace, the Runtime monitor, engineering settings, validators and development tools. |
+| [Performance](performance.md) | Measured costs and allocation guidance. |
+| [Engineering Procedures](procedures.md) | Common tasks step by step. |

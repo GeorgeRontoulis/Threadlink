@@ -1,0 +1,35 @@
+{
+  "name": "com.threadforge.threadlink.starter",
+  "version": "1.0.0",
+  "displayName": "Threadlink Starter",
+  "description": "A small complete game on Threadlink: menu and gameplay scenes, saves with recovery, settings with rebinding, audio and screens.",
+  "unity": "6000.6",
+  "author": {
+    "name": "Threadforge",
+    "url": "https://github.com/GeorgeRontoulis/Threadlink"
+  },
+  "license": "MIT",
+  "keywords": [
+    "threadlink",
+    "starter",
+    "template",
+    "sample"
+  ],
+  "documentationUrl": "https://threadforge.gitbook.io/threadlink-documentation/getting-started/starter",
+  "changelogUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.starter/CHANGELOG.md",
+  "licensesUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.starter/LICENSE.md",
+  "dependencies": {
+    "com.threadforge.threadlink": "1.0.0",
+    "com.threadforge.threadlink.nexus": "1.0.0",
+    "com.threadforge.threadlink.aura": "1.0.0",
+    "com.threadforge.threadlink.dextra": "1.0.0",
+    "com.threadforge.threadlink.sentinel": "1.0.0"
+  },
+  "samples": [
+    {
+      "displayName": "Starter",
+      "description": "Bootstrap, menu and forest scenes with the selected starter services. Add the scenes to the build profile with Threadlink > Starter.",
+      "path": "Samples~/Starter"
+    }
+  ]
+}

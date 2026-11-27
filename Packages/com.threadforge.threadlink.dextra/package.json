@@ -1,0 +1,30 @@
+{
+  "name": "com.threadforge.threadlink.dextra",
+  "version": "1.0.0",
+  "displayName": "Threadlink Dextra",
+  "description": "Per-player input with saved rebinding and prompts, layered screens that block gameplay input while open, and interaction targeting.",
+  "unity": "6000.6",
+  "author": {
+    "name": "Threadforge",
+    "url": "https://github.com/GeorgeRontoulis/Threadlink"
+  },
+  "license": "MIT",
+  "keywords": [
+    "threadlink",
+    "input",
+    "rebinding",
+    "ui",
+    "screens",
+    "interaction"
+  ],
+  "documentationUrl": "https://threadforge.gitbook.io/threadlink-documentation/engineer-reference/dextra",
+  "changelogUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.dextra/CHANGELOG.md",
+  "licensesUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.dextra/LICENSE.md",
+  "dependencies": {
+    "com.threadforge.threadlink": "1.0.0",
+    "com.unity.inputsystem": "1.20.1",
+    "com.unity.modules.uielements": "1.0.0",
+    "com.unity.modules.physics": "1.0.0",
+    "com.unity.modules.physics2d": "1.0.0"
+  }
+}

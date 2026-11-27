@@ -1,0 +1,11 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="Starter.uss" />
+    <ui:VisualElement class="starter-hud" picking-mode="Ignore">
+        <ui:VisualElement class="starter-hud-top" picking-mode="Ignore">
+            <ui:Label name="level" class="starter-hud-text" picking-mode="Ignore" />
+            <ui:Label name="items" class="starter-hud-text" picking-mode="Ignore" />
+            <ui:Label name="autosave" class="starter-hud-note" picking-mode="Ignore" />
+        </ui:VisualElement>
+        <ui:Label name="prompt" class="starter-prompt" picking-mode="Ignore" />
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,36 @@
+{
+  "name": "com.threadforge.threadlink.showcase",
+  "version": "1.0.0",
+  "displayName": "Threadlink Showcase",
+  "description": "A gallery of runnable demos for every Threadlink feature, opened from the Threadlink Hub.",
+  "unity": "6000.6",
+  "author": {
+    "name": "Threadforge",
+    "url": "https://github.com/GeorgeRontoulis/Threadlink"
+  },
+  "license": "MIT",
+  "keywords": [
+    "threadlink",
+    "showcase",
+    "samples",
+    "demo"
+  ],
+  "documentationUrl": "https://threadforge.gitbook.io/threadlink-documentation/getting-started/showcase",
+  "changelogUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.showcase/CHANGELOG.md",
+  "licensesUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.showcase/LICENSE.md",
+  "dependencies": {
+    "com.threadforge.threadlink": "1.0.0",
+    "com.threadforge.threadlink.nexus": "1.0.0",
+    "com.threadforge.threadlink.aura": "1.0.0",
+    "com.threadforge.threadlink.dextra": "1.0.0",
+    "com.threadforge.threadlink.sentinel": "1.0.0",
+    "com.threadforge.threadlink.deterministic": "1.0.0"
+  },
+  "samples": [
+    {
+      "displayName": "Showcase",
+      "description": "Gallery scene with a runnable demo for every Threadlink feature.",
+      "path": "Samples~/Showcase"
+    }
+  ]
+}

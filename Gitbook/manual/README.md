@@ -2,31 +2,27 @@
 
 ![Powered by Threadlink. Weaving worlds together.](.gitbook/assets/threadlink-banner.png)
 
-**Threadlink** is a modular runtime framework layered over Unity: a self-deploying core, native subsystems for events, time, scenes, input and UI, audio and platform services, a type-safe identifier system, a designer-facing data container, and a deterministic toolkit for reproducible simulation.
+**Threadlink** is a Unity framework for the systems every game rebuilds: events, content loading, scene transitions, input and screens, audio, typed definitions, transactional saves, platform services, deterministic simulation and diagnostics. Each feature is a **subsystem** that Threadlink deploys before the first scene and reaches from anywhere: `Iris.Publish`, `Nexus.LoadAsync`, `Aura.Play`, `Dextra.Player`, `Sentinel.Saves`, `Vault.Get`, `Threadlink.LoadAsync`. Your own systems are subsystems too.
 
-This is the complete reference for the Threadlink runtime, its editor tooling and its authoring workflow, as of **Threadlink 6.6**.
+This is the reference for the Threadlink packages, their Editor tooling and their authoring workflows.
 
 ## Organisation
 
-Threadlink enforces a strict separation between authored data and implemented behaviour. The manual mirrors that separation across two self-contained volumes that share a common foundation.
-
 | Part | Audience | Contents |
 |---|---|---|
-| [Getting Started](getting-started/requirements.md) | All | Requirements, installation and first-time project setup. |
-| [Foundations](foundations/purpose.md) | All | Framework purpose, project layout, assembly topology, deployment overview. |
-| [Designer Reference](designer/README.md) | Content authors | Identifier declaration, Vault authoring, spatial audio, input prompts, configuration tuning, content registration. Requires no C#. |
-| [Engineer Reference](engineer/README.md) | Programmers | Architecture, deployment pipeline, subsystem APIs, PlayerLoop integration, Sentinel platform services, deterministic and memory tooling, code generation internals, custom subsystems, and performance. |
-| [Reference](reference/iris-events.md) | All | Native Iris events, service access, identifier domains, menus and asset-creation entries, terminology. |
+| [Getting Started](getting-started/requirements.md) | All | Requirements, installation from OpenUPM, the Showcase and the starter project. |
+| [Foundations](foundations/purpose.md) | All | Purpose, package families and dependency rules. |
+| [Designer Reference](designer/README.md) | Content authors | Identifiers and tombstones, typed definitions, audio cues, input prompts and content registration. Requires no C#. |
+| [Engineer Reference](engineer/README.md) | Programmers | Architecture and the API of every package, saving and platform providers, deterministic and memory tooling, diagnostics, Editor tooling and performance. |
+| [Reference](reference/service-access.md) | All | Subsystem access, menus and asset-creation entries, terminology. |
 
-Both volumes describe the same systems from opposing ends. Where the designer volume specifies *"declare the identifier in `Vault.Fields.User.txt`"*, the engineer volume specifies the domain pipeline that emits `ThreadlinkIDs.Vault.Fields`, the manifest that stabilises its value, and the runtime API that consumes it.
-
-> All API names, identifiers, menu paths, file paths and asset-creation entries in this manual are drawn from framework source. Systems that are stubbed or under development are identified as such.
+> All API names, menu paths and asset-creation entries in this manual are drawn from package source. Capabilities that need hardware, accounts or SDKs that were not available for verification are identified as such.
 
 ## Where to start
 
-- **New to Threadlink:** [Requirements](getting-started/requirements.md), then [Installation and Project Setup](getting-started/installation.md), then [Purpose](foundations/purpose.md).
-- **Designers:** [The Identifier Workflow](designer/identifiers.md) and [The Vault](designer/vault.md).
-- **Engineers:** [Architecture](engineer/architecture.md), [Deployment and Initialisation](engineer/deployment.md) and [Iris](engineer/iris.md).
+- **New to Threadlink:** [Installation and Project Setup](getting-started/installation.md), then open the [Showcase](getting-started/showcase.md) from **Threadlink ▸ Workspace ▸ Hub**, then the [Starter Project](getting-started/starter.md).
+- **Designers:** [Registering Content](designer/registering-content.md) and [Vault: Typed Definitions](designer/vault.md).
+- **Engineers:** [Architecture](engineer/architecture.md), [Subsystem Access](reference/service-access.md) and [Iris](engineer/iris.md).
 
 ---
 

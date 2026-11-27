@@ -1,33 +1,25 @@
-# Audio (Aura)
+# Audio Cues
 
-**Aura** is the audio subsystem, managing the Music, Atmos (ambience) and SFX channels and supporting spatial audio zones.
+An **audio cue** describes one sound the game can play: which clips, how loud, how varied, where in space and how important. Create one with **Create ▸ Threadlink ▸ Aura ▸ Audio Cue**.
 
-## Aura configuration
-
-| Field | Function |
+| Setting | Effect |
 |---|---|
-| Master Audio Mixer | The mixer whose exposed parameters engineering reads and writes. **Engineering-owned.** |
-| Volume Fade Speed | Rate at which music, ambience and listener volumes transition. Higher values produce faster transitions. |
-| Navigation Clip | Effect played on UI element traversal. |
-| Confirm Clip | Effect played on UI confirmation. |
-| Cancel Clip | Effect played on UI cancellation. |
+| Variations | Clips with weights. A weighted random variation plays each time; Avoid Immediate Repeat (on by default) skips the clip that just played. |
+| Volume and pitch | Ranges sampled per playback. |
+| Loop | Plays until stopped. |
+| Spatial Blend, Minimum and Maximum Distance | From 2D (0) to fully 3D (1), with the distance range for 3D rolloff. |
+| Category | Groups cues for shared volume, muting, fades and voice limits; choose one of the project's categories from the dropdown (the default is `Effects`). |
+| Mixer Group | The Audio Mixer group the sound plays through. |
+| Priority | Decides which voices survive when a limit is reached (128 by default). |
+| Voice Limit and Overflow | How many instances may play at once (16 by default), and whether a new playback is rejected (the default) or steals a lower-priority voice. |
+| Loading Policy | Selected Variation prepares only the clip about to play; Preload Variations prepares every variation ahead of playback. |
 
-Clips are selected from the Assets dropdown; [Registering Scenes, Prefabs and Assets](registering-content.md) covers the procedure for populating that dropdown.
+Players' volume settings adjust category volumes. Mixer snapshots (for example a muffled pause-menu mix) are authored in the Audio Mixer as usual.
 
-## Audio zones
+## Scene music
 
-An **AuraZone** is a scene component producing a localised sound source that attenuates global music and ambience by inverse-distance influence as the listener approaches.
+Add **Add Component ▸ Threadlink ▸ Aura ▸ Scene Music** to any object in a scene and assign a looping cue. When the scene starts, the music crossfades to it (leave the cue empty to fade the music out). Set a crossfade on the component, or leave it negative to use the project default. When scenes change through Nexus, the music is prepared while the next scene loads and starts as it appears, so a failed transition never interrupts the current track. A music cue that cannot start (for example because its category is full) never affects the scene; use a stealing overflow policy for music.
 
-1. Add an **AuraZone** component to a GameObject.
-2. Add an **AudioSource** to the same GameObject and assign its clip. The zone picks the AudioSource up into its **Source** field, and configures it for looping playback on awake, at full volume. An AudioSource elsewhere can be assigned to **Source** instead.
-3. Configure two parameters:
-   - **Radius Coefficient** (0–1): scales the influence radius relative to the AudioSource's maximum distance.
-   - **Influence** (0–1): attenuation applied to the global channels when the listener is fully within the zone.
+## Screen sounds
 
-Zones are linked automatically when their scene becomes the presented scene and disconnected when it is replaced or unloaded; placement is the only required action. Only the presented scene is audible, so zones in other loaded scenes (for example, scenes kept loaded for other players in a multiplayer session) have no effect.
-
-Zone names must be unique within a scene, ignoring case: a zone sharing another zone's name is not linked, and a warning is logged.
-
-## Per-scene audio
-
-Each scene declares music and ambience tracks with target volumes through a scene entry implemented by engineering (see [Nexus](../engineer/nexus.md#the-isceneentry-contract)). Track selection and volume levels are design decisions and should be communicated as part of the scene specification.
+Add **Add Component ▸ Threadlink ▸ Dextra ▸ Screen Sounds** to a screen prefab and assign open, close and focus cues. A screen that fails to open makes no sound, and a sound that cannot play never blocks a screen.

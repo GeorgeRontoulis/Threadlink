@@ -1,0 +1,23 @@
+{
+  "name": "com.threadforge.threadlink.deterministic",
+  "version": "1.0.0",
+  "displayName": "Threadlink Deterministic",
+  "description": "Fixed-point numbers, vectors and rotations, and stateless seeded random streams that give identical results on every machine.",
+  "unity": "6000.6",
+  "author": {
+    "name": "Threadforge",
+    "url": "https://github.com/GeorgeRontoulis/Threadlink"
+  },
+  "license": "MIT",
+  "keywords": [
+    "threadlink",
+    "deterministic",
+    "fixed point",
+    "random",
+    "lockstep"
+  ],
+  "documentationUrl": "https://threadforge.gitbook.io/threadlink-documentation/engineer-reference/deterministic",
+  "changelogUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.deterministic/CHANGELOG.md",
+  "licensesUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.deterministic/LICENSE.md",
+  "dependencies": {}
+}

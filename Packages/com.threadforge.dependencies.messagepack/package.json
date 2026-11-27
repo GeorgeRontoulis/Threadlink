@@ -1,0 +1,19 @@
+{
+  "name": "com.threadforge.dependencies.messagepack",
+  "version": "3.1.12",
+  "displayName": "MessagePack dependency distribution",
+  "unity": "6000.6",
+  "description": "Pinned existing MessagePack runtime, annotations, source generator, StringTools and Immutable binaries.",
+  "dependencies": {},
+  "license": "MIT",
+  "licensesUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.dependencies.messagepack/Third%20Party%20Notices.md",
+  "author": {
+    "name": "Threadforge",
+    "url": "https://github.com/GeorgeRontoulis/Threadlink"
+  },
+  "keywords": [
+    "threadlink",
+    "messagepack",
+    "serialization"
+  ]
+}

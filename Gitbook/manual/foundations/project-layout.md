@@ -1,71 +1,35 @@
-# Project Layout
+# Package Layout
 
-Threadlink occupies one folder, `Assets/Threadforge/`, divided into two territories.
+Threadlink is nine packages. Every package is named `com.threadforge.threadlink[.feature]`; every public type is in the `Threadforge.Threadlink` namespace, so one `using Threadforge.Threadlink;` reaches the whole framework. Packages follow the Unity package layout: `Runtime/`, optional `Editor/` and integration folders, `Tests/`, `Samples~/`, a changelog and third-party notices.
 
-```
-Threadforge/
-├── Threadlink/                        ← Framework. Not user-editable. Updated as a unit.
-│   ├── Core/
-│   │   ├── Native Subsystems/         ← Aura, Chronos, Dextra, Iris, Nexus, Sentinel, Initium
-│   │   │   └── Sentinel/
-│   │   │       ├── Contracts/         ← Multiplayer and social service contracts
-│   │   │       └── Modules/           ← The Local and Steam platform modules
-│   │   └── Objects/                   ← LinkableBehaviour, LinkableAsset, singletons, native weaving factory
-│   ├── Shared/                        ← Contracts, Scribe, hashing, Addressables helpers, WeavingFactory
-│   ├── Collections/                   ← Serialisable hash maps, arrays and lists
-│   ├── Utilities/                     ← Extension-method libraries, FixedPointConversions
-│   ├── Vault/                         ← Data container and Timeline integration
-│   ├── Deterministic/                 ← Fixed point (FP, its vectors and rotations) and StatelessRNG
-│   ├── Memory/                        ← Native allocation, raw-memory hashing, inline collections
-│   ├── Editor/                        ← Domain code generation, Addressables tooling, Sentinel build pipeline,
-│   │                                    formatter, inspectors
-│   ├── Generated/                     ← Generated output: ThreadlinkIDs enumerations and manifests
-│   ├── Plugins/                       ← UniTask, ZString, MessagePack, SerializeReference UI
-│   ├── Constants.Native.cs
-│   ├── ThreadlinkConfig.Native.asset
-│   └── ThreadlinkConfig.Editor.asset
-│
-└── Threadlink User/                   ← Project territory.
-    ├── Design/
-    │   └── Custom Domain Definitions/ ← Project-defined identifier domains
-    ├── Generated Addressables Injectors/ ← Mapping Window output; not hand-edited
-    ├── Native Domain Injectors/       ← Plain-text identifier declarations
-    │   ├── Dextra.InputModes.User.txt
-    │   ├── Iris.Events.User.txt
-    │   ├── Nexus.SpawnPoints.User.txt
-    │   ├── StatelessRNG.Domains.User.txt
-    │   └── Vault.Fields.User.txt
-    └── Engineering/
-        ├── Codebase/                  ← Project code
-        │   ├── Generated/             ← Generated output: project-defined domain enumerations
-        │   ├── Constants.User.cs
-        │   ├── Subsystems.User.cs
-        │   ├── WeavingFactory.User.cs
-        │   └── Threadlink.User.asmdef
-        └── Configs/                   ← User, Chronos and Sentinel configs; Aura/ and Dextra/ configs,
-                                         prefabs, mixer and input actions
-```
+## Packages
 
-The `Threadlink/` directory constitutes the framework and is not hand-edited, `Threadlink/Generated/` included: that directory is owned exclusively by the code generator. All project authoring occurs under `Threadlink User/`. Binary data authored through `IBinaryAuthor` lives in a folder of the project's choosing, assigned on the User Config (see [Binary Authoring](../engineer/configuration.md#binary-authoring)).
+| Package | Responsibilities |
+|---|---|
+| `com.threadforge.threadlink` | The core: subsystems and the session, Iris events, content loading, Vault definitions, engineering settings, diagnostics, memory toolkits, ownership, the source generator, and the Editor workspace with the Hub and Runtime monitor. |
+| `.nexus` | Scene transitions. |
+| `.aura` | Audio; scene music, with a Nexus integration. |
+| `.dextra` | Players and input, screens, interaction; screen sounds (with Aura) and uGUI screens (with uGUI). |
+| `.sentinel` | Accounts, platform capabilities, saves. |
+| `.sentinel.steam` | Steam. |
+| `.deterministic` | Fixed point and StatelessRNG. |
+| `.starter`, `.showcase` | Samples: a small complete game and a gallery of demos. |
 
-## Assembly topology
+All Threadlink packages share one version. MessagePack comes as `com.threadforge.dependencies.messagepack`.
 
-| Assembly | Contents | Constraints |
-|---|---|---|
-| `Threadlink.Generated` | `ThreadlinkIDs` enumerations | No references; `noEngineReferences`. Referenceable from any assembly, including a deterministic simulation assembly. |
-| `Threadlink.Shared` | Contracts, Scribe, hashing, Addressables helpers, `WeavingFactory`, `AnimatorHash` | — |
-| `Threadlink.Deterministic` | `FP`, `FPVector2`, `FPVector3`, `FPQuaternion`, `StatelessRNG`, `Bits` | `noEngineReferences`; `allowUnsafeCode`. References `Threadlink.Shared` and `Threadlink.Generated`. |
-| `Threadlink.Memory` | `NativeAllocator`, `MemoryHash`, inline collections | `allowUnsafeCode`. No assembly references; no other Threadlink assembly references it. |
-| `Threadlink.Runtime` | Core, native subsystems, Vault, collections, utilities (including `FixedPointConversions`, between Unity's float types and the deterministic ones) | `allowUnsafeCode`. Defines `THREADLINK_TIMELINE` and `THREADLINK_LOCALIZATION` from package versions. |
-| `Threadlink.Sentinel.Multiplayer.Contracts` | `IMultiplayerService` and the social/session types | `noEngineReferences` |
-| `Threadlink.Sentinel.Local` | The Local Sentinel module | — |
-| `Threadlink.Sentinel.Steam` | The Steam Sentinel module | Compiled only with the `STEAMWORKS_NET` define, on standalone platforms and in the Editor. |
-| `Threadlink.Sentinel.Steam.Shared` | `SteamSentinelSettings`, module identity | No references; `noEngineReferences` |
-| `Threadlink.Sentinel.Local.Editor`, `Threadlink.Sentinel.Steam.Editor` | Sentinel build modules and the Steam App ID build processor | Editor-only |
-| `Threadlink.Editor` | Code generation, editor tooling, the Sentinel build pipeline | Editor-only |
-| `Threadlink.User` | Project code | `allowUnsafeCode`. References `Threadlink.Runtime`, `Threadlink.Shared`, `Threadlink.Deterministic`, `Threadlink.Generated`, `Threadlink.User.Generated` and UniTask. |
-| `Threadlink.User.Generated` | Project-defined domain enumerations | No references; `noEngineReferences` |
+## Dependency rules
 
-Generated identifiers reside in namespace `Threadlink.Generated`; consuming code requires `using Threadlink.Generated;`. Project-defined domains are emitted into namespace `Threadlink.User`. Isolating generated output in dedicated assemblies guarantees that neither project authoring nor third-party module installation produces a write within framework source.
+- Feature packages depend on the core; the core depends on no feature package.
+- Integrations between features (Aura with Nexus, Dextra with Aura, Dextra with uGUI) are assemblies inside the package that compile only when the other package is installed.
+- Runtime packages never reference project code. Generated project code (content IDs, subsystem registration) references packages, never the reverse.
+- Diagnostics and the Workspace observe; removing their use never changes behaviour.
 
-`Threadlink.User` does not reference `Threadlink.Memory`, the Sentinel contracts or the Sentinel modules. Project code that uses them adds the reference to `Threadlink.User.asmdef`, or to its own assembly definition.
+## Design and engineering in the project
+
+| Folder | Contents |
+| --- | --- |
+| `Threadlink User/Engineering/Codebase` | Project subsystems and code |
+| `Threadlink User/Engineering/Configs` | Engineering settings assets (edited in Project Settings ▸ Threadlink) |
+| `Threadlink User/Design` | Designer data: cues, definitions, documents, ID domains |
+
+Generated outputs, such as the content ID classes with their `.ids.json` ledgers, are written to `Threadlink User/Engineering/Codebase/Generated` ([Content mapping](../engineer/resource-loading.md#content-mapping)). Preserve `.meta` files and identity ledgers with the assets they describe.

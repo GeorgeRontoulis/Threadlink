@@ -1,0 +1,30 @@
+{
+  "name": "com.threadforge.threadlink",
+  "version": "1.0.0",
+  "displayName": "Threadlink",
+  "description": "The Threadlink core: the subsystem runtime that deploys before the first scene, Iris events, content loading by generated ID through Addressables, Vault typed definitions, generated IDs, engineering settings, memory toolkits and the Editor Workspace with the Runtime monitor, Code Generation and Content pages.",
+  "unity": "6000.6",
+  "author": {
+    "name": "Threadforge",
+    "url": "https://github.com/GeorgeRontoulis/Threadlink"
+  },
+  "license": "MIT",
+  "keywords": [
+    "threadlink",
+    "framework",
+    "architecture",
+    "subsystems",
+    "events",
+    "addressables",
+    "definitions"
+  ],
+  "documentationUrl": "https://threadforge.gitbook.io/threadlink-documentation/",
+  "changelogUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink/CHANGELOG.md",
+  "licensesUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink/LICENSE.md",
+  "dependencies": {
+    "com.cysharp.unitask": "2.5.11",
+    "com.unity.addressables": "2.11.2",
+    "com.unity.collections": "6.6.0",
+    "com.unity.modules.uielements": "1.0.0"
+  }
+}
