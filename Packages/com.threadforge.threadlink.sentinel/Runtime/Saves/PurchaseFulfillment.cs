@@ -7,6 +7,8 @@ namespace Threadforge.Threadlink
 
     public sealed class FulfillmentOutcome<T>
     {
+        internal FulfillmentOutcome() { }
+
         public bool LocallyCommitted { get; internal set; }
         public bool AlreadyFulfilled { get; internal set; }
         public T State { get; internal set; }

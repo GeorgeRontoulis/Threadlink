@@ -43,7 +43,7 @@ namespace Threadforge.Threadlink.Showcase.Demos
             cue.name = name;
             cue.Variations = new[] { new AudioCue.Variation { Clip = clip } };
             cue.Loop = loop;
-            cue.Category = category;
+            cue.CategoryName = category;
             created.Add(clip);
             created.Add(cue);
             return cue;

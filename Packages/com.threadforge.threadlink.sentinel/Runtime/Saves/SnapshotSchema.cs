@@ -61,7 +61,7 @@ namespace Threadforge.Threadlink
         }
 
         /// <summary>Registers a declared old-version payload reader that produces the current snapshot.</summary>
-        public void RegisterMigration(int sourceVersion, Func<ReadOnlyMemory<byte>, T> reader)
+        public void AddMigration(int sourceVersion, Func<ReadOnlyMemory<byte>, T> reader)
         {
             if (
                 sourceVersion < 1
@@ -74,7 +74,7 @@ namespace Threadforge.Threadlink
         }
 
         /// <summary>Opts into a declared reader for bytes with no TLSP magic; never used for an unknown TLSP version.</summary>
-        public void RegisterLegacyReader(Func<ReadOnlyMemory<byte>, T> reader)
+        public void SetLegacyReader(Func<ReadOnlyMemory<byte>, T> reader)
         {
             if (legacy != null || reader == null)
                 throw new ArgumentException("Invalid legacy reader.");

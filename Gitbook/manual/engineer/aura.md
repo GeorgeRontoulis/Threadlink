@@ -28,7 +28,7 @@ Aura announces on Iris when the music channel changes cue or stops (`MusicChange
 
 ## Categories
 
-Project categories and their voice limits are engineering settings in **Project Settings ▸ Threadlink ▸ Aura**, together with the default scene-music crossfade. Threadlink generates `AudioCategories` from that list (see [Generated IDs](editor-tooling.md#generated-ids)), so code names a category as `AudioCategories.Music` rather than a string, and a cue's **Category** field is a dropdown of the same list. `cue.CategoryId` is the cue's category as an `AudioCategory`; `new AudioCategory(name)` covers categories added at runtime.
+Project categories and their voice limits are engineering settings in **Project Settings ▸ Threadlink ▸ Aura**, together with the default scene-music crossfade. Threadlink generates `AudioCategories` from that list (see [Generated IDs](editor-tooling.md#generated-ids)), so code names a category as `AudioCategories.Music` rather than a string, and a cue's **Category** field is a dropdown of the same list. `cue.Category` is the cue's category as an `AudioCategory` (its name is `cue.CategoryName`); `new AudioCategory(name)` covers categories added at runtime.
 
 ## Scene music
 

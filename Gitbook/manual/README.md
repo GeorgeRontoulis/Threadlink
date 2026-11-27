@@ -2,7 +2,7 @@
 
 ![Powered by Threadlink. Weaving worlds together.](.gitbook/assets/threadlink-banner.png)
 
-**Threadlink** is a Unity framework for the systems every game rebuilds: events, content loading, scene transitions, input and screens, audio, typed definitions, transactional saves, platform services, deterministic simulation and diagnostics. Each feature is a **subsystem** that Threadlink deploys before the first scene and reaches from anywhere: `Iris.Publish`, `Nexus.LoadAsync`, `Aura.Play`, `Dextra.Player`, `Sentinel.Saves`, `Vault.Get`, `Threadlink.LoadAsync`. Your own systems are subsystems too.
+**Threadlink** is a Unity framework for the systems every game rebuilds: events, content loading, scene transitions, input and screens, audio, typed definitions, transactional saves, platform services, deterministic simulation and diagnostics. Each feature is a **subsystem** that Threadlink deploys before the first scene and reaches from anywhere: `Iris.Publish`, `Nexus.LoadAsync`, `Aura.Play`, `Dextra.Player`, `Sentinel.Saves`, `Vault.Get`, `Content.LoadAsync`. Your own systems are subsystems too.
 
 This is the reference for the Threadlink packages, their Editor tooling and their authoring workflows.
 

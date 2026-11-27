@@ -39,11 +39,11 @@ namespace Threadforge.Threadlink
             if (DextraSettings.Current.Actions != null)
                 Join(Array.Empty<InputDevice>(), announce: false);
             blocker = new InputBlocker(() => players.Count > 0 ? players[0] : null, () => DextraSettings.Current.InterfaceMap);
-            blocker.BlockChanged = blocked => Iris.TryNotify(new GameplayInputBlockChanged(blocked));
+            blocker.BlockChanged = blocked => Iris.TryPublish(new GameplayInputBlockChanged(blocked));
             host = new ScreenHost(factory, blocker)
             {
-                Opened = screen => Iris.TryNotify(new ScreenOpened(screen)),
-                Closed = screen => Iris.TryNotify(new ScreenClosed(screen)),
+                Opened = screen => Iris.TryPublish(new ScreenOpened(screen)),
+                Closed = screen => Iris.TryPublish(new ScreenClosed(screen)),
             };
             InputUser.onChange += OnUserChange;
             InputSystem.onDeviceChange += OnDeviceChange;
@@ -54,7 +54,7 @@ namespace Threadforge.Threadlink
         protected override void OnSubsystemInit()
         {
             for (int i = 0; i < players.Count; i++)
-                Iris.TryNotify(new PlayerJoined(players[i], i));
+                Iris.TryPublish(new PlayerJoined(players[i], i));
         }
 
         // Closes screens while the content they came from is still available.
@@ -91,7 +91,7 @@ namespace Threadforge.Threadlink
                 return;
             report.Section("Players");
             for (int i = 0; i < players.Count; i++)
-                report.Field("Player " + i, players[i].Available ? players[i].LastDevice?.displayName ?? "Paired" : "No device", players[i].Available ? MonitorTone.Normal : MonitorTone.Caution);
+                report.Field("Player " + i, players[i].IsConnected ? players[i].LastDevice?.displayName ?? "Paired" : "No device", players[i].IsConnected ? MonitorTone.Normal : MonitorTone.Caution);
             if (players.Count == 0)
                 report.Note("No input actions are assigned in Project Settings ▸ Threadlink ▸ Dextra.", MonitorTone.Caution);
             report.Section("Screens");
@@ -127,7 +127,7 @@ namespace Threadforge.Threadlink
             dextra.gameplayClaims.RemoveAt(index);
             dextra.players.RemoveAt(index);
             player.Dispose();
-            Iris.TryNotify(new PlayerLeft(player, index));
+            Iris.TryPublish(new PlayerLeft(player, index));
         }
 
         private PlayerInputContext Join(InputDevice[] devices, bool announce, InputActionAsset actions = null)
@@ -150,7 +150,7 @@ namespace Threadforge.Threadlink
                 try
                 {
                     if (File.Exists(path))
-                        player.ImportOverrides(File.ReadAllText(path));
+                        player.ImportBindings(File.ReadAllText(path));
                 }
                 catch (Exception error)
                 {
@@ -158,11 +158,11 @@ namespace Threadforge.Threadlink
                 }
             }
             player.BindingsChanged = OnBindingsChanged;
-            player.ControlsChanged = changed => Iris.TryNotify(new ControlsChanged(changed, changed.LastDevice));
+            player.ControlsChanged = changed => Iris.TryPublish(new ControlsChanged(changed, changed.LastDevice));
             string gameplay = settings.MapName(player.Actions, settings.GameplayMap);
             gameplayClaims.Add(string.IsNullOrEmpty(gameplay) ? new Nothing() : player.ClaimByName(0, false, gameplay));
             if (announce)
-                Iris.TryNotify(new PlayerJoined(player, index));
+                Iris.TryPublish(new PlayerJoined(player, index));
             return player;
         }
 
@@ -170,7 +170,7 @@ namespace Threadforge.Threadlink
         {
             if (DextraSettings.Current.SaveBindings)
                 Save(player);
-            Iris.TryNotify(new BindingsChanged(player));
+            Iris.TryPublish(new BindingsChanged(player));
         }
 
         private PlayerInputContext PlayerOf(InputUser user)
@@ -189,9 +189,9 @@ namespace Threadforge.Threadlink
             if (player == null)
                 return;
             if (change == InputUserChange.DeviceLost)
-                Iris.TryNotify(new DeviceLost(player, device));
+                Iris.TryPublish(new DeviceLost(player, device));
             else
-                Iris.TryNotify(new DeviceRegained(player, device));
+                Iris.TryPublish(new DeviceRegained(player, device));
         }
 
         // Player 0 uses every device no other player owns, including devices connected after it joined. A device
@@ -231,7 +231,7 @@ namespace Threadforge.Threadlink
             {
                 string path = BindingsPath(index);
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
-                File.WriteAllText(path, player.ExportOverrides());
+                File.WriteAllText(path, player.ExportBindings());
             }
             catch (Exception error)
             {

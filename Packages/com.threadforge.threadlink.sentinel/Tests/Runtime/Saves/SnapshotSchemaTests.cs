@@ -54,7 +54,7 @@ namespace Threadforge.Threadlink.Tests
             var old = Schema(id);
             var current = Schema(id, 2);
             int legacyCalls = 0;
-            current.RegisterLegacyReader(bytes =>
+            current.SetLegacyReader(bytes =>
             {
                 legacyCalls++;
                 return 99;
@@ -66,7 +66,7 @@ namespace Threadforge.Threadlink.Tests
                 Is.EqualTo(1)
             );
             Assert.That(legacyCalls, Is.Zero);
-            current.RegisterMigration(1, bytes => new IntegerCodec().Decode(bytes) + 2);
+            current.AddMigration(1, bytes => new IntegerCodec().Decode(bytes) + 2);
             Assert.That(current.Read(old.Write(7)), Is.EqualTo(9));
             Assert.That(current.Read(new byte[] { 1 }), Is.EqualTo(99));
             Assert.Throws<SnapshotSchemaException>(() => Schema(Guid.NewGuid()).Read(old.Write(7)));
@@ -137,7 +137,7 @@ namespace Threadforge.Threadlink.Tests
                 yield return null;
             Assert.That(saving.GetAwaiter().GetResult(), Is.True);
             Assert.That(saved, Is.EqualTo(1));
-            schedule.Paused = true;
+            schedule.IsPaused = true;
             Assert.That(
                 schedule
                     .AdvanceAsync(TimeSpan.FromSeconds(9), true, _ => UniTask.CompletedTask)

@@ -23,7 +23,7 @@ Tones are `Normal`, `Muted`, `Good`, `Caution` and `Bad`. Reporting allocates on
 ## Operations
 
 ```csharp
-var save = Threadlink.Begin("Saves", "Autosave");
+var save = Threadlink.BeginOperation("Saves", "Autosave");
 save.Stage("Writing slot 0");
 try
 {

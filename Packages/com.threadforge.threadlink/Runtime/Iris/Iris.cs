@@ -19,11 +19,9 @@ namespace Threadforge.Threadlink
         private AsyncEventBus awaited;
         private bool ownsFrames;
 
-        /// <summary>The synchronous bus of this session.</summary>
-        public EventBus Bus => bus;
+        internal EventBus Bus => bus;
 
-        /// <summary>The awaited bus of this session.</summary>
-        public AsyncEventBus AwaitedBus => awaited;
+        internal AsyncEventBus AwaitedBus => awaited;
 
         /// <inheritdoc />
         protected override void OnSubsystemBoot()
@@ -66,17 +64,15 @@ namespace Threadforge.Threadlink
         /// <summary>Calls <paramref name="callback"/> for every <typeparamref name="T"/> published, until <paramref name="owner"/> is destroyed or the token is disposed.</summary>
         public static SubscriptionToken Subscribe<T>(MonoBehaviour owner, Action<T> callback) => Own(owner, Instance.bus.Subscribe(callback));
 
-        /// <summary>Delivers <paramref name="value"/> to every listener now. A listener's exception stops delivery and propagates.</summary>
-        public static void Publish<T>(T value) => Instance.bus.Publish(value);
-
-        /// <summary>Delivers a notification to every listener now; listener exceptions are logged and delivery continues.</summary>
-        public static void Notify<T>(T value) => Instance.bus.PublishIsolated(value);
+        /// <summary>Delivers <paramref name="value"/> to every listener now, in subscription order. A listener that throws is
+        /// logged and the others still run.</summary>
+        public static void Publish<T>(T value) => Instance.bus.PublishIsolated(value);
 
         /// <summary>
-        /// Delivers a notification now when Iris is available, as <see cref="Notify{T}"/> does; false when it is not, such as
-        /// in a test session without Iris. Framework events use it.
+        /// Publishes when Iris is available, as <see cref="Publish{T}"/> does; false when it is not, such as in a test session
+        /// without Iris. Framework events use it.
         /// </summary>
-        public static bool TryNotify<T>(T value)
+        public static bool TryPublish<T>(T value)
         {
             if (!TryGetSingleton(out var iris))
                 return false;

@@ -1,6 +1,6 @@
 {
   "name": "com.threadforge.threadlink.nexus",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "displayName": "Threadlink Nexus",
   "description": "Scene transitions that load and prepare the next scene before presenting it and keep the current scene on failure, for Build Profile and Addressables scenes.",
   "unity": "6000.6",
@@ -19,6 +19,6 @@
   "changelogUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.nexus/CHANGELOG.md",
   "licensesUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.nexus/LICENSE.md",
   "dependencies": {
-    "com.threadforge.threadlink": "2.0.0"
+    "com.threadforge.threadlink": "3.0.0"
   }
 }

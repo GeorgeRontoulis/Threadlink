@@ -112,9 +112,9 @@ namespace Threadforge.Threadlink
             }
         }
 
-        internal PersistenceResult<SaveStorageReport> InspectStorage(int saveID)
+        internal PersistenceResult<SaveStorageReport> InspectStorage(int saveId)
         {
-            if (saveID == 0)
+            if (saveId == 0)
                 return PersistenceResult<SaveStorageReport>.Failure(
                     PersistenceError.InvalidArgument
                 );
@@ -126,7 +126,7 @@ namespace Threadforge.Threadlink
                     );
                 try
                 {
-                    var directories = GenerationDirectories(saveID);
+                    var directories = GenerationDirectories(saveId);
                     long bytes = 0;
                     foreach (var directory in directories)
                     foreach (
@@ -158,9 +158,9 @@ namespace Threadforge.Threadlink
             }
         }
 
-        internal PersistenceResult<int> PruneHistory(int saveID)
+        internal PersistenceResult<int> PruneHistory(int saveId)
         {
-            if (saveID == 0)
+            if (saveId == 0)
                 return PersistenceResult<int>.Failure(PersistenceError.InvalidArgument);
             lock (ActivityLock)
             {
@@ -173,17 +173,17 @@ namespace Threadforge.Threadlink
                     );
                 try
                 {
-                    string pointer = GetPointerPath(saveID);
+                    string pointer = GetPointerPath(saveId);
                     if (!File.Exists(pointer))
                         return PersistenceResult<int>.Success(0);
-                    var parsed = ParsePointer(saveID, File.ReadAllText(pointer));
+                    var parsed = ParsePointer(saveId, File.ReadAllText(pointer));
                     if (!parsed.Succeeded)
                         return PersistenceResult<int>.Failure(parsed.Error, parsed.Message);
                     string current = parsed.Value;
                     // A tombstone has no current generation: retain all history until an explicit replacement save exists.
                     if (current == DELETED)
                         return PersistenceResult<int>.Success(0);
-                    var directories = GenerationDirectories(saveID);
+                    var directories = GenerationDirectories(saveId);
                     directories.Sort(
                         (a, b) =>
                         {
@@ -222,15 +222,15 @@ namespace Threadforge.Threadlink
             }
         }
 
-        private List<string> GenerationDirectories(int saveID)
+        private List<string> GenerationDirectories(int saveId)
         {
             var result = new List<string>();
-            string parent = Path.GetFullPath(GetGenerationRoot(saveID));
+            string parent = Path.GetFullPath(GetGenerationRoot(saveId));
             if (!Directory.Exists(parent))
                 return result;
             if (
                 (File.GetAttributes(Root) & FileAttributes.ReparsePoint) != 0
-                || (File.GetAttributes(GetSaveDirectory(saveID)) & FileAttributes.ReparsePoint) != 0
+                || (File.GetAttributes(GetSaveDirectory(saveId)) & FileAttributes.ReparsePoint) != 0
                 || (File.GetAttributes(parent) & FileAttributes.ReparsePoint) != 0
             )
                 throw new IOException("Save maintenance refuses linked directories.");
@@ -252,14 +252,14 @@ namespace Threadforge.Threadlink
             return result;
         }
 
-        internal SemaphoreSlim GetPublishLock(int saveID)
+        internal SemaphoreSlim GetPublishLock(int saveId)
         {
             lock (ActivityLock)
             {
-                if (!publication.Gates.TryGetValue(saveID, out var gate))
+                if (!publication.Gates.TryGetValue(saveId, out var gate))
                 {
                     gate = new SemaphoreSlim(1, 1);
-                    publication.Gates.Add(saveID, gate);
+                    publication.Gates.Add(saveId, gate);
                 }
 
                 return gate;
@@ -267,37 +267,37 @@ namespace Threadforge.Threadlink
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal string GetSaveDirectory(int saveID) => Path.Combine(Root, saveID.ToString());
+        internal string GetSaveDirectory(int saveId) => Path.Combine(Root, saveId.ToString());
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal string GetGenerationRoot(int saveID) =>
-            Path.Combine(GetSaveDirectory(saveID), "generations");
+        internal string GetGenerationRoot(int saveId) =>
+            Path.Combine(GetSaveDirectory(saveId), "generations");
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal string GetGenerationDirectory(int saveID, string generation) =>
-            Path.Combine(GetGenerationRoot(saveID), generation);
+        internal string GetGenerationDirectory(int saveId, string generation) =>
+            Path.Combine(GetGenerationRoot(saveId), generation);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal string GetPointerPath(int saveID) =>
-            Path.Combine(GetSaveDirectory(saveID), "current.ptr");
+        internal string GetPointerPath(int saveId) =>
+            Path.Combine(GetSaveDirectory(saveId), "current.ptr");
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal string GetStagingDirectory(int saveID, string generation) =>
-            Path.Combine(Root, ".staging", saveID + "-" + generation);
+        internal string GetStagingDirectory(int saveId, string generation) =>
+            Path.Combine(Root, ".staging", saveId + "-" + generation);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static string GetFilePath(string generationDirectory, int fileID) =>
-            Path.Combine(generationDirectory, fileID + ".sent");
+        internal static string GetFilePath(string generationDirectory, int fileId) =>
+            Path.Combine(generationDirectory, fileId + ".sent");
 
-        internal async UniTask<PersistenceResult<string>> ReadPointerAsync(int saveID)
+        internal async UniTask<PersistenceResult<string>> ReadPointerAsync(int saveId)
         {
-            var result = await ReadRawPointerAsync(saveID);
+            var result = await ReadRawPointerAsync(saveId);
             if (result.Succeeded && (result.Value == null || result.Value == DELETED))
                 return PersistenceResult<string>.Failure(PersistenceError.NotFound);
             return result;
         }
 
-        private PersistenceResult<string> ParsePointer(int saveID, string text)
+        private PersistenceResult<string> ParsePointer(int saveId, string text)
         {
             string value = text.Trim();
             if (value == DELETED)
@@ -308,7 +308,7 @@ namespace Threadforge.Threadlink
                     PersistenceError.CorruptData,
                     "The save generation pointer is not an N-format GUID."
                 );
-            if (!Directory.Exists(GetGenerationDirectory(saveID, value)))
+            if (!Directory.Exists(GetGenerationDirectory(saveId, value)))
                 return PersistenceResult<string>.Failure(
                     PersistenceError.CorruptData,
                     $"The published save generation '{value}' is missing."
@@ -316,16 +316,16 @@ namespace Threadforge.Threadlink
             return PersistenceResult<string>.Success(value);
         }
 
-        internal async UniTask<PersistenceResult<string>> ReadRawPointerAsync(int saveID)
+        internal async UniTask<PersistenceResult<string>> ReadRawPointerAsync(int saveId)
         {
-            var pointer = GetPointerPath(saveID);
+            var pointer = GetPointerPath(saveId);
 
             if (!File.Exists(pointer))
                 return PersistenceResult<string>.Success(null);
 
             try
             {
-                return ParsePointer(saveID, await File.ReadAllTextAsync(pointer));
+                return ParsePointer(saveId, await File.ReadAllTextAsync(pointer));
             }
             catch (UnauthorizedAccessException exception)
             {
@@ -343,10 +343,10 @@ namespace Threadforge.Threadlink
             }
         }
 
-        internal async UniTask<PersistenceResult> PublishPointerAsync(int saveID, string value)
+        internal async UniTask<PersistenceResult> PublishPointerAsync(int saveId, string value)
         {
-            string saveDirectory = GetSaveDirectory(saveID);
-            string pointer = GetPointerPath(saveID);
+            string saveDirectory = GetSaveDirectory(saveId);
+            string pointer = GetPointerPath(saveId);
             string temp = Path.Combine(saveDirectory, $"current.{Guid.NewGuid():N}.tmp");
 
             try

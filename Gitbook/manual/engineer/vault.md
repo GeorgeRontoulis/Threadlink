@@ -18,4 +18,4 @@ The UI Toolkit Inspector displays identity, schema and authored version, validat
 
 ## Vault fields
 
-`VaultFieldSet` is an opt-in bag of immutable scalar values keyed by name. Read it with generated keys instead of strings: an [ID domain](editor-tooling.md#id-domains) that extends **Vault fields** generates `VaultFields.Name` (a `VaultField`), so `fields.Get<int>(VaultFields.Damage)` and `fields.TryGet(VaultFields.Damage, out int damage)` are checked by the compiler. A field key is the entry's name in PascalCase.
+`VaultFieldSet` is an opt-in bag of immutable scalar values keyed by name. Read it with generated keys: an [ID domain](editor-tooling.md#id-domains) that extends **Vault fields** generates `VaultFields.Name` (a `VaultField`), so `fields.Get<int>(VaultFields.Damage)` and `fields.TryGet(VaultFields.Damage, out int damage)` are checked by the compiler. A field key is the entry's name in PascalCase.

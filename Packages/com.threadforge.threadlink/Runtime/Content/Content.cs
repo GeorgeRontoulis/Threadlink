@@ -9,7 +9,11 @@ namespace Threadforge.Threadlink
     using UnityEngine.ResourceManagement.ResourceProviders;
     using Object = UnityEngine.Object;
 
-    public sealed partial class Threadlink
+    /// <summary>
+    /// Content loading by generated ID: assets, prefabs (as GameObjects or their root components), Addressables scenes and
+    /// labels. Addressables owns groups and delivery; the Content mapping chooses what code loads by ID.
+    /// </summary>
+    public static class Content
     {
         // ---- Assets: any UnityEngine.Object ---------------------------------------------------------------------------
 
@@ -100,22 +104,22 @@ namespace Threadforge.Threadlink
         // ---- Mapping from code ------------------------------------------------------------------------------------------
 
         /// <summary>Maps an asset ID to an Addressables (or custom backend) key from code, for tests, tools and generated content.</summary>
-        public static void MapContent(ContentAssetId asset, string key) =>
+        public static void Map(ContentAssetId asset, string key) =>
             ContentLibrary.AddEntries(new[] { ContentEntry.Create(Require(asset.IsAssigned, asset.Identity, asset), typeof(Object), key) });
 
         /// <summary>Maps a prefab ID to an Addressables (or custom backend) key from code.</summary>
-        public static void MapContent(ContentPrefabId prefab, string key) =>
+        public static void Map(ContentPrefabId prefab, string key) =>
             ContentLibrary.AddEntries(new[] { ContentEntry.Create(Require(prefab.IsAssigned, prefab.Identity, prefab), typeof(GameObject), key) });
 
         /// <summary>Maps a scene ID to an Addressables (or custom backend) key from code.</summary>
-        public static void MapContent(ContentSceneId scene, string key) =>
+        public static void Map(ContentSceneId scene, string key) =>
             ContentLibrary.AddEntries(new[] { ContentEntry.Create(Require(scene.IsAssigned, scene.Identity, scene), typeof(SceneInstance), key) });
 
         /// <summary>
         /// Loads content through <paramref name="backend"/> instead of Addressables, for Resources, streamed or generated
         /// content. Takes effect immediately; requests made through the previous backend release through it. Pass null to return to Addressables.
         /// </summary>
-        public static void UseContentBackend(IContentBackend backend) => ContentLibrary.Instance.UseBackend(backend);
+        public static void UseBackend(IContentBackend backend) => ContentLibrary.Instance.UseBackend(backend);
 
         private static ContentProvider Provider => ContentLibrary.Instance.Provider;
 

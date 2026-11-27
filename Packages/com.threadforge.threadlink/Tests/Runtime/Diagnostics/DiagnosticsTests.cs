@@ -86,7 +86,7 @@ namespace Threadforge.Threadlink.Tests
         public void HistoryAndTracesAreBoundedAndDisposalRecordsAbandonment()
         {
             var log = new OperationLog(
-                new DiagnosticsOptions { HistoryCapacity = 3, Traces = true, TraceCapacity = 2 }
+                new DiagnosticsOptions { HistoryCapacity = 3, RecordTraces = true, TraceCapacity = 2 }
             );
             for (int i = 0; i < 5; i++)
             {

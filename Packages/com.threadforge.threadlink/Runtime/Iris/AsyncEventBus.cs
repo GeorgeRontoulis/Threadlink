@@ -44,7 +44,7 @@ namespace Threadforge.Threadlink
     /// publications. Listeners must complete on the owning thread (Unity's main thread).
     /// No host, bootstrap scene or frame adapter is required.
     /// </remarks>
-    public sealed class AsyncEventBus : IDisposable
+    internal sealed class AsyncEventBus : IDisposable
     {
         private interface IChannel
         {

@@ -7,7 +7,7 @@
 
 ![Powered by Threadlink. Weaving worlds together.](Threadlink_Banner.png)
 
-**Threadlink** is a Unity framework for the systems every game rebuilds: events, content loading, scene transitions, input and screens, audio, typed definitions, transactional saves, platform services, deterministic simulation and diagnostics. Each feature is a **subsystem** that Threadlink deploys before the first scene and reaches from anywhere: `Iris.Publish`, `Nexus.LoadAsync`, `Aura.Play`, `Dextra.Player`, `Sentinel.Saves`, `Vault.Get`, `Threadlink.LoadAsync`. Your own systems are subsystems too.
+**Threadlink** is a Unity framework for the systems every game rebuilds: events, content loading, scene transitions, input and screens, audio, typed definitions, transactional saves, platform services, deterministic simulation and diagnostics. Each feature is a **subsystem** that Threadlink deploys before the first scene and reaches from anywhere: `Iris.Publish`, `Nexus.LoadAsync`, `Aura.Play`, `Dextra.Player`, `Sentinel.Saves`, `Vault.Get`, `Content.LoadAsync`. Your own systems are subsystems too.
 
 This is the reference for the Threadlink packages, their Editor tooling and their authoring workflows.
 
@@ -78,7 +78,7 @@ Threadlink targets .NET Standard 2.1 APIs, uses [UniTask](https://github.com/Cys
 
 ## Installation and Project Setup
 
-Threadlink is a set of Unity packages published on [OpenUPM](https://openupm.com), a scoped registry that the Unity Package Manager installs from with dependencies resolved automatically. All Threadlink packages share one version; this manual describes **2.0.0**.
+Threadlink is a set of Unity packages published on [OpenUPM](https://openupm.com), a scoped registry that the Unity Package Manager installs from with dependencies resolved automatically. All Threadlink packages share one version; this manual describes **3.0.0**.
 
 ### Install with the OpenUPM command-line tool
 
@@ -217,7 +217,7 @@ Enter Play mode and select a demo on the left.
 | Memory | Native blocks and cross-machine hashing | core |
 | Operations | The session's operation log and subsystem reports | core |
 
-The demos run without project setup in the live session: content uses a small generated-texture backend through `Threadlink.UseContentBackend`, audio uses generated tones, and saves use slots 900 and above. Each demo's code is one file under `Runtime/Demos` in the Showcase package and uses only the public API. Open **Threadlink ▸ Runtime Monitor** while the gallery runs.
+The demos run without project setup in the live session: content uses a small generated-texture backend through `Content.UseBackend`, audio uses generated tones, and saves use slots 900 and above. Each demo's code is one file under `Runtime/Demos` in the Showcase package and uses only the public API. Open **Threadlink ▸ Runtime Monitor** while the gallery runs.
 
 ### Self-check
 
@@ -550,7 +550,7 @@ public sealed class Wallet : ThreadlinkSubsystem<Wallet>
 | `Lifetime` | Cancelled when the session ends. |
 | `Report(MonitorReport)` | What the Runtime monitor shows. |
 
-Framework subsystems follow the same pattern and expose their API as static methods on the class: `Iris.Publish`, `Nexus.LoadAsync`, `Aura.Play`, `Dextra.Player`, `Sentinel.Saves.SaveAsync`, `Vault.Get`. Content loading lives on the core: `Threadlink.LoadAsync`.
+Framework subsystems follow the same pattern and expose their API as static methods on the class: `Iris.Publish`, `Nexus.LoadAsync`, `Aura.Play`, `Dextra.Player`, `Sentinel.Saves.SaveAsync`, `Vault.Get`. Content loading lives on the core: `Content.LoadAsync`.
 
 ### The core
 
@@ -560,7 +560,7 @@ Framework subsystems follow the same pattern and expose their API as static meth
 | `Threadlink.IsDeployed`, `Threadlink.Instance` | Deployment state and the current core. |
 | `Threadlink.Lifetime` | Cancelled when the session ends. |
 | `core.Subsystems` | Every subsystem in initialization order, then any that failed. |
-| `Threadlink.Operations`, `Threadlink.Begin` | The session's operation log. See [Diagnostics](#diagnostics). |
+| `Threadlink.Operations`, `Threadlink.BeginOperation` | The session's operation log. See [Diagnostics](#diagnostics). |
 | `Threadlink.DeployIsolated()` | A separate core for tests and tools; it becomes current until disposed and starts empty. `core.Add<T>()` boots and initializes a subsystem; one that another uses joins on first use. |
 
 ### Design and engineering
@@ -595,7 +595,7 @@ public sealed class CoinLabel : MonoBehaviour
     private async void Start()
     {
         Iris.Subscribe<CoinsChanged>(this, change => label.text = change.Total.ToString());
-        var icon = await Threadlink.LoadAsync<Sprite>(ContentAssets.Interface.Coin, this);
+        var icon = await Content.LoadAsync<Sprite>(ContentAssets.Interface.Coin, this);
         image.sprite = icon.Asset;
     }
 }
@@ -605,8 +605,8 @@ public sealed class CoinLabel : MonoBehaviour
 | --- | --- |
 | `Iris.Subscribe<T>(owner, callback)`, `Iris.SubscribeAsync<T>(owner, listener)`, `Iris.Respond(owner, responder)` | The subscription or responder. |
 | `Iris.OnUpdate(owner, …)`, `OnFixedUpdate`, `OnLateUpdate` | The frame callback. |
-| `Threadlink.LoadAsync(id, owner)`, `LoadAllAsync(label, owner)` | The loaded content. |
-| `Threadlink.InstantiateAsync(id, owner)` | The instance and the content it came from. |
+| `Content.LoadAsync(id, owner)`, `LoadAllAsync(label, owner)` | The loaded content. |
+| `Content.InstantiateAsync(id, owner)` | The instance and the content it came from. |
 
 Without an owner, the call returns what you release yourself: dispose the `SubscriptionToken`, the responder or the `ResourceRequest`, usually with `using` or in `OnDestroy`.
 
@@ -637,9 +637,8 @@ Iris.Publish(new CoinsChanged(12));
 | --- | --- |
 | `Iris.Subscribe<T>(callback)` | Returns a `SubscriptionToken`; dispose it to stop delivery. Copies and repeated disposal never remove another listener. |
 | `Iris.Subscribe<T>(owner, callback)` | Ends when the `MonoBehaviour` owner is destroyed. |
-| `Iris.Publish<T>(value)` | Delivers now, in subscription order. A listener's exception stops delivery and propagates. |
-| `Iris.Notify<T>(value)` | Delivers now; listener exceptions are logged and delivery continues. |
-| `Iris.TryNotify<T>(value)` | As `Notify` when Iris is available; returns false otherwise, such as in a test session without Iris. Framework events use it. |
+| `Iris.Publish<T>(value)` | Delivers now, in subscription order. A listener that throws is logged and the others still run. |
+| `Iris.TryPublish<T>(value)` | As `Publish` when Iris is available; returns false otherwise, such as in a test session without Iris. Framework events use it. |
 | `Iris.TryPost<T>(value)` | From any thread: queues the event for the next Update. Returns false when the bounded queue is full or Iris is not linked. |
 | `Iris.ListenerCount<T>()` | Current synchronous listeners. |
 
@@ -668,13 +667,9 @@ int next = await Iris.RequestAsync<NextLevel, int>(new NextLevel(3));
 
 Listeners return `UniTask`. Publication adds no allocation: warmed sequential and concurrent publications reuse their buffers, and listeners written as `async UniTask` use UniTask's pooled machinery.
 
-### Isolated buses
-
-`EventBus` and `AsyncEventBus` are ordinary classes for tools and tests that need a bus outside the session; `Iris.Instance.Bus` and `AwaitedBus` are the session's buses.
-
 ## Framework Events
 
-The framework announces its state changes on [Iris](#iris-event-dispatch), so game code reacts to them instead of polling or depending on startup order. Every event is a `readonly struct`, delivered synchronously with `Iris.TryNotify`: a listener that throws is logged and the others still run.
+The framework announces its state changes on [Iris](#iris-event-dispatch), so game code reacts to them instead of polling or depending on startup order. Every event is a `readonly struct`, delivered synchronously with `Iris.TryPublish`: a listener that throws is logged and the others still run.
 
 ### Listening
 
@@ -749,7 +744,7 @@ private void Start() => Iris.Subscribe<DeviceLost>(this, lost => pauseMenu.Open(
 
 ### Announcing your own
 
-Follow the same shape for your subsystems' events: a `readonly struct` named in the past tense, announced with `Iris.TryNotify` when the change happens. Announce what other subsystems react to from `OnSubsystemInit` or later, never from `OnSubsystemBoot`, so every subsystem is subscribed.
+Follow the same shape for your subsystems' events: a `readonly struct` named in the past tense, announced with `Iris.TryPublish` when the change happens. Announce what other subsystems react to from `OnSubsystemInit` or later, never from `OnSubsystemBoot`, so every subsystem is subscribed.
 
 ## Nexus: Scene Management
 
@@ -831,7 +826,7 @@ Dextra.RemovePlayer(second);
 | `player.Action(id)`, `WasPressed`, `WasReleased`, `IsPressed`, `Read(InputId<T>)` | Action queries by `InputId`. `Read` returns the action's value type. |
 | `player.Claim(priority, blocksLower, maps)` | Enables `InputMapId` maps by priority while the returned claim lives; a blocking claim suspends lower maps. |
 | `player.RebindAsync(id, binding = 0)`, `GetConflicts(id, binding = 0)` | Interactive rebinding on the player's own devices; returns conflicts. |
-| `player.ResetBindings()`, `ExportOverrides()`, `ImportOverrides(json)` | Binding overrides. |
+| `player.ResetBindings()`, `ExportBindings()`, `ImportBindings(json)` | Binding overrides. |
 | `Dextra.AddPlayer(devices)` / `AddPlayer(actions, devices)` | Joins a player with the project's or explicit actions. |
 | `player.LastDevice` | The device the player used last, which prompts follow. |
 
@@ -866,7 +861,7 @@ pause.Root.Q<Button>("resume").clicked += () => Dextra.Screens.CloseAsync(pause)
 var map = await Dextra.Screens.OpenAsync(ContentPrefabs.Screens.Map, ScreenLayer.Overlay);   // a mapped prefab
 ```
 
-A screen prepares before it shows, takes focus, and by default blocks gameplay input by claiming the interface map above gameplay. Closing it restores focus and input to what was below. Layers are `Hud`, `Overlay`, `Menu` and `Modal`. Prefab screens carry a `ToolkitScreen` or, with uGUI installed, a `UGuiScreen`. `ScreenHandle.Root` is the root element of a UI Toolkit screen; `ScreenHandle.Instance` its GameObject. `Dextra.Screens.DefaultPanel` overrides the configured panel settings at runtime.
+A screen prepares before it shows, takes focus, and by default blocks gameplay input by claiming the interface map above gameplay. Closing it restores focus and input to what was below. Layers are `Hud`, `Overlay`, `Menu` and `Modal`. Prefab screens carry a `ToolkitScreen` or, with uGUI installed, a `UGuiScreen`. `ScreenHandle.Root` is the root element of a UI Toolkit screen; `ScreenHandle.GameObject` its GameObject. `Dextra.Screens.DefaultPanel` overrides the configured panel settings at runtime.
 
 `ScreenOpened` and `ScreenClosed` announce every screen on Iris, and `GameplayInputBlockChanged` announces when the first blocking screen opens and the last one closes: pause gameplay, show the cursor, hide the HUD.
 
@@ -919,7 +914,7 @@ Aura announces on Iris when the music channel changes cue or stops (`MusicChange
 
 ### Categories
 
-Project categories and their voice limits are engineering settings in **Project Settings ▸ Threadlink ▸ Aura**, together with the default scene-music crossfade. Threadlink generates `AudioCategories` from that list (see [Generated IDs](#generated-ids-1)), so code names a category as `AudioCategories.Music` rather than a string, and a cue's **Category** field is a dropdown of the same list. `cue.CategoryId` is the cue's category as an `AudioCategory`; `new AudioCategory(name)` covers categories added at runtime.
+Project categories and their voice limits are engineering settings in **Project Settings ▸ Threadlink ▸ Aura**, together with the default scene-music crossfade. Threadlink generates `AudioCategories` from that list (see [Generated IDs](#generated-ids-1)), so code names a category as `AudioCategories.Music` rather than a string, and a cue's **Category** field is a dropdown of the same list. `cue.Category` is the cue's category as an `AudioCategory` (its name is `cue.CategoryName`); `new AudioCategory(name)` covers categories added at runtime.
 
 ### Scene music
 
@@ -1141,7 +1136,7 @@ The UI Toolkit Inspector displays identity, schema and authored version, validat
 
 ### Vault fields
 
-`VaultFieldSet` is an opt-in bag of immutable scalar values keyed by name. Read it with generated keys instead of strings: an [ID domain](#id-domains) that extends **Vault fields** generates `VaultFields.Name` (a `VaultField`), so `fields.Get<int>(VaultFields.Damage)` and `fields.TryGet(VaultFields.Damage, out int damage)` are checked by the compiler. A field key is the entry's name in PascalCase.
+`VaultFieldSet` is an opt-in bag of immutable scalar values keyed by name. Read it with generated keys: an [ID domain](#id-domains) that extends **Vault fields** generates `VaultFields.Name` (a `VaultField`), so `fields.Get<int>(VaultFields.Damage)` and `fields.TryGet(VaultFields.Damage, out int damage)` are checked by the compiler. A field key is the entry's name in PascalCase.
 
 ## Serialization
 
@@ -1188,7 +1183,7 @@ Map Unity value types (vectors, colors and similar) to plain fields in the snaps
 
 ### Versions and migrations
 
-Raise the schema version when the payload layout changes, and register a reader for each older version with `RegisterMigration`. A reader receives the old payload and returns a current, valid snapshot. Bytes without the `TLSP` header are read only through an explicit `RegisterLegacyReader`; an unknown `TLSP` version never falls back to it. Reading through a migration does not rewrite storage. See [Transactional Saving](#envelope-and-migration) for slots, storage and recovery.
+Raise the schema version when the payload layout changes, and add a reader for each older version with `AddMigration`. A reader receives the old payload and returns a current, valid snapshot. Bytes without the `TLSP` header are read only through an explicit `SetLegacyReader`; an unknown `TLSP` version never falls back to it. Reading through a migration does not rewrite storage. See [Transactional Saving](#envelope-and-migration) for slots, storage and recovery.
 
 ## Resource Loading
 
@@ -1212,28 +1207,28 @@ Addressables is the source of truth for content: groups, addresses, labels, deli
 ### Loading
 
 ```csharp
-var portrait = await Threadlink.LoadAsync<Sprite>(ContentAssets.Characters.HeroPortrait, owner: this);  // released with this
+var portrait = await Content.LoadAsync<Sprite>(ContentAssets.Characters.HeroPortrait, owner: this);  // released with this
 icon.sprite = portrait.Asset;
 
-var slime = await Threadlink.InstantiateAsync<Enemy>(ContentPrefabs.Characters.Slime, spawn.position, spawn.rotation);
+var slime = await Content.InstantiateAsync<Enemy>(ContentPrefabs.Characters.Slime, spawn.position, spawn.rotation);
 slime.Asset.Alert();                       // the prefab's root component, typed
-slime.Release();                           // destroys the instance
+slime.Dispose();                           // releases it: destroys the instance
 
-var cave = await Threadlink.LoadSceneAsync(ContentScenes.Levels.Cave);              // or Nexus.LoadAsync for a transition
-var forest = await Threadlink.LoadAllAsync<AudioCue>(ContentLabels.Forest, owner: this); // every asset with the label
+var cave = await Content.LoadSceneAsync(ContentScenes.Levels.Cave);              // or Nexus.LoadAsync for a transition
+var forest = await Content.LoadAllAsync<AudioCue>(ContentLabels.Forest, owner: this); // every asset with the label
 ```
 
 | API | Behaviour |
 | --- | --- |
-| `Threadlink.LoadAsync<T>(ContentAssetId[, token])` / `(id, owner)` | Loads an asset as `T`, any `UnityEngine.Object` type it can load as. One request per call; the asset stays loaded until the request is released, or until the `MonoBehaviour` owner is destroyed. |
-| `Threadlink.LoadAllAsync<T>(ids)` | Loads several assets; if any fails, the others are released. |
-| `Threadlink.LoadAsync(ContentPrefabId)` / `LoadAsync<T>(ContentPrefabId)` | Loads a prefab without instantiating it, as a `GameObject` or its root component `T`. |
-| `Threadlink.InstantiateAsync(ContentPrefabId[, position, rotation, parent])`, `InstantiateAsync<T>(…)` / `(id, owner)` | Instantiates a prefab, as a `GameObject` or its root component `T`; releasing the request destroys the instance. |
-| `Threadlink.LoadSceneAsync(ContentSceneId)` | An additive scene you manage yourself. Use [Nexus](#nexus-scene-management) for transitions. |
-| `Threadlink.LoadAllAsync<T>(label[, token])` / `(label, owner)` | Every asset with an Addressables label as one request (`ResourceRequest<IList<T>>`); releasing it releases them all. A component type loads labelled prefabs and holds each root's component. |
-| `ResourceRequest<T>` | `Asset`, `IsReleased`, `Release()` (idempotent), `ReleaseAsync()` (awaits backend cleanup), `Dispose()`. |
-| `Threadlink.MapContent(id, key)` | Maps an ID to a backend key from code, for tests, tools and content generated at runtime. |
-| `Threadlink.UseContentBackend(backend)` | Loads through another `IContentBackend` (Resources, streamed or generated content); `null` returns to Addressables. |
+| `Content.LoadAsync<T>(ContentAssetId[, token])` / `(id, owner)` | Loads an asset as `T`, any `UnityEngine.Object` type it can load as. One request per call; the asset stays loaded until the request is released, or until the `MonoBehaviour` owner is destroyed. |
+| `Content.LoadAllAsync<T>(ids)` | Loads several assets; if any fails, the others are released. |
+| `Content.LoadAsync(ContentPrefabId)` / `LoadAsync<T>(ContentPrefabId)` | Loads a prefab without instantiating it, as a `GameObject` or its root component `T`. |
+| `Content.InstantiateAsync(ContentPrefabId[, position, rotation, parent])`, `InstantiateAsync<T>(…)` / `(id, owner)` | Instantiates a prefab, as a `GameObject` or its root component `T`; releasing the request destroys the instance. |
+| `Content.LoadSceneAsync(ContentSceneId)` | An additive scene you manage yourself. Use [Nexus](#nexus-scene-management) for transitions. |
+| `Content.LoadAllAsync<T>(label[, token])` / `(label, owner)` | Every asset with an Addressables label as one request (`ResourceRequest<IList<T>>`); releasing it releases them all. A component type loads labelled prefabs and holds each root's component. |
+| `ResourceRequest<T>` | `Asset`, `IsReleased`, `Dispose()` (releases; idempotent, so `using` works), `ReleaseAsync()` (releases and awaits backend cleanup). |
+| `Content.Map(id, key)` | Maps an ID to a backend key from code, for tests, tools and content generated at runtime. |
+| `Content.UseBackend(backend)` | Loads through another `IContentBackend` (Resources, streamed or generated content); `null` returns to Addressables. |
 
 Requests never share a hidden cache: two loads are two obligations, and Addressables keeps the reference counting. An unmapped ID throws `KeyNotFoundException`; loading an asset as a component, or a prefab as an asset type, throws before anything loads; a prefab without the requested root component is released and throws `InvalidOperationException`. A custom `IContentBackend` implements `Acquire` and, for labels, `AcquireLabel`. Outstanding requests appear in the Runtime monitor under Content, and any still held when the session ends are logged. A load that fails (not one that is cancelled) is also announced as `ContentLoadFailed` on Iris, with the content's identity, the kind of request and the error, for diagnostics.
 
@@ -1389,7 +1384,7 @@ The memory toolkit is part of the core (`Threadforge.Threadlink`); enable unsafe
 
 | Member | Semantics |
 |---|---|
-| `AllocateZeroed(bytes, alignment = DEFAULT_ALIGNMENT)` | A block of `bytes` zeroed bytes, aligned to `alignment` (a power of two; `DEFAULT_ALIGNMENT` is 64, a cache line). Zeroing is not optional: a block hashed whole must not contain whatever the allocator left there. |
+| `AllocateZeroed(bytes, alignment = DefaultAlignment)` | A block of `bytes` zeroed bytes, aligned to `alignment` (a power of two; `DefaultAlignment` is 64, a cache line). Zeroing is not optional: a block hashed whole must not contain whatever the allocator left there. |
 | `Free(block)` | Frees a block from `AllocateZeroed`. A null block is ignored. |
 | `Copy(destination, source, bytes)` | Copies between non-overlapping ranges. |
 | `Clear(block, bytes)` | Zeroes a range. |
@@ -1428,7 +1423,7 @@ Sets and dictionaries use open addressing with linear probing over a fixed slot 
 `InlineLayout` is the reference for the byte layout, and a layout generator must produce exactly its sizes:
 
 - Every header, slot and value starts on an 8-byte boundary (`InlineLayout.Align(size)` rounds up to a multiple of 8).
-- A list, queue, stack, set or dictionary starts with an 8-byte header (`HEADER_BYTES`) holding its count; a queue's header also holds its head. An array has no header.
+- A list, queue, stack, set or dictionary starts with an 8-byte header (`HeaderBytes`) holding its count; a queue's header also holds its head. An array has no header.
 - A set or dictionary slot is an 8-byte state (empty, occupied or removed), then the key, then the value.
 
 | Member | Bytes of |
@@ -1474,7 +1469,7 @@ Tones are `Normal`, `Muted`, `Good`, `Caution` and `Bad`. Reporting allocates on
 ### Operations
 
 ```csharp
-var save = Threadlink.Begin("Saves", "Autosave");
+var save = Threadlink.BeginOperation("Saves", "Autosave");
 save.Stage("Writing slot 0");
 try
 {
@@ -1637,7 +1632,7 @@ Diagnostics, Editor Mono, same machine, Unity 6000.6.9f1, 101 samples after warm
 
 1. Declare a payload type, usually a `readonly struct` named in the past tense.
 2. Subscribe with `Iris.Subscribe<T>(owner, callback)` so the subscription ends with its owner. A subsystem subscribes in `OnSubsystemBoot`, so it hears what other subsystems announce while they initialize.
-3. Announce a change with `Iris.TryNotify`, as the framework does. An event reaches only the subscribers listening at that moment, so subscribers subscribe first: a subsystem in `OnSubsystemBoot`.
+3. Announce a change with `Iris.TryPublish`, as the framework does. An event reaches only the subscribers listening at that moment, so subscribers subscribe first: a subsystem in `OnSubsystemBoot`.
 4. For work that must finish before the caller continues, use `Iris.PublishAsync`; for a single answer, `Iris.Respond`/`RequestAsync`.
 
 ### Adding a scene

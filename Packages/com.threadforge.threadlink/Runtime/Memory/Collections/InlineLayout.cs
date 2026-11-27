@@ -17,7 +17,7 @@ namespace Threadforge.Threadlink
     public static class InlineLayout
     {
         /// <summary>The header before a counted collection's slots.</summary>
-        public const int HEADER_BYTES = 8;
+        public const int HeaderBytes = 8;
 
         internal const byte EMPTY = 0;
         internal const byte OCCUPIED = 1;
@@ -38,23 +38,23 @@ namespace Threadforge.Threadlink
 
         /// <summary>Bytes of a list, queue or stack of <paramref name="capacity"/> elements.</summary>
         public static int SequenceBytes(int capacity, int elementSize) =>
-            Bytes(HEADER_BYTES, capacity, elementSize);
+            Bytes(HeaderBytes, capacity, elementSize);
 
         /// <summary>Bytes of one hash set slot.</summary>
         public static int SetSlotBytes(int elementSize) =>
-            checked(HEADER_BYTES + Align(elementSize));
+            checked(HeaderBytes + Align(elementSize));
 
         /// <summary>Bytes of a hash set of <paramref name="capacity"/> slots.</summary>
         public static int SetBytes(int capacity, int elementSize) =>
-            Bytes(HEADER_BYTES, capacity, SetSlotBytes(elementSize));
+            Bytes(HeaderBytes, capacity, SetSlotBytes(elementSize));
 
         /// <summary>Bytes of one dictionary slot.</summary>
         public static int DictionarySlotBytes(int keySize, int valueSize) =>
-            checked(HEADER_BYTES + Align(keySize) + Align(valueSize));
+            checked(HeaderBytes + Align(keySize) + Align(valueSize));
 
         /// <summary>Bytes of a dictionary of <paramref name="capacity"/> slots.</summary>
         public static int DictionaryBytes(int capacity, int keySize, int valueSize) =>
-            Bytes(HEADER_BYTES, capacity, DictionarySlotBytes(keySize, valueSize));
+            Bytes(HeaderBytes, capacity, DictionarySlotBytes(keySize, valueSize));
 
         private static int Bytes(int header, int capacity, int slotSize)
         {

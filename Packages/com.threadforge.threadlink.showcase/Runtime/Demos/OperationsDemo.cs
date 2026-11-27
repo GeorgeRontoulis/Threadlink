@@ -25,7 +25,7 @@ namespace Threadforge.Threadlink.Showcase.Demos
             panel.Add(Row(
                 Action(context, "Record a save", async () =>
                 {
-                    var save = Threadlink.Begin("Saves", "Manual save");
+                    var save = Threadlink.BeginOperation("Saves", "Manual save");
                     save.Stage("Writing slot 0");
                     await UniTask.WaitForSeconds(0.3f);
                     save.Succeed();
@@ -33,7 +33,7 @@ namespace Threadforge.Threadlink.Showcase.Demos
                 }),
                 Action(context, "Record a failure", () =>
                 {
-                    var upload = Threadlink.Begin("Cloud", "Upload");
+                    var upload = Threadlink.BeginOperation("Cloud", "Upload");
                     upload.Fail(new InvalidOperationException("Offline"));
                     Show();
                 })));
@@ -42,7 +42,7 @@ namespace Threadforge.Threadlink.Showcase.Demos
         public override UniTask SmokeAsync(ShowcaseContext context, CancellationToken token)
         {
             long started = Threadlink.Operations.Started;
-            var operation = Threadlink.Begin("Showcase", "Smoke");
+            var operation = Threadlink.BeginOperation("Showcase", "Smoke");
             operation.Stage("Checking");
             Check(operation.Record.Stage == "Checking", "stages are recorded");
             operation.Succeed();

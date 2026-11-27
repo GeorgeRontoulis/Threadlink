@@ -49,7 +49,7 @@ namespace Threadforge.Threadlink.Tests
             var immutable = new VaultFieldSet(
                 new[] { new KeyValuePair<string, object>("damage", 7) }
             );
-            Assert.That(immutable.Get<int>("damage"), Is.EqualTo(7));
+            Assert.That(immutable.Get<int>(new VaultField("damage")), Is.EqualTo(7));
         }
 
         [Test]

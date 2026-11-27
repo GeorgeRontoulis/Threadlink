@@ -17,7 +17,7 @@ namespace Threadforge.Threadlink
             sizeof(TValue)
         );
         private static readonly int ValueOffset =
-            InlineLayout.HEADER_BYTES + InlineLayout.Align(sizeof(TKey));
+            InlineLayout.HeaderBytes + InlineLayout.Align(sizeof(TKey));
 
         private readonly byte* memory;
 
@@ -87,7 +87,7 @@ namespace Threadforge.Threadlink
                     "InlineDictionary"
                 );
 
-                *(TKey*)(slot + InlineLayout.HEADER_BYTES) = key;
+                *(TKey*)(slot + InlineLayout.HeaderBytes) = key;
                 *(TValue*)(slot + ValueOffset) = value;
                 return true;
             }
@@ -137,7 +137,7 @@ namespace Threadforge.Threadlink
                 {
                     byte* slot = InlineTable.Slot(memory, index, SlotBytes);
                     return (
-                        *(TKey*)(slot + InlineLayout.HEADER_BYTES),
+                        *(TKey*)(slot + InlineLayout.HeaderBytes),
                         *(TValue*)(slot + ValueOffset)
                     );
                 }

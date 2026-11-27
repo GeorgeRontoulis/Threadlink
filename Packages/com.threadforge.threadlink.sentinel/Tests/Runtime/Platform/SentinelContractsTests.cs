@@ -36,26 +36,21 @@ namespace Threadforge.Threadlink.Tests
         }
 
         [Test]
-        public void SupportedOfflineAndUnsupportedAreDistinctAndCompositionIsExplicit()
+        public void SupportedOfflineAndUnsupportedAreDistinctAndRoutingIsExplicit()
         {
             var provider = new Provider();
-            using var composition = new SentinelComposition(provider);
-            Assert.That(
-                composition.Resolve<IPresence>().Error,
-                Is.EqualTo(PlatformError.Unsupported)
-            );
-            composition.Select<IPresence>(provider.Identity, Capability.Presence);
-            Assert.That(provider.Status(Capability.Presence).Supported, Is.True);
-            Assert.That(
-                composition.Resolve<IPresence>().Error,
-                Is.EqualTo(PlatformError.Unavailable)
-            );
-            provider.Online = true;
-            Assert.That(composition.Resolve<IPresence>().Value, Is.SameAs(provider));
-            Assert.That(provider.Status(Capability.Purchases).Supported, Is.False);
-            composition.Dispose();
-            composition.Dispose();
-            Assert.That(provider.Disposals, Is.EqualTo(1));
+            using (var runtime = Threadlink.DeployIsolated())
+            {
+                runtime.Add<Sentinel>();
+                Assert.That(Sentinel.Resolve<IPresence>().Error, Is.EqualTo(PlatformError.Unsupported));
+                Sentinel.AddProvider(provider, Capability.Presence);
+                Assert.That(provider.Status(Capability.Presence).IsSupported, Is.True);
+                Assert.That(Sentinel.Resolve<IPresence>().Error, Is.EqualTo(PlatformError.Unavailable));
+                provider.Online = true;
+                Assert.That(Sentinel.Resolve<IPresence>().Value, Is.SameAs(provider));
+                Assert.That(provider.Status(Capability.Purchases).IsSupported, Is.False);
+            }
+            Assert.That(provider.Disposals, Is.EqualTo(1), "Sentinel disposes the providers it was given, once.");
         }
 
         [Test]

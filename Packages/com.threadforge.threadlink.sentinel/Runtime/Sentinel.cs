@@ -103,7 +103,7 @@ namespace Threadforge.Threadlink
                 return;
             var previous = announced;
             announced = account;
-            Iris.TryNotify(new AccountChanged(previous, account));
+            Iris.TryPublish(new AccountChanged(previous, account));
         }
 
         /// <inheritdoc />
@@ -139,7 +139,7 @@ namespace Threadforge.Threadlink
             foreach (var capability in contracts.Keys)
             {
                 var status = Status(capability);
-                if (status.Supported)
+                if (status.IsSupported)
                     report.Field(capability.ToString(), status.Availability.ToString(), status.Availability == Availability.Ready ? MonitorTone.Good : MonitorTone.Caution);
             }
             report.Section("Saves");
@@ -159,7 +159,7 @@ namespace Threadforge.Threadlink
             if (!sentinel.providers.Contains(provider))
                 sentinel.providers.Add(provider);
             sentinel.Route(provider, capabilities);
-            Iris.TryNotify(new PlatformReady(provider.Identity, capabilities));
+            Iris.TryPublish(new PlatformReady(provider.Identity, capabilities));
         }
 
         /// <summary>Whether a capability is supported and ready, and by which provider's status.</summary>
@@ -176,7 +176,7 @@ namespace Threadforge.Threadlink
                 if (pair.Value != typeof(T) || !sentinel.routes.TryGetValue(pair.Key, out var provider))
                     continue;
                 var status = provider.Status(pair.Key);
-                if (!status.Supported)
+                if (!status.IsSupported)
                     return PlatformResult<T>.Failure(PlatformError.Unsupported, status.Detail);
                 if (status.Availability != Availability.Ready)
                     return PlatformResult<T>.Failure(PlatformError.Unavailable, status.Detail ?? status.Availability.ToString());
@@ -208,7 +208,7 @@ namespace Threadforge.Threadlink
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, lease.Token);
             var result = await achievements.Value.SetProgressAsync(achievement, progress, linked.Token);
             if (result.Succeeded && progress >= 1)
-                Iris.TryNotify(new AchievementUnlocked(achievement));
+                Iris.TryPublish(new AchievementUnlocked(achievement));
             return result;
         }
 
@@ -272,7 +272,7 @@ namespace Threadforge.Threadlink
             {
                 var result = await saving;
                 if (result.Succeeded)
-                    Iris.TryNotify(new SaveWritten(save, slot, result.Value));
+                    Iris.TryPublish(new SaveWritten(save, slot, result.Value));
                 else
                     Failed(save, slot, SaveOperation.Save, result.Error, result.Message);
                 return result;
@@ -292,7 +292,7 @@ namespace Threadforge.Threadlink
                 if (result.Succeeded)
                 {
                     if (operation == SaveOperation.Restore)
-                        Iris.TryNotify(new SaveRecovered(save, slot));
+                        Iris.TryPublish(new SaveRecovered(save, slot));
                 }
                 else
                 {
@@ -304,7 +304,7 @@ namespace Threadforge.Threadlink
             private static void Failed(Type save, int slot, SaveOperation operation, PersistenceError error, string message)
             {
                 if (error != PersistenceError.Cancelled && error != PersistenceError.NotFound)
-                    Iris.TryNotify(new SaveFailed(save, slot, operation, error, message));
+                    Iris.TryPublish(new SaveFailed(save, slot, operation, error, message));
             }
 
             // Slots are numbered from 0 here; the store numbers them from 1.
@@ -313,7 +313,7 @@ namespace Threadforge.Threadlink
 
             /// <summary>Reads saves written by an older version. Call it from your save subsystem's OnSubsystemInit.</summary>
             public static void AddMigration<T>(int fromVersion, Func<ReadOnlyMemory<byte>, T> read) =>
-                Instance.Slots<T>().Schema.RegisterMigration(fromVersion, read);
+                Instance.Slots<T>().Schema.AddMigration(fromVersion, read);
         }
 
         private sealed class SaveSlots<T>

@@ -34,7 +34,7 @@ namespace Threadforge.Threadlink.Showcase
         /// <summary>Runs one gallery action as an operation in the session log (see the Runtime monitor) and logs failures.</summary>
         public async void Run(string name, Func<UniTask> action)
         {
-            var operation = Threadlink.Begin("Showcase", name);
+            var operation = Threadlink.BeginOperation("Showcase", name);
             try
             {
                 await action();

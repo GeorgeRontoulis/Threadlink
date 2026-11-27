@@ -76,7 +76,7 @@ namespace Threadforge.Threadlink.Tests
         [ManualRegistration]
         public sealed class Herald : ThreadlinkSubsystem<Herald>
         {
-            protected override void OnSubsystemInit() => Iris.Notify(new Ping("Herald"));
+            protected override void OnSubsystemInit() => Iris.Publish(new Ping("Herald"));
         }
 
         [ManualRegistration]

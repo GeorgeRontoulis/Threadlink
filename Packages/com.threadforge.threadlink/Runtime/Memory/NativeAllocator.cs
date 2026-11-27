@@ -13,13 +13,13 @@ namespace Threadforge.Threadlink
     public static unsafe class NativeAllocator
     {
         /// <summary>A cache line: enough for any struct, and keeps a block from sharing a line with another.</summary>
-        public const int DEFAULT_ALIGNMENT = 64;
+        public const int DefaultAlignment = 64;
 
         /// <summary>
         /// <paramref name="bytes"/> of zeroed memory aligned to <paramref name="alignment"/>, a power of two. Zeroing is not
         /// optional: a block that is hashed whole must not contain whatever the allocator left there.
         /// </summary>
-        public static byte* AllocateZeroed(long bytes, int alignment = DEFAULT_ALIGNMENT)
+        public static byte* AllocateZeroed(long bytes, int alignment = DefaultAlignment)
         {
             if (bytes <= 0L)
                 throw new ArgumentOutOfRangeException(nameof(bytes), "Allocate at least one byte.");

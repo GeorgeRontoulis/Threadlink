@@ -25,7 +25,7 @@ namespace Threadforge.Threadlink
         }
 
         private int* CountPointer => (int*)memory;
-        private T* Data => (T*)(memory + InlineLayout.HEADER_BYTES);
+        private T* Data => (T*)(memory + InlineLayout.HeaderBytes);
 
         public int Count
         {

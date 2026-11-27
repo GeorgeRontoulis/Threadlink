@@ -54,7 +54,7 @@ namespace Threadforge.Threadlink
                     "InlineHashSet"
                 );
 
-                *(T*)(slot + InlineLayout.HEADER_BYTES) = value;
+                *(T*)(slot + InlineLayout.HeaderBytes) = value;
                 return true;
             }
         }
@@ -96,7 +96,7 @@ namespace Threadforge.Threadlink
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]
                 get =>
                     ref *(T*)(
-                        InlineTable.Slot(memory, index, SlotBytes) + InlineLayout.HEADER_BYTES
+                        InlineTable.Slot(memory, index, SlotBytes) + InlineLayout.HeaderBytes
                     );
             }
 

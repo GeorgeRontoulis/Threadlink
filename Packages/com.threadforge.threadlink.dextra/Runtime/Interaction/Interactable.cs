@@ -66,7 +66,7 @@ namespace Threadforge.Threadlink
         public IInteractable Target => interactor.Selected;
 
         /// <summary>The selected target's prompt, or an empty string.</summary>
-        public string Prompt => interactor.Availability(gameObject).Prompt;
+        public string Prompt => interactor.Evaluate(gameObject).Prompt;
 
         /// <summary>Whether an interaction is running.</summary>
         public bool IsInteracting => interactor.IsExecuting;
@@ -83,7 +83,7 @@ namespace Threadforge.Threadlink
             {
                 announced = interactor.Selected;
                 if (Iris.TryGetSingleton(out _))
-                    Iris.Notify(new InteractionTargetChanged(this, announced));
+                    Iris.Publish(new InteractionTargetChanged(this, announced));
             }
         }
 

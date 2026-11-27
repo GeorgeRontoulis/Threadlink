@@ -15,7 +15,7 @@ namespace Threadforge.Threadlink
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static byte* Slot(byte* memory, int index, int slotBytes) =>
-            memory + InlineLayout.HEADER_BYTES + (long)index * slotBytes;
+            memory + InlineLayout.HeaderBytes + (long)index * slotBytes;
 
         /// <summary>The slot holding <paramref name="key"/>, or -1.</summary>
         internal static int Find(byte* memory, int capacity, int slotBytes, byte* key, int keySize)
@@ -34,7 +34,7 @@ namespace Threadforge.Threadlink
 
                 if (
                     *slot == InlineLayout.OCCUPIED
-                    && NativeAllocator.Equal(slot + InlineLayout.HEADER_BYTES, key, keySize)
+                    && NativeAllocator.Equal(slot + InlineLayout.HeaderBytes, key, keySize)
                 )
                     return index;
 

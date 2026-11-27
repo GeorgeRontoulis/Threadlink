@@ -29,7 +29,7 @@ Enter Play mode and select a demo on the left.
 | Memory | Native blocks and cross-machine hashing | core |
 | Operations | The session's operation log and subsystem reports | core |
 
-The demos run without project setup in the live session: content uses a small generated-texture backend through `Threadlink.UseContentBackend`, audio uses generated tones, and saves use slots 900 and above. Each demo's code is one file under `Runtime/Demos` in the Showcase package and uses only the public API. Open **Threadlink ▸ Runtime Monitor** while the gallery runs.
+The demos run without project setup in the live session: content uses a small generated-texture backend through `Content.UseBackend`, audio uses generated tones, and saves use slots 900 and above. Each demo's code is one file under `Runtime/Demos` in the Showcase package and uses only the public API. Open **Threadlink ▸ Runtime Monitor** while the gallery runs.
 
 ## Self-check
 

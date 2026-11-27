@@ -10,7 +10,7 @@ The memory toolkit is part of the core (`Threadforge.Threadlink`); enable unsafe
 
 | Member | Semantics |
 |---|---|
-| `AllocateZeroed(bytes, alignment = DEFAULT_ALIGNMENT)` | A block of `bytes` zeroed bytes, aligned to `alignment` (a power of two; `DEFAULT_ALIGNMENT` is 64, a cache line). Zeroing is not optional: a block hashed whole must not contain whatever the allocator left there. |
+| `AllocateZeroed(bytes, alignment = DefaultAlignment)` | A block of `bytes` zeroed bytes, aligned to `alignment` (a power of two; `DefaultAlignment` is 64, a cache line). Zeroing is not optional: a block hashed whole must not contain whatever the allocator left there. |
 | `Free(block)` | Frees a block from `AllocateZeroed`. A null block is ignored. |
 | `Copy(destination, source, bytes)` | Copies between non-overlapping ranges. |
 | `Clear(block, bytes)` | Zeroes a range. |
@@ -49,7 +49,7 @@ Sets and dictionaries use open addressing with linear probing over a fixed slot 
 `InlineLayout` is the reference for the byte layout, and a layout generator must produce exactly its sizes:
 
 - Every header, slot and value starts on an 8-byte boundary (`InlineLayout.Align(size)` rounds up to a multiple of 8).
-- A list, queue, stack, set or dictionary starts with an 8-byte header (`HEADER_BYTES`) holding its count; a queue's header also holds its head. An array has no header.
+- A list, queue, stack, set or dictionary starts with an 8-byte header (`HeaderBytes`) holding its count; a queue's header also holds its head. An array has no header.
 - A set or dictionary slot is an 8-byte state (empty, occupied or removed), then the key, then the value.
 
 | Member | Bytes of |

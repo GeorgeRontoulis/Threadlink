@@ -50,7 +50,7 @@ namespace Threadforge.Threadlink
         public InputDevice LastDevice { get; private set; }
 
         /// <summary>Whether paired devices are currently available. InputUser retains lost-device reconnect information.</summary>
-        public bool Available => !disposed && user.valid && user.pairedDevices.Count > 0;
+        public bool IsConnected => !disposed && user.valid && user.pairedDevices.Count > 0;
 
         /// <summary>Explicit paired-user identity.</summary>
         public uint UserId => user.id;
@@ -276,7 +276,7 @@ namespace Threadforge.Threadlink
         }
 
         /// <summary>Exports this player's overrides; persistence is an optional game integration.</summary>
-        public string ExportOverrides()
+        public string ExportBindings()
         {
             CheckOpen();
             return Actions.SaveBindingOverridesAsJson();
@@ -291,12 +291,12 @@ namespace Threadforge.Threadlink
         }
 
         /// <summary>Imports overrides without changing other players or project assets.</summary>
-        public void ImportOverrides(string json)
+        public void ImportBindings(string json)
         {
             CheckOpen();
             if (rebinding != null)
                 throw new InvalidOperationException("Finish rebinding first.");
-            var previous = ExportOverrides();
+            var previous = ExportBindings();
             try
             {
                 Actions.LoadBindingOverridesFromJson(json, true);
@@ -445,7 +445,7 @@ namespace Threadforge.Threadlink
         {
             CheckOpen();
             token.ThrowIfCancellationRequested();
-            if (!Available)
+            if (!IsConnected)
                 throw new InvalidOperationException("No paired device is currently available.");
             if (rebinding != null)
                 throw new InvalidOperationException("One rebind per player may run at a time.");
@@ -466,7 +466,7 @@ namespace Threadforge.Threadlink
                 indices.Add(bindingIndex);
             if (indices.Count == 0)
                 throw new ArgumentException("Composite has no parts.");
-            originalOverrides = ExportOverrides();
+            originalOverrides = ExportBindings();
             rebindResult = new UniTaskCompletionSource<string[]>();
             var result = rebindResult.Task;
             var expectedResult = rebindResult;

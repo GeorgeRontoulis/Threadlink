@@ -81,15 +81,17 @@ namespace Threadforge.Threadlink
     /// <summary>One screen instance. Multiple instances of the same definition are supported.</summary>
     public sealed class ScreenHandle
     {
+        internal ScreenHandle() { }
+
         internal IScreenView View;
         internal IDisposable Input;
 
         /// <summary>The screen's GameObject, or null for views without one.</summary>
-        public UnityEngine.GameObject Instance { get; internal set; }
+        public UnityEngine.GameObject GameObject { get; internal set; }
 
         /// <summary>The root element of a UI Toolkit screen, for binding its controls; null for other screens.</summary>
         public UnityEngine.UIElements.VisualElement Root =>
-            Instance != null && Instance.TryGetComponent<UnityEngine.UIElements.UIDocument>(out var document) ? document.rootVisualElement : null;
+            GameObject != null && GameObject.TryGetComponent<UnityEngine.UIElements.UIDocument>(out var document) ? document.rootVisualElement : null;
         internal bool Focus;
 
         /// <summary>Definition identity.</summary>
@@ -198,7 +200,7 @@ namespace Threadforge.Threadlink
                     Focus = takesFocus,
                     View = view,
                     Input = claim,
-                    Instance = (view as IScreenObject)?.Instance,
+                    GameObject = (view as IScreenObject)?.Instance,
                 };
                 screens.Add(handle);
                 try

@@ -21,7 +21,7 @@ namespace Threadforge.Threadlink
 
     public interface ISaveReader
     {
-        UniTask<PersistenceResult<byte[]>> ReadAsync(int fileID);
+        UniTask<PersistenceResult<byte[]>> ReadAsync(int fileId);
     }
 
     /// <summary>Lists logical slot identifiers, including slots whose published data needs recovery.</summary>
@@ -33,9 +33,9 @@ namespace Threadforge.Threadlink
     /// <summary>Explicit recovery; selected bytes must pass the supplied validator before pointer publication.</summary>
     public interface IRecoverableSaveService
     {
-        PersistenceResult<SaveVersion[]> ListVersions(int saveID);
+        PersistenceResult<SaveVersion[]> ListVersions(int saveId);
         UniTask<PersistenceResult> RestoreVersionAsync(
-            int saveID,
+            int saveId,
             string generation,
             Func<ISaveReader, CancellationToken, UniTask<PersistenceResult>> validate,
             CancellationToken token = default
@@ -49,7 +49,7 @@ namespace Threadforge.Threadlink
         private TimeSpan next,
             last;
         private bool running;
-        public bool Paused { get; set; }
+        public bool IsPaused { get; set; }
         public bool IsSaving => running;
 
         public AutosaveSchedule(TimeSpan interval)
@@ -71,7 +71,7 @@ namespace Threadforge.Threadlink
             if (elapsed < last)
                 throw new ArgumentException("Autosave time must be monotonic.");
             last = elapsed;
-            if (Paused || running || !consistencyBoundaryReady || elapsed < next)
+            if (IsPaused || running || !consistencyBoundaryReady || elapsed < next)
                 return false;
             if (save == null)
                 throw new ArgumentNullException(nameof(save));

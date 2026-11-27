@@ -49,18 +49,18 @@ namespace Threadforge.Threadlink
             }
         }
 
-        public PersistenceResult<SaveVersion[]> ListVersions(int saveID)
+        public PersistenceResult<SaveVersion[]> ListVersions(int saveId)
         {
-            if (saveID < 1)
+            if (saveId < 1)
                 return PersistenceResult<SaveVersion[]>.Failure(PersistenceError.InvalidArgument);
             if (!Store.TryAcquire(out var activity))
                 return PersistenceResult<SaveVersion[]>.Failure(PersistenceError.NotInitialized);
             using var lease = activity;
             try
             {
-                string pointer = Store.GetPointerPath(saveID);
+                string pointer = Store.GetPointerPath(saveId);
                 string current = File.Exists(pointer) ? File.ReadAllText(pointer).Trim() : null;
-                string parent = Store.GetGenerationRoot(saveID);
+                string parent = Store.GetGenerationRoot(saveId);
                 var versions = new List<SaveVersion>();
                 if (Directory.Exists(parent))
                     foreach (var directory in Directory.GetDirectories(parent))
@@ -108,11 +108,11 @@ namespace Threadforge.Threadlink
                 this.directory = directory;
             }
 
-            public async UniTask<PersistenceResult<byte[]>> ReadAsync(int fileID)
+            public async UniTask<PersistenceResult<byte[]>> ReadAsync(int fileId)
             {
-                if (fileID == 0)
+                if (fileId == 0)
                     return PersistenceResult<byte[]>.Failure(PersistenceError.InvalidArgument);
-                string path = LocalSaveStore.GetFilePath(directory, fileID);
+                string path = LocalSaveStore.GetFilePath(directory, fileId);
                 if (!File.Exists(path))
                     return PersistenceResult<byte[]>.Failure(PersistenceError.NotFound);
                 try
@@ -145,35 +145,35 @@ namespace Threadforge.Threadlink
 
         /// <summary>Validates a selected immutable version while holding the local publication gate. No implicit newest-version recovery.</summary>
         public async UniTask<PersistenceResult> RestoreVersionAsync(
-            int saveID,
+            int saveId,
             string generation,
             Func<ISaveReader, CancellationToken, UniTask<PersistenceResult>> validate,
             CancellationToken token = default
         )
         {
-            if (saveID < 1 || !Guid.TryParseExact(generation, "N", out _) || validate == null)
+            if (saveId < 1 || !Guid.TryParseExact(generation, "N", out _) || validate == null)
                 return PersistenceResult.Failure(PersistenceError.InvalidArgument);
             token.ThrowIfCancellationRequested();
             if (!Store.TryAcquire(out var activity))
                 return PersistenceResult.Failure(PersistenceError.NotInitialized);
             using var lease = activity;
-            var gate = Store.GetPublishLock(saveID);
+            var gate = Store.GetPublishLock(saveId);
             await gate.WaitAsync(token);
             try
             {
-                var list = ListVersions(saveID);
+                var list = ListVersions(saveId);
                 if (!list.Succeeded)
                     return list.Untyped();
                 if (!Array.Exists(list.Value, item => item.Generation == generation))
                     return PersistenceResult.Failure(PersistenceError.NotFound);
                 var valid = await validate(
-                    new VersionReader(Store, Store.GetGenerationDirectory(saveID, generation)),
+                    new VersionReader(Store, Store.GetGenerationDirectory(saveId, generation)),
                     token
                 );
                 if (!valid.Succeeded)
                     return valid;
                 token.ThrowIfCancellationRequested();
-                return await Store.PublishPointerAsync(saveID, generation);
+                return await Store.PublishPointerAsync(saveId, generation);
             }
             catch (OperationCanceledException)
             {

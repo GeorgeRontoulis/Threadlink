@@ -6,7 +6,7 @@ namespace Threadforge.Threadlink
 
     /// <summary>
     /// An Addressables label, generated as <c>ContentLabels.Name</c> from the labels in the Addressables settings.
-    /// <c>Threadlink.LoadAllAsync&lt;T&gt;(label)</c> loads every asset with it.
+    /// <c>Content.LoadAllAsync&lt;T&gt;(label)</c> loads every asset with it.
     /// </summary>
     public readonly struct ContentLabel : IEquatable<ContentLabel>
     {

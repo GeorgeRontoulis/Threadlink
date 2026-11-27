@@ -69,7 +69,7 @@ public sealed class Wallet : ThreadlinkSubsystem<Wallet>
 | `Lifetime` | Cancelled when the session ends. |
 | `Report(MonitorReport)` | What the Runtime monitor shows. |
 
-Framework subsystems follow the same pattern and expose their API as static methods on the class: `Iris.Publish`, `Nexus.LoadAsync`, `Aura.Play`, `Dextra.Player`, `Sentinel.Saves.SaveAsync`, `Vault.Get`. Content loading lives on the core: `Threadlink.LoadAsync`.
+Framework subsystems follow the same pattern and expose their API as static methods on the class: `Iris.Publish`, `Nexus.LoadAsync`, `Aura.Play`, `Dextra.Player`, `Sentinel.Saves.SaveAsync`, `Vault.Get`. Content loading lives on the core: `Content.LoadAsync`.
 
 ## The core
 
@@ -79,7 +79,7 @@ Framework subsystems follow the same pattern and expose their API as static meth
 | `Threadlink.IsDeployed`, `Threadlink.Instance` | Deployment state and the current core. |
 | `Threadlink.Lifetime` | Cancelled when the session ends. |
 | `core.Subsystems` | Every subsystem in initialization order, then any that failed. |
-| `Threadlink.Operations`, `Threadlink.Begin` | The session's operation log. See [Diagnostics](diagnostics.md). |
+| `Threadlink.Operations`, `Threadlink.BeginOperation` | The session's operation log. See [Diagnostics](diagnostics.md). |
 | `Threadlink.DeployIsolated()` | A separate core for tests and tools; it becomes current until disposed and starts empty. `core.Add<T>()` boots and initializes a subsystem; one that another uses joins on first use. |
 
 ## Design and engineering

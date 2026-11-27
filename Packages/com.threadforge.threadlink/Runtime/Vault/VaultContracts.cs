@@ -8,7 +8,7 @@ namespace Threadforge.Threadlink
     {
         public Guid Identity { get; }
         public Guid Schema { get; }
-        public int Version { get; }
+        public int SchemaVersion { get; }
         public T Value { get; }
 
         public VaultRecord(Guid identity, Guid schema, int version, T value)
@@ -22,7 +22,7 @@ namespace Threadforge.Threadlink
                 throw new ArgumentException("Invalid runtime definition.");
             Identity = identity;
             Schema = schema;
-            Version = version;
+            SchemaVersion = version;
             Value = value;
         }
     }
@@ -135,7 +135,10 @@ namespace Threadforge.Threadlink
         }
 
         /// <summary>A field's value by its generated ID.</summary>
-        public T Get<T>(VaultField field) => Get<T>(field.Name);
+        public T Get<T>(VaultField field) =>
+            field.Name != null && fields.TryGetValue(field.Name, out var value) && value is T typed
+                ? typed
+                : throw new InvalidOperationException("Missing or incompatible definition field: " + field.Name);
 
         /// <summary>Whether the field exists with a value of type <typeparamref name="T"/>.</summary>
         public bool TryGet<T>(VaultField field, out T value)
@@ -148,13 +151,5 @@ namespace Threadforge.Threadlink
             value = default;
             return false;
         }
-
-        /// <summary>A field's value by name.</summary>
-        public T Get<T>(string field) =>
-            fields.TryGetValue(field, out var value) && value is T typed
-                ? typed
-                : throw new InvalidOperationException(
-                    "Missing or incompatible definition field: " + field
-                );
     }
 }

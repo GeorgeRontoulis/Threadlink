@@ -43,4 +43,4 @@ Map Unity value types (vectors, colors and similar) to plain fields in the snaps
 
 ## Versions and migrations
 
-Raise the schema version when the payload layout changes, and register a reader for each older version with `RegisterMigration`. A reader receives the old payload and returns a current, valid snapshot. Bytes without the `TLSP` header are read only through an explicit `RegisterLegacyReader`; an unknown `TLSP` version never falls back to it. Reading through a migration does not rewrite storage. See [Transactional Saving](sentinel/saving.md#envelope-and-migration) for slots, storage and recovery.
+Raise the schema version when the payload layout changes, and add a reader for each older version with `AddMigration`. A reader receives the old payload and returns a current, valid snapshot. Bytes without the `TLSP` header are read only through an explicit `SetLegacyReader`; an unknown `TLSP` version never falls back to it. Reading through a migration does not rewrite storage. See [Transactional Saving](sentinel/saving.md#envelope-and-migration) for slots, storage and recovery.

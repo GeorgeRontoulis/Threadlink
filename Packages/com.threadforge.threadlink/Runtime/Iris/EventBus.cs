@@ -28,7 +28,7 @@ namespace Threadforge.Threadlink
     /// <summary>Typed synchronous events on the constructing thread; workers may use bounded TryPost.</summary>
     /// <remarks>Dispatch preserves registration order. Removal is immediate. Additions affect nested and
     /// subsequent publications, but not the currently executing publication. No object registration or host is required.</remarks>
-    public sealed class EventBus : IDisposable
+    internal sealed class EventBus : IDisposable
     {
         private interface IChannel
         {

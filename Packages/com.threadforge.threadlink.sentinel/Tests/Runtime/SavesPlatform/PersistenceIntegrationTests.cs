@@ -116,7 +116,7 @@ namespace Threadforge.Threadlink.Tests
             );
         }
 
-        public UniTask<PlatformResult<CatalogItem[]>> CatalogAsync(CancellationToken token) =>
+        public UniTask<PlatformResult<CatalogItem[]>> ReadCatalogAsync(CancellationToken token) =>
             UniTask.FromResult(PlatformResult<CatalogItem[]>.Success(Array.Empty<CatalogItem>()));
 
         public UniTask<PlatformResult<PurchaseReceipt>> PurchaseAsync(
@@ -124,7 +124,7 @@ namespace Threadforge.Threadlink.Tests
             CancellationToken token
         ) => UniTask.FromResult(PlatformResult<PurchaseReceipt>.Failure(PlatformError.Unsupported));
 
-        public UniTask<PlatformResult<PurchaseReceipt[]>> RestoreAsync(CancellationToken token) =>
+        public UniTask<PlatformResult<PurchaseReceipt[]>> RestorePurchasesAsync(CancellationToken token) =>
             UniTask.FromResult(
                 PlatformResult<PurchaseReceipt[]>.Success(Array.Empty<PurchaseReceipt>())
             );

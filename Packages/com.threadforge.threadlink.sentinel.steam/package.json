@@ -1,6 +1,6 @@
 {
   "name": "com.threadforge.threadlink.sentinel.steam",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "displayName": "Threadlink Sentinel Steam",
   "description": "Steam accounts, achievements, statistics, leaderboards, presence, friends, invites, DLC, join intents and Steam Cloud, through Unity's Steamworks package or Steamworks.NET.",
   "unity": "6000.6",
@@ -19,6 +19,6 @@
   "changelogUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.sentinel.steam/CHANGELOG.md",
   "licensesUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.sentinel.steam/LICENSE.md",
   "dependencies": {
-    "com.threadforge.threadlink.sentinel": "2.0.0"
+    "com.threadforge.threadlink.sentinel": "3.0.0"
   }
 }

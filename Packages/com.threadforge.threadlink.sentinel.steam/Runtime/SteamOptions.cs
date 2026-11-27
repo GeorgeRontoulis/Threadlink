@@ -57,10 +57,10 @@ namespace Threadforge.Threadlink
         }
 
         /// <summary>Authors a Steam leaderboard: the name game code uses (its <see cref="LeaderboardId"/>) and the Steam leaderboard name.</summary>
-        public SteamOptions Leaderboard(string id, string steamName)
+        public SteamOptions Leaderboard(string id, string apiName)
         {
-            Require(id, steamName);
-            leaderboards[id] = steamName;
+            Require(id, apiName);
+            leaderboards[id] = apiName;
             return this;
         }
 
@@ -91,7 +91,7 @@ namespace Threadforge.Threadlink
     }
 
     /// <summary>Maps Steam EResult codes to Sentinel errors.</summary>
-    public static class SteamResults
+    internal static class SteamResults
     {
         /// <summary>EResult k_EResultOK.</summary>
         public const int Ok = 1;

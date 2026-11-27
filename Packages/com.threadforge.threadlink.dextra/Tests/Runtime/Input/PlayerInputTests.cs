@@ -65,9 +65,9 @@ namespace Threadforge.Threadlink.Tests
                 player.Actions.FindAction("Gameplay/Other").bindings[0].effectivePath,
                 Is.Empty
             );
-            string saved = player.ExportOverrides();
+            string saved = player.ExportBindings();
             player.ResetBindings();
-            player.ImportOverrides(saved);
+            player.ImportBindings(saved);
             Assert.That(
                 player.Actions.FindAction("Gameplay/Use").bindings[0].effectivePath,
                 Is.EqualTo("<Keyboard>/f")
@@ -104,11 +104,11 @@ namespace Threadforge.Threadlink.Tests
         {
             using var second = new PlayerInputContext(source, otherKeyboard);
             Assert.Throws<InvalidOperationException>(() => player.ReassignDevices(otherKeyboard));
-            Assert.That(player.Available, Is.True);
+            Assert.That(player.IsConnected, Is.True);
             player.ReassignDevices();
-            Assert.That(player.Available, Is.False);
+            Assert.That(player.IsConnected, Is.False);
             player.ReassignDevices(keyboard);
-            Assert.That(player.Available, Is.True);
+            Assert.That(player.IsConnected, Is.True);
         }
 
         [UnityTest]
@@ -142,7 +142,7 @@ namespace Threadforge.Threadlink.Tests
                 .With("Left", "<Keyboard>/a")
                 .With("Right", "<Keyboard>/d");
             using var claim = player.ClaimByName(0, false, "Gameplay");
-            string original = player.ExportOverrides();
+            string original = player.ExportBindings();
             var task = player.Rebind("Gameplay/Move", 0);
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.UpArrow));
             InputSystem.Update();
@@ -154,7 +154,7 @@ namespace Threadforge.Threadlink.Tests
             for (float end = Time.realtimeSinceStartup + 5f; Time.realtimeSinceStartup < end && !task.Status.IsCompleted();)
                 yield return null;
             Assert.That(task.Status.IsCanceled(), Is.True);
-            Assert.That(player.ExportOverrides(), Is.EqualTo(original));
+            Assert.That(player.ExportBindings(), Is.EqualTo(original));
         }
     }
 }

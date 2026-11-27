@@ -13,18 +13,18 @@ namespace Threadforge.Threadlink
         public LocalSaveService(string root, int maximumFileBytes = 16 * 1024 * 1024) =>
             Store = new LocalSaveStore(root, maximumFileBytes);
 
-        public async UniTask<PersistenceResult<byte[]>> ReadAsync(int saveID, int fileID)
+        public async UniTask<PersistenceResult<byte[]>> ReadAsync(int saveId, int fileId)
         {
             if (!Store.TryAcquire(out var activity))
                 return PersistenceResult<byte[]>.Failure(PersistenceError.NotInitialized);
             using var operation = activity;
-            if (saveID == 0 || fileID == 0)
+            if (saveId == 0 || fileId == 0)
                 return PersistenceResult<byte[]>.Failure(
                     PersistenceError.InvalidArgument,
                     "Save and file IDs must be non-zero."
                 );
 
-            var pointer = await Store.ReadPointerAsync(saveID);
+            var pointer = await Store.ReadPointerAsync(saveId);
 
             if (!pointer.Succeeded)
                 return PersistenceResult<byte[]>.Failure(
@@ -34,8 +34,8 @@ namespace Threadforge.Threadlink
                 );
 
             string path = LocalSaveStore.GetFilePath(
-                Store.GetGenerationDirectory(saveID, pointer.Value),
-                fileID
+                Store.GetGenerationDirectory(saveId, pointer.Value),
+                fileId
             );
 
             if (!File.Exists(path))
@@ -68,19 +68,19 @@ namespace Threadforge.Threadlink
             }
         }
 
-        public async UniTask<PersistenceResult<ISaveTransaction>> BeginTransactionAsync(int saveID)
+        public async UniTask<PersistenceResult<ISaveTransaction>> BeginTransactionAsync(int saveId)
         {
             if (!Store.TryAcquire(out var activity))
                 return PersistenceResult<ISaveTransaction>.Failure(PersistenceError.NotInitialized);
             try
             {
-                if (saveID == 0)
+                if (saveId == 0)
                     return PersistenceResult<ISaveTransaction>.Failure(
                         PersistenceError.InvalidArgument,
                         "Save ID 0 is reserved."
                     );
 
-                var pointer = await Store.ReadRawPointerAsync(saveID);
+                var pointer = await Store.ReadRawPointerAsync(saveId);
 
                 if (!pointer.Succeeded)
                     return PersistenceResult<ISaveTransaction>.Failure(
@@ -89,7 +89,7 @@ namespace Threadforge.Threadlink
                         pointer.NativeCode
                     );
 
-                var transaction = new LocalSaveTransaction(Store, saveID, pointer.Value, activity);
+                var transaction = new LocalSaveTransaction(Store, saveId, pointer.Value, activity);
                 activity = null; // The transaction owns the snapshot until commit/discard.
 
                 return PersistenceResult<ISaveTransaction>.Success(transaction);
@@ -100,24 +100,24 @@ namespace Threadforge.Threadlink
             }
         }
 
-        public async UniTask<PersistenceResult> DeleteSaveAsync(int saveID)
+        public async UniTask<PersistenceResult> DeleteSaveAsync(int saveId)
         {
             if (!Store.TryAcquire(out var activity))
                 return PersistenceResult.Failure(PersistenceError.NotInitialized);
             using var operation = activity;
-            if (saveID == 0)
+            if (saveId == 0)
                 return PersistenceResult.Failure(
                     PersistenceError.InvalidArgument,
                     "Save ID 0 is reserved."
                 );
 
-            var gate = Store.GetPublishLock(saveID);
+            var gate = Store.GetPublishLock(saveId);
 
             await gate.WaitAsync();
 
             try
             {
-                var current = await Store.ReadRawPointerAsync(saveID);
+                var current = await Store.ReadRawPointerAsync(saveId);
 
                 if (!current.Succeeded)
                     return current.Untyped();
@@ -127,7 +127,7 @@ namespace Threadforge.Threadlink
 
                 // Logical delete is published atomically. Existing generation bytes are not
                 // destroyed or renamed before/after publication.
-                return await Store.PublishPointerAsync(saveID, LocalSaveStore.DELETED);
+                return await Store.PublishPointerAsync(saveId, LocalSaveStore.DELETED);
             }
             finally
             {
@@ -141,15 +141,15 @@ namespace Threadforge.Threadlink
             Store?.Dispose();
         }
 
-        public PersistenceResult<SaveStorageReport> InspectStorage(int saveID) =>
-            Store.InspectStorage(saveID);
+        public PersistenceResult<SaveStorageReport> InspectStorage(int saveId) =>
+            Store.InspectStorage(saveId);
 
-        public PersistenceResult<int> PruneHistory(int saveID) => Store.PruneHistory(saveID);
+        public PersistenceResult<int> PruneHistory(int saveId) => Store.PruneHistory(saveId);
     }
 
     internal sealed class LocalSaveTransaction : ISaveTransaction
     {
-        public int SaveID { get; }
+        public int SaveId { get; }
         public bool IsCommitted { get; private set; } = false;
         public bool HasPublishedState =>
             !string.IsNullOrEmpty(BasePointer) && BasePointer != LocalSaveStore.DELETED;
@@ -165,41 +165,41 @@ namespace Threadforge.Threadlink
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal LocalSaveTransaction(
             LocalSaveStore store,
-            int saveID,
+            int saveId,
             string basePointer,
             IDisposable snapshotLease
         )
         {
             Store = store;
-            SaveID = saveID;
+            SaveId = saveId;
             BasePointer = basePointer;
             this.snapshotLease = snapshotLease;
         }
 
-        public async UniTask<PersistenceResult<byte[]>> ReadAsync(int fileID)
+        public async UniTask<PersistenceResult<byte[]>> ReadAsync(int fileId)
         {
-            if (!CanOperate(fileID, out var failure))
+            if (!CanOperate(fileId, out var failure))
                 return PersistenceResult<byte[]>.Failure(failure.Error, failure.Message);
             if (!Store.TryAcquire(out var activity))
                 return PersistenceResult<byte[]>.Failure(PersistenceError.NotInitialized);
             using var operation = activity;
 
-            if (Deletes.Contains(fileID))
+            if (Deletes.Contains(fileId))
                 return PersistenceResult<byte[]>.Failure(PersistenceError.NotFound);
 
-            if (Writes.TryGetValue(fileID, out var staged))
+            if (Writes.TryGetValue(fileId, out var staged))
                 return PersistenceResult<byte[]>.Success((byte[])staged.Clone());
 
             if (string.IsNullOrEmpty(BasePointer) || BasePointer == LocalSaveStore.DELETED)
                 return PersistenceResult<byte[]>.Failure(PersistenceError.NotFound);
 
-            string generationDirectory = Store.GetGenerationDirectory(SaveID, BasePointer);
+            string generationDirectory = Store.GetGenerationDirectory(SaveId, BasePointer);
             if (!Directory.Exists(generationDirectory))
                 return PersistenceResult<byte[]>.Failure(
                     PersistenceError.CorruptData,
                     $"Base save generation '{BasePointer}' is missing."
                 );
-            string path = LocalSaveStore.GetFilePath(generationDirectory, fileID);
+            string path = LocalSaveStore.GetFilePath(generationDirectory, fileId);
 
             if (!File.Exists(path))
                 return PersistenceResult<byte[]>.Failure(PersistenceError.NotFound);
@@ -231,9 +231,9 @@ namespace Threadforge.Threadlink
             }
         }
 
-        public UniTask<PersistenceResult> WriteAsync(int fileID, byte[] data)
+        public UniTask<PersistenceResult> WriteAsync(int fileId, byte[] data)
         {
-            if (!CanOperate(fileID, out var failure))
+            if (!CanOperate(fileId, out var failure))
                 return UniTask.FromResult(failure);
 
             if (data == null || data.Length > Store.MaximumFileBytes)
@@ -246,19 +246,19 @@ namespace Threadforge.Threadlink
                 );
             }
 
-            Deletes.Remove(fileID);
-            Writes[fileID] = (byte[])data.Clone();
+            Deletes.Remove(fileId);
+            Writes[fileId] = (byte[])data.Clone();
 
             return UniTask.FromResult(PersistenceResult.Success());
         }
 
-        public UniTask<PersistenceResult> DeleteAsync(int fileID)
+        public UniTask<PersistenceResult> DeleteAsync(int fileId)
         {
-            if (!CanOperate(fileID, out var failure))
+            if (!CanOperate(fileId, out var failure))
                 return UniTask.FromResult(failure);
 
-            Writes.Remove(fileID);
-            Deletes.Add(fileID);
+            Writes.Remove(fileId);
+            Deletes.Add(fileId);
 
             return UniTask.FromResult(PersistenceResult.Success());
         }
@@ -276,8 +276,8 @@ namespace Threadforge.Threadlink
                 );
 
             var generation = Guid.NewGuid().ToString("N");
-            var staging = Store.GetStagingDirectory(SaveID, generation);
-            var publishedGeneration = Store.GetGenerationDirectory(SaveID, generation);
+            var staging = Store.GetStagingDirectory(SaveId, generation);
+            var publishedGeneration = Store.GetGenerationDirectory(SaveId, generation);
             committing = true;
 
             try
@@ -286,7 +286,7 @@ namespace Threadforge.Threadlink
 
                 if (!string.IsNullOrEmpty(BasePointer) && BasePointer != LocalSaveStore.DELETED)
                 {
-                    var baseGeneration = Store.GetGenerationDirectory(SaveID, BasePointer);
+                    var baseGeneration = Store.GetGenerationDirectory(SaveId, BasePointer);
 
                     if (!Directory.Exists(baseGeneration))
                         return PersistenceResult.Failure(
@@ -309,21 +309,21 @@ namespace Threadforge.Threadlink
                     await LocalSaveStore.WriteDurableBytesAsync(path, pair.Value);
                 }
 
-                foreach (int fileID in Deletes)
-                    File.Delete(LocalSaveStore.GetFilePath(staging, fileID));
+                foreach (int fileId in Deletes)
+                    File.Delete(LocalSaveStore.GetFilePath(staging, fileId));
 
                 // All data preparation completed. Only inactive data has been touched so far.
-                Directory.CreateDirectory(Store.GetGenerationRoot(SaveID));
+                Directory.CreateDirectory(Store.GetGenerationRoot(SaveId));
                 Directory.Move(staging, publishedGeneration);
 
-                var gate = Store.GetPublishLock(SaveID);
+                var gate = Store.GetPublishLock(SaveId);
 
                 await gate.WaitAsync();
 
                 try
                 {
                     // Optimistic concurrency check. A transaction never overwrites a newer save.
-                    var current = await Store.ReadRawPointerAsync(SaveID);
+                    var current = await Store.ReadRawPointerAsync(SaveId);
 
                     if (!current.Succeeded)
                         return current.Untyped();
@@ -338,7 +338,7 @@ namespace Threadforge.Threadlink
                     // atomically point readers at the fully prepared immutable generation.
                     if (discarded || Store.IsDisposed)
                         return PersistenceResult.Failure(PersistenceError.NotInitialized);
-                    var publish = await Store.PublishPointerAsync(SaveID, generation);
+                    var publish = await Store.PublishPointerAsync(SaveId, generation);
 
                     if (!publish.Succeeded)
                         return publish;
@@ -405,7 +405,7 @@ namespace Threadforge.Threadlink
             Deletes = null;
         }
 
-        private bool CanOperate(int fileID, out PersistenceResult failure)
+        private bool CanOperate(int fileId, out PersistenceResult failure)
         {
             if (discarded || Store.IsDisposed || committing)
             {
@@ -423,7 +423,7 @@ namespace Threadforge.Threadlink
                 return false;
             }
 
-            if (fileID == 0)
+            if (fileId == 0)
             {
                 failure = PersistenceResult.Failure(
                     PersistenceError.InvalidArgument,

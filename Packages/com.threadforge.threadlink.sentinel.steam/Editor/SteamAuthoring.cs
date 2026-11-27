@@ -23,7 +23,7 @@ namespace Threadforge.Threadlink.Editor
                         yield return new AuthoredPlatformId(PlatformIdKind.Statistic, statistic.Name, statistic.ApiName);
                 foreach (var board in settings.Leaderboards)
                     if (board != null)
-                        yield return new AuthoredPlatformId(PlatformIdKind.Leaderboard, board.Name, board.SteamName);
+                        yield return new AuthoredPlatformId(PlatformIdKind.Leaderboard, board.Name, board.ApiName);
                 foreach (var dlc in settings.Dlc)
                     if (dlc != null)
                         yield return new AuthoredPlatformId(PlatformIdKind.Product, dlc.Name, dlc.AppId == 0 ? null : "DLC " + dlc.AppId);

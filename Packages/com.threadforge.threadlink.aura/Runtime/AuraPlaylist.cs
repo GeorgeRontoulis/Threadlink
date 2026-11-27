@@ -21,7 +21,7 @@ namespace Threadforge.Threadlink
         }
 
         /// <summary>Plays the cues in order, crossfading between them.</summary>
-        public void StartPlaylist(
+        public void Play(
             AudioCue[] cues,
             float crossfadeSeconds = 0,
             bool repeat = true

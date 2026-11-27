@@ -24,7 +24,7 @@ Dextra.RemovePlayer(second);
 | `player.Action(id)`, `WasPressed`, `WasReleased`, `IsPressed`, `Read(InputId<T>)` | Action queries by `InputId`. `Read` returns the action's value type. |
 | `player.Claim(priority, blocksLower, maps)` | Enables `InputMapId` maps by priority while the returned claim lives; a blocking claim suspends lower maps. |
 | `player.RebindAsync(id, binding = 0)`, `GetConflicts(id, binding = 0)` | Interactive rebinding on the player's own devices; returns conflicts. |
-| `player.ResetBindings()`, `ExportOverrides()`, `ImportOverrides(json)` | Binding overrides. |
+| `player.ResetBindings()`, `ExportBindings()`, `ImportBindings(json)` | Binding overrides. |
 | `Dextra.AddPlayer(devices)` / `AddPlayer(actions, devices)` | Joins a player with the project's or explicit actions. |
 | `player.LastDevice` | The device the player used last, which prompts follow. |
 
@@ -59,7 +59,7 @@ pause.Root.Q<Button>("resume").clicked += () => Dextra.Screens.CloseAsync(pause)
 var map = await Dextra.Screens.OpenAsync(ContentPrefabs.Screens.Map, ScreenLayer.Overlay);   // a mapped prefab
 ```
 
-A screen prepares before it shows, takes focus, and by default blocks gameplay input by claiming the interface map above gameplay. Closing it restores focus and input to what was below. Layers are `Hud`, `Overlay`, `Menu` and `Modal`. Prefab screens carry a `ToolkitScreen` or, with uGUI installed, a `UGuiScreen`. `ScreenHandle.Root` is the root element of a UI Toolkit screen; `ScreenHandle.Instance` its GameObject. `Dextra.Screens.DefaultPanel` overrides the configured panel settings at runtime.
+A screen prepares before it shows, takes focus, and by default blocks gameplay input by claiming the interface map above gameplay. Closing it restores focus and input to what was below. Layers are `Hud`, `Overlay`, `Menu` and `Modal`. Prefab screens carry a `ToolkitScreen` or, with uGUI installed, a `UGuiScreen`. `ScreenHandle.Root` is the root element of a UI Toolkit screen; `ScreenHandle.GameObject` its GameObject. `Dextra.Screens.DefaultPanel` overrides the configured panel settings at runtime.
 
 `ScreenOpened` and `ScreenClosed` announce every screen on Iris, and `GameplayInputBlockChanged` announces when the first blocking screen opens and the last one closes: pause gameplay, show the cursor, hide the HUD.
 

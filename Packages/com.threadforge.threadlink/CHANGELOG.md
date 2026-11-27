@@ -2,6 +2,24 @@
 
 All notable changes to this package are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0]
+
+### Changed
+
+- Content loading moves from `Threadlink` to its own class: `Content.LoadAsync`, `LoadAllAsync`, `InstantiateAsync`, `LoadSceneAsync`, `Content.Map` (was `MapContent`) and `Content.UseBackend` (was `UseContentBackend`).
+- `Iris.Publish` delivers to every listener and logs a listener that throws instead of stopping. `Iris.Notify` is removed; `Iris.TryNotify` is `Iris.TryPublish`.
+- `Threadlink.Begin` is `Threadlink.BeginOperation`; `DiagnosticsOptions.Traces` is `RecordTraces`.
+- `VaultRecord<T>.Version` is `SchemaVersion`, as on every Vault source.
+- `InlineLayout.HEADER_BYTES` and `NativeAllocator.DEFAULT_ALIGNMENT` are `HeaderBytes` and `DefaultAlignment`.
+
+### Removed
+
+- `Threadlink.Get<T>()`: `Add<T>()` returns the subsystem already present.
+- `Threadlink.Current`: use `Threadlink.Instance`, `TryGetSingleton` or `IsDeployed`.
+- `ResourceRequest<T>.Release()`: dispose the request, or await `ReleaseAsync()`.
+- `VaultFieldSet.Get<T>(string)`: read fields by their generated `VaultField`.
+- `EventBus`, `AsyncEventBus` and `Iris.Bus`/`AwaitedBus` are internal.
+
 ## [2.0.0]
 
 ### Removed

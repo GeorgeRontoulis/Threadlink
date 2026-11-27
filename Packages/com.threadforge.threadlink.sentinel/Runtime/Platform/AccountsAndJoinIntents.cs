@@ -240,7 +240,7 @@ namespace Threadforge.Threadlink
             history.Enqueue(key);
             while (history.Count > capacity * 2)
                 seen.Remove(history.Dequeue());
-            Iris.TryNotify(new JoinIntentReceived(intent));
+            Iris.TryPublish(new JoinIntentReceived(intent));
             return true;
         }
 

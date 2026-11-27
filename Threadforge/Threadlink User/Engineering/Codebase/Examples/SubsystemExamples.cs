@@ -127,7 +127,7 @@ namespace Threadlink.User.Examples
     {
         public static async UniTask UploadAsync(CancellationToken token)
         {
-            var upload = Threadlink.Begin("Cloud", "Upload");
+            var upload = Threadlink.BeginOperation("Cloud", "Upload");
             upload.Stage("Sending");
             try
             {

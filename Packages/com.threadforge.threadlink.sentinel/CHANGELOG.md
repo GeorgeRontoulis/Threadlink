@@ -2,6 +2,19 @@
 
 All notable changes to this package are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0]
+
+### Changed
+
+- `CapabilityStatus.Supported` is `IsSupported`; `AutosaveSchedule.Paused` is `IsPaused`.
+- `ICommerce.CatalogAsync` and `RestoreAsync` are `ReadCatalogAsync` and `RestorePurchasesAsync`.
+- `SnapshotSchema.RegisterMigration` and `RegisterLegacyReader` are `AddMigration` and `SetLegacyReader`, matching `Sentinel.Saves.AddMigration`.
+- Save storage contracts name identifiers `saveId`, `fileId` and `SaveId`.
+
+### Removed
+
+- `SentinelComposition`, a second copy of Sentinel's routing that nothing used: route providers with `Sentinel.AddProvider`.
+
 ## [2.0.0]
 
 No changes; released with the framework's shared version.

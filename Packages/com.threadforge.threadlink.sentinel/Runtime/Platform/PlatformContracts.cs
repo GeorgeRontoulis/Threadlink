@@ -54,13 +54,13 @@ namespace Threadforge.Threadlink
     /// <summary>Supported implementation and current availability are independent facts.</summary>
     public readonly struct CapabilityStatus
     {
-        public bool Supported { get; }
+        public bool IsSupported { get; }
         public Availability Availability { get; }
         public string Detail { get; }
 
         public CapabilityStatus(bool supported, Availability availability, string detail = null)
         {
-            Supported = supported;
+            IsSupported = supported;
             Availability = availability;
             Detail = detail;
         }
@@ -270,12 +270,12 @@ namespace Threadforge.Threadlink
     /// <summary>Native purchase and acknowledgment. Games commit fulfillment plus their ledger atomically before acknowledging.</summary>
     public interface ICommerce
     {
-        UniTask<PlatformResult<CatalogItem[]>> CatalogAsync(CancellationToken token);
+        UniTask<PlatformResult<CatalogItem[]>> ReadCatalogAsync(CancellationToken token);
         UniTask<PlatformResult<PurchaseReceipt>> PurchaseAsync(
             ProductId product,
             CancellationToken token
         );
-        UniTask<PlatformResult<PurchaseReceipt[]>> RestoreAsync(CancellationToken token);
+        UniTask<PlatformResult<PurchaseReceipt[]>> RestorePurchasesAsync(CancellationToken token);
         UniTask<PlatformResult<Unit>> AcknowledgeAsync(
             PurchaseReceipt receipt,
             CancellationToken token
@@ -334,94 +334,4 @@ namespace Threadforge.Threadlink
         );
     }
 
-    /// <summary>Explicit capability routing, without dependency injection or implicit provider fallback/data migration.</summary>
-    public sealed class SentinelComposition : IDisposable
-    {
-        private sealed class Route
-        {
-            internal ISentinelProvider Provider;
-            internal Capability Capability;
-        }
-
-        private readonly List<ISentinelProvider> providers = new List<ISentinelProvider>();
-        private readonly Dictionary<Type, Route> routes = new Dictionary<Type, Route>();
-        private bool disposed;
-
-        public SentinelComposition(params ISentinelProvider[] providers)
-        {
-            if (providers == null)
-                throw new ArgumentNullException(nameof(providers));
-            var identities = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var provider in providers)
-            {
-                if (
-                    provider == null
-                    || string.IsNullOrWhiteSpace(provider.Identity)
-                    || !identities.Add(provider.Identity)
-                )
-                    throw new ArgumentException("Provider identities must be unique.");
-                this.providers.Add(provider);
-            }
-        }
-
-        public void Select<T>(string provider, Capability capability)
-            where T : class
-        {
-            if (disposed)
-                throw new ObjectDisposedException(nameof(SentinelComposition));
-            var selected =
-                providers.Find(item => item.Identity == provider)
-                ?? throw new ArgumentException("Provider was not selected for this composition.");
-            if (
-                capability == Capability.None
-                || ((int)capability & ((int)capability - 1)) != 0
-                || !selected.TryGet<T>(out _)
-            )
-                throw new ArgumentException(
-                    "Provider does not implement this capability contract."
-                );
-            routes[typeof(T)] = new Route { Provider = selected, Capability = capability };
-        }
-
-        public PlatformResult<T> Resolve<T>()
-            where T : class
-        {
-            if (disposed)
-                return PlatformResult<T>.Failure(PlatformError.Unavailable);
-            if (!routes.TryGetValue(typeof(T), out var route))
-                return PlatformResult<T>.Failure(PlatformError.Unsupported);
-            var status = route.Provider.Status(route.Capability);
-            if (!status.Supported)
-                return PlatformResult<T>.Failure(PlatformError.Unsupported, status.Detail);
-            if (status.Availability != Availability.Ready)
-                return PlatformResult<T>.Failure(
-                    PlatformError.Unavailable,
-                    status.Detail ?? status.Availability.ToString()
-                );
-            return route.Provider.TryGet<T>(out var value)
-                ? PlatformResult<T>.Success(value)
-                : PlatformResult<T>.Failure(PlatformError.Unsupported);
-        }
-
-        public void Dispose()
-        {
-            if (disposed)
-                return;
-            disposed = true;
-            routes.Clear();
-            var failures = new List<Exception>();
-            for (int i = providers.Count - 1; i >= 0; i--)
-                try
-                {
-                    providers[i].Dispose();
-                }
-                catch (Exception error)
-                {
-                    failures.Add(error);
-                }
-            providers.Clear();
-            if (failures.Count > 0)
-                throw new AggregateException(failures);
-        }
-    }
 }

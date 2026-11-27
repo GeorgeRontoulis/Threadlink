@@ -25,9 +25,8 @@ Iris.Publish(new CoinsChanged(12));
 | --- | --- |
 | `Iris.Subscribe<T>(callback)` | Returns a `SubscriptionToken`; dispose it to stop delivery. Copies and repeated disposal never remove another listener. |
 | `Iris.Subscribe<T>(owner, callback)` | Ends when the `MonoBehaviour` owner is destroyed. |
-| `Iris.Publish<T>(value)` | Delivers now, in subscription order. A listener's exception stops delivery and propagates. |
-| `Iris.Notify<T>(value)` | Delivers now; listener exceptions are logged and delivery continues. |
-| `Iris.TryNotify<T>(value)` | As `Notify` when Iris is available; returns false otherwise, such as in a test session without Iris. Framework events use it. |
+| `Iris.Publish<T>(value)` | Delivers now, in subscription order. A listener that throws is logged and the others still run. |
+| `Iris.TryPublish<T>(value)` | As `Publish` when Iris is available; returns false otherwise, such as in a test session without Iris. Framework events use it. |
 | `Iris.TryPost<T>(value)` | From any thread: queues the event for the next Update. Returns false when the bounded queue is full or Iris is not linked. |
 | `Iris.ListenerCount<T>()` | Current synchronous listeners. |
 
@@ -56,6 +55,3 @@ int next = await Iris.RequestAsync<NextLevel, int>(new NextLevel(3));
 
 Listeners return `UniTask`. Publication adds no allocation: warmed sequential and concurrent publications reuse their buffers, and listeners written as `async UniTask` use UniTask's pooled machinery.
 
-## Isolated buses
-
-`EventBus` and `AsyncEventBus` are ordinary classes for tools and tests that need a bus outside the session; `Iris.Instance.Bus` and `AwaitedBus` are the session's buses.

@@ -47,7 +47,7 @@ namespace Threadforge.Threadlink
 
         protected override void OnSubsystemBoot()
         {
-            // The mapping in ContentSettings first; entries mapped from code (MapContent) replace an ID they share.
+            // The mapping in ContentSettings first; entries mapped from code (Content.Map) replace an ID they share.
             var all = new Dictionary<Guid, ContentEntry>();
             var settings = ContentSettings.Current;
             foreach (var pair in settings.Assets)

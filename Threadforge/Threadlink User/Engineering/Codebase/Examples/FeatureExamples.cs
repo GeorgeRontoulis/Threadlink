@@ -38,7 +38,7 @@ namespace Threadlink.User.Examples
         [Tooltip("Renderer that shows the loaded portrait.")]
         private SpriteRenderer target;
 
-        private async void Start() => target.sprite = (await Threadlink.LoadAsync<Sprite>(ExampleContent.Characters.HeroPortrait, this)).Asset;
+        private async void Start() => target.sprite = (await Content.LoadAsync<Sprite>(ExampleContent.Characters.HeroPortrait, this)).Asset;
     }
 
     public sealed class SlimeSpawner : MonoBehaviour
@@ -46,17 +46,17 @@ namespace Threadlink.User.Examples
         public async UniTask<ResourceRequest<GameObject>> SpawnAsync(Vector3 position)
         {
             // Releasing the request destroys the instance.
-            return await Threadlink.InstantiateAsync(ExampleContent.Characters.Slime, position, Quaternion.identity, transform, destroyCancellationToken);
+            return await Content.InstantiateAsync(ExampleContent.Characters.Slime, position, Quaternion.identity, transform, destroyCancellationToken);
         }
 
         // A prefab can instantiate straight to one of its root components.
         public async UniTask<Enemy> SpawnEnemyAsync(Vector3 position) =>
-            (await Threadlink.InstantiateAsync<Enemy>(ExampleContent.Characters.Slime, position, Quaternion.identity, transform, destroyCancellationToken)).Asset;
+            (await Content.InstantiateAsync<Enemy>(ExampleContent.Characters.Slime, position, Quaternion.identity, transform, destroyCancellationToken)).Asset;
 
         // Addressables labels generate ContentLabels; one request holds every asset with the label.
         public async UniTask<int> CountForestCuesAsync()
         {
-            var cues = await Threadlink.LoadAllAsync<AudioCue>(new ContentLabel("forest"), this);
+            var cues = await Content.LoadAllAsync<AudioCue>(new ContentLabel("forest"), this);
             return cues.Asset.Count;
         }
     }

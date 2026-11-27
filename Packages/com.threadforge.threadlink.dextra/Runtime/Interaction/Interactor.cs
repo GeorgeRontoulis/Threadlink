@@ -8,12 +8,12 @@ namespace Threadforge.Threadlink
     /// <summary>Current availability and the prompt/reason shown to an actor.</summary>
     public readonly struct InteractionAvailability
     {
-        public bool Available { get; }
+        public bool IsAvailable { get; }
         public string Prompt { get; }
 
         public InteractionAvailability(bool available, string prompt)
         {
-            Available = available;
+            IsAvailable = available;
             Prompt = prompt;
         }
     }
@@ -45,7 +45,7 @@ namespace Threadforge.Threadlink
         public IInteractable Selected { get; private set; }
         public bool IsExecuting { get; private set; }
 
-        public InteractionAvailability Availability(object actor) =>
+        public InteractionAvailability Evaluate(object actor) =>
             Selected?.Evaluate(actor) ?? new InteractionAvailability(false, string.Empty);
 
         /// <summary>Chooses the best available candidate, breaking score ties by stable identity.</summary>
@@ -58,7 +58,7 @@ namespace Threadforge.Threadlink
                 if (
                     candidate.Target == null
                     || double.IsNaN(candidate.Score)
-                    || !candidate.Target.Evaluate(actor).Available
+                    || !candidate.Target.Evaluate(actor).IsAvailable
                 )
                     continue;
                 if (
@@ -90,7 +90,7 @@ namespace Threadforge.Threadlink
                 IsExecuting
                 || target == null
                 || target.Identity != expectedTarget
-                || !target.Evaluate(actor).Available
+                || !target.Evaluate(actor).IsAvailable
             )
                 throw new InvalidOperationException(
                     "The prompted interaction is no longer available."

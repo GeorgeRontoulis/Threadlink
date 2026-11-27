@@ -3,6 +3,7 @@ namespace Threadforge.Threadlink
     using System;
     using UnityEngine;
     using UnityEngine.Audio;
+    using UnityEngine.Serialization;
 
     /// <summary>Voice admission policy when a cue or category reaches its limit.</summary>
     public enum VoiceOverflow
@@ -41,11 +42,16 @@ namespace Threadforge.Threadlink
         [Tooltip("Repeat until stopped.")]
         public bool Loop;
         [AudioCategoryName]
+        [FormerlySerializedAs("Category")]
         [Tooltip("Category for shared volume, mute and voice limits.")]
-        public string Category = "Effects";
+        public string CategoryName = "Effects";
 
-        /// <summary>The cue's category.</summary>
-        public AudioCategory CategoryId => new AudioCategory(Category);
+        /// <summary>The cue's category, such as <c>AudioCategories.Music</c>.</summary>
+        public AudioCategory Category
+        {
+            get => new AudioCategory(CategoryName);
+            set => CategoryName = value.Name;
+        }
         [Tooltip("Optional Audio Mixer group to route through.")]
         public AudioMixerGroup MixerGroup;
 
@@ -85,7 +91,7 @@ namespace Threadforge.Threadlink
                 Variations == null
                 || Variations.Length == 0
                 || VoiceLimit < 1
-                || string.IsNullOrWhiteSpace(Category)
+                || string.IsNullOrWhiteSpace(CategoryName)
                 || Pitch.x <= 0
                 || Pitch.y < Pitch.x
                 || Pitch.y > 3

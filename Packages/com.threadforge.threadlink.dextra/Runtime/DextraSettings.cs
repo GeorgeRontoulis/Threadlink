@@ -22,7 +22,7 @@ namespace Threadforge.Threadlink
         public string InterfaceMap = "UI";
 
         /// <summary>The name of the map a setting refers to in <paramref name="actions"/>, or null when it has none.</summary>
-        public string MapName(InputActionAsset actions, string map)
+        internal string MapName(InputActionAsset actions, string map)
         {
             if (actions == null || string.IsNullOrEmpty(map))
                 return null;

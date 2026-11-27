@@ -159,7 +159,7 @@ namespace Threadforge.Threadlink.Tests
         {
             var (provider, backend, accounts) = Create(b => b.Launch = "+connect lobby-7");
             Assert.That(provider.Status(Capability.Achievements).Availability, Is.EqualTo(Availability.Initializing));
-            Assert.That(provider.Status(Capability.Purchases).Supported, Is.False);
+            Assert.That(provider.Status(Capability.Purchases).IsSupported, Is.False);
             var result = provider.Start(inPlayer: false);
             Assert.That(result.Status, Is.EqualTo(SteamStartStatus.Ready));
             Assert.That(backend.Calls[0], Is.EqualTo("start 480 0"), "Restart is never requested outside players or without opt-in.");
@@ -184,7 +184,7 @@ namespace Threadforge.Threadlink.Tests
             var (missing, _, _) = Create(b => b.StartResult = new SteamStartResult(SteamStartStatus.ClientNotRunning));
             missing.Start();
             Assert.That(missing.Status(Capability.Friends).Availability, Is.EqualTo(Availability.TemporarilyUnavailable));
-            var friends = missing.ListAsync(CancellationToken.None).GetAwaiter().GetResult();
+            var friends = ((IFriends)missing).ListAsync(CancellationToken.None).GetAwaiter().GetResult();
             Assert.That(friends.Error, Is.EqualTo(PlatformError.Unavailable));
             missing.Dispose();
 
@@ -197,7 +197,7 @@ namespace Threadforge.Threadlink.Tests
             other.Start();
             otherAccounts.Select(new AccountIdentity("local", "Player 1"));
             Assert.That(other.Status(Capability.Statistics).Availability, Is.EqualTo(Availability.AccountRequired));
-            Assert.That(other.ReadAsync(new StatisticId("games"), CancellationToken.None).GetAwaiter().GetResult().Error, Is.EqualTo(PlatformError.AccountChanged));
+            Assert.That(((IStatistics)other).ReadAsync(new StatisticId("games"), CancellationToken.None).GetAwaiter().GetResult().Error, Is.EqualTo(PlatformError.AccountChanged));
 
             var (mismatch, _, _) = Create(b => b.StartResult = new SteamStartResult(SteamStartStatus.AppIdMismatch, 999, "Expected App ID 480."));
             mismatch.Start();
@@ -215,18 +215,18 @@ namespace Threadforge.Threadlink.Tests
                     b.Ints["STAT_LANTERNS"] = 2;
                 });
                 provider.Start();
-                Assert.That((await provider.SetProgressAsync(new AchievementId("lanterns"), 0.5, CancellationToken.None)).Succeeded, Is.True);
+                Assert.That((await ((IAchievements)provider).SetProgressAsync(new AchievementId("lanterns"), 0.5, CancellationToken.None)).Succeeded, Is.True);
                 Assert.That(backend.Ints["STAT_LANTERNS"], Is.EqualTo(5));
                 Assert.That(backend.Calls, Does.Contain("progress ACH_LANTERNS 5/10"));
                 backend.Calls.Clear();
-                Assert.That((await provider.SetProgressAsync(new AchievementId("lanterns"), 0.3, CancellationToken.None)).Succeeded, Is.True);
+                Assert.That((await ((IAchievements)provider).SetProgressAsync(new AchievementId("lanterns"), 0.3, CancellationToken.None)).Succeeded, Is.True);
                 Assert.That(backend.Calls, Is.Empty, "Progress never moves backwards and needs no store.");
-                Assert.That((await provider.SetProgressAsync(new AchievementId("first-win"), 0.5, CancellationToken.None)).Error, Is.EqualTo(PlatformError.Unsupported));
-                Assert.That((await provider.SetProgressAsync(new AchievementId("first-win"), 1, CancellationToken.None)).Succeeded, Is.True);
+                Assert.That((await ((IAchievements)provider).SetProgressAsync(new AchievementId("first-win"), 0.5, CancellationToken.None)).Error, Is.EqualTo(PlatformError.Unsupported));
+                Assert.That((await ((IAchievements)provider).SetProgressAsync(new AchievementId("first-win"), 1, CancellationToken.None)).Succeeded, Is.True);
                 Assert.That(backend.Achievements["ACH_WIN_ONE_GAME"], Is.True);
-                Assert.That((await provider.SetProgressAsync(new AchievementId("unknown"), 1, CancellationToken.None)).Error, Is.EqualTo(PlatformError.NotFound));
+                Assert.That((await ((IAchievements)provider).SetProgressAsync(new AchievementId("unknown"), 1, CancellationToken.None)).Error, Is.EqualTo(PlatformError.NotFound));
                 backend.StoreResult = 3;
-                var offline = await provider.SetProgressAsync(new AchievementId("lanterns"), 1, CancellationToken.None);
+                var offline = await ((IAchievements)provider).SetProgressAsync(new AchievementId("lanterns"), 1, CancellationToken.None);
                 Assert.That(offline.Error, Is.EqualTo(PlatformError.Unavailable), "EResult NoConnection maps to Unavailable.");
             });
 
@@ -237,7 +237,7 @@ namespace Threadforge.Threadlink.Tests
                 var (provider, backend, _) = Create(b => b.Store = new UniTaskCompletionSource<int>());
                 provider.Start();
                 using var cancellation = new CancellationTokenSource();
-                var write = provider.WriteAsync(new StatisticId("games"), 3, cancellation.Token);
+                var write = ((IStatistics)provider).WriteAsync(new StatisticId("games"), 3, cancellation.Token);
                 cancellation.Cancel();
                 var result = await write;
                 Assert.That(result.Error, Is.EqualTo(PlatformError.Cancelled));
@@ -251,10 +251,10 @@ namespace Threadforge.Threadlink.Tests
             {
                 var (provider, backend, _) = Create(b => b.Floats["FeetTraveled"] = 1.5f);
                 provider.Start();
-                Assert.That((await provider.ReadAsync(new StatisticId("distance"), CancellationToken.None)).Value, Is.EqualTo(1.5).Within(1e-6));
-                Assert.That((await provider.WriteAsync(new StatisticId("games"), 2.5, CancellationToken.None)).Error, Is.EqualTo(PlatformError.InvalidData));
-                Assert.That((await provider.WriteAsync(new StatisticId("games"), double.NaN, CancellationToken.None)).Error, Is.EqualTo(PlatformError.InvalidData));
-                Assert.That((await provider.WriteAsync(new StatisticId("distance"), 7.25, CancellationToken.None)).Succeeded, Is.True);
+                Assert.That((await ((IStatistics)provider).ReadAsync(new StatisticId("distance"), CancellationToken.None)).Value, Is.EqualTo(1.5).Within(1e-6));
+                Assert.That((await ((IStatistics)provider).WriteAsync(new StatisticId("games"), 2.5, CancellationToken.None)).Error, Is.EqualTo(PlatformError.InvalidData));
+                Assert.That((await ((IStatistics)provider).WriteAsync(new StatisticId("games"), double.NaN, CancellationToken.None)).Error, Is.EqualTo(PlatformError.InvalidData));
+                Assert.That((await ((IStatistics)provider).WriteAsync(new StatisticId("distance"), 7.25, CancellationToken.None)).Succeeded, Is.True);
                 Assert.That(backend.Floats["FeetTraveled"], Is.EqualTo(7.25f));
             });
 
@@ -272,15 +272,15 @@ namespace Threadforge.Threadlink.Tests
                 await boards.ReadAsync(new LeaderboardId("speed"), 10, 5, CancellationToken.None);
                 Assert.That(backend.Calls.FindAll(c => c.StartsWith("find")), Has.Count.EqualTo(1), "Leaderboard handles are cached.");
                 Assert.That((await boards.ReadAsync(new LeaderboardId("missing"), 0, 1, CancellationToken.None)).Error, Is.EqualTo(PlatformError.NotFound));
-                Assert.That((await provider.SetAsync("In the forest", CancellationToken.None)).Succeeded, Is.True);
+                Assert.That((await ((IPresence)provider).SetAsync("In the forest", CancellationToken.None)).Succeeded, Is.True);
                 Assert.That(backend.Calls, Does.Contain("presence status=In the forest"));
-                var friends = await provider.ListAsync(CancellationToken.None);
+                var friends = await ((IFriends)provider).ListAsync(CancellationToken.None);
                 Assert.That(friends.Value[1], Is.EqualTo(new AccountIdentity("steam", "22")));
-                Assert.That((await provider.SendAsync(friends.Value[0], "+connect lobby-1", CancellationToken.None)).Succeeded, Is.True);
+                Assert.That((await ((IInvites)provider).SendAsync(friends.Value[0], "+connect lobby-1", CancellationToken.None)).Succeeded, Is.True);
                 Assert.That(backend.Calls, Does.Contain("invite 11 +connect lobby-1"));
-                Assert.That((await provider.SendAsync(new AccountIdentity("local", "x"), "a", CancellationToken.None)).Error, Is.EqualTo(PlatformError.InvalidData));
-                Assert.That((await provider.HasAsync(new ProductId("expansion"), CancellationToken.None)).Value, Is.True);
-                Assert.That((await provider.HasAsync(new ProductId("soundtrack"), CancellationToken.None)).Value, Is.False);
+                Assert.That((await ((IInvites)provider).SendAsync(new AccountIdentity("local", "x"), "a", CancellationToken.None)).Error, Is.EqualTo(PlatformError.InvalidData));
+                Assert.That((await ((IEntitlements)provider).HasAsync(new ProductId("expansion"), CancellationToken.None)).Value, Is.True);
+                Assert.That((await ((IEntitlements)provider).HasAsync(new ProductId("soundtrack"), CancellationToken.None)).Value, Is.False);
                 Assert.That(provider.TryGet<ICommerce>(out _), Is.False);
                 Assert.That(provider.TryGet<ICloudStorage>(out var cloud), Is.True);
                 Assert.That(cloud, Is.SameAs(provider.Cloud));
@@ -323,11 +323,10 @@ namespace Threadforge.Threadlink.Tests
         {
             var (provider, _, _) = Create();
             provider.Start();
-            using var composition = new SentinelComposition(provider);
-            composition.Select<IAchievements>(provider.Identity, Capability.Achievements);
-            composition.Select<ICloudStorage>(provider.Identity, Capability.CloudStorage);
-            Assert.That(composition.Resolve<IAchievements>().Succeeded, Is.True);
-            Assert.That(composition.Resolve<ICloudStorage>().Value, Is.SameAs(provider.Cloud));
+            Assert.That(provider.Status(Capability.Achievements).Availability, Is.EqualTo(Availability.Ready));
+            Assert.That(provider.TryGet<IAchievements>(out _), Is.True);
+            Assert.That(provider.TryGet<ICloudStorage>(out var cloud), Is.True);
+            Assert.That(cloud, Is.SameAs(provider.Cloud));
             Assert.That(ProviderRequirements.ValidateSelection(provider, Capability.Purchases).Error, Is.EqualTo(PlatformError.Unsupported));
             Assert.That(ProviderRequirements.ValidateSelection(provider, Capability.Achievements | Capability.Leaderboards, requireReady: true).Succeeded, Is.True);
         }

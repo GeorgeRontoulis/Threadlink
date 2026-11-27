@@ -244,9 +244,9 @@ namespace Threadforge.Threadlink.Editor
             bool changed = false;
             foreach (var (kind, type, summary) in new[]
             {
-                (ContentKind.Asset, "ContentAssetId", "Mapped Addressables assets. Load with Threadlink.LoadAsync<T>(id)."),
-                (ContentKind.Prefab, "ContentPrefabId", "Mapped Addressables prefabs. Load or instantiate with Threadlink.LoadAsync / InstantiateAsync, as a GameObject or a root component."),
-                (ContentKind.Scene, "ContentSceneId", "Mapped Addressables scenes. Transition with Nexus.LoadAsync(id) or load with Threadlink.LoadSceneAsync(id)."),
+                (ContentKind.Asset, "ContentAssetId", "Mapped Addressables assets. Load with Content.LoadAsync<T>(id)."),
+                (ContentKind.Prefab, "ContentPrefabId", "Mapped Addressables prefabs. Load or instantiate with Content.LoadAsync / InstantiateAsync, as a GameObject or a root component."),
+                (ContentKind.Scene, "ContentSceneId", "Mapped Addressables scenes. Transition with Nexus.LoadAsync(id) or load with Content.LoadSceneAsync(id)."),
             })
             {
                 string className = ContentMapping.ClassOf(kind);
@@ -303,7 +303,7 @@ namespace Threadforge.Threadlink.Editor
                     Summary = "Addressables label " + label + ".",
                 })
                 .ToList();
-            return GeneratedIds.Write("ContentLabels", "Addressables labels, for Threadlink.LoadAllAsync<T>(label).", members);
+            return GeneratedIds.Write("ContentLabels", "Addressables labels, for Content.LoadAllAsync<T>(label).", members);
         }
     }
 

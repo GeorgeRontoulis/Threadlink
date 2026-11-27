@@ -55,6 +55,8 @@ namespace Threadforge.Threadlink
             FadeElapsed,
             FadeDuration;
         internal bool StopAfterFade;
+        internal PlaybackHandle() { }
+
         internal UniTask<PlaybackEnd> Completion => Completed.Task;
 
         /// <summary>Waits until the voice ends and returns how it ended.</summary>
@@ -324,14 +326,14 @@ namespace Threadforge.Threadlink
                 );
             if (cue.LoadingPolicy == CueLoadingPolicy.PreloadVariations)
                 cue.WarmAudioData();
-            var category = GetCategory(cue.Category);
+            var category = GetCategory(cue.CategoryName);
             int cueCount = 0,
                 categoryCount = 0;
             foreach (var voice in active)
             {
                 if (voice.Cue == cue)
                     cueCount++;
-                if (voice.Cue.Category == cue.Category)
+                if (voice.Cue.CategoryName == cue.CategoryName)
                     categoryCount++;
             }
             if (cueCount >= cue.VoiceLimit || categoryCount >= category.Limit)
@@ -343,7 +345,7 @@ namespace Threadforge.Threadlink
                         bool eligible =
                             cueCount >= cue.VoiceLimit
                                 ? voice.Cue == cue
-                                : voice.Cue.Category == cue.Category;
+                                : voice.Cue.CategoryName == cue.CategoryName;
                         if (
                             eligible
                             && voice.Cue.Priority >= cue.Priority
@@ -510,7 +512,7 @@ namespace Threadforge.Threadlink
 
         private void ApplyVolume(PlaybackHandle voice)
         {
-            var category = GetCategory(voice.Cue.Category);
+            var category = GetCategory(voice.Cue.CategoryName);
             voice.Source.volume = category.Muted
                 ? 0
                 : voice.BaseVolume * voice.Gain * category.Volume;

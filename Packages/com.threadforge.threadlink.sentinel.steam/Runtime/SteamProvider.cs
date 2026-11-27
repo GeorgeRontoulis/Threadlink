@@ -150,7 +150,7 @@ namespace Threadforge.Threadlink
         }
 
         /// <inheritdoc />
-        public async UniTask<PlatformResult<Unit>> SetProgressAsync(AchievementId achievement, double progress, CancellationToken token)
+        async UniTask<PlatformResult<Unit>> IAchievements.SetProgressAsync(AchievementId achievement, double progress, CancellationToken token)
         {
             if (!Ready(Capability.Achievements, token, out PlatformResult<Unit> failure))
                 return failure;
@@ -185,7 +185,7 @@ namespace Threadforge.Threadlink
         }
 
         /// <inheritdoc />
-        public UniTask<PlatformResult<double>> ReadAsync(StatisticId statistic, CancellationToken token)
+        UniTask<PlatformResult<double>> IStatistics.ReadAsync(StatisticId statistic, CancellationToken token)
         {
             if (!Ready(Capability.Statistics, token, out PlatformResult<double> failure))
                 return UniTask.FromResult(failure);
@@ -211,7 +211,7 @@ namespace Threadforge.Threadlink
         }
 
         /// <inheritdoc />
-        public async UniTask<PlatformResult<Unit>> WriteAsync(StatisticId statistic, double value, CancellationToken token)
+        async UniTask<PlatformResult<Unit>> IStatistics.WriteAsync(StatisticId statistic, double value, CancellationToken token)
         {
             if (!Ready(Capability.Statistics, token, out PlatformResult<Unit> failure))
                 return failure;
@@ -281,7 +281,7 @@ namespace Threadforge.Threadlink
         }
 
         /// <inheritdoc />
-        public UniTask<PlatformResult<Unit>> SetAsync(string state, CancellationToken token)
+        UniTask<PlatformResult<Unit>> IPresence.SetAsync(string state, CancellationToken token)
         {
             if (!Ready(Capability.Presence, token, out PlatformResult<Unit> failure))
                 return UniTask.FromResult(failure);
@@ -293,7 +293,7 @@ namespace Threadforge.Threadlink
         }
 
         /// <inheritdoc />
-        public UniTask<PlatformResult<AccountIdentity[]>> ListAsync(CancellationToken token)
+        UniTask<PlatformResult<AccountIdentity[]>> IFriends.ListAsync(CancellationToken token)
         {
             if (!Ready(Capability.Friends, token, out PlatformResult<AccountIdentity[]> failure))
                 return UniTask.FromResult(failure);
@@ -305,7 +305,7 @@ namespace Threadforge.Threadlink
         }
 
         /// <inheritdoc />
-        public UniTask<PlatformResult<Unit>> SendAsync(AccountIdentity recipient, string joinData, CancellationToken token)
+        UniTask<PlatformResult<Unit>> IInvites.SendAsync(AccountIdentity recipient, string joinData, CancellationToken token)
         {
             if (!Ready(Capability.Invites, token, out PlatformResult<Unit> failure))
                 return UniTask.FromResult(failure);
@@ -321,7 +321,7 @@ namespace Threadforge.Threadlink
         }
 
         /// <inheritdoc />
-        public UniTask<PlatformResult<bool>> HasAsync(ProductId product, CancellationToken token)
+        UniTask<PlatformResult<bool>> IEntitlements.HasAsync(ProductId product, CancellationToken token)
         {
             if (!Ready(Capability.Entitlements, token, out PlatformResult<bool> failure))
                 return UniTask.FromResult(failure);

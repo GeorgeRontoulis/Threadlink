@@ -34,7 +34,7 @@ namespace Threadforge.Threadlink.Showcase.Demos
 
         public override void Build(VisualElement panel, ShowcaseContext context)
         {
-            Threadlink.Instance.Get<ShowcaseScore>();
+            Threadlink.Instance.Add<ShowcaseScore>();
             var label = Value();
             void Show() => label.text = ShowcaseScore.TryGetSingleton(out var score) ? "Points: " + score.Points + " (linked to the core)" : "Not linked.";
             Show();
@@ -57,7 +57,7 @@ namespace Threadforge.Threadlink.Showcase.Demos
         {
             Check(Threadlink.IsDeployed, "Threadlink deployed before the scene");
             Check(Iris.TryGetSingleton(out var iris) && iris.State == SubsystemState.Ready, "Iris is linked to the core");
-            var score = Threadlink.Instance.Get<ShowcaseScore>();
+            var score = Threadlink.Instance.Add<ShowcaseScore>();
             int before = score.Points;
             ShowcaseScore.Add(1);
             Check(ShowcaseScore.Instance.Points == before + 1, "static API reaches the linked instance");

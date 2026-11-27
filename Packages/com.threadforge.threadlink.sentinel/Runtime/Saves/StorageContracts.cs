@@ -5,14 +5,14 @@ namespace Threadforge.Threadlink
     public interface ISaveMaintenanceService : System.IDisposable
     {
         /// <summary>Reports retained generation count and bytes without changing saved data.</summary>
-        PersistenceResult<SaveStorageReport> InspectStorage(int saveID);
+        PersistenceResult<SaveStorageReport> InspectStorage(int saveId);
 
         /// <summary>
         /// Deletes old generations, retaining the current generation and one previous generation.
         /// Refuses while any reader or transaction in this process uses the same save root.
         /// The application must exclusively own that save root; do not run against externally edited/shared saves.
         /// </summary>
-        PersistenceResult<int> PruneHistory(int saveID);
+        PersistenceResult<int> PruneHistory(int saveId);
     }
 
     /// <summary>Retained local save history, including the current generation.</summary>
@@ -35,26 +35,26 @@ namespace Threadforge.Threadlink
     /// </summary>
     public interface ISaveTransaction : System.IDisposable, ISaveReader
     {
-        int SaveID { get; }
+        int SaveId { get; }
         bool IsCommitted { get; }
 
         /// <summary>Whether a generation existed when this transaction began; missing expected files then indicate corruption.</summary>
         bool HasPublishedState { get; }
 
-        UniTask<PersistenceResult> WriteAsync(int fileID, byte[] data);
-        UniTask<PersistenceResult> DeleteAsync(int fileID);
+        UniTask<PersistenceResult> WriteAsync(int fileId, byte[] data);
+        UniTask<PersistenceResult> DeleteAsync(int fileId);
         UniTask<PersistenceResult> CommitAsync();
     }
 
     public interface ISaveService : System.IDisposable
     {
-        UniTask<PersistenceResult<byte[]>> ReadAsync(int saveID, int fileID);
-        UniTask<PersistenceResult<ISaveTransaction>> BeginTransactionAsync(int saveID);
+        UniTask<PersistenceResult<byte[]>> ReadAsync(int saveId, int fileId);
+        UniTask<PersistenceResult<ISaveTransaction>> BeginTransactionAsync(int saveId);
 
         /// <summary>
         /// Atomically publishes logical deletion. Existing published bytes must remain
         /// untouched until the deletion state itself has been successfully published.
         /// </summary>
-        UniTask<PersistenceResult> DeleteSaveAsync(int saveID);
+        UniTask<PersistenceResult> DeleteSaveAsync(int saveId);
     }
 }

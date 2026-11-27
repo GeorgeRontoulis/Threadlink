@@ -29,7 +29,7 @@ namespace Threadforge.Threadlink
     }
 
     /// <summary>Committed transition outcome. Cleanup errors never imply that the transition rolled back.</summary>
-    public sealed class TransitionOutcome
+    internal sealed class TransitionOutcome
     {
         /// <summary>Identity of the committed presentation.</summary>
         public Guid Scene { get; }

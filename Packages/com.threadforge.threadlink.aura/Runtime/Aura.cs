@@ -106,7 +106,7 @@ namespace Threadforge.Threadlink
                 aura.musicCue = playing = cue;
             }
             if (previous != playing)
-                Iris.TryNotify(new MusicChanged(previous, playing));
+                Iris.TryPublish(new MusicChanged(previous, playing));
         }
 
         /// <summary>Fades the music channel out.</summary>
@@ -116,7 +116,7 @@ namespace Threadforge.Threadlink
             var previous = CurrentMusic;
             aura.Silence(fadeSeconds);
             if (previous != null)
-                Iris.TryNotify(new MusicChanged(previous, null));
+                Iris.TryPublish(new MusicChanged(previous, null));
         }
 
         private void Silence(float fadeSeconds)
@@ -135,14 +135,14 @@ namespace Threadforge.Threadlink
         public static void SetVolume(AudioCategory category, float volume)
         {
             Instance.Engine.SetUserVolume(category.Name, volume);
-            Iris.TryNotify(new VolumeChanged(category, volume));
+            Iris.TryPublish(new VolumeChanged(category, volume));
         }
 
         /// <summary>Mutes or unmutes a category.</summary>
         public static void SetMute(AudioCategory category, bool muted)
         {
             Instance.Engine.SetMute(category.Name, muted);
-            Iris.TryNotify(new MuteChanged(category, muted));
+            Iris.TryPublish(new MuteChanged(category, muted));
         }
 
         /// <summary>Fades a category's player volume. A later fade or <see cref="SetVolume"/> replaces it.</summary>
@@ -150,7 +150,7 @@ namespace Threadforge.Threadlink
         public static async UniTask FadeVolumeAsync(AudioCategory category, float volume, float seconds)
         {
             await Instance.Engine.FadeCategoryAsync(category.Name, volume, seconds);
-            Iris.TryNotify(new VolumeChanged(category, volume));
+            Iris.TryPublish(new VolumeChanged(category, volume));
         }
 
         /// <summary>Sets how many voices a category may play at once.</summary>

@@ -272,7 +272,7 @@ namespace Threadforge.Threadlink
         public int HistoryCapacity { get; set; } = 128;
 
         /// <summary>Detailed trace capture. Disabled by default.</summary>
-        public bool Traces { get; set; }
+        public bool RecordTraces { get; set; }
 
         /// <summary>Maximum retained trace entries.</summary>
         public int TraceCapacity { get; set; } = 1024;
@@ -282,7 +282,7 @@ namespace Threadforge.Threadlink
 
         /// <summary>Default shipping policy: small bounded history and no traces.</summary>
         public static DiagnosticsOptions Shipping() =>
-            new DiagnosticsOptions { HistoryCapacity = 16, Traces = false };
+            new DiagnosticsOptions { HistoryCapacity = 16, RecordTraces = false };
 
         /// <summary>No operation capture.</summary>
         public static DiagnosticsOptions Disabled() =>
@@ -404,7 +404,7 @@ namespace Threadforge.Threadlink
 
         internal void Trace<T0, T1>(long operation, string template, T0 first, T1 second)
         {
-            if (!Options.Traces || Options.TraceCapacity == 0)
+            if (!Options.RecordTraces || Options.TraceCapacity == 0)
                 return;
             var entry = new TraceEntry(
                 operation,

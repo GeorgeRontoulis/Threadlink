@@ -8,7 +8,7 @@ public sealed class CoinLabel : MonoBehaviour
     private async void Start()
     {
         Iris.Subscribe<CoinsChanged>(this, change => label.text = change.Total.ToString());
-        var icon = await Threadlink.LoadAsync<Sprite>(ContentAssets.Interface.Coin, this);
+        var icon = await Content.LoadAsync<Sprite>(ContentAssets.Interface.Coin, this);
         image.sprite = icon.Asset;
     }
 }
@@ -18,7 +18,7 @@ public sealed class CoinLabel : MonoBehaviour
 | --- | --- |
 | `Iris.Subscribe<T>(owner, callback)`, `Iris.SubscribeAsync<T>(owner, listener)`, `Iris.Respond(owner, responder)` | The subscription or responder. |
 | `Iris.OnUpdate(owner, …)`, `OnFixedUpdate`, `OnLateUpdate` | The frame callback. |
-| `Threadlink.LoadAsync(id, owner)`, `LoadAllAsync(label, owner)` | The loaded content. |
-| `Threadlink.InstantiateAsync(id, owner)` | The instance and the content it came from. |
+| `Content.LoadAsync(id, owner)`, `LoadAllAsync(label, owner)` | The loaded content. |
+| `Content.InstantiateAsync(id, owner)` | The instance and the content it came from. |
 
 Without an owner, the call returns what you release yourself: dispose the `SubscriptionToken`, the responder or the `ResourceRequest`, usually with `using` or in `OnDestroy`.

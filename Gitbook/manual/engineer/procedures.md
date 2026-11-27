@@ -17,7 +17,7 @@
 
 1. Declare a payload type, usually a `readonly struct` named in the past tense.
 2. Subscribe with `Iris.Subscribe<T>(owner, callback)` so the subscription ends with its owner. A subsystem subscribes in `OnSubsystemBoot`, so it hears what other subsystems announce while they initialize.
-3. Announce a change with `Iris.TryNotify`, as the framework does. An event reaches only the subscribers listening at that moment, so subscribers subscribe first: a subsystem in `OnSubsystemBoot`.
+3. Announce a change with `Iris.TryPublish`, as the framework does. An event reaches only the subscribers listening at that moment, so subscribers subscribe first: a subsystem in `OnSubsystemBoot`.
 4. For work that must finish before the caller continues, use `Iris.PublishAsync`; for a single answer, `Iris.Respond`/`RequestAsync`.
 
 ## Adding a scene

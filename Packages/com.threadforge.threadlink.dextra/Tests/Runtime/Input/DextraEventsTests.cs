@@ -90,9 +90,9 @@ namespace Threadforge.Threadlink.Tests
             var player = Dextra.AddPlayer(source, gamepad);
             int index = Dextra.Players.Count - 1;
             InputSystem.RemoveDevice(gamepad);
-            Assert.That(player.Available, Is.False);
+            Assert.That(player.IsConnected, Is.False);
             InputSystem.AddDevice(gamepad);
-            Assert.That(player.Available, Is.True, "The Input System returns a reconnected device to its player.");
+            Assert.That(player.IsConnected, Is.True, "The Input System returns a reconnected device to its player.");
             Dextra.RemovePlayer(player);
             Assert.That(heard, Is.EqualTo(new[] { "joined " + index, "lost Gamepad", "regained Gamepad", "left " + index }));
         }
@@ -128,7 +128,7 @@ namespace Threadforge.Threadlink.Tests
                 int announced = 0;
                 Iris.Subscribe<BindingsChanged>(_ => announced++);
                 var player = Dextra.AddPlayer(source, Add<Gamepad>());
-                player.ImportOverrides(player.ExportOverrides());
+                player.ImportBindings(player.ExportBindings());
                 player.ResetBindings();
                 Assert.That(announced, Is.EqualTo(1), "Importing saved bindings is not a change; resetting them is.");
             }

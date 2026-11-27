@@ -61,7 +61,8 @@ namespace Threadforge.Threadlink
 
             /// <summary>Steam leaderboard name; empty uses <see cref="Name"/>.</summary>
             [Tooltip("Leaderboard name in Steamworks. Empty uses the name.")]
-            public string SteamName;
+            [FormerlySerializedAs("SteamName")]
+            public string ApiName;
         }
 
         /// <summary>A Steam DLC and the platform-agnostic product name game code uses for it.</summary>
@@ -117,7 +118,7 @@ namespace Threadforge.Threadlink
                     options.Statistic(statistic.Name, string.IsNullOrWhiteSpace(statistic.ApiName) ? statistic.Name : statistic.ApiName, statistic.Type);
             foreach (var board in Leaderboards)
                 if (board != null && !string.IsNullOrWhiteSpace(board.Name))
-                    options.Leaderboard(board.Name, string.IsNullOrWhiteSpace(board.SteamName) ? board.Name : board.SteamName);
+                    options.Leaderboard(board.Name, string.IsNullOrWhiteSpace(board.ApiName) ? board.Name : board.ApiName);
             foreach (var dlc in Dlc)
                 if (dlc != null && !string.IsNullOrWhiteSpace(dlc.Name) && dlc.AppId != 0)
                     options.Dlc(dlc.Name, dlc.AppId);

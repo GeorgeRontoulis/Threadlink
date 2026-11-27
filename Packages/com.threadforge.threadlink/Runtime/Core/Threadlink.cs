@@ -55,8 +55,8 @@ namespace Threadforge.Threadlink
             this.isolated = isolated;
         }
 
-        /// <summary>The core of the current session, or null when Threadlink is not deployed.</summary>
-        public static Threadlink Current => current;
+        // The current core, also while it deploys. Code outside the framework uses Instance or TryGetSingleton.
+        internal static Threadlink Current => current;
 
         /// <summary>The core of the current session. Throws when Threadlink is not deployed.</summary>
         public static Threadlink Instance =>
@@ -133,16 +133,6 @@ namespace Threadforge.Threadlink
                 return (T)existing;
             }
             return (T)Start(typeof(T), static () => new T());
-        }
-
-        /// <summary>Returns a subsystem of this session, adding it first when needed.</summary>
-        public T Get<T>()
-            where T : ThreadlinkSubsystem<T>, new()
-        {
-            CheckOpen();
-            if (subsystems.TryGetValue(typeof(T), out var subsystem) && subsystem.State == SubsystemState.Ready)
-                return (T)subsystem;
-            return Add<T>();
         }
 
         /// <summary>

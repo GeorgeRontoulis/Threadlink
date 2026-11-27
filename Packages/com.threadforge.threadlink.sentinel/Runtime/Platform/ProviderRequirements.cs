@@ -124,7 +124,7 @@ namespace Threadforge.Threadlink
                 if (value == Capability.None || (required & value) == 0)
                     continue;
                 var status = provider.Status(value);
-                if (!status.Supported || (provider.Supported & value) == 0)
+                if (!status.IsSupported || (provider.Supported & value) == 0)
                     return PlatformResult<Unit>.Failure(
                         PlatformError.Unsupported,
                         provider.Identity + " does not implement " + value

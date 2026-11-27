@@ -144,8 +144,8 @@ namespace Threadforge.Threadlink
         /// <summary>Whether this request has released its obligation.</summary>
         public bool IsReleased => released;
 
-        /// <summary>Releases once. Repeated calls do nothing, including after a release failure.</summary>
-        public void Release()
+        // Releases once. Repeated calls do nothing, including after a release failure.
+        internal void Release()
         {
             if (released)
                 return;
@@ -180,7 +180,7 @@ namespace Threadforge.Threadlink
             return releaseError != null ? UniTask.FromException(releaseError) : cleanup;
         }
 
-        /// <summary>Releases this request.</summary>
+        /// <summary>Releases this request once; repeated calls do nothing. Use <see cref="ReleaseAsync"/> to await backend cleanup.</summary>
         public void Dispose() => Release();
     }
 }

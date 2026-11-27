@@ -1,6 +1,6 @@
 # Framework Events
 
-The framework announces its state changes on [Iris](iris.md), so game code reacts to them instead of polling or depending on startup order. Every event is a `readonly struct`, delivered synchronously with `Iris.TryNotify`: a listener that throws is logged and the others still run.
+The framework announces its state changes on [Iris](iris.md), so game code reacts to them instead of polling or depending on startup order. Every event is a `readonly struct`, delivered synchronously with `Iris.TryPublish`: a listener that throws is logged and the others still run.
 
 ## Listening
 
@@ -75,4 +75,4 @@ private void Start() => Iris.Subscribe<DeviceLost>(this, lost => pauseMenu.Open(
 
 ## Announcing your own
 
-Follow the same shape for your subsystems' events: a `readonly struct` named in the past tense, announced with `Iris.TryNotify` when the change happens. Announce what other subsystems react to from `OnSubsystemInit` or later, never from `OnSubsystemBoot`, so every subsystem is subscribed.
+Follow the same shape for your subsystems' events: a `readonly struct` named in the past tense, announced with `Iris.TryPublish` when the change happens. Announce what other subsystems react to from `OnSubsystemInit` or later, never from `OnSubsystemBoot`, so every subsystem is subscribed.

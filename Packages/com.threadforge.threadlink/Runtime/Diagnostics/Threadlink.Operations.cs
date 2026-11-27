@@ -9,11 +9,11 @@ namespace Threadforge.Threadlink
 
         /// <summary>Starts recording an operation. Record its outcome on the returned scope; disposing without one records it as abandoned.</summary>
         /// <example><code>
-        /// var save = Threadlink.Begin("Saves", "Autosave");
+        /// var save = Threadlink.BeginOperation("Saves", "Autosave");
         /// save.Stage("Writing slot 0");
         /// save.Succeed();
         /// </code></example>
-        public static OperationScope Begin(string category, string name) => Instance.operations.Begin(category, name);
+        public static OperationScope BeginOperation(string category, string name) => Instance.operations.Begin(category, name);
 
         private void ReportOperations(MonitorReport report)
         {

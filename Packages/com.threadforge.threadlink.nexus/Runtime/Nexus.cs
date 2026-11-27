@@ -146,6 +146,7 @@ namespace Threadforge.Threadlink
         }
 
         /// <summary>Records Build Profile scenes and their current paths. Generated <c>GameScenes</c> calls this at registration.</summary>
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static void AddScenes(IEnumerable<SceneId> scenes) => BuildSceneBackend.AddKnown(scenes);
 
         /// <summary>Loads a Build Profile scene, prepares it, then presents it and unloads the previous one.</summary>
@@ -183,7 +184,7 @@ namespace Threadforge.Threadlink
             var from = navigator.PresentedResidency?.Scene ?? SceneManager.GetActiveScene();
             SceneTransition prepared = default;
             transitionDepth++;
-            Iris.TryNotify(new SceneTransitionStarted(from, id));
+            Iris.TryPublish(new SceneTransitionStarted(from, id));
             try
             {
                 using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, Lifetime);
@@ -212,13 +213,13 @@ namespace Threadforge.Threadlink
                         Debug.LogException(error);
                     }
                 }
-                Iris.TryNotify(new SceneChanged(prepared));
+                Iris.TryPublish(new SceneChanged(prepared));
                 return prepared;
             }
             catch (Exception error)
             {
                 failures++;
-                Iris.TryNotify(new SceneTransitionFailed(from, id, error));
+                Iris.TryPublish(new SceneTransitionFailed(from, id, error));
                 throw;
             }
             finally

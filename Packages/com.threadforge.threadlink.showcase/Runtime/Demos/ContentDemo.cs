@@ -61,8 +61,8 @@ namespace Threadforge.Threadlink.Showcase.Demos
         private void Use()
         {
             backend = new GeneratedTextures();
-            Threadlink.MapContent(Portrait, "portrait");
-            Threadlink.UseContentBackend(backend);
+            Content.Map(Portrait, "portrait");
+            Content.UseBackend(backend);
         }
 
         public override void Build(VisualElement panel, ShowcaseContext context)
@@ -75,20 +75,20 @@ namespace Threadforge.Threadlink.Showcase.Demos
             panel.Add(Row(
                 Action(context, "Load", async () =>
                 {
-                    held?.Release();
-                    held = await Threadlink.LoadAsync<Texture2D>(Portrait);
+                    held?.Dispose();
+                    held = await Content.LoadAsync<Texture2D>(Portrait);
                     Show();
                 }),
                 Action(context, "Release", () =>
                 {
-                    held?.Release();
+                    held?.Dispose();
                     Show();
                 }),
                 Action(context, "Load an unmapped ID", async () =>
                 {
                     try
                     {
-                        await Threadlink.LoadAsync<Texture2D>(Missing);
+                        await Content.LoadAsync<Texture2D>(Missing);
                     }
                     catch (Exception error)
                     {
@@ -100,20 +100,20 @@ namespace Threadforge.Threadlink.Showcase.Demos
         public override async UniTask SmokeAsync(ShowcaseContext context, CancellationToken token)
         {
             Use();
-            var request = await Threadlink.LoadAsync<Texture2D>(Portrait, token);
+            var request = await Content.LoadAsync<Texture2D>(Portrait, token);
             Check(request.Asset != null && backend.Loaded == 1, "a mapped ID loads through the backend");
-            request.Release();
-            request.Release();
+            request.Dispose();
+            request.Dispose();
             Check(backend.Loaded == 0, "release is immediate and idempotent");
             var owner = new GameObject("Content owner").AddComponent<OwnerProbe>();
-            var owned = await Threadlink.LoadAsync<Texture2D>(Portrait, owner);
+            var owned = await Content.LoadAsync<Texture2D>(Portrait, owner);
             UnityEngine.Object.Destroy(owner.gameObject);
             await UniTask.NextFrame(token);
             Check(owned.IsReleased && backend.Loaded == 0, "an owner's destruction releases its requests");
             bool refused = false;
             try
             {
-                await Threadlink.LoadAsync<Texture2D>(Missing, token);
+                await Content.LoadAsync<Texture2D>(Missing, token);
             }
             catch (System.Collections.Generic.KeyNotFoundException)
             {
@@ -124,9 +124,9 @@ namespace Threadforge.Threadlink.Showcase.Demos
 
         public override void Dispose()
         {
-            held?.Release();
+            held?.Dispose();
             if (Threadlink.IsDeployed)
-                Threadlink.UseContentBackend(null);
+                Content.UseBackend(null);
         }
 
         /// <summary>An owner for the demo.</summary>
