@@ -2,6 +2,25 @@
 
 All notable changes to this package are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0]
+
+### Added
+
+- Workspace **Configuration** page: every configuration asset by category (Threadlink settings, Addressables, input, Localization, rendering) with Select, Create, Move to folder and a folder choice per asset kind.
+- Asset folders (`AssetLocations`): new configuration assets go to the engineering or design configs folder, `Threadlink User/Engineering/Configs` and `Threadlink User/Design/Configs` by default, or a folder chosen per kind. The choices are stored in `ProjectSettings/ThreadlinkAssetLocations.asset`.
+- `ConfigSource` and `ConfigAsset` for packages and projects to add their own configuration assets, and `ConfigUI` rows for Workspace pages.
+- Workspace **Rendering** page: the active pipeline, the default and per-quality-level pipeline assets, installing the Universal or High Definition Render Pipeline, creating pipeline assets, and moving pipeline and renderer assets (`RenderPipelineKind`).
+- Addressables settings can be created in the engineering configs folder from the Workspace.
+
+### Changed
+
+- `ThreadlinkSettingsAssets.Folder` is replaced by `ThreadlinkSettingsAssets.Location(type)`. Settings assets are found wherever they are in Assets, and new ones are created in their location's folder.
+- `ThreadlinkSettingsAssets.Preload` is public.
+
+### Fixed
+
+- Opening a Threadlink page in Project Settings no longer leaves Unity's other settings pages with the Threadlink background. The theme applies to the page's own element (`ThreadlinkTheme.Host`), not to the root the Settings window shares between pages.
+
 ## [3.0.0]
 
 ### Changed

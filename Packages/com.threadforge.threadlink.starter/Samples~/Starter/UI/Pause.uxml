@@ -2,12 +2,36 @@
     <Style src="Starter.uss" />
     <ui:VisualElement class="starter-backdrop">
         <ui:VisualElement class="starter-panel">
-            <ui:Label text="Paused" class="starter-title" />
-            <ui:Button name="resume" text="Resume" class="starter-button" />
-            <ui:Button name="save" text="Save Game" class="starter-button" />
-            <ui:Button name="load" text="Load Game" class="starter-button" />
-            <ui:Button name="settings" text="Settings" class="starter-button" />
-            <ui:Button name="menu" text="Main Menu" class="starter-button" />
+            <ui:Label text="Paused" class="starter-title">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="pause.paused" />
+                </Bindings>
+            </ui:Label>
+            <ui:Button name="resume" text="Resume" class="starter-button">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="pause.resume" />
+                </Bindings>
+            </ui:Button>
+            <ui:Button name="save" text="Save Game" class="starter-button">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="pause.save" />
+                </Bindings>
+            </ui:Button>
+            <ui:Button name="load" text="Load Game" class="starter-button">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="pause.load" />
+                </Bindings>
+            </ui:Button>
+            <ui:Button name="settings" text="Settings" class="starter-button">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="pause.settings" />
+                </Bindings>
+            </ui:Button>
+            <ui:Button name="menu" text="Main Menu" class="starter-button">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="pause.menu" />
+                </Bindings>
+            </ui:Button>
             <ui:Label name="status" text="" class="starter-note" />
         </ui:VisualElement>
     </ui:VisualElement>

@@ -3,6 +3,7 @@ namespace Threadforge.Threadlink.Starter
     using System;
     using UnityEngine;
     using UnityEngine.InputSystem;
+    using UnityEngine.Localization;
     using UnityEngine.UIElements;
 
     /// <summary>UI Toolkit documents used by the starter screens.</summary>
@@ -48,7 +49,51 @@ namespace Threadforge.Threadlink.Starter
     }
 
     /// <summary>
-    /// Designer data for the starter: screens, sounds, the first level and tuning. The bootstrap scene references it;
+    /// Text the starter's code shows, as entries of the Starter string table. Entries with <c>{0}</c> receive a value:
+    /// a slot number, a time or an error. Text written in the screen documents binds to the same table there.
+    /// </summary>
+    [Serializable]
+    public sealed class StarterText
+    {
+        [Tooltip("Table for labels made from names: \"volume-<category>\" and \"action-<action>\" entries. Missing entries show the name.")]
+        public LocalizedStringTable Table = new LocalizedStringTable();
+        [Tooltip("A save slot that holds a game. {0}: slot number.")]
+        public LocalizedString Slot = new LocalizedString();
+        [Tooltip("An empty save slot. {0}: slot number.")]
+        public LocalizedString EmptySlot = new LocalizedString();
+        [Tooltip("HUD note after an autosave. {0}: time.")]
+        public LocalizedString Autosaved = new LocalizedString();
+        [Tooltip("HUD note after a save from the pause menu. {0}: time.")]
+        public LocalizedString Saved = new LocalizedString();
+        [Tooltip("HUD note when a save fails. {0}: error.")]
+        public LocalizedString SaveFailedNote = new LocalizedString();
+        [Tooltip("Pause menu note after saving. {0}: slot number.")]
+        public LocalizedString SavedToSlot = new LocalizedString();
+        [Tooltip("Title of the message when a save fails.")]
+        public LocalizedString SaveFailed = new LocalizedString();
+        [Tooltip("Body of the message when a slot changed elsewhere since it was loaded.")]
+        public LocalizedString SaveConflict = new LocalizedString();
+        [Tooltip("Title of the message when a level fails to load.")]
+        public LocalizedString LevelFailed = new LocalizedString();
+        [Tooltip("Title of the message when a slot cannot be loaded.")]
+        public LocalizedString NothingToLoad = new LocalizedString();
+        [Tooltip("Body of that message. {0}: slot number, {1}: error.")]
+        public LocalizedString NothingToLoadDetail = new LocalizedString();
+        [Tooltip("Title of the recovery screen. {0}: slot number.")]
+        public LocalizedString Damaged = new LocalizedString();
+        [Tooltip("Recovery screen text when the store gave no detail.")]
+        public LocalizedString DamagedDetail = new LocalizedString();
+        [Tooltip("Recovery screen button.")]
+        public LocalizedString RestorePrevious = new LocalizedString();
+        [Tooltip("Title of the message when no earlier version exists.")]
+        public LocalizedString NothingToRestore = new LocalizedString();
+
+        internal LocalizedString[] All =>
+            new[] { Slot, EmptySlot, Autosaved, Saved, SaveFailedNote, SavedToSlot, SaveFailed, SaveConflict, LevelFailed, NothingToLoad, NothingToLoadDetail, Damaged, DamagedDetail, RestorePrevious, NothingToRestore };
+    }
+
+    /// <summary>
+    /// Designer data for the starter: screens, sounds, text, the first level and tuning. The bootstrap scene references it;
     /// nothing here selects code or services.
     /// </summary>
     [CreateAssetMenu(menuName = "Threadlink/Starter/Starter Content")]
@@ -65,6 +110,9 @@ namespace Threadforge.Threadlink.Starter
 
         [Tooltip("Audio cues for menus and pickups.")]
         public StarterSounds Sounds = new StarterSounds();
+
+        [Tooltip("Text the starter's code shows, from the Starter string table.")]
+        public StarterText Text = new StarterText();
 
         [Tooltip("The level a new game starts in.")]
         public LevelDefinition FirstLevel;
@@ -92,6 +140,11 @@ namespace Threadforge.Threadlink.Starter
                 return "Panel settings are required.";
             if (Screens == null || Screens.MainMenu == null || Screens.Slots == null || Screens.Settings == null || Screens.Pause == null || Screens.Hud == null || Screens.Message == null || Screens.Recovery == null)
                 return "A screen document is missing.";
+            if (Text == null || Text.Table.IsEmpty)
+                return "The Starter string table is missing.";
+            foreach (var text in Text.All)
+                if (text == null || text.IsEmpty)
+                    return "A Starter text entry is not assigned.";
             if (FirstLevel == null)
                 return "The first level is missing.";
             return !MenuScene.IsAssigned ? "The menu scene is missing." : null;

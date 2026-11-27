@@ -1,0 +1,256 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: Threadlink Starter Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: Threadlink Starter
+  m_TableCollectionNameGuidString: f92314cc306f8184193c4a7162176a74
+  m_Entries:
+  - m_Id: 509300736
+    m_Key: slot
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049472
+    m_Key: empty-slot
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049473
+    m_Key: autosaved
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049474
+    m_Key: saved
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049475
+    m_Key: save-failed-note
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049476
+    m_Key: saved-to-slot
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049477
+    m_Key: save-failed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049478
+    m_Key: save-conflict
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049479
+    m_Key: level-failed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049480
+    m_Key: nothing-to-load
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049481
+    m_Key: nothing-to-load-detail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049482
+    m_Key: damaged
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049483
+    m_Key: damaged-detail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049484
+    m_Key: restore-previous
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049485
+    m_Key: nothing-to-restore
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049486
+    m_Key: level-forest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049487
+    m_Key: item-lantern
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049488
+    m_Key: take-item
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243776
+    m_Key: leave-forest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243777
+    m_Key: volume-music
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243778
+    m_Key: volume-effects
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243779
+    m_Key: volume-interface
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243780
+    m_Key: volume-ambience
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243781
+    m_Key: action-move
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243782
+    m_Key: action-interact
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243783
+    m_Key: action-pause
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243784
+    m_Key: conflict.choose-a-save
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243785
+    m_Key: conflict.keep-local
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243786
+    m_Key: loading.status
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243787
+    m_Key: loading.retry
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243788
+    m_Key: loading.quit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243789
+    m_Key: main-menu.threadlink-starter
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243790
+    m_Key: main-menu.continue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243791
+    m_Key: main-menu.new-game
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243792
+    m_Key: main-menu.load
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243793
+    m_Key: main-menu.settings
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243794
+    m_Key: main-menu.quit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243795
+    m_Key: message.ok
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243796
+    m_Key: pause.paused
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243797
+    m_Key: pause.resume
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243798
+    m_Key: pause.save
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243799
+    m_Key: pause.load
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243800
+    m_Key: pause.settings
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243801
+    m_Key: pause.menu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243802
+    m_Key: rebind.change-control
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243803
+    m_Key: rebind.clear-conflicts
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243804
+    m_Key: rebind.keep
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243805
+    m_Key: rebind.cancel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243806
+    m_Key: recovery.back
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243807
+    m_Key: settings.settings
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243808
+    m_Key: settings.audio
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243809
+    m_Key: settings.muted-label
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243810
+    m_Key: settings.controls
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243811
+    m_Key: settings.reset-bindings
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243812
+    m_Key: settings.back
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243813
+    m_Key: slots.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243814
+    m_Key: slots.back
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 3914850255449096218
+  references:
+    version: 2
+    RefIds:
+    - rid: 3914850255449096218
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1795776961241

@@ -4,6 +4,7 @@ namespace Threadforge.Threadlink.Showcase.Demos
     using System.Collections.Generic;
     using System.Threading;
     using UnityEngine;
+    using UnityEngine.Localization;
     using UnityEngine.UIElements;
 
     /// <summary>Interactables found by an InteractionSensor.</summary>
@@ -15,7 +16,11 @@ namespace Threadforge.Threadlink.Showcase.Demos
             /// <summary>Whether the chest is open.</summary>
             public bool Opened { get; private set; }
 
-            public override string Prompt => Opened ? "Empty" : "Open chest";
+            // Entries of the Showcase string table, registered by the Workspace's Localization setup.
+            private static readonly LocalizedString Closed = new LocalizedString(ShowcaseText.Table, "open-chest");
+            private static readonly LocalizedString Empty = new LocalizedString(ShowcaseText.Table, "empty-chest");
+
+            public override LocalizedString Prompt => Opened ? Empty : Closed;
 
             public override bool CanInteract(GameObject actor) => base.CanInteract(actor) && !Opened;
 
@@ -56,11 +61,11 @@ namespace Threadforge.Threadlink.Showcase.Demos
             var prompt = Value("Prompt: …");
             panel.Add(prompt);
             panel.Add(Row(
-                Action(context, "Read the prompt", () => prompt.text = "Prompt: " + (sensor.Target != null ? sensor.Prompt : "nothing in range")),
+                Action(context, "Read the prompt", () => prompt.text = "Prompt: " + (sensor.Target != null ? sensor.Prompt.GetLocalizedString() : "nothing in range")),
                 Action(context, "Interact", async () =>
                 {
                     bool done = await sensor.InteractAsync();
-                    context.Log(done ? "Interacted: " + chest.Prompt : "Nothing to interact with.");
+                    context.Log(done ? "Interacted: " + chest.Prompt.GetLocalizedString() : "Nothing to interact with.");
                 })));
         }
 
@@ -70,7 +75,7 @@ namespace Threadforge.Threadlink.Showcase.Demos
             await UniTask.NextFrame(token);
             await UniTask.NextFrame(token);
             Check(sensor.Target != null, "the sensor selects the chest in range");
-            Check(sensor.Prompt == "Open chest", "the prompt comes from the target");
+            Check(ReferenceEquals(sensor.Prompt, chest.Prompt) && sensor.Prompt.TableEntryReference.Key == "open-chest", "the prompt comes from the target");
             Check(await sensor.InteractAsync(), "the interaction runs");
             Check(chest.Opened, "the chest opened");
             await UniTask.NextFrame(token);

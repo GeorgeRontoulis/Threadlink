@@ -2,13 +2,37 @@
     <Style src="Starter.uss" />
     <ui:VisualElement class="starter-backdrop">
         <ui:VisualElement class="starter-panel">
-            <ui:Label text="Threadlink Starter" class="starter-title" />
+            <ui:Label text="Threadlink Starter" class="starter-title">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="main-menu.threadlink-starter" />
+                </Bindings>
+            </ui:Label>
             <ui:Label name="profile" text="" class="starter-text" />
-            <ui:Button name="continue" text="Continue" class="starter-button" />
-            <ui:Button name="new-game" text="New Game" class="starter-button" />
-            <ui:Button name="load" text="Load Game" class="starter-button" />
-            <ui:Button name="settings" text="Settings" class="starter-button" />
-            <ui:Button name="quit" text="Quit" class="starter-button" />
+            <ui:Button name="continue" text="Continue" class="starter-button">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="main-menu.continue" />
+                </Bindings>
+            </ui:Button>
+            <ui:Button name="new-game" text="New Game" class="starter-button">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="main-menu.new-game" />
+                </Bindings>
+            </ui:Button>
+            <ui:Button name="load" text="Load Game" class="starter-button">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="main-menu.load" />
+                </Bindings>
+            </ui:Button>
+            <ui:Button name="settings" text="Settings" class="starter-button">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="main-menu.settings" />
+                </Bindings>
+            </ui:Button>
+            <ui:Button name="quit" text="Quit" class="starter-button">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="main-menu.quit" />
+                </Bindings>
+            </ui:Button>
             <ui:Label name="status" text="" class="starter-note" />
         </ui:VisualElement>
     </ui:VisualElement>

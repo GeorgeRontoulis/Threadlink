@@ -5,7 +5,7 @@
 ## Install and play
 
 1. Install `com.threadforge.threadlink.starter` (see [Installation](installation.md)), or select **Install** on its card in the Workspace Hub. Its dependencies install with it.
-2. Import its **Starter** sample (Package Manager or Hub).
+2. Import its **Starter** sample (Package Manager or Hub). The import sets up Unity Localization for the sample's English string table (see [Localizing Text](../designer/localization.md)).
 3. Run **Threadlink ▸ Starter ▸ Add Starter Scenes To Build Profile**. It previews the list, puts `Starter Bootstrap`, `Starter Menu` and `Starter Forest` first and keeps your other scenes.
 4. Open `Starter Bootstrap` (**Threadlink ▸ Starter ▸ Open Bootstrap Scene**) and enter Play mode.
 
@@ -18,8 +18,8 @@ The whole game flow is one subsystem, `StarterGame`. It requires Nexus, Aura, De
 | Piece | Kind | Role |
 | --- | --- | --- |
 | `StarterGame` | Subsystem (code) | Menu, new game, continue, load, play, pause, save, autosave, settings, recovery |
-| `StarterContent` | Designer data | Screens, sounds, first level, menu scene, slot count, autosave interval, input actions and panel |
-| `LevelDefinition` | Designer data (Vault) | Level name, scene, music, spawn point, required lanterns |
+| `StarterContent` | Designer data | Screens, sounds, first level, menu scene, slot count, autosave interval, input actions, panel and text |
+| `LevelDefinition` | Designer data (Vault) | Localized level name, scene, music, spawn point, required lanterns |
 | `StarterLevel`, `StarterPlayer`, `StarterCollectible`, `StarterExit` | Scene components | Restore and capture the level, move the player, lanterns and exit (both `Interactable`) |
 | `StarterSave`, `StarterPreferences` | Save types | A slot's state; volumes and mute |
 
@@ -39,5 +39,6 @@ Saves are per local profile under `Application.persistentDataPath/Threadlink/Sav
 
 - Edit `Definitions/Forest` for the level, and `Configuration/StarterContent` for screens, sounds and tuning.
 - Edit the UXML and USS under `UI`; keep the element names the game binds.
+- Edit the text in the **Threadlink Starter** string table under `Localization`; screen labels bind to its entries, and `StarterContent` ▸ **Text** points at the entries the game fills in.
 - Replace the placeholder tones in `Audio`.
 - `StarterTint` colors the sample's primitives with the active render pipeline's default material. Replace it with authored materials in a real project.

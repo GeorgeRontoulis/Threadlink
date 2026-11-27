@@ -2,7 +2,6 @@ namespace Threadforge.Threadlink.Editor
 {
     using System;
     using System.Collections.Generic;
-    using System.IO;
     using System.Linq;
     using UnityEditor;
     using UnityEditor.Build;
@@ -15,9 +14,6 @@ namespace Threadforge.Threadlink.Editor
     /// <summary>Finds, creates and registers the project's Threadlink engineering settings assets.</summary>
     public static class ThreadlinkSettingsAssets
     {
-        /// <summary>Folder that holds engineering settings assets.</summary>
-        public const string Folder = "Assets/Threadforge/Threadlink User/Engineering/Configs";
-
         /// <summary>Every concrete settings type in the project.</summary>
         public static IReadOnlyList<Type> Types =>
             TypeCache
@@ -26,31 +22,64 @@ namespace Threadforge.Threadlink.Editor
                 .OrderBy(type => type.Name, StringComparer.Ordinal)
                 .ToList();
 
-        /// <summary>The registered settings asset of <paramref name="type"/>, optionally creating it.</summary>
+        /// <summary>Where new settings of <paramref name="type"/> are created; see <see cref="AssetLocations"/>.</summary>
+        public static AssetLocation Location(Type type) =>
+            new AssetLocation("threadlink.settings." + type.Name, PageName(type) + " Settings", "Threadlink", ConfigRoot.Engineering);
+
+        /// <summary>
+        /// The registered settings asset of <paramref name="type"/>, optionally creating it in its location's folder.
+        /// A settings asset elsewhere in Assets is found and registered.
+        /// </summary>
         public static ThreadlinkSettings Get(Type type, bool create)
         {
             string key = Key(type);
-            if (EditorBuildSettings.TryGetConfigObject(key, out ThreadlinkSettings existing) && existing != null)
+            if (EditorBuildSettings.TryGetConfigObject(key, out ThreadlinkSettings existing) && existing != null && existing.GetType() == type)
                 return existing;
-            string path = Folder + "/" + type.Name + ".asset";
-            var asset = AssetDatabase.LoadAssetAtPath<ThreadlinkSettings>(path);
+            var asset = AssetDatabase
+                .FindAssets("t:" + type.Name)
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Where(path => path.StartsWith("Assets/", StringComparison.Ordinal))
+                .OrderBy(path => path, StringComparer.Ordinal)
+                .Select(path => AssetDatabase.LoadAssetAtPath(path, type) as ThreadlinkSettings)
+                .FirstOrDefault(found => found != null && found.GetType() == type);
             if (asset == null)
             {
                 if (!create)
                     return null;
-                Directory.CreateDirectory(Folder);
                 asset = (ThreadlinkSettings)ScriptableObject.CreateInstance(type);
-                AssetDatabase.CreateAsset(asset, path);
+                AssetDatabase.CreateAsset(asset, AssetLocations.NewAssetPath(Location(type), type.Name + ".asset"));
                 AssetDatabase.SaveAssets();
             }
             EditorBuildSettings.AddConfigObject(key, asset, true);
             return asset;
         }
 
+        /// <summary>Whether <paramref name="assetPath"/> is, or was, a settings asset or inside a settings folder.</summary>
+        internal static bool IsSettingsPath(string assetPath)
+        {
+            if (!assetPath.EndsWith(".asset", StringComparison.OrdinalIgnoreCase))
+                return false;
+            var type = AssetDatabase.GetMainAssetTypeAtPath(assetPath);
+            return type != null ? typeof(ThreadlinkSettings).IsAssignableFrom(type) : Types.Any(settings => AssetLocations.IsIn(assetPath, Location(settings).Folder));
+        }
+
+        internal static string PageName(Type type)
+        {
+            var probe = (ThreadlinkSettings)ScriptableObject.CreateInstance(type);
+            try
+            {
+                return probe.PageName;
+            }
+            finally
+            {
+                Object.DestroyImmediate(probe);
+            }
+        }
+
         internal static string Key(Type type) => "com.threadforge.threadlink.settings." + type.Name;
 
         /// <summary>Registers settings assets as preloaded so players find them before the first scene.</summary>
-        internal static void Preload()
+        public static void Preload()
         {
             var preloaded = PlayerSettings.GetPreloadedAssets().Where(asset => asset != null && !(asset is ThreadlinkSettings)).ToList();
             foreach (var type in Types)
@@ -85,15 +114,15 @@ namespace Threadforge.Threadlink.Editor
 
         public override void OnActivate(string searchContext, VisualElement root)
         {
-            root.AddToClassList("threadlink");
-            ThreadlinkTheme.Apply(root);
             var page = new VisualElement();
             page.AddToClassList("tl-settings");
-            root.Add(page);
+            ThreadlinkTheme.Host(root).Add(page);
             var title = new Label(ObjectNames.NicifyVariableName(type.Name));
             title.AddToClassList("tl-title");
             page.Add(title);
-            var note = new Label("Engineering settings. They live in " + ThreadlinkSettingsAssets.Folder + " and ship with players; designers never need to edit them.");
+            var existingAsset = ThreadlinkSettingsAssets.Get(type, false);
+            string where = existingAsset != null ? AssetDatabase.GetAssetPath(existingAsset) : ThreadlinkSettingsAssets.Location(type).Folder;
+            var note = new Label("Engineering settings, in " + where + ". They ship with players; designers never need to edit them. Choose their folder in Threadlink ▸ Workspace ▸ Configuration.");
             note.AddToClassList("tl-note");
             page.Add(note);
             var settings = ThreadlinkSettingsAssets.Get(type, false);
@@ -174,10 +203,9 @@ namespace Threadforge.Threadlink.Editor
 
         public override void OnActivate(string searchContext, VisualElement root)
         {
-            ThreadlinkTheme.Apply(root);
             var scroll = new ScrollView();
             scroll.style.flexGrow = 1;
-            root.Add(scroll);
+            ThreadlinkTheme.Host(root).Add(scroll);
             var page = new VisualElement();
             page.AddToClassList("tl-settings");
             page.AddToClassList("tl-overview");

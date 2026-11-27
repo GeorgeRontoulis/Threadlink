@@ -4,13 +4,29 @@ namespace Threadforge.Threadlink.Editor
     using UnityEngine;
     using UnityEngine.UIElements;
 
-    /// <summary>The Threadlink Editor theme. Apply it to the root of a window, settings page or inspector.</summary>
+    /// <summary>The Threadlink Editor theme for Threadlink's windows, settings pages and inspectors.</summary>
     public static class ThreadlinkTheme
     {
         private const string Path = "Packages/com.threadforge.threadlink/Editor/Theme/Threadlink.uss";
         private static StyleSheet sheet;
 
-        /// <summary>Adds the theme's style sheet and skin class to <paramref name="root"/>.</summary>
+        /// <summary>
+        /// Adds a themed element that fills <paramref name="parent"/> and returns it. Use it where the parent is shared
+        /// with other content, such as the root a Project Settings page receives: the Settings window reuses that root
+        /// for every page, so styling it would carry the theme to Unity's own pages.
+        /// </summary>
+        public static VisualElement Host(VisualElement parent)
+        {
+            var host = new VisualElement();
+            Apply(host);
+            parent.Add(host);
+            return host;
+        }
+
+        /// <summary>
+        /// Adds the theme's style sheet and skin class to <paramref name="root"/>. Apply it only to an element the
+        /// caller owns, such as its own window's root or an inspector it creates; see <see cref="Host"/>.
+        /// </summary>
         public static void Apply(VisualElement root)
         {
             if (sheet == null)

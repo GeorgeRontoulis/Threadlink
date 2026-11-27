@@ -31,13 +31,151 @@ MonoBehaviour:
     ScreenClose: {fileID: 11400000, guid: 2a12ba733cf63ce4fb4d198003e636bf, type: 2}
     ScreenFocus: {fileID: 11400000, guid: a1366ad625a2a1041840401d06fdc355, type: 2}
     Pickup: {fileID: 11400000, guid: bef19cc7179826240918c3a0914987f9, type: 2}
+  Text:
+    Table:
+      m_TableReference:
+        m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+    Slot:
+      m_TableReference:
+        m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+      m_TableEntryReference:
+        m_KeyId: 509300736
+        m_Key: 
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
+    EmptySlot:
+      m_TableReference:
+        m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+      m_TableEntryReference:
+        m_KeyId: 547049472
+        m_Key: 
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
+    Autosaved:
+      m_TableReference:
+        m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+      m_TableEntryReference:
+        m_KeyId: 547049473
+        m_Key: 
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
+    Saved:
+      m_TableReference:
+        m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+      m_TableEntryReference:
+        m_KeyId: 547049474
+        m_Key: 
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
+    SaveFailedNote:
+      m_TableReference:
+        m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+      m_TableEntryReference:
+        m_KeyId: 547049475
+        m_Key: 
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
+    SavedToSlot:
+      m_TableReference:
+        m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+      m_TableEntryReference:
+        m_KeyId: 547049476
+        m_Key: 
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
+    SaveFailed:
+      m_TableReference:
+        m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+      m_TableEntryReference:
+        m_KeyId: 547049477
+        m_Key: 
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
+    SaveConflict:
+      m_TableReference:
+        m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+      m_TableEntryReference:
+        m_KeyId: 547049478
+        m_Key: 
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
+    LevelFailed:
+      m_TableReference:
+        m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+      m_TableEntryReference:
+        m_KeyId: 547049479
+        m_Key: 
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
+    NothingToLoad:
+      m_TableReference:
+        m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+      m_TableEntryReference:
+        m_KeyId: 547049480
+        m_Key: 
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
+    NothingToLoadDetail:
+      m_TableReference:
+        m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+      m_TableEntryReference:
+        m_KeyId: 547049481
+        m_Key: 
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
+    Damaged:
+      m_TableReference:
+        m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+      m_TableEntryReference:
+        m_KeyId: 547049482
+        m_Key: 
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
+    DamagedDetail:
+      m_TableReference:
+        m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+      m_TableEntryReference:
+        m_KeyId: 547049483
+        m_Key: 
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
+    RestorePrevious:
+      m_TableReference:
+        m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+      m_TableEntryReference:
+        m_KeyId: 547049484
+        m_Key: 
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
+    NothingToRestore:
+      m_TableReference:
+        m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+      m_TableEntryReference:
+        m_KeyId: 547049485
+        m_Key: 
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
   FirstLevel: {fileID: 11400000, guid: f187298e6337dda4bb476ff75adb949a, type: 2}
   MenuScene:
     guid: edb54f48-27d7-97b4-0bda-653a02010352
     path: Starter Menu
   SlotCount: 3
   AutosaveSeconds: 120
-  StorageFolder: Threadlink Starter
-  Cloud: {fileID: 0}
-  ShippingDiagnostics: 0
-  Traces: 0
+  references:
+    version: 2
+    RefIds: []

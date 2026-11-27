@@ -87,7 +87,7 @@ Framework subsystems follow the same pattern and expose their API as static meth
 | Kind | Lives in | Edited by |
 | --- | --- | --- |
 | Composition and behaviour | Code: subsystems, components, save types | Engineers |
-| Engineering settings | `ThreadlinkSettings<T>` assets in `Engineering/Configs`, edited only in **Project Settings ▸ Threadlink**, read-only in the Inspector, preloaded in players | Engineers |
+| Engineering settings | `ThreadlinkSettings<T>` assets in `Engineering/Configs` or the folder chosen on the Workspace's Configuration page, edited only in **Project Settings ▸ Threadlink**, read-only in the Inspector, preloaded in players | Engineers |
 | Designer data | Assets and scene components: `AudioCue`, `SceneMusic`, `VaultAsset`, screen documents, tuning values | Designers |
 
 Designer data holds values only: it never selects types, services or wiring.

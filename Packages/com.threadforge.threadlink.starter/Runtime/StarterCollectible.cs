@@ -3,6 +3,7 @@ namespace Threadforge.Threadlink.Starter
     using Cysharp.Threading.Tasks;
     using System.Threading;
     using UnityEngine;
+    using UnityEngine.Localization;
 
     /// <summary>A lantern to collect. Its identity is stable so saves remember it.</summary>
     public sealed class StarterCollectible : Interactable
@@ -12,8 +13,8 @@ namespace Threadforge.Threadlink.Starter
         private string identity;
 
         [SerializeField]
-        [Tooltip("Name shown when picked up.")]
-        private string displayName = "Lantern";
+        [Tooltip("Item name: an entry of a string table. The prompt entry shows it as {item}.")]
+        private LocalizedString displayName = new LocalizedString();
 
         [SerializeField]
         [Tooltip("Hidden once collected.")]
@@ -24,8 +25,17 @@ namespace Threadforge.Threadlink.Starter
         /// <summary>Stable identity stored in saves.</summary>
         public string Identity => identity;
 
-        /// <inheritdoc />
-        public override string Prompt => "Take " + displayName;
+        /// <summary>The prompt entry, with this item's name as its <c>{item}</c> variable.</summary>
+        public override LocalizedString Prompt
+        {
+            get
+            {
+                var prompt = base.Prompt;
+                if (!prompt.ContainsKey("item"))
+                    prompt.Add("item", displayName);
+                return prompt;
+            }
+        }
 
         /// <inheritdoc />
         public override bool CanInteract(GameObject actor) => base.CanInteract(actor) && !collected;

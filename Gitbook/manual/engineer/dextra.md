@@ -70,14 +70,22 @@ Components implementing `IScreenListener` on a screen hear when it shows, hides 
 ```csharp
 public sealed class Chest : Interactable
 {
-    public override string Prompt => "Open chest";
+    [SerializeField] private LocalizedString emptyPrompt;  // a string table entry
+    private bool opened;
+
+    public override LocalizedString Prompt => opened ? emptyPrompt : base.Prompt;
 
     protected override async UniTask InteractAsync(GameObject actor, CancellationToken token)
     {
         await animator.PlayOpenAsync(token);
         Inventory.Add(loot);
+        opened = true;
     }
 }
+
+promptLabel.text = sensor.Prompt?.GetLocalizedString() ?? string.Empty;
 ```
 
-Add **Threadlink ▸ Dextra ▸ Interaction Sensor** to the player. Every frame it finds interactables through 3D or 2D physics within its radius and selects the closest available one; `sensor.Prompt` is the selected target's prompt and `await sensor.InteractAsync()` runs one interaction at a time. Iris publishes `InteractionTargetChanged` when the selection changes. Objects that cannot derive from `Interactable` implement `IInteractable`.
+Add **Threadlink ▸ Dextra ▸ Interaction Sensor** to the player. Every frame it finds interactables through 3D or 2D physics within its radius and selects the closest available one; `sensor.Prompt` is the selected target's prompt, a `LocalizedString` (null when nothing is selected), and `await sensor.InteractAsync()` runs one interaction at a time. Iris publishes `InteractionTargetChanged` when the selection changes. Objects that cannot derive from `Interactable` implement `IInteractable`.
+
+Prompts are Unity Localization string table entries, picked in the **Prompt** field. Read one with `GetLocalizedString()` when the selection or the language changes, or bind it to a UI Toolkit property so it follows the language by itself. Use `LocalizedString` for any other player-visible text an interactable owns; see [Localizing Text](../designer/localization.md).

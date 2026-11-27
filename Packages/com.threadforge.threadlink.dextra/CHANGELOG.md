@@ -2,6 +2,18 @@
 
 All notable changes to this package are documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0]
+
+### Added
+
+- Workspace **Localization** page and `LocalizationSetup`: setup creates Localization settings and the English locale if missing and registers every string table collection for loading, and runs automatically when a Threadlink sample's string tables are imported. The page adds locales (with a table in every collection) and string tables, in their configured folders.
+- Input configuration on the Workspace's Configuration page: Player Actions, created from the Input System's default actions with Dextra's map names, the Input System settings, and Screen Panel Settings with a theme. Creating one assigns it to Dextra's settings or the Input System.
+- Dependency on Unity Localization 1.5.14.
+
+### Changed
+
+- `Interactable.Prompt`, `InteractionAvailability.Prompt` and `InteractionSensor.Prompt` are `LocalizedString` string table entries instead of strings. The sensor's prompt is null when nothing is selected. Assign the **Prompt** field of existing interactables to a table entry.
+
 ## [3.0.0]
 
 ### Changed

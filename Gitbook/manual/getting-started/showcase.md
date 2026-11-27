@@ -7,6 +7,8 @@ The Showcase is a gallery with a runnable demo for every Threadlink feature. Eac
 - From the Hub: **Threadlink ▸ Workspace ▸ Hub ▸ Install Showcase**, then **Open Showcase**. The Hub imports the sample and opens its scene.
 - From the Package Manager: install `com.threadforge.threadlink.showcase`, import its **Showcase** sample and open `Scenes/Showcase.unity`.
 
+Importing the sample sets up Unity Localization for its **Threadlink Showcase** string table (see [Localizing Text](../designer/localization.md)).
+
 Enter Play mode and select a demo on the left.
 
 ## Demos

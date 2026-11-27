@@ -1,0 +1,259 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: Threadlink Starter_en
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: en
+  m_SharedData: {fileID: 11400000, guid: f92314cc306f8184193c4a7162176a74, type: 2}
+  m_Metadata:
+    m_Items:
+    - rid: 3914850255449096220
+  m_TableData:
+  - m_Id: 509300736
+    m_Localized: Slot {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049472
+    m_Localized: "Slot {0} \xB7 empty, start here"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049473
+    m_Localized: Autosaved {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049474
+    m_Localized: Saved {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049475
+    m_Localized: 'Save failed: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049476
+    m_Localized: Saved to slot {0}.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049477
+    m_Localized: Save failed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049478
+    m_Localized: This slot changed elsewhere. Load it again before saving.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049479
+    m_Localized: The level could not load
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049480
+    m_Localized: Nothing to load
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049481
+    m_Localized: 'Slot {0}: {1}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049482
+    m_Localized: Slot {0} is damaged
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049483
+    m_Localized: The save could not be read.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049484
+    m_Localized: Restore the previous version
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049485
+    m_Localized: Nothing to restore
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049486
+    m_Localized: Forest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049487
+    m_Localized: Lantern
+    m_Metadata:
+      m_Items: []
+  - m_Id: 547049488
+    m_Localized: Take {item}
+    m_Metadata:
+      m_Items:
+      - rid: 3914850255449096220
+  - m_Id: 551243776
+    m_Localized: Leave the forest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243777
+    m_Localized: Music
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243778
+    m_Localized: Effects
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243779
+    m_Localized: Interface
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243780
+    m_Localized: Ambience
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243781
+    m_Localized: Move
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243782
+    m_Localized: Interact
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243783
+    m_Localized: Pause
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243784
+    m_Localized: Choose a Save
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243785
+    m_Localized: Keep Local Save
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243786
+    m_Localized: "Loading\u2026"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243787
+    m_Localized: Retry
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243788
+    m_Localized: Quit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243789
+    m_Localized: Threadlink Starter
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243790
+    m_Localized: Continue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243791
+    m_Localized: New Game
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243792
+    m_Localized: Load Game
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243793
+    m_Localized: Settings
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243794
+    m_Localized: Quit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243795
+    m_Localized: OK
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243796
+    m_Localized: Paused
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243797
+    m_Localized: Resume
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243798
+    m_Localized: Save Game
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243799
+    m_Localized: Load Game
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243800
+    m_Localized: Settings
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243801
+    m_Localized: Main Menu
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243802
+    m_Localized: Change Control
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243803
+    m_Localized: Clear Other Bindings
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243804
+    m_Localized: Keep Both
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243805
+    m_Localized: Cancel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243806
+    m_Localized: Back
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243807
+    m_Localized: Settings
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243808
+    m_Localized: Audio
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243809
+    m_Localized: Mute all
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243810
+    m_Localized: Controls
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243811
+    m_Localized: Reset Controls
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243812
+    m_Localized: Back
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243813
+    m_Localized: Load Game
+    m_Metadata:
+      m_Items: []
+  - m_Id: 551243814
+    m_Localized: Back
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 3914850255449096220
+      type: {class: SmartFormatTag, ns: UnityEngine.Localization.Metadata, asm: Unity.Localization}
+      data:
+        m_Entries: 
+        m_SharedEntries:
+        - id: 547049488

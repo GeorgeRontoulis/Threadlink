@@ -5,6 +5,8 @@ namespace Threadforge.Threadlink.Starter
     using System.Linq;
     using UnityEngine;
     using UnityEngine.InputSystem;
+    using UnityEngine.Localization;
+    using UnityEngine.Localization.Settings;
     using UnityEngine.UIElements;
 
     /// <summary>
@@ -122,7 +124,7 @@ namespace Threadforge.Threadlink.Starter
             if (hud != null && !hud.IsClosed)
             {
                 hud.Root.Q<Label>("items").text = save.Collected.Count + " / " + prepared.RequiredItems;
-                hud.Root.Q<Label>("prompt").text = level.Prompt;
+                hud.Root.Q<Label>("prompt").text = PromptText(level.Prompt);
             }
         }
 
@@ -144,7 +146,7 @@ namespace Threadforge.Threadlink.Starter
             root.Q<Button>("new-game").clicked += () =>
             {
                 int free = Enumerable.Range(0, content.SlotCount).FirstOrDefault(index => !saved.Contains(index));
-                PlayAsync(free, new StarterSave { Level = content.FirstLevel.DisplayName }).Forget();
+                PlayAsync(free, new StarterSave { Level = content.FirstLevel.Identity.ToString("D") }).Forget();
             };
             root.Q<Button>("load").clicked += () => SlotsAsync().Forget();
             root.Q<Button>("settings").clicked += () => SettingsAsync().Forget();
@@ -163,7 +165,7 @@ namespace Threadforge.Threadlink.Starter
             }
             catch (Exception error)
             {
-                await MessageAsync("The level could not load", error.Message);
+                await MessageAsync(Say(content.Text.LevelFailed), error.Message);
                 await ShowMenuAsync();
             }
         }
@@ -179,7 +181,7 @@ namespace Threadforge.Threadlink.Starter
             if (loaded.Error == PersistenceError.CorruptData)
                 await RecoveryAsync(target, loaded.Message);
             else
-                await MessageAsync("Nothing to load", "Slot " + (target + 1) + ": " + loaded.Error + ".");
+                await MessageAsync(Say(content.Text.NothingToLoad), Say(content.Text.NothingToLoadDetail, target + 1, loaded.Error));
         }
 
         private async UniTask SaveAsync(bool quiet)
@@ -187,11 +189,14 @@ namespace Threadforge.Threadlink.Starter
             if (save == null || level == null)
                 return;
             level.Capture(save);
-            var saved = await Sentinel.Saves.SaveAsync(slot, save, prepared.DisplayName + " · " + save.Collected.Count + "/" + prepared.RequiredItems);
+            // The title is a label for this save, in the language it was saved in.
+            var saved = await Sentinel.Saves.SaveAsync(slot, save, Say(prepared.DisplayName) + " · " + save.Collected.Count + "/" + prepared.RequiredItems);
             if (hud != null && !hud.IsClosed)
-                hud.Root.Q<Label>("autosave").text = saved.Succeeded ? (quiet ? "Autosaved" : "Saved") + " " + DateTime.Now.ToString("t") : "Save failed: " + saved.Error;
+                hud.Root.Q<Label>("autosave").text = saved.Succeeded
+                    ? Say(quiet ? content.Text.Autosaved : content.Text.Saved, DateTime.Now.ToString("t"))
+                    : Say(content.Text.SaveFailedNote, saved.Error);
             if (!saved.Succeeded && !quiet)
-                await MessageAsync("Save failed", saved.Error == PersistenceError.Conflict ? "This slot changed elsewhere. Load it again before saving." : saved.Message ?? saved.Error.ToString());
+                await MessageAsync(Say(content.Text.SaveFailed), saved.Error == PersistenceError.Conflict ? Say(content.Text.SaveConflict) : saved.Message ?? saved.Error.ToString());
         }
 
         private void TogglePause()
@@ -212,7 +217,7 @@ namespace Threadforge.Threadlink.Starter
             root.Q<Button>("save").clicked += async () =>
             {
                 await SaveAsync(false);
-                root.Q<Label>("status").text = "Saved to slot " + (slot + 1) + ".";
+                root.Q<Label>("status").text = Say(content.Text.SavedToSlot, slot + 1);
             };
             root.Q<Button>("load").clicked += () => SlotsAsync().Forget();
             root.Q<Button>("settings").clicked += () => SettingsAsync().Forget();
@@ -233,10 +238,10 @@ namespace Threadforge.Threadlink.Starter
                     if (saved.Contains(index))
                         await LoadAsync(index);
                     else
-                        await PlayAsync(index, new StarterSave { Level = content.FirstLevel.DisplayName });
+                        await PlayAsync(index, new StarterSave { Level = content.FirstLevel.Identity.ToString("D") });
                 })
                 {
-                    text = "Slot " + (i + 1) + (saved.Contains(i) ? "" : " · empty, start here"),
+                    text = Say(saved.Contains(i) ? content.Text.Slot : content.Text.EmptySlot, i + 1),
                 };
                 list.Add(button);
             }
@@ -250,7 +255,7 @@ namespace Threadforge.Threadlink.Starter
             var volumes = root.Q<VisualElement>("volumes");
             foreach (string category in preferences.Volumes.Keys.ToArray())
             {
-                var slider = new Slider(category, 0, 1) { value = preferences.Volumes[category] };
+                var slider = new Slider(Label("volume-", category), 0, 1) { value = preferences.Volumes[category] };
                 slider.RegisterValueChangedCallback(change =>
                 {
                     preferences.Volumes[category] = change.newValue;
@@ -274,7 +279,7 @@ namespace Threadforge.Threadlink.Starter
                 {
                     var id = InputId.Of(action);
                     var row = new VisualElement { style = { flexDirection = FlexDirection.Row } };
-                    row.Add(new Label(action.name) { style = { width = 120 } });
+                    row.Add(new Label(Label("action-", action.name)) { style = { width = 120 } });
                     row.Add(new Button(async () =>
                     {
                         await player.RebindAsync(id);
@@ -300,8 +305,8 @@ namespace Threadforge.Threadlink.Starter
         {
             var screen = await OpenAsync(content.Screens.Recovery, ScreenLayer.Modal);
             var root = screen.Root;
-            root.Q<Label>("title").text = "Slot " + (target + 1) + " is damaged";
-            root.Q<Label>("detail").text = detail ?? "The save could not be read.";
+            root.Q<Label>("title").text = Say(content.Text.Damaged, target + 1);
+            root.Q<Label>("detail").text = detail ?? Say(content.Text.DamagedDetail);
             root.Q<VisualElement>("versions").Add(new Button(async () =>
             {
                 var restored = await Sentinel.Saves.RestorePreviousAsync<StarterSave>(target);
@@ -309,8 +314,8 @@ namespace Threadforge.Threadlink.Starter
                 if (restored.Succeeded)
                     await LoadAsync(target);
                 else
-                    await MessageAsync("Nothing to restore", restored.Message ?? restored.Error.ToString());
-            }) { text = "Restore the previous version" });
+                    await MessageAsync(Say(content.Text.NothingToRestore), restored.Message ?? restored.Error.ToString());
+            }) { text = Say(content.Text.RestorePrevious) });
             root.Q<Button>("back").clicked += () => CloseAsync(screen).Forget();
         }
 
@@ -331,7 +336,38 @@ namespace Threadforge.Threadlink.Starter
         private async UniTask OpenHudAsync()
         {
             hud = await OpenAsync(content.Screens.Hud, ScreenLayer.Hud, blocksInput: false);
-            hud.Root.Q<Label>("level").text = prepared.DisplayName;
+            hud.Root.Q<Label>("level").text = Say(prepared.DisplayName);
+        }
+
+        // Text in the selected language. Entries with {0} receive the arguments.
+        private static string Say(LocalizedString text, params object[] arguments) =>
+            text == null || text.IsEmpty ? string.Empty : arguments.Length == 0 ? text.GetLocalizedString() : text.GetLocalizedString(arguments);
+
+        // A label for a name, such as an audio category: the table's "<prefix><name>" entry, or the name itself.
+        private string Label(string prefix, string name)
+        {
+            if (content.Text.Table.IsEmpty)
+                return name;
+            var table = LocalizationSettings.StringDatabase.GetTable(content.Text.Table.TableReference);
+            var entry = table != null ? table.GetEntry(prefix + name.ToLowerInvariant()) : null;
+            return entry != null ? entry.GetLocalizedString() : name;
+        }
+
+        // The HUD asks every frame; the text is looked up when the prompt or the language changes.
+        private LocalizedString shownPrompt;
+        private Locale shownLocale;
+        private string shownPromptText = string.Empty;
+
+        private string PromptText(LocalizedString prompt)
+        {
+            var locale = prompt != null ? LocalizationSettings.SelectedLocale : shownLocale;
+            if (!ReferenceEquals(prompt, shownPrompt) || locale != shownLocale)
+            {
+                shownPrompt = prompt;
+                shownLocale = locale;
+                shownPromptText = Say(prompt);
+            }
+            return shownPromptText;
         }
 
         private async UniTask<ScreenHandle> OpenAsync(VisualTreeAsset document, ScreenLayer layer, bool blocksInput = true)

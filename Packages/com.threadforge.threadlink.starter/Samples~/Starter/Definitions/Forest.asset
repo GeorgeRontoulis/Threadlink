@@ -12,12 +12,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 171f6249a41901640ae94682086cb383, type: 3}
   m_Name: Forest
   m_EditorClassIdentifier: Threadforge.Threadlink.Starter::Threadforge.Threadlink.Starter.LevelDefinition
-  identity: 
-  authoredVersion: 1
-  DisplayName: Forest
+  identity: f914a5c1-37e5-4ef0-b62e-4061a5c944f0
+  authoredVersion: 2
+  DisplayName:
+    m_TableReference:
+      m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+    m_TableEntryReference:
+      m_KeyId: 547049486
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
   Scene:
     guid: 1cd47321-be47-79d4-983b-67f70b44b815
     path: Starter Forest
   Music: {fileID: 11400000, guid: e33741f7a68f98746b284ede6cf6ee20, type: 2}
   Spawn: {x: 0, y: 1.1, z: -8}
   RequiredItems: 3
+  references:
+    version: 2
+    RefIds: []

@@ -2,9 +2,17 @@
     <Style src="Starter.uss" />
     <ui:VisualElement class="starter-backdrop">
         <ui:VisualElement class="starter-panel">
-            <ui:Label name="title" text="Load Game" class="starter-title" />
+            <ui:Label name="title" text="Load Game" class="starter-title">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="slots.title" />
+                </Bindings>
+            </ui:Label>
             <ui:ScrollView name="slots-scroll" class="starter-list"><ui:VisualElement name="slots" /></ui:ScrollView>
-            <ui:Button name="back" text="Back" class="starter-button" />
+            <ui:Button name="back" text="Back" class="starter-button">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="slots.back" />
+                </Bindings>
+            </ui:Button>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

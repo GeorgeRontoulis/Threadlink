@@ -354,7 +354,7 @@ namespace Threadforge.Threadlink.Editor
             foreach (var path in imported.Concat(deleted).Concat(moved).Concat(movedFrom))
                 if (path.EndsWith(".unity", StringComparison.OrdinalIgnoreCase)
                     || path.EndsWith(".inputactions", StringComparison.OrdinalIgnoreCase)
-                    || path.StartsWith(ThreadlinkSettingsAssets.Folder, StringComparison.Ordinal)
+                    || ThreadlinkSettingsAssets.IsSettingsPath(path)
                     || IdDomain.IsDomainPath(path) && path.EndsWith(".asset", StringComparison.OrdinalIgnoreCase))
                 {
                     GeneratedIds.Request();

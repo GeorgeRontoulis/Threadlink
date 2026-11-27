@@ -9,12 +9,14 @@ namespace Threadforge.Threadlink.Tests
     {
         private sealed class Target : IInteractable
         {
+            private static readonly UnityEngine.Localization.LocalizedString Use = new UnityEngine.Localization.LocalizedString("Tests", "use");
+
             public Guid Identity { get; } = Guid.NewGuid();
             public bool Available = true;
             public int Executions;
 
             public InteractionAvailability Evaluate(object actor) =>
-                new InteractionAvailability(Available, "Use");
+                new InteractionAvailability(Available, Use);
 
             public UniTask ExecuteAsync(object actor, CancellationToken token)
             {

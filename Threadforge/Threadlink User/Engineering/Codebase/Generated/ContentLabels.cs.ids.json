@@ -7,6 +7,14 @@
             "Key": "default",
             "Value": "new global::Threadforge.Threadlink.ContentLabel(\"default\")",
             "Summary": "Addressables label default."
+        },
+        {
+            "Group": "",
+            "Name": "Locale",
+            "Type": "global::Threadforge.Threadlink.ContentLabel",
+            "Key": "Locale",
+            "Value": "new global::Threadforge.Threadlink.ContentLabel(\"Locale\")",
+            "Summary": "Addressables label Locale."
         }
     ]
 }

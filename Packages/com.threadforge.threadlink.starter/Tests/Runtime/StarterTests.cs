@@ -36,7 +36,7 @@ namespace Threadforge.Threadlink.Starter.Tests
         [UnityTest]
         public IEnumerator SavesRoundTripThroughSentinel()
         {
-            var save = new StarterSave { Level = "Forest", Position = new[] { 1f, 2f, 3f }, PlaySeconds = 4 };
+            var save = new StarterSave { Level = "0d6f6a77-2b9e-4b55-9f7b-3d4f3e7d5c10", Position = new[] { 1f, 2f, 3f }, PlaySeconds = 4 };
             save.Collected.Add("lantern-a");
             var saved = Sentinel.Saves.SaveAsync(950, save);
             while (!saved.GetAwaiter().IsCompleted)

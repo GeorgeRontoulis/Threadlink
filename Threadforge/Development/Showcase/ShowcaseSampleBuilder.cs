@@ -26,7 +26,8 @@ namespace Threadforge.Threadlink.Development
             File.WriteAllText(Root + "/UI/ShowcaseTheme.tss", "@import url(\"unity-theme://default\");\n");
             File.WriteAllText(
                 Root + "/README.md",
-                "# Threadlink Showcase\n\nOpen `Scenes/Showcase.unity` and enter Play mode. Select a demo on the left; its controls, the packages it uses and a live log appear on the right. Each demo's code is one file under `Runtime/Demos` in the Threadlink Showcase package.\n"
+                "# Threadlink Showcase\n\nOpen `Scenes/Showcase.unity` and enter Play mode. Select a demo on the left; its controls, the packages it uses and a live log appear on the right. Each demo's code is one file under `Runtime/Demos` in the Threadlink Showcase package.\n\n"
+                    + "Importing the sample sets up Unity Localization for its English string table, `Localization/Threadlink Showcase` (**Threadlink ▸ Workspace ▸ Localization ▸ Set up** does the same). Add languages to that table to translate the demos' text.\n"
             );
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
 
@@ -54,10 +55,27 @@ namespace Threadforge.Threadlink.Development
             EditorSceneManager.CloseScene(scene, true);
             AssetDatabase.SaveAssets();
 
+            // The sample's string table is authored with Unity Localization, not by this builder: keep it.
+            string localization = Path.Combine(Destination, "Localization");
+            string kept = Path.Combine(Path.GetTempPath(), "Threadlink Showcase Localization");
+            if (Directory.Exists(kept))
+                Directory.Delete(kept, true);
+            if (Directory.Exists(localization))
+            {
+                CopyWithMeta(localization, kept);
+                File.Copy(localization + ".meta", kept + ".meta", true);
+            }
             if (Directory.Exists(Destination))
                 Directory.Delete(Destination, true);
             Directory.CreateDirectory(Path.GetDirectoryName(Destination));
             CopyWithMeta(Root, Destination);
+            if (Directory.Exists(kept))
+            {
+                CopyWithMeta(kept, localization);
+                File.Copy(kept + ".meta", localization + ".meta", true);
+                Directory.Delete(kept, true);
+                File.Delete(kept + ".meta");
+            }
             AssetDatabase.DeleteAsset(Build);
             Debug.Log("Showcase sample written to " + Destination);
         }

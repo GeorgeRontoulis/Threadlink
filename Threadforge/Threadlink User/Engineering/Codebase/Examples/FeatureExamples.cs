@@ -8,6 +8,7 @@ namespace Threadlink.User.Examples
     using MessagePack;
     using Threadforge.Threadlink;
     using UnityEngine;
+    using UnityEngine.Localization;
     using UnityEngine.ResourceManagement.ResourceProviders;
     using UnityEngine.UIElements;
 
@@ -174,9 +175,14 @@ namespace Threadlink.User.Examples
         [Tooltip("Coins given when the chest opens.")]
         private int coins = 5;
 
+        [SerializeField]
+        [Tooltip("Prompt once the chest is empty: an entry of a string table.")]
+        private LocalizedString emptyPrompt = new LocalizedString();
+
         private bool opened;
 
-        public override string Prompt => opened ? "Empty" : "Open chest";
+        // The base prompt ("Open chest") is assigned in the Inspector, from a string table.
+        public override LocalizedString Prompt => opened ? emptyPrompt : base.Prompt;
 
         public override bool CanInteract(GameObject actor) => base.CanInteract(actor) && !opened;
 

@@ -2,12 +2,28 @@
     <Style src="Starter.uss" />
     <ui:VisualElement class="starter-backdrop">
         <ui:VisualElement class="starter-panel">
-            <ui:Label text="Change Control" class="starter-title" />
+            <ui:Label text="Change Control" class="starter-title">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="rebind.change-control" />
+                </Bindings>
+            </ui:Label>
             <ui:Label name="prompt" text="" class="starter-text" />
             <ui:Label name="conflicts" text="" class="starter-note" />
-            <ui:Button name="clear-conflicts" text="Clear Other Bindings" class="starter-button" />
-            <ui:Button name="keep" text="Keep Both" class="starter-button" />
-            <ui:Button name="cancel" text="Cancel" class="starter-button" />
+            <ui:Button name="clear-conflicts" text="Clear Other Bindings" class="starter-button">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="rebind.clear-conflicts" />
+                </Bindings>
+            </ui:Button>
+            <ui:Button name="keep" text="Keep Both" class="starter-button">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="rebind.keep" />
+                </Bindings>
+            </ui:Button>
+            <ui:Button name="cancel" text="Cancel" class="starter-button">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="rebind.cancel" />
+                </Bindings>
+            </ui:Button>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

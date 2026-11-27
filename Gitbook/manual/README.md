@@ -12,7 +12,7 @@ This is the reference for the Threadlink packages, their Editor tooling and thei
 |---|---|---|
 | [Getting Started](getting-started/requirements.md) | All | Requirements, installation from OpenUPM, the Showcase and the starter project. |
 | [Foundations](foundations/purpose.md) | All | Purpose, package families and dependency rules. |
-| [Designer Reference](designer/README.md) | Content authors | Identifiers and tombstones, typed definitions, audio cues, input prompts and content registration. Requires no C#. |
+| [Designer Reference](designer/README.md) | Content authors | Identifiers and tombstones, typed definitions, audio cues, input prompts, localized text and content registration. Requires no C#. |
 | [Engineer Reference](engineer/README.md) | Programmers | Architecture and the API of every package, saving and platform providers, deterministic and memory tooling, diagnostics, Editor tooling and performance. |
 | [Reference](reference/service-access.md) | All | Subsystem access, menus and asset-creation entries, terminology. |
 

@@ -29,7 +29,10 @@ All Threadlink packages share one version. MessagePack comes as `com.threadforge
 | Folder | Contents |
 | --- | --- |
 | `Threadlink User/Engineering/Codebase` | Project subsystems and code |
-| `Threadlink User/Engineering/Configs` | Engineering settings assets (edited in Project Settings ▸ Threadlink) |
+| `Threadlink User/Engineering/Configs` | Engineering configuration: settings assets (edited in Project Settings ▸ Threadlink), Addressables, input, Localization settings and render pipelines |
+| `Threadlink User/Design/Configs` | Designer configuration: locales and string tables |
 | `Threadlink User/Design` | Designer data: cues, definitions, documents, ID domains |
+
+The configuration folders are defaults: choose others, per asset kind too, in **Threadlink ▸ Workspace ▸ Configuration** ([Configuration assets and folders](../engineer/editor-tooling.md#configuration-assets-and-folders)).
 
 Generated outputs, such as the content ID classes with their `.ids.json` ledgers, are written to `Threadlink User/Engineering/Codebase/Generated` ([Content mapping](../engineer/resource-loading.md#content-mapping)). Preserve `.meta` files and identity ledgers with the assets they describe.

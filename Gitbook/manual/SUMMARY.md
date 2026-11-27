@@ -21,6 +21,7 @@
 * [Vault: Typed Definitions](designer/vault.md)
 * [Audio Cues](designer/audio.md)
 * [Input Prompts and Rebinding](designer/input-prompts.md)
+* [Localizing Text](designer/localization.md)
 * [Registering Content](designer/registering-content.md)
 * [Designer Procedures](designer/procedures.md)
 

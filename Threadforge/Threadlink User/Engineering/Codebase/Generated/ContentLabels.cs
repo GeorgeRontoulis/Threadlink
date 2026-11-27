@@ -6,4 +6,6 @@ public static partial class ContentLabels
 {
     /// <summary>Addressables label default.</summary>
     public static readonly global::Threadforge.Threadlink.ContentLabel Default = new global::Threadforge.Threadlink.ContentLabel("default");
+    /// <summary>Addressables label Locale.</summary>
+    public static readonly global::Threadforge.Threadlink.ContentLabel Locale = new global::Threadforge.Threadlink.ContentLabel("Locale");
 }

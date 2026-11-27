@@ -11,10 +11,12 @@ namespace Threadforge.Threadlink.Tests
 
     public sealed class NativeTarget : MonoBehaviour, IInteractable
     {
+        private static readonly UnityEngine.Localization.LocalizedString Use = new UnityEngine.Localization.LocalizedString("Tests", "use");
+
         public Guid Identity { get; } = Guid.NewGuid();
 
         public InteractionAvailability Evaluate(object actor) =>
-            new InteractionAvailability(true, "Use");
+            new InteractionAvailability(true, Use);
 
         public UniTask ExecuteAsync(object actor, CancellationToken token) => UniTask.CompletedTask;
     }

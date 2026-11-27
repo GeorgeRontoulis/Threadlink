@@ -2,14 +2,38 @@
     <Style src="Starter.uss" />
     <ui:VisualElement class="starter-backdrop">
         <ui:VisualElement class="starter-panel starter-wide">
-            <ui:Label text="Settings" class="starter-title" />
-            <ui:Label text="Audio" class="starter-heading" />
+            <ui:Label text="Settings" class="starter-title">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="settings.settings" />
+                </Bindings>
+            </ui:Label>
+            <ui:Label text="Audio" class="starter-heading">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="settings.audio" />
+                </Bindings>
+            </ui:Label>
             <ui:VisualElement name="volumes" />
-            <ui:Toggle name="muted" label="Mute all" />
-            <ui:Label text="Controls" class="starter-heading" />
+            <ui:Toggle name="muted" label="Mute all">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="label" table="Threadlink Starter" entry="settings.muted-label" />
+                </Bindings>
+            </ui:Toggle>
+            <ui:Label text="Controls" class="starter-heading">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="settings.controls" />
+                </Bindings>
+            </ui:Label>
             <ui:ScrollView class="starter-list"><ui:VisualElement name="bindings" /></ui:ScrollView>
-            <ui:Button name="reset-bindings" text="Reset Controls" class="starter-button" />
-            <ui:Button name="back" text="Back" class="starter-button" />
+            <ui:Button name="reset-bindings" text="Reset Controls" class="starter-button">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="settings.reset-bindings" />
+                </Bindings>
+            </ui:Button>
+            <ui:Button name="back" text="Back" class="starter-button">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="settings.back" />
+                </Bindings>
+            </ui:Button>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

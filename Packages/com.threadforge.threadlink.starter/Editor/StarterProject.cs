@@ -87,6 +87,8 @@ namespace Threadforge.Threadlink.Starter.Editor
             var contents = StarterProject.FindContent();
             if (contents.Count == 0)
                 return;
+            if (!LocalizationSetup.IsReady)
+                issues.Add(new ValidationIssue(Name, IssueSeverity.Warning, "Unity Localization is not set up for the starter's string table. Open Threadlink ▸ Workspace ▸ Localization and select Set up."));
             if (Physics.GetIgnoreLayerCollision(0, 0))
                 issues.Add(new ValidationIssue(Name, IssueSeverity.Warning, "Default-layer collisions are disabled in Physics settings; the starter player falls through the ground."));
             foreach (var content in contents)
@@ -148,7 +150,7 @@ namespace Threadforge.Threadlink.Starter.Editor
         {
             var root = new VisualElement();
             root.Add(WorkspaceUI.Text("A small complete game on Threadlink. StarterGame is one subsystem; scenes, audio, input, screens and saves are already running when the bootstrap scene starts. Designers edit the Starter Content asset; nothing in it selects code."));
-            root.Add(WorkspaceUI.Buttons(("Add scenes to Build Profile", StarterProject.ConfigureBuildScenes), ("Open bootstrap scene", StarterProject.OpenBootstrap)));
+            root.Add(WorkspaceUI.Buttons(("Add scenes to Build Profile", StarterProject.ConfigureBuildScenes), ("Open bootstrap scene", StarterProject.OpenBootstrap), ("Localization", () => context.OpenPage<LocalizationPage>())));
             root.Add(WorkspaceUI.Heading("Content"));
             var contents = StarterProject.FindContent();
             if (contents.Count == 0)

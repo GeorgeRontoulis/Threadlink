@@ -17,7 +17,7 @@ This is the reference for the Threadlink packages, their Editor tooling and thei
 |---|---|---|
 | [Getting Started](#requirements) | All | Requirements, installation from OpenUPM, the Showcase and the starter project. |
 | [Foundations](#purpose) | All | Purpose, package families and dependency rules. |
-| [Designer Reference](#designer-reference) | Content authors | Identifiers and tombstones, typed definitions, audio cues, input prompts and content registration. Requires no C#. |
+| [Designer Reference](#designer-reference) | Content authors | Identifiers and tombstones, typed definitions, audio cues, input prompts, localized text and content registration. Requires no C#. |
 | [Engineer Reference](#engineer-reference) | Programmers | Architecture and the API of every package, saving and platform providers, deterministic and memory tooling, diagnostics, Editor tooling and performance. |
 | [Reference](#subsystem-access) | All | Subsystem access, menus and asset-creation entries, terminology. |
 
@@ -52,6 +52,7 @@ Threadlink packages declare Unity **6000.6**; the reference project and the star
 | Addressables (`com.unity.addressables`) | 2.11.2 | The core (content loading) |
 | Collections (`com.unity.collections`) | 6.6.0 | The core (memory toolkits) |
 | Input System (`com.unity.inputsystem`) | 1.20.1 | Dextra |
+| Localization (`com.unity.localization`) | 1.5.14 | Dextra, Starter, Showcase (player-visible text) |
 | Audio, Physics, Physics 2D and UI Elements modules | 1.0.0 | Aura, Dextra, the core's Editor workspace |
 | uGUI (`com.unity.ugui`) | 2.6.0 | Optional: uGUI screens in Dextra |
 
@@ -59,6 +60,7 @@ Threadlink packages declare Unity **6000.6**; the reference project and the star
 
 | Package | Effect |
 |---|---|
+| Universal or High Definition Render Pipeline (`com.unity.render-pipelines.universal`, `com.unity.render-pipelines.high-definition`), shipped with the Editor | Managed on **Threadlink ▸ Workspace ▸ Rendering**: install, create pipeline assets, choose the default and per-quality-level assets. Without one the project uses the Built-in Render Pipeline. |
 | Steamworks API (`com.unity.steamworks-api`) | Enables the Unity backend of `sentinel.steam`. Import the SDK libraries through **Project Settings ▸ Steamworks**. |
 | Steamworks.NET (`com.rlabrecque.steamworks.net`) 2024.8.0 or later | Enables the Steamworks.NET backend of `sentinel.steam`. Choose one Steam wrapper per project. |
 
@@ -149,7 +151,7 @@ Every package is also available as a `.tgz` archive. In the Package Manager use 
 ### Install and play
 
 1. Install `com.threadforge.threadlink.starter` (see [Installation](#installation-and-project-setup)), or select **Install** on its card in the Workspace Hub. Its dependencies install with it.
-2. Import its **Starter** sample (Package Manager or Hub).
+2. Import its **Starter** sample (Package Manager or Hub). The import sets up Unity Localization for the sample's English string table (see [Localizing Text](#localizing-text)).
 3. Run **Threadlink ▸ Starter ▸ Add Starter Scenes To Build Profile**. It previews the list, puts `Starter Bootstrap`, `Starter Menu` and `Starter Forest` first and keeps your other scenes.
 4. Open `Starter Bootstrap` (**Threadlink ▸ Starter ▸ Open Bootstrap Scene**) and enter Play mode.
 
@@ -162,8 +164,8 @@ The whole game flow is one subsystem, `StarterGame`. It requires Nexus, Aura, De
 | Piece | Kind | Role |
 | --- | --- | --- |
 | `StarterGame` | Subsystem (code) | Menu, new game, continue, load, play, pause, save, autosave, settings, recovery |
-| `StarterContent` | Designer data | Screens, sounds, first level, menu scene, slot count, autosave interval, input actions and panel |
-| `LevelDefinition` | Designer data (Vault) | Level name, scene, music, spawn point, required lanterns |
+| `StarterContent` | Designer data | Screens, sounds, first level, menu scene, slot count, autosave interval, input actions, panel and text |
+| `LevelDefinition` | Designer data (Vault) | Localized level name, scene, music, spawn point, required lanterns |
 | `StarterLevel`, `StarterPlayer`, `StarterCollectible`, `StarterExit` | Scene components | Restore and capture the level, move the player, lanterns and exit (both `Interactable`) |
 | `StarterSave`, `StarterPreferences` | Save types | A slot's state; volumes and mute |
 
@@ -183,6 +185,7 @@ Saves are per local profile under `Application.persistentDataPath/Threadlink/Sav
 
 - Edit `Definitions/Forest` for the level, and `Configuration/StarterContent` for screens, sounds and tuning.
 - Edit the UXML and USS under `UI`; keep the element names the game binds.
+- Edit the text in the **Threadlink Starter** string table under `Localization`; screen labels bind to its entries, and `StarterContent` ▸ **Text** points at the entries the game fills in.
 - Replace the placeholder tones in `Audio`.
 - `StarterTint` colors the sample's primitives with the active render pipeline's default material. Replace it with authored materials in a real project.
 
@@ -194,6 +197,8 @@ The Showcase is a gallery with a runnable demo for every Threadlink feature. Eac
 
 - From the Hub: **Threadlink ▸ Workspace ▸ Hub ▸ Install Showcase**, then **Open Showcase**. The Hub imports the sample and opens its scene.
 - From the Package Manager: install `com.threadforge.threadlink.showcase`, import its **Showcase** sample and open `Scenes/Showcase.unity`.
+
+Importing the sample sets up Unity Localization for its **Threadlink Showcase** string table (see [Localizing Text](#localizing-text)).
 
 Enter Play mode and select a demo on the left.
 
@@ -270,8 +275,11 @@ All Threadlink packages share one version. MessagePack comes as `com.threadforge
 | Folder | Contents |
 | --- | --- |
 | `Threadlink User/Engineering/Codebase` | Project subsystems and code |
-| `Threadlink User/Engineering/Configs` | Engineering settings assets (edited in Project Settings ▸ Threadlink) |
+| `Threadlink User/Engineering/Configs` | Engineering configuration: settings assets (edited in Project Settings ▸ Threadlink), Addressables, input, Localization settings and render pipelines |
+| `Threadlink User/Design/Configs` | Designer configuration: locales and string tables |
 | `Threadlink User/Design` | Designer data: cues, definitions, documents, ID domains |
+
+The configuration folders are defaults: choose others, per asset kind too, in **Threadlink ▸ Workspace ▸ Configuration** ([Configuration assets and folders](#configuration-assets-and-folders)).
 
 Generated outputs, such as the content ID classes with their `.ids.json` ledgers, are written to `Threadlink User/Engineering/Codebase/Generated` ([Content mapping](#content-mapping)). Preserve `.meta` files and identity ledgers with the assets they describe.
 
@@ -288,6 +296,7 @@ This volume covers authoring in the Unity Editor without writing C#. Engineers d
 | [Vault: Typed Definitions](#vault-typed-definitions) | Authoring Vault assets and variants with inherited overrides. |
 | [Audio Cues](#audio-cues) | Creating cues, scene music and screen sounds. |
 | [Input Prompts and Rebinding](#input-prompts-and-rebinding) | How prompts choose glyphs and how players rebind controls. |
+| [Localizing Text](#localizing-text) | String tables for prompts, names and screen text; adding languages. |
 | [Registering Content](#registering-content) | Mapping addressable assets, prefabs and scenes for loading by ID. |
 | [Designer Procedures](#designer-procedures) | Step-by-step tasks. |
 
@@ -388,6 +397,49 @@ Rebinding listens for the next control on the player's own devices. Composite bi
 ### Contexts
 
 Gameplay, menus and cutscenes enable different action maps through claims with priorities. A blocking claim (for example an open menu) suspends lower-priority input until it is released, then the earlier input returns unchanged.
+
+## Localizing Text
+
+Threadlink shows player-visible text through Unity Localization (`com.unity.localization`). Text fields are `LocalizedString` references: a string table and an entry in it. Each field follows the selected language, and the Inspector edits it with Localization's table and entry picker.
+
+### What is localized
+
+| Text | Where it is authored |
+|---|---|
+| Interaction prompts | The **Prompt** field of every `Interactable` (Dextra) |
+| Starter level names | `LevelDefinition` ▸ **Display Name** |
+| Starter collectible names | `StarterCollectible` ▸ **Display Name**, inserted into its prompt as `{item}` |
+| Starter messages, slot labels, settings and control names | `StarterContent` ▸ **Text**, and its string table |
+| Starter screen labels and buttons | Bindings in the screens' UXML documents |
+| Showcase demo text | The **Threadlink Showcase** string table |
+
+Input prompts name controls and devices from the Input System (`Space`, `Button South`), or show the team's glyphs; they are not table entries. See [Input Prompts and Rebinding](#input-prompts-and-rebinding).
+
+### Setup
+
+Open **Threadlink ▸ Workspace ▸ Localization** and select **Set up**. It creates what is missing and is safe to run again:
+
+- Localization settings in the engineering configs folder and the English (`en`) locale in the design configs folder (see [Configuration assets and folders](#configuration-assets-and-folders)).
+- Registration of every string table collection for loading. Localization loads tables through Addressables.
+
+Importing the Starter or Showcase sample runs it automatically, because each sample brings an English string table collection: **Threadlink Starter** and **Threadlink Showcase**, under the sample's `Localization` folder. The Starter's validator reports a project that is not set up.
+
+### Adding a language
+
+1. On the Workspace's **Localization** page, pick the language in **Add locale** and select **Add**. The locale is created in the Locales folder, and every string table collection gets a table for it.
+2. Translate the entries: **Open** a string table, or use **Tables window**.
+3. Choose how the game selects the language in **Project Settings ▸ Localization** (locale selectors).
+
+**New string table** creates a collection with a table for every locale in the String Tables folder. **Folder…** on the Locales and String Tables rows chooses where new ones go.
+
+Entries are matched by key, so translations never change the assets that reference them.
+
+### Writing entries
+
+- Give each piece of text its own entry. Do not build sentences from fragments; word order differs between languages.
+- Entries with `{0}`, `{1}` take values from the game, such as a slot number. Keep the placeholders in every translation.
+- Smart entries take named values. The Starter's `take-item` entry is `Take {item}`, where `{item}` is the collectible's own localized name.
+- A prompt with no table or entry shows nothing. The Starter's validator reports unassigned **Text** entries and level names.
 
 ## Registering Content
 
@@ -568,7 +620,7 @@ Framework subsystems follow the same pattern and expose their API as static meth
 | Kind | Lives in | Edited by |
 | --- | --- | --- |
 | Composition and behaviour | Code: subsystems, components, save types | Engineers |
-| Engineering settings | `ThreadlinkSettings<T>` assets in `Engineering/Configs`, edited only in **Project Settings ▸ Threadlink**, read-only in the Inspector, preloaded in players | Engineers |
+| Engineering settings | `ThreadlinkSettings<T>` assets in `Engineering/Configs` or the folder chosen on the Workspace's Configuration page, edited only in **Project Settings ▸ Threadlink**, read-only in the Inspector, preloaded in players | Engineers |
 | Designer data | Assets and scene components: `AudioCue`, `SceneMusic`, `VaultAsset`, screen documents, tuning values | Designers |
 
 Designer data holds values only: it never selects types, services or wiring.
@@ -872,17 +924,25 @@ Components implementing `IScreenListener` on a screen hear when it shows, hides 
 ```csharp
 public sealed class Chest : Interactable
 {
-    public override string Prompt => "Open chest";
+    [SerializeField] private LocalizedString emptyPrompt;  // a string table entry
+    private bool opened;
+
+    public override LocalizedString Prompt => opened ? emptyPrompt : base.Prompt;
 
     protected override async UniTask InteractAsync(GameObject actor, CancellationToken token)
     {
         await animator.PlayOpenAsync(token);
         Inventory.Add(loot);
+        opened = true;
     }
 }
+
+promptLabel.text = sensor.Prompt?.GetLocalizedString() ?? string.Empty;
 ```
 
-Add **Threadlink ▸ Dextra ▸ Interaction Sensor** to the player. Every frame it finds interactables through 3D or 2D physics within its radius and selects the closest available one; `sensor.Prompt` is the selected target's prompt and `await sensor.InteractAsync()` runs one interaction at a time. Iris publishes `InteractionTargetChanged` when the selection changes. Objects that cannot derive from `Interactable` implement `IInteractable`.
+Add **Threadlink ▸ Dextra ▸ Interaction Sensor** to the player. Every frame it finds interactables through 3D or 2D physics within its radius and selects the closest available one; `sensor.Prompt` is the selected target's prompt, a `LocalizedString` (null when nothing is selected), and `await sensor.InteractAsync()` runs one interaction at a time. Iris publishes `InteractionTargetChanged` when the selection changes. Objects that cannot derive from `Interactable` implement `IInteractable`.
+
+Prompts are Unity Localization string table entries, picked in the **Prompt** field. Read one with `GetLocalizedString()` when the selection or the language changes, or bind it to a UI Toolkit property so it follows the language by itself. Use `LocalizedString` for any other player-visible text an interactable owns; see [Localizing Text](#localizing-text).
 
 ## Aura: Audio
 
@@ -1498,14 +1558,69 @@ Open **Threadlink ▸ Workspace** for a UI Toolkit window, in the Threadlink the
 | --- | --- | --- |
 | Hub | Core | Every Threadlink package by family with description, installed and release version, documentation, Install, Update and Remove, sample import, Install Complete Framework, the OpenUPM registry check and the Showcase |
 | Validation | Core | Every installed validator; issues select the affected asset |
+| Configuration | Core | Every configuration asset by category, where it is, the folders new ones go to, Create and Move to folder |
 | Runtime | Core | The Runtime monitor (below) |
 | Code Generation | Core | Every code generator: generated IDs and their sources, ID domains, the Content mapping and subsystem registration |
+| Rendering | Core | The render pipeline: packages, the default and per-quality-level pipeline assets, pipeline and renderer assets |
 | Content | Core | The Content mapping: every Addressables group with a toggle per entry, Apply, labels and problems |
 | Vault | Core | Vault assets, schema and authored versions, pending migrations |
 | Input | Dextra | Input action assets and the Input System settings |
+| Localization | Dextra | Localization setup, locales, string tables and their folders |
 | Starter | Starter | Sample import, build-scene setup and starter content checks |
 
 The Hub opens first; in Play mode the Workspace switches to the Runtime page. The Hub's package list comes from a catalog shipped with the core for its release, so it lists packages that are not installed yet. Install and Update request the release version through the Package Manager; Remove is offered only for packages added directly to the project and not required by another installed Threadlink package. When `Packages/manifest.json` lacks the OpenUPM registry or the `com.threadforge` scope, **Add Registry** adds it after confirmation and leaves every other entry unchanged.
+
+### Configuration assets and folders
+
+The **Configuration** page lists every configuration asset the installed packages manage, by category:
+
+| Category | Assets |
+| --- | --- |
+| Threadlink | Every engineering settings asset (`ThreadlinkSettings<T>`) |
+| Content | Addressables settings, with their groups |
+| Input | Player Actions (**Dextra ▸ Actions**), Input System settings, project-wide actions, Screen Panel Settings (**Dextra ▸ Panel**) |
+| Localization | Localization settings; the Locales and String Tables folders |
+| Rendering | The default render pipeline asset and the pipeline's global settings |
+
+Each row shows where the asset is and offers **Select**, **Create** when it is missing, **Move to folder** when it is elsewhere, and **Folder…** to choose where new ones go. **Create** makes the project use the new asset: it registers the Input System settings, assigns Dextra's fields, activates the Localization settings and, after confirmation, makes a new pipeline asset the default. Project-wide actions and pipeline global settings are created by their packages; the page finds and moves them.
+
+New assets go to one of two folders unless an asset has its own:
+
+| Folder | Default | Used by |
+| --- | --- | --- |
+| Engineering configs | `Assets/Threadforge/Threadlink User/Engineering/Configs` | Settings, Addressables, input, Localization settings, render pipelines |
+| Design configs | `Assets/Threadforge/Threadlink User/Design/Configs` | Locales and string tables |
+
+The choices are stored in `ProjectSettings/ThreadlinkAssetLocations.asset`; keep it under version control. A new folder applies to assets created afterwards. **Move to folder**, or **Move all to their folders**, relocates existing ones with their GUIDs, so references keep working. Addressables settings move with their whole data folder; a pipeline asset moves with its renderer, the global settings with their volume profile, and the screen panel settings with their theme, when those sit beside them.
+
+A package adds its own assets with a `ConfigSource`, discovered like pages:
+
+```csharp
+public sealed class WeatherConfigSource : ConfigSource
+{
+    public override IEnumerable<ConfigAsset> Assets => new[] { new WeatherProfileConfig() };
+}
+
+sealed class WeatherProfileConfig : ConfigAsset
+{
+    public WeatherProfileConfig()
+        : base(new AssetLocation("game.weather.profile", "Weather Profile", "Rendering", ConfigRoot.Design)) { }
+
+    public override Object Find() => AssetDatabase.FindAssets("t:WeatherProfile").Select(AssetDatabase.GUIDToAssetPath).Select(AssetDatabase.LoadAssetAtPath<WeatherProfile>).FirstOrDefault();
+
+    protected override Object CreateIn(string folder) => Save(ScriptableObject.CreateInstance<WeatherProfile>(), folder, "Weather Profile.asset");
+}
+```
+
+`AssetLocations.GetFolder(location)` and `AssetLocations.NewAssetPath(location, fileName)` give the folder for an asset kind, and `ConfigUI.Category(context, "Rendering", context.Refresh)` shows a category's rows on a page.
+
+### Rendering
+
+The **Rendering** page shows the active pipeline, or the Built-in Render Pipeline when no pipeline asset is the default, and:
+
+- the default pipeline asset, and one per quality level (empty: the level uses the default);
+- the Universal and High Definition Render Pipeline packages, which ship with the Editor: **Install** adds one after confirmation, **New asset** creates a pipeline asset (Universal's with its renderer) in the Render Pipeline folder without making it the default;
+- every pipeline and renderer asset in the project, with **Use as default** and **Move to folder**.
 
 ### Runtime monitor
 

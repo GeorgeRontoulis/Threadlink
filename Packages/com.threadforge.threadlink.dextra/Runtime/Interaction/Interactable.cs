@@ -5,6 +5,7 @@ namespace Threadforge.Threadlink
     using System.Collections.Generic;
     using System.Threading;
     using UnityEngine;
+    using UnityEngine.Localization;
 
     /// <summary>
     /// Base class for something the player can interact with. Override <see cref="InteractAsync"/>, and optionally
@@ -13,14 +14,17 @@ namespace Threadforge.Threadlink
     /// </summary>
     public abstract class Interactable : MonoBehaviour, IInteractable
     {
-        [Tooltip("Text shown while this is the selected target.")]
+        [Tooltip("Text shown while this is the selected target: an entry of a string table.")]
         [SerializeField]
-        private string prompt = "Interact";
+        private LocalizedString prompt = new LocalizedString();
 
         private readonly Guid identity = Guid.NewGuid();
 
-        /// <summary>Text shown while this is the selected target.</summary>
-        public virtual string Prompt => prompt;
+        /// <summary>
+        /// Text shown while this is the selected target, as a string table entry. Bind it to UI, or read it with
+        /// <see cref="LocalizedString.GetLocalizedString()"/>, so it follows the selected language.
+        /// </summary>
+        public virtual LocalizedString Prompt => prompt;
 
         Guid IInteractable.Identity => identity;
 
@@ -65,8 +69,8 @@ namespace Threadforge.Threadlink
         /// <summary>The selected target, or null.</summary>
         public IInteractable Target => interactor.Selected;
 
-        /// <summary>The selected target's prompt, or an empty string.</summary>
-        public string Prompt => interactor.Evaluate(gameObject).Prompt;
+        /// <summary>The selected target's prompt, or null when nothing is selected.</summary>
+        public LocalizedString Prompt => interactor.Evaluate(gameObject).Prompt;
 
         /// <summary>Whether an interaction is running.</summary>
         public bool IsInteracting => interactor.IsExecuting;

@@ -2,6 +2,7 @@ namespace Threadforge.Threadlink.Starter
 {
     using System;
     using UnityEngine;
+    using UnityEngine.Localization;
 
     /// <summary>Read-only runtime level data prepared from a <see cref="LevelDefinition"/>.</summary>
     /// <remarks>The music cue is a presentation reference kept for the Unity adapter; gameplay state lives in saves.</remarks>
@@ -10,8 +11,8 @@ namespace Threadforge.Threadlink.Starter
         /// <summary>Stable level identity, also used as the Nexus scene identity.</summary>
         public Guid Identity { get; }
 
-        /// <summary>Player-facing name.</summary>
-        public string DisplayName { get; }
+        /// <summary>Player-facing name, as a string table entry.</summary>
+        public LocalizedString DisplayName { get; }
 
         /// <summary>Build-profile scene name.</summary>
         public SceneId Scene { get; }
@@ -25,7 +26,7 @@ namespace Threadforge.Threadlink.Starter
         /// <summary>Items needed to open the exit.</summary>
         public int RequiredItems { get; }
 
-        internal PreparedLevel(Guid identity, string displayName, SceneId scene, AudioCue music, Vector3 spawn, int requiredItems)
+        internal PreparedLevel(Guid identity, LocalizedString displayName, SceneId scene, AudioCue music, Vector3 spawn, int requiredItems)
         {
             Identity = identity;
             DisplayName = displayName;
@@ -36,12 +37,12 @@ namespace Threadforge.Threadlink.Starter
         }
     }
 
-    /// <summary>Typed authored level definition (schema version 1).</summary>
+    /// <summary>Typed authored level definition (schema version 2: the name is a string table entry).</summary>
     [CreateAssetMenu(menuName = "Threadlink/Starter/Level Definition")]
     public sealed class LevelDefinition : VaultAsset<PreparedLevel>
     {
-        [Tooltip("Level name shown in menus and saves.")]
-        public string DisplayName = "Forest";
+        [Tooltip("Level name shown in menus and saves: an entry of a string table.")]
+        public LocalizedString DisplayName = new LocalizedString();
         [Tooltip("Build Profile scene to load.")]
         public SceneReference Scene;
         [Tooltip("Music played in the level.")]
@@ -57,7 +58,7 @@ namespace Threadforge.Threadlink.Starter
         public override Guid Schema => new Guid("0d6f6a77-2b9e-4b55-9f7b-3d4f3e7d5c10");
 
         /// <inheritdoc />
-        public override int SchemaVersion => 1;
+        public override int SchemaVersion => 2;
 
         /// <summary>Prepares this definition alone.</summary>
         public PreparedLevel Prepare() => Vault.Get(this);
@@ -65,11 +66,19 @@ namespace Threadforge.Threadlink.Starter
         /// <inheritdoc />
         protected override void ValidateAuthoring()
         {
-            if (string.IsNullOrWhiteSpace(DisplayName) || !Scene.IsAssigned)
-                throw new InvalidOperationException("A level needs a display name and scene.");
+            if (DisplayName == null || DisplayName.IsEmpty || !Scene.IsAssigned)
+                throw new InvalidOperationException("A level needs a display name entry and a scene.");
             if (RequiredItems < 0)
                 throw new InvalidOperationException("Required items cannot be negative.");
             Music?.Validate();
+        }
+
+        // Version 1 stored the name as text. Assign its string table entry after migrating; validation reports it until then.
+        /// <inheritdoc />
+        protected override void MigrateAuthoring(int sourceVersion)
+        {
+            if (sourceVersion != 1)
+                base.MigrateAuthoring(sourceVersion);
         }
 
         /// <inheritdoc />

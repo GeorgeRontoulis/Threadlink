@@ -1,6 +1,6 @@
 {
   "name": "com.threadforge.threadlink.sentinel",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "displayName": "Threadlink Sentinel",
   "description": "Accounts and platform capabilities routed to the installed provider, and per-account saves that are transactional, versioned and recoverable.",
   "unity": "6000.6",
@@ -21,7 +21,7 @@
   "changelogUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.sentinel/CHANGELOG.md",
   "licensesUrl": "https://github.com/GeorgeRontoulis/Threadlink/blob/main/Packages/com.threadforge.threadlink.sentinel/LICENSE.md",
   "dependencies": {
-    "com.threadforge.threadlink": "3.0.0",
+    "com.threadforge.threadlink": "4.0.0",
     "com.threadforge.dependencies.messagepack": "3.1.12"
   }
 }

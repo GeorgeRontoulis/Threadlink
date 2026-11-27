@@ -4,14 +4,19 @@ namespace Threadforge.Threadlink
     using System;
     using System.Collections.Generic;
     using System.Threading;
+    using UnityEngine.Localization;
 
-    /// <summary>Current availability and the prompt/reason shown to an actor.</summary>
+    /// <summary>Whether a target can be used now, and the prompt shown to the actor.</summary>
     public readonly struct InteractionAvailability
     {
+        /// <summary>Whether the target can be used now.</summary>
         public bool IsAvailable { get; }
-        public string Prompt { get; }
 
-        public InteractionAvailability(bool available, string prompt)
+        /// <summary>The prompt as a string table entry, or null.</summary>
+        public LocalizedString Prompt { get; }
+
+        /// <summary>Creates an availability.</summary>
+        public InteractionAvailability(bool available, LocalizedString prompt)
         {
             IsAvailable = available;
             Prompt = prompt;
@@ -46,7 +51,7 @@ namespace Threadforge.Threadlink
         public bool IsExecuting { get; private set; }
 
         public InteractionAvailability Evaluate(object actor) =>
-            Selected?.Evaluate(actor) ?? new InteractionAvailability(false, string.Empty);
+            Selected?.Evaluate(actor) ?? new InteractionAvailability(false, null);
 
         /// <summary>Chooses the best available candidate, breaking score ties by stable identity.</summary>
         public void Select(IEnumerable<InteractionCandidate> candidates, object actor)

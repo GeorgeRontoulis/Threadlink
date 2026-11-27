@@ -3,6 +3,7 @@ namespace Threadforge.Threadlink.Starter
     using Cysharp.Threading.Tasks;
     using UnityEngine;
     using UnityEngine.InputSystem;
+    using UnityEngine.Localization;
 
     /// <summary>
     /// The gameplay level in a scene: restores the save into the scene, routes the Interact action to the player's
@@ -25,8 +26,8 @@ namespace Threadforge.Threadlink.Starter
         /// <summary>The player.</summary>
         public StarterPlayer Player => player;
 
-        /// <summary>The prompt of the selected interactable, or empty.</summary>
-        public string Prompt => sensor != null && sensor.Target != null ? sensor.Prompt : string.Empty;
+        /// <summary>The prompt of the selected interactable, or null.</summary>
+        public LocalizedString Prompt => sensor != null && sensor.Target != null ? sensor.Prompt : null;
 
         /// <summary>Whether an interaction is running; autosave waits for it.</summary>
         public bool Busy => sensor != null && sensor.IsInteracting;

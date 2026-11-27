@@ -12,9 +12,6 @@ namespace Threadforge.Threadlink.Starter
         private string identity;
 
         /// <inheritdoc />
-        public override string Prompt => "Leave the forest";
-
-        /// <inheritdoc />
         protected override UniTask InteractAsync(GameObject actor, CancellationToken token) => StarterGame.Instance.ExitReachedAsync();
 
         private void OnValidate()

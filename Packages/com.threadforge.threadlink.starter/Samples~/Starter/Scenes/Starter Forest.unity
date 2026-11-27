@@ -3118,7 +3118,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 692c24ddc7cefa046a0de62abb98030f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Threadforge.Threadlink.Starter::Threadforge.Threadlink.Starter.StarterExit
+  prompt:
+    m_TableReference:
+      m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+    m_TableEntryReference:
+      m_KeyId: 551243776
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
   identity: 4c6d8e0f-3a51-4c7d-8e9f-1a2b3c4d5e44
+  references:
+    version: 2
+    RefIds: []
 --- !u!114 &1145499341
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3785,9 +3797,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 10b865205b7ee3d4ebb78320e889cc8f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Threadforge.Threadlink.Starter::Threadforge.Threadlink.Starter.StarterCollectible
+  prompt:
+    m_TableReference:
+      m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+    m_TableEntryReference:
+      m_KeyId: 547049488
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
   identity: 2a4b6c8d-1e3f-4a5b-8c7d-9e0f1a2b3c22
-  displayName: Lantern
+  displayName:
+    m_TableReference:
+      m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+    m_TableEntryReference:
+      m_KeyId: 547049487
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
   visual: {fileID: 0}
+  references:
+    version: 2
+    RefIds: []
 --- !u!114 &1379641313
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4388,9 +4420,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 10b865205b7ee3d4ebb78320e889cc8f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Threadforge.Threadlink.Starter::Threadforge.Threadlink.Starter.StarterCollectible
+  prompt:
+    m_TableReference:
+      m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+    m_TableEntryReference:
+      m_KeyId: 547049488
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
   identity: 1f3a6c2e-4b5d-4e8f-9a01-6c7d8e9f0a11
-  displayName: Lantern
+  displayName:
+    m_TableReference:
+      m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+    m_TableEntryReference:
+      m_KeyId: 547049487
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
   visual: {fileID: 0}
+  references:
+    version: 2
+    RefIds: []
 --- !u!114 &1682778928
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4861,9 +4913,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 10b865205b7ee3d4ebb78320e889cc8f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Threadforge.Threadlink.Starter::Threadforge.Threadlink.Starter.StarterCollectible
+  prompt:
+    m_TableReference:
+      m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+    m_TableEntryReference:
+      m_KeyId: 547049488
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
   identity: 3b5c7d9e-2f40-4b6c-9d8e-0f1a2b3c4d33
-  displayName: Lantern
+  displayName:
+    m_TableReference:
+      m_TableCollectionName: GUID:f92314cc306f8184193c4a7162176a74
+    m_TableEntryReference:
+      m_KeyId: 547049487
+      m_Key: 
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
   visual: {fileID: 0}
+  references:
+    version: 2
+    RefIds: []
 --- !u!114 &1840372306
 MonoBehaviour:
   m_ObjectHideFlags: 0

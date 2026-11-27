@@ -2,10 +2,18 @@
     <Style src="Starter.uss" />
     <ui:VisualElement class="starter-backdrop">
         <ui:VisualElement class="starter-panel">
-            <ui:Label text="Choose a Save" class="starter-title" />
+            <ui:Label text="Choose a Save" class="starter-title">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="conflict.choose-a-save" />
+                </Bindings>
+            </ui:Label>
             <ui:Label name="detail" text="" class="starter-text" />
             <ui:ScrollView class="starter-list"><ui:VisualElement name="versions" /></ui:ScrollView>
-            <ui:Button name="keep-local" text="Keep Local Save" class="starter-button" />
+            <ui:Button name="keep-local" text="Keep Local Save" class="starter-button">
+                <Bindings>
+                    <UnityEngine.Localization.LocalizedString property="text" table="Threadlink Starter" entry="conflict.keep-local" />
+                </Bindings>
+            </ui:Button>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
